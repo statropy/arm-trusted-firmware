@@ -104,10 +104,6 @@ PLAT_INCLUDES		:=	-Iplat/arm/board/fvp/include 		\
 
 PLAT_BL_COMMON_SOURCES	:=	plat/arm/board/fvp/fvp_common.c
 
-FVP_CPU_LIBS		:=	lib/cpus/${ARCH}/aem_generic.S
-
-FVP_CPU_LIBS		+=	lib/cpus/aarch32/cortex_a7.S
-
 BL1_SOURCES		+=	drivers/arm/smmu/smmu_v3.c				\
 				drivers/arm/sp805/sp805.c					\
 				drivers/delay_timer/delay_timer.c			\
@@ -116,10 +112,10 @@ BL1_SOURCES		+=	drivers/arm/smmu/smmu_v3.c				\
 				lib/semihosting/semihosting.c				\
 				lib/semihosting/${ARCH}/semihosting_call.S	\
 				plat/arm/board/fvp/${ARCH}/fvp_helpers.S	\
-				plat/arm/board/fvp/fvp_bl1_setup.c			\
+				plat/microchip/lan966x/lan966x_bl1_setup.c	\
 				plat/arm/board/fvp/fvp_err.c				\
 				plat/arm/board/fvp/fvp_io_storage.c			\
-				${FVP_CPU_LIBS}								\
+				lib/cpus/aarch32/cortex_a7.S				\
 				${FVP_INTERCONNECT_SOURCES}
 
 ifeq (${USE_SP804_TIMER},1)

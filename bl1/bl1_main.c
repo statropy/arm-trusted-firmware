@@ -22,11 +22,6 @@
 #include <smccc_helpers.h>
 #include <tools_share/uuid.h>
 
-/* Add needed header files for usart usage */
-#include "lan966x_baremetal_cpu_regs.h"
-#include "mchp,lan966x_icpu.h"
-#include "usart.h"
-
 #include "bl1_private.h"
 
 static void bl1_load_bl2(void);
@@ -34,10 +29,6 @@ static void bl1_load_bl2(void);
 #if ENABLE_PAUTH
 uint64_t bl1_apiakey[2];
 #endif
-
-/* will hold the maserati register structure */
-uint32_t maserati_regs[NUM_TARGETS];
-#define update_regs(T) maserati_regs[TARGET_ ## T] = T ## _ADDR
 
 /*******************************************************************************
  * Helper utility to calculate the BL2 memory layout taking into consideration
@@ -71,10 +62,6 @@ void bl1_setup(void)
 	/* Perform late platform-specific setup */
 	bl1_plat_arch_setup();
 
-	/* Initialize  maserati/sunrise specific UART interface */
-    maserati_regs[TARGET_FLEXCOM] = FLEXCOM_0_ADDR;
-    usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
-
 #if CTX_INCLUDE_PAUTH_REGS
 	/*
 	 * Assert that the ARMv8.3-PAuth registers are present or an access
@@ -92,10 +79,6 @@ void bl1_setup(void)
 void bl1_main(void)
 {
 	unsigned int image_id;
-
-    /* redirect test output to specific usart function */
-    usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
-    usart_puts("Enter main() loop \n");
 
 	/* Announce our arrival */
 	NOTICE(FIRMWARE_WELCOME_STR);
