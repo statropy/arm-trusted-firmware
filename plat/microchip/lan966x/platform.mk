@@ -92,31 +92,34 @@ else
 $(error "Incorrect CCN driver chosen on FVP port")
 endif
 
-FVP_SECURITY_SOURCES	:=	drivers/arm/tzc/tzc400.c		\
-				plat/arm/board/fvp/fvp_security.c	\
-				plat/arm/common/arm_tzc400.c
+FVP_SECURITY_SOURCES	:=	drivers/arm/tzc/tzc400.c			\
+            				plat/arm/board/fvp/fvp_security.c	\
+            				plat/arm/common/arm_tzc400.c
 
 
-PLAT_INCLUDES		:=	-Iplat/arm/board/fvp/include
+PLAT_INCLUDES		:=	-Iplat/arm/board/fvp/include 		\
+						-Iplat/microchip/lan966x/include 	\
+						-Iinclude/drivers/microchip
 
 
 PLAT_BL_COMMON_SOURCES	:=	plat/arm/board/fvp/fvp_common.c
 
 FVP_CPU_LIBS		:=	lib/cpus/${ARCH}/aem_generic.S
 
-FVP_CPU_LIBS		+=	lib/cpus/aarch32/cortex_a32.S
+FVP_CPU_LIBS		+=	lib/cpus/aarch32/cortex_a7.S
 
-BL1_SOURCES		+=	drivers/arm/smmu/smmu_v3.c			\
-				drivers/arm/sp805/sp805.c			\
-				drivers/delay_timer/delay_timer.c		\
-				drivers/io/io_semihosting.c			\
-				lib/semihosting/semihosting.c			\
+BL1_SOURCES		+=	drivers/arm/smmu/smmu_v3.c				\
+				drivers/arm/sp805/sp805.c					\
+				drivers/delay_timer/delay_timer.c			\
+				drivers/io/io_semihosting.c					\
+				drivers/microchip/usart/usart.c				\
+				lib/semihosting/semihosting.c				\
 				lib/semihosting/${ARCH}/semihosting_call.S	\
 				plat/arm/board/fvp/${ARCH}/fvp_helpers.S	\
-				plat/arm/board/fvp/fvp_bl1_setup.c		\
-				plat/arm/board/fvp/fvp_err.c			\
-				plat/arm/board/fvp/fvp_io_storage.c		\
-				${FVP_CPU_LIBS}					\
+				plat/arm/board/fvp/fvp_bl1_setup.c			\
+				plat/arm/board/fvp/fvp_err.c				\
+				plat/arm/board/fvp/fvp_io_storage.c			\
+				${FVP_CPU_LIBS}								\
 				${FVP_INTERCONNECT_SOURCES}
 
 ifeq (${USE_SP804_TIMER},1)
@@ -128,8 +131,8 @@ endif
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
 
-# Enable dynamic mitigation support by default
-DYNAMIC_WORKAROUND_CVE_2018_3639	:=	1
+# Enable dynamic mitigation support by default , check if needed for Lan966x
+DYNAMIC_WORKAROUND_CVE_2018_3639	:=	0
 
 # Enable reclaiming of BL31 initialisation code for secondary cores
 # stacks for FVP. However, don't enable reclaiming for clang.
@@ -141,6 +144,10 @@ endif
 
 ifneq (${ENABLE_STACK_PROTECTOR},0)
 PLAT_BL_COMMON_SOURCES	+=	plat/arm/board/fvp/fvp_stack_protector.c
+endif
+
+ifeq (${ARCH},aarch32)
+    NEED_BL32 := no
 endif
 
 ifneq (${BL2_AT_EL3}, 0)
