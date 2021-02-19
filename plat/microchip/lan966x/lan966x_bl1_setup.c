@@ -5,7 +5,6 @@
  */
 
 #include <assert.h>
-#include <platform.h>
 
 #include <arch.h>
 #include <bl1/bl1.h>
@@ -14,17 +13,10 @@
 #include <lib/utils.h>
 #include <plat/common/platform.h>
 
+#include "lan966x_regs_common.h"
 #include "lan966x_baremetal_cpu_regs.h"
 #include "mchp,lan966x_icpu.h"
 #include "usart.h"
-
-/* Weak definitions may be overridden in specific ARM standard platform */
-#pragma weak bl1_early_platform_setup
-#pragma weak bl1_plat_arch_setup
-#pragma weak bl1_plat_sec_mem_layout
-#pragma weak bl1_plat_prepare_exit
-#pragma weak bl1_plat_get_next_image_id
-#pragma weak plat_arm_bl1_fwu_needed
 
 #define MAP_BL1_TOTAL   MAP_REGION_FLAT(                \
 					    bl1_tzram_layout.total_base,	\
@@ -74,6 +66,10 @@ void bl1_early_platform_setup(void) {
     /* Initialise  maserati/sunrise specific UART interface */
     maserati_regs[TARGET_FLEXCOM] = FLEXCOM_0_ADDR;
     usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
+
+    /* Allow BL1 to see the whole Trusted RAM */
+    bl1_tzram_layout.total_base = ARM_BL_RAM_BASE;
+    bl1_tzram_layout.total_size = ARM_BL_RAM_SIZE;
 }
 
 
@@ -84,9 +80,9 @@ void bl1_plat_arch_setup(void) {
 
 void bl1_platform_setup(void){
 
-    /* redirect test output to specific usart function */
-    usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
-    usart_puts("Enter main() loop \n");
+	/* redirect test output to specific usart function */
+	usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
+	usart_puts("Enter main() loop \n");
 
 }
 

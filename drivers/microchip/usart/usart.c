@@ -27,7 +27,7 @@
  */
 
 #include "usart.h"
-#include "platform.h"
+#include "lan966x_regs_common.h"
 #include "mchp,lan966x_icpu.h"
 
 /*
@@ -61,6 +61,7 @@ void usart_init( unsigned int baudrate )
     usart_init_gpioPins();
 #endif
 
+#if 0
     uint32_t cfgValue = 0u;
 
     //Enable interrupt distributor, GIC_EnableDistributor()
@@ -83,6 +84,7 @@ void usart_init( unsigned int baudrate )
 
     /* Disable interrupts */
     LAN_WR(INTERRUPT_MASK, FLEXCOM_FLEX_US_IDR(FLEXCOM0) );
+#endif
 
     /* Reset the receiver and transmitter */
     LAN_WR( USART_CR_RSTRX  |
@@ -107,7 +109,7 @@ void usart_init( unsigned int baudrate )
     LAN_WR( USART_CR_RXEN | USART_CR_TXEN, FLEXCOM_FLEX_US_CR(FLEXCOM0));
 
     /* Enable interrupt for RX direction */
-    LAN_WR( USART_IER_RXRDY, FLEXCOM_FLEX_US_IER(FLEXCOM0) );
+//    LAN_WR( USART_IER_RXRDY, FLEXCOM_FLEX_US_IER(FLEXCOM0) );
 
 }
 
