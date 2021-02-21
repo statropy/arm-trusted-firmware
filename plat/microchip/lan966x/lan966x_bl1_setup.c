@@ -68,28 +68,24 @@ void bl1_early_platform_setup(void) {
     usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
 
     /* Allow BL1 to see the whole Trusted RAM */
-    bl1_tzram_layout.total_base = ARM_BL_RAM_BASE;
-    bl1_tzram_layout.total_size = ARM_BL_RAM_SIZE;
+    bl1_tzram_layout.total_base = BL1_RW_BASE;
+    bl1_tzram_layout.total_size = BL1_RW_SIZE + BL2_SIZE; /* XXX - revisit */
 }
 
 
-void bl1_plat_arch_setup(void) {
-
+void bl1_plat_arch_setup(void)
+{
 }
 
-
-void bl1_platform_setup(void){
-
+void bl1_platform_setup(void)
+{
 	/* redirect test output to specific usart function */
 	usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
 	usart_puts("Enter main() loop \n");
-
 }
-
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)
 {
-
 }
 
 

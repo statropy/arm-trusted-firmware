@@ -43,12 +43,19 @@ PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
 
 # PLAT_BL_COMMON_SOURCES	:=	plat/arm/board/fvp/fvp_common.c
 
-BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S						\
-					drivers/delay_timer/delay_timer.c					\
-					drivers/delay_timer/generic_delay_timer.c			\
-					drivers/microchip/usart/usart.c						\
-					plat/microchip/lan966x/${ARCH}/plat_helpers.S		\
-					plat/microchip/lan966x/lan966x_bl1_setup.c
+BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S			\
+				plat/common/aarch32/crash_console_helpers.S	\
+				lib/xlat_tables/aarch32/xlat_tables.c		\
+				drivers/delay_timer/delay_timer.c		\
+				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/microchip/usart/usart.c			\
+				drivers/gpio/gpio.c				\
+				drivers/io/io_block.c				\
+				drivers/io/io_fip.c				\
+				drivers/io/io_storage.c				\
+				plat/microchip/lan966x/lan966x_io_storage.c	\
+				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
+				plat/microchip/lan966x/lan966x_bl1_setup.c
 
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
@@ -73,6 +80,5 @@ ifneq (${BL2_AT_EL3}, 0)
 endif
 
 # Include common arm components
-include plat/arm/board/common/board_common.mk
-include plat/arm/common/arm_common.mk
-
+#include plat/arm/board/common/board_common.mk
+#include plat/arm/common/arm_common.mk

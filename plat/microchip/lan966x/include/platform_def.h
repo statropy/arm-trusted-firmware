@@ -9,21 +9,25 @@
 
 #include <drivers/arm/tzc400.h>
 #include <lib/utils_def.h>
-#include <plat/arm/board/common/v2m_def.h>
-#include <plat/arm/common/arm_def.h>
-#include <plat/arm/common/arm_spm_def.h>
 #include <plat/common/common_def.h>
 
+#define PLAT_MAX_RET_STATE		U(1)
 
-/* Required platform porting definitions */
-#define PLATFORM_CORE_COUNT  (U(LAN966x_CLUSTER_COUNT) * \
-			      U(LAN966x_MAX_CPUS_PER_CLUSTER) * \
-			      U(LAN966x_MAX_PE_PER_CPU))
+#define PLATFORM_CACHE_LINE_SIZE	64
+#define PLATFORM_CLUSTER_COUNT		U(1)
+#define PLATFORM_CORE_COUNT_PER_CLUSTER	U(1)
+#define PLATFORM_CORE_COUNT		(PLATFORM_CLUSTER_COUNT *	\
+					 PLATFORM_CORE_COUNT_PER_CLUSTER)
+#define PLAT_MAX_PWR_LVL		(MPIDR_AFFLVL2)
+#define PLAT_NUM_PWR_DOMAINS		(PLATFORM_CORE_COUNT + \
+					 PLATFORM_CLUSTER_COUNT + U(1))
 
-#define PLAT_NUM_PWR_DOMAINS (U(LAN966x_CLUSTER_COUNT) + \
-			      PLATFORM_CORE_COUNT + U(1))
+#define PLAT_MAX_OFF_STATE		U(2)
 
-#define PLAT_MAX_PWR_LVL		ARM_PWR_LVL2
+#define MAX_IO_DEVICES			3
+#define MAX_IO_HANDLES			4
+/* eMMC RPMB and eMMC User Data */
+#define MAX_IO_BLOCK_DEVICES		U(2)
 
 #define LAN966x_PRIMARY_CPU         0x0
 
@@ -42,13 +46,20 @@
  */
 #define PLAT_ARM_CLUSTER_COUNT		U(LAN966x_CLUSTER_COUNT)
 
-#define PLAT_ARM_TRUSTED_SRAM_SIZE	UL(0x00040000)	/* 256 KB */
+/*
+ * BL1 specific defines.
+ */
+#define BL1_RO_BASE	UL(0x00000000)
+#define BL1_RO_SIZE	UL(1024 * 64)
+#define BL1_RO_LIMIT	(BL1_RO_BASE + BL1_RO_SIZE)
 
-#define PLAT_ARM_TRUSTED_ROM_BASE	UL(0x00000000)
-#define PLAT_ARM_TRUSTED_ROM_SIZE	UL(0x04000000)	/* 64 MB */
+#define BL1_RW_BASE	UL(0x00300000)
+#define BL1_RW_SIZE	UL(1024 * 64)
+#define BL1_RW_LIMIT    (BL1_RW_BASE + BL1_RW_SIZE)
 
-#define PLAT_ARM_TRUSTED_DRAM_BASE	UL(0x06000000)
-#define PLAT_ARM_TRUSTED_DRAM_SIZE	UL(0x02000000)	/* 32 MB */
+#define BL2_BASE	BL1_RW_LIMIT
+#define BL2_SIZE	UL(1024 * 64)
+#define BL2_LIMIT	(BL2_BASE + BL2_SIZE)
 
 /*
  * Max size of SPMC is 2MB for fvp. With SPMD enabled this value corresponds to
@@ -198,20 +209,6 @@
 #define PLAT_ARM_NVM_BASE		V2M_FLASH0_BASE
 #define PLAT_ARM_NVM_SIZE		(V2M_FLASH0_SIZE - V2M_FLASH_BLOCK_SIZE)
 
-/*
- * PL011 related constants
- */
-#define PLAT_ARM_BOOT_UART_BASE		V2M_IOFPGA_UART0_BASE
-#define PLAT_ARM_BOOT_UART_CLK_IN_HZ	V2M_IOFPGA_UART0_CLK_IN_HZ
-
-#define PLAT_ARM_RUN_UART_BASE		V2M_IOFPGA_UART1_BASE
-#define PLAT_ARM_RUN_UART_CLK_IN_HZ	V2M_IOFPGA_UART1_CLK_IN_HZ
-
-#define PLAT_ARM_CRASH_UART_BASE	PLAT_ARM_RUN_UART_BASE
-#define PLAT_ARM_CRASH_UART_CLK_IN_HZ	PLAT_ARM_RUN_UART_CLK_IN_HZ
-
-#define PLAT_ARM_TSP_UART_BASE		V2M_IOFPGA_UART2_BASE
-#define PLAT_ARM_TSP_UART_CLK_IN_HZ	V2M_IOFPGA_UART2_CLK_IN_HZ
 
 #define PLAT_LAN966x_SMMUV3_BASE		UL(0x2b400000)
 
@@ -296,6 +293,9 @@
 					 PLAT_SP_IMAGE_NS_BUF_SIZE)
 
 #define PLAT_SP_PRI			PLAT_RAS_PRI
+
+#define CACHE_WRITEBACK_SHIFT           U(6)
+#define CACHE_WRITEBACK_GRANULE         (U(1) << CACHE_WRITEBACK_SHIFT)
 
 /*
  * Physical and virtual address space limits for MMU in AARCH64 & AARCH32 modes
