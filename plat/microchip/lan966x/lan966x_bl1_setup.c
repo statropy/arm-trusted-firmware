@@ -13,10 +13,14 @@
 #include <lib/utils.h>
 #include <plat/common/platform.h>
 
+#include "lan966x_private.h"
 #include "lan966x_regs_common.h"
 #include "lan966x_baremetal_cpu_regs.h"
 #include "mchp,lan966x_icpu.h"
 #include "usart.h"
+#include "flexcom_uart.h"
+
+static console_t console;
 
 #define MAP_BL1_TOTAL   MAP_REGION_FLAT(                \
 					    bl1_tzram_layout.total_base,	\
@@ -63,15 +67,17 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 
 void bl1_early_platform_setup(void)
 {
-    /* Initialise  maserati/sunrise specific UART interface */
-    maserati_regs[TARGET_FLEXCOM] = FLEXCOM_0_ADDR;
-    usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
+	/* Initialize the console to provide early debug support */
+	console_flexcom_register(FLEXCOM0_BASE, FLEXCOM_UART_CLK_IN_HZ,
+				 FLEXCOM_BAUDRATE, &console);
 
-    usart_puts("usart_init done() \n");
+	/* Initialise  maserati/sunrise specific UART interface */
+	maserati_regs[TARGET_FLEXCOM] = FLEXCOM_0_ADDR;
+	usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
 
-    /* Allow BL1 to see the whole Trusted RAM */
-    bl1_tzram_layout.total_base = BL1_RW_BASE;
-    bl1_tzram_layout.total_size = BL1_RW_SIZE + BL2_SIZE; /* XXX - revisit */
+	/* Allow BL1 to see the whole Trusted RAM */
+	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;
+	bl1_tzram_layout.total_size = LAN996X_SRAM_SIZE;
 }
 
 
@@ -85,6 +91,8 @@ void bl1_platform_setup(void)
 
 	/* redirect test output to specific usart function */
 	usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
+
+	lan966x_io_setup();
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)

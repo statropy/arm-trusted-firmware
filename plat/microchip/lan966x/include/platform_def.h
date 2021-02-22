@@ -11,6 +11,8 @@
 #include <lib/utils_def.h>
 #include <plat/common/common_def.h>
 
+#include "lan966x_def.h"
+
 #define PLAT_MAX_RET_STATE		U(1)
 
 #define PLATFORM_CACHE_LINE_SIZE	64
@@ -35,14 +37,6 @@
 #define PWRC_BASE           UL(0x1c100000)
 
 #define PSYSR_OFF       U(0x10)
-
-/* LAN966X defines */
-#define LAN996X_BOOTROM_BASE	UL(0x00000000)
-#define LAN996X_BOOTROM_SIZE	UL(1024 * 64)
-#define LAN996X_SRAM_BASE	UL(0x00100000)
-#define LAN996X_SRAM_SIZE	UL(1024 * 64)
-#define LAN996X_QSPI0_BASE	UL(0x20000000)
-#define LAN996X_DDR_BASE	UL(0x60000000)
 
 /*
  * BL1 specific defines.
