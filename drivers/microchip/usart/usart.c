@@ -61,38 +61,11 @@ void usart_init( unsigned int baudrate )
     usart_init_gpioPins();
 #endif
 
-#if 0
-    uint32_t cfgValue = 0u;
-
-    //Enable interrupt distributor, GIC_EnableDistributor()
-    cfgValue = LAN_RD(GIC400_GICD_CTLR);
-    cfgValue |= 0x01u;
-    LAN_WR(cfgValue, GIC400_GICD_CTLR);
-
-    //Set priority mask, GIC_SetInterfacePriorityMask(0xF0U)
-    LAN_WR(0xF0U, GIC400_GICC_PMR);
-
-    //Enable CPU interrupt interface, GIC_EnableInterface()
-    cfgValue = LAN_RD(GIC400_GICC_CTLR);
-    cfgValue |= 0x01u;
-    LAN_WR(cfgValue, GIC400_GICC_CTLR);
-
-    // Enable interrupt, GIC_EnableIRQ(FLEXCOM0_SPI_IRQn)
-    cfgValue = LAN_RD(GIC400_GICD_ISENABLER2);
-    cfgValue |= 1U << (FLEXCOM0_SPI_IRQn % 32U);
-    LAN_WR(cfgValue, GIC400_GICD_ISENABLER2);
-
-    /* Disable interrupts */
-    LAN_WR(INTERRUPT_MASK, FLEXCOM_FLEX_US_IDR(FLEXCOM0) );
-#endif
-
     /* Reset the receiver and transmitter */
     LAN_WR( USART_CR_RSTRX  |
             USART_CR_RSTTX  |
             USART_CR_RXDIS  |
-            USART_CR_TXDIS  |
-            USART_CR_TXFCLR |
-            USART_CR_RXFCLR,
+            USART_CR_TXDIS,
             FLEXCOM_FLEX_US_CR(FLEXCOM0) );
 
     /* Configure the baudrate */
@@ -106,11 +79,7 @@ void usart_init( unsigned int baudrate )
             FLEXCOM_FLEX_US_MR(FLEXCOM0) );
 
     /* Enable RX and Tx */
-    LAN_WR( USART_CR_RXEN | USART_CR_TXEN, FLEXCOM_FLEX_US_CR(FLEXCOM0));
-
-    /* Enable interrupt for RX direction */
-//    LAN_WR( USART_IER_RXRDY, FLEXCOM_FLEX_US_IER(FLEXCOM0) );
-
+    LAN_WR( USART_CR_RXEN | USART_CR_TXEN, FLEXCOM_FLEX_US_CR(FLEXCOM0) );
 }
 
 

@@ -4,30 +4,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-# Default cluster count for FVP
-LAN966x_CLUSTER_COUNT	:= 1
-
 # Default number of CPUs per cluster on FVP
 LAN966x_MAX_CPUS_PER_CLUSTER	:= 1
 
 # Default number of threads per CPU on FVP
 LAN966x_MAX_PE_PER_CPU	:= 1
 
-# Disable redistributor frame of inactive/fused CPU cores by marking it as read
-# only; enable redistributor frames of all CPU cores by default.
-LAN966x_GICR_REGION_PROTECTION		:= 0
-
-# Pass LAN966x_CLUSTER_COUNT to the build system.
-$(eval $(call add_define,LAN966x_CLUSTER_COUNT))
-
 # Pass LAN966x_MAX_CPUS_PER_CLUSTER to the build system.
 $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 
 # Pass LAN966x_MAX_PE_PER_CPU to the build system.
 $(eval $(call add_define,LAN966x_MAX_PE_PER_CPU))
-
-# Pass LAN966x_GICR_REGION_PROTECTION to the build system.
-$(eval $(call add_define,LAN966x_GICR_REGION_PROTECTION))
 
 # Include GICv2 driver files
 # include drivers/arm/gic/v2/gicv2.mk

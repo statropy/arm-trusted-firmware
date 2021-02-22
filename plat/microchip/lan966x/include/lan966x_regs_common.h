@@ -14,6 +14,7 @@ extern uint32_t maserati_regs[NUM_TARGETS];
 
 /* -------------------------  Interrupt Number Definition  ------------------------ */
 
+#if 0
 /** Device specific Interrupt IDs */
 typedef enum IRQn {
     TIMER1_SPI_IRQn   = 71u,    /* TIMER1 shared peripheral interrupt */
@@ -26,6 +27,7 @@ typedef enum IRQn {
     FLEXCOM4_SPI_IRQn = 84u     /* FLEXCOM4 shared peripheral interrupt */
 
 } IRQn_Type;
+#endif
 
 /* Factory CLK used on sunrise board */
 #define FACTORY_CLK     30000000u

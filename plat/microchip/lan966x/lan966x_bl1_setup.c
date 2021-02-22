@@ -61,11 +61,13 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 }
 
 
-void bl1_early_platform_setup(void) {
-
+void bl1_early_platform_setup(void)
+{
     /* Initialise  maserati/sunrise specific UART interface */
     maserati_regs[TARGET_FLEXCOM] = FLEXCOM_0_ADDR;
     usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
+
+    usart_puts("usart_init done() \n");
 
     /* Allow BL1 to see the whole Trusted RAM */
     bl1_tzram_layout.total_base = BL1_RW_BASE;
@@ -79,9 +81,10 @@ void bl1_plat_arch_setup(void)
 
 void bl1_platform_setup(void)
 {
+    usart_puts("bl1_platform_setup \n");
+
 	/* redirect test output to specific usart function */
 	usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
-	usart_puts("Enter main() loop \n");
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)
