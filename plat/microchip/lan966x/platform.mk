@@ -52,6 +52,7 @@ BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S			\
 				drivers/gpio/gpio.c				\
 				drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
+				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
 				plat/microchip/lan966x/lan966x_io_storage.c	\
 				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\

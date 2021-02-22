@@ -44,6 +44,8 @@
 #define LAN996X_QSPI0_BASE	UL(0x20000000)
 #define LAN996X_DDR_BASE	UL(0x60000000)
 
+#define LAN996X_FIP_MAX_SIZE	UL(2048 * 1024) /* 2Mb tentatively */
+
 /*
  * BL1 specific defines.
  */

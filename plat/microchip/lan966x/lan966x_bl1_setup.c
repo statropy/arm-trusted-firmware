@@ -13,6 +13,7 @@
 #include <lib/utils.h>
 #include <plat/common/platform.h>
 
+#include "lan966x_private.h"
 #include "lan966x_regs_common.h"
 #include "lan966x_baremetal_cpu_regs.h"
 #include "mchp,lan966x_icpu.h"
@@ -82,6 +83,8 @@ void bl1_platform_setup(void)
 	/* redirect test output to specific usart function */
 	usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
 	usart_puts("Enter main() loop \n");
+
+	lan966x_io_setup();
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)
