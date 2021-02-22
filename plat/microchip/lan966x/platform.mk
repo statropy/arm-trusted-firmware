@@ -48,6 +48,7 @@ BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S			\
 				lib/xlat_tables/aarch32/xlat_tables.c		\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/microchip/flexcom_uart/flexcom_uart.c	\
 				drivers/microchip/usart/usart.c			\
 				drivers/gpio/gpio.c				\
 				drivers/io/io_block.c				\
