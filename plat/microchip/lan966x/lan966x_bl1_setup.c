@@ -53,11 +53,8 @@ static meminfo_t bl1_tzram_layout;
 /* Boolean variable to hold condition whether firmware update needed or not */
 static bool is_fwu_needed;
 
-
 /* will hold the maserati register structure */
 uint32_t maserati_regs[NUM_TARGETS];
-#define update_regs(T) maserati_regs[TARGET_ ## T] = T ## _ADDR
-
 
 struct meminfo *bl1_plat_sec_mem_layout(void)
 {
@@ -67,13 +64,17 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 
 void bl1_early_platform_setup(void)
 {
+	/* We need to get rid of this indirection */
+	maserati_regs[TARGET_FLEXCOM] = FLEXCOM_0_ADDR;
+	maserati_regs[TARGET_GCB] = GCB_ADDR;
+
+	/* Initialise  maserati/sunrise specific UART interface */
+	usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
+	usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
+
 	/* Initialize the console to provide early debug support */
 	console_flexcom_register(FLEXCOM0_BASE, FLEXCOM_UART_CLK_IN_HZ,
 				 FLEXCOM_BAUDRATE, &console);
-
-	/* Initialise  maserati/sunrise specific UART interface */
-	maserati_regs[TARGET_FLEXCOM] = FLEXCOM_0_ADDR;
-	usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
 
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;
@@ -87,18 +88,12 @@ void bl1_plat_arch_setup(void)
 
 void bl1_platform_setup(void)
 {
-    usart_puts("bl1_platform_setup \n");
-
-	/* redirect test output to specific usart function */
-	usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
-
 	lan966x_io_setup();
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)
 {
 }
-
 
 /*
  * On Arm platforms, the FWU process is triggered when the FIP image has been tampered with.
