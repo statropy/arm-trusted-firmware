@@ -56,6 +56,11 @@ static void vcore_gpio_set_bits(uint32_t reg, uint32_t mask, uint32_t value)
 	mmio_write_32(reg_base + reg, val);
 }
 
+static void vcore_gpio_write(uint32_t reg, uint32_t value)
+{
+	mmio_write_32(reg_base + reg, value);
+}
+
 static uint32_t vcore_gpio_read(uint32_t reg)
 {
 	return mmio_read_32(reg_base + reg);
@@ -111,8 +116,12 @@ void vcore_gpio_set_alt(int gpio, int f)
 
 static int vcore_gpio_get_direction(int gpio)
 {
-	//int result = vcore_gpio_get_select(gpio);
-	return 0;
+	unsigned int p = gpio % 32;
+
+	if (vcore_gpio_read(REG(OCELOT_GPIO_OE, gpio)) & BIT(p))
+		return GPIO_DIR_OUT;
+
+	return GPIO_DIR_IN;
 }
 
 static void vcore_gpio_set_direction(int gpio, int direction)
@@ -125,15 +134,26 @@ static void vcore_gpio_set_direction(int gpio, int direction)
 
 static int vcore_gpio_get_value(int gpio)
 {
+	unsigned int p = gpio % 32;
+
+	if (vcore_gpio_read(REG(OCELOT_GPIO_IN, gpio)) & BIT(p))
+		return GPIO_LEVEL_HIGH;
 	return GPIO_LEVEL_LOW;
 }
 
 static void vcore_gpio_set_value(int gpio, int value)
 {
+	unsigned int p = gpio % 32;
+
+	if (value)
+		vcore_gpio_write(REG(OCELOT_GPIO_OUT_SET, gpio), BIT(p));
+	else
+		vcore_gpio_write(REG(OCELOT_GPIO_OUT_CLR, gpio), BIT(p));
 }
 
 static void vcore_gpio_set_pull(int gpio, int pull)
 {
+	/* n/a */
 }
 
 static int vcore_gpio_get_pull(int gpio)
