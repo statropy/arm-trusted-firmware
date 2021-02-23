@@ -68,9 +68,9 @@ void bl1_early_platform_setup(void)
 	/* Console */
 	lan966x_console_init();
 
-	/* Initialise  maserati/sunrise specific UART interface */
-	usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
-	usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
+	/* Initialize  maserati/sunrise specific UART interface */
+	// usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
+    // usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
 
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;

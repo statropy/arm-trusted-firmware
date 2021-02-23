@@ -35,7 +35,6 @@ BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S			\
 				drivers/delay_timer/generic_delay_timer.c	\
 				drivers/microchip/gpio/vcore_gpio.c		\
 				drivers/microchip/flexcom_uart/flexcom_uart.c	\
-				drivers/microchip/usart/usart.c			\
 				drivers/gpio/gpio.c				\
 				drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
@@ -68,6 +67,3 @@ ifneq (${BL2_AT_EL3}, 0)
     override BL1_SOURCES =
 endif
 
-# Include common arm components
-#include plat/arm/board/common/board_common.mk
-#include plat/arm/common/arm_common.mk
