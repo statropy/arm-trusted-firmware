@@ -31,36 +31,10 @@
 #include "mchp,lan966x_icpu.h"
 
 /*
- * Configure the GPIO pin for FLEXCOM0
- */
-static inline void usart_init_gpioPins(void)
-{
-    uint32_t gpio;
-
-    // ALT1: gpio25(RXD), gpio26(TXD)
-    gpio = LAN_RD(GCB_GPIO_ALT(0)) | ( ( 1u << 25u ) | ( 1u << 26u ) );
-    LAN_WR( gpio, GCB_GPIO_ALT(0) );
-
-    gpio = LAN_RD(GCB_GPIO_ALT(1)) & ~( ( 1u << 25u ) | ( 1u << 26u ) );
-    LAN_WR( gpio, GCB_GPIO_ALT(1) );
-
-    gpio = LAN_RD(GCB_GPIO_ALT(2)) & ~( ( 1u << 25u ) | ( 1u << 26u ) );
-    LAN_WR( gpio, GCB_GPIO_ALT(2) );
-
-    /* Set FLEXCOM0 to USART mode */
-    LAN_WR(FLEXCOM_MODE_USART, FLEXCOM_FLEX_MR(FLEXCOM0));
-}
-
-
-/*
  * Configure the GIC and the FLEXCOM0 interface
  */
 void usart_init( unsigned int baudrate )
 {
-#ifdef CFG_FLEXCOM_GPIO_PINS
-    usart_init_gpioPins();
-#endif
-
     /* Reset the receiver and transmitter */
     LAN_WR( USART_CR_RSTRX  |
             USART_CR_RSTTX  |

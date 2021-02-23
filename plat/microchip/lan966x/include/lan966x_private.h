@@ -9,6 +9,8 @@
 
 #include <common/bl_common.h>
 
+
+void lan966x_console_init(void);
 void lan966x_io_setup(void);
 
 #endif /* LAN966X_PRIVATE_H */

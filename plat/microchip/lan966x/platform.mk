@@ -26,15 +26,14 @@ include lib/xlat_tables_v2/xlat_tables.mk
 #					plat/arm/common/arm_gicv2.c
 
 PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
-					-Iinclude/drivers/microchip
-
-# PLAT_BL_COMMON_SOURCES	:=	plat/arm/board/fvp/fvp_common.c
+			-Iinclude/drivers/microchip
 
 BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S			\
 				plat/common/aarch32/crash_console_helpers.S	\
 				lib/xlat_tables/aarch32/xlat_tables.c		\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/microchip/gpio/vcore_gpio.c		\
 				drivers/microchip/flexcom_uart/flexcom_uart.c	\
 				drivers/microchip/usart/usart.c			\
 				drivers/gpio/gpio.c				\
@@ -42,6 +41,7 @@ BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S			\
 				drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
+				plat/microchip/lan966x/lan966x_common.c		\
 				plat/microchip/lan966x/lan966x_io_storage.c	\
 				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/lan966x_bl1_setup.c
