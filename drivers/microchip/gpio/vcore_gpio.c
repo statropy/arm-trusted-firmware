@@ -52,40 +52,43 @@ static void vcore_gpio_set_bits(uint32_t reg, uint32_t mask, uint32_t value)
 {
 	uint32_t val = mmio_read_32(reg_base + reg);
 	val &= ~mask;
-	val |= value;
+	val |= (value & mask);
 	mmio_write_32(reg_base + reg, val);
+}
+
+static uint32_t vcore_gpio_read(uint32_t reg)
+{
+	return mmio_read_32(reg_base + reg);
 }
 
 /**
  * Get selection of GPIO pinmux settings.
  *
  * @param gpio The pin number of GPIO. From 0 to 53.
- * @return The selection of pinmux. VCORE_GPIO_FUNC_INPUT: input,
- *                                  VCORE_GPIO_FUNC_OUTPUT: output,
- *                                  VCORE_GPIO_FUNC_ALT0: alt-0,
- *                                  VCORE_GPIO_FUNC_ALT1: alt-1,
- *                                  VCORE_GPIO_FUNC_ALT2: alt-2,
- *                                  VCORE_GPIO_FUNC_ALT3: alt-3,
- *                                  VCORE_GPIO_FUNC_ALT4: alt-4,
- *                                  VCORE_GPIO_FUNC_ALT5: alt-5
+ * @return The selection of pinmux.
  */
-int vcore_gpio_get_select(int gpio)
+int vcore_gpio_get_alt(int gpio)
 {
-	return 0;
+	unsigned int p = gpio % 32;
+	int ret = 0;
+
+	if (vcore_gpio_read(REG_ALT(0, gpio)) & BIT(p))
+		ret |= BIT(0);
+	if (vcore_gpio_read(REG_ALT(1, gpio)) & BIT(p))
+		ret |= BIT(1);
+#if (VCORE_GPIO_STRIDE >= 3)
+	if (vcore_gpio_read(REG_ALT(2, gpio)) & BIT(p))
+		ret |= BIT(2);
+#endif
+
+	return ret;
 }
 
 /**
  * Set selection of GPIO pinmux settings.
  *
  * @param gpio The pin number of GPIO. From 0 to 53.
- * @param fsel The selection of pinmux. VCORE_GPIO_FUNC_INPUT: input,
- *                                      VCORE_GPIO_FUNC_OUTPUT: output,
- *                                      VCORE_GPIO_FUNC_ALT0: alt-0,
- *                                      VCORE_GPIO_FUNC_ALT1: alt-1,
- *                                      VCORE_GPIO_FUNC_ALT2: alt-2,
- *                                      VCORE_GPIO_FUNC_ALT3: alt-3,
- *                                      VCORE_GPIO_FUNC_ALT4: alt-4,
- *                                      VCORE_GPIO_FUNC_ALT5: alt-5
+ * @param fsel The selection of pinmux.
  */
 void vcore_gpio_set_alt(int gpio, int f)
 {
@@ -114,6 +117,10 @@ static int vcore_gpio_get_direction(int gpio)
 
 static void vcore_gpio_set_direction(int gpio, int direction)
 {
+	unsigned int p = gpio % 32;
+
+	vcore_gpio_set_bits(REG(OCELOT_GPIO_OE, gpio), BIT(p),
+			    direction == GPIO_DIR_IN ? 0 : BIT(p));
 }
 
 static int vcore_gpio_get_value(int gpio)
