@@ -45,13 +45,22 @@
 #define BL1_RO_SIZE	LAN996X_BOOTROM_SIZE
 #define BL1_RO_LIMIT	(BL1_RO_BASE + BL1_RO_SIZE)
 
-#define BL1_RW_BASE	LAN996X_SRAM_BASE
+/*
+ * Put BL1 RW at the top of the Secure SRAM. BL1_RW_BASE is calculated using
+ * the current BL1 RW debug size plus a little space for growth.
+ */
+#define BL1_RW_BASE	(BL1_RW_LIMIT - BL1_RW_SIZE)
 #define BL1_RW_SIZE	UL(1024 * 16)
-#define BL1_RW_LIMIT    (BL1_RW_BASE + BL1_RW_SIZE)
+#define BL1_RW_LIMIT    (LAN996X_SRAM_BASE + LAN996X_SRAM_SIZE)
 
-#define BL2_BASE	BL1_RW_LIMIT
-#define BL2_SIZE	(LAN996X_SRAM_SIZE - BL1_RW_SIZE)
+/*
+ * BL2
+ */
+#define BL2_BASE	LAN996X_SRAM_BASE
+#define BL2_SIZE	UL(1024 * 48)
 #define BL2_LIMIT	(BL2_BASE + BL2_SIZE)
+
+#define FIP_TEST	(LAN996X_SRAM_BASE + LAN996X_SRAM_SIZE)
 
 /*
  * Size of cacheable stacks
