@@ -133,8 +133,7 @@
 int console_flexcom_register(uintptr_t baseaddr, uint32_t clock, uint32_t baud,
 			     console_t *console);
 
-void flexcom_console_init_gpioPins(void);
-void flexcom_console_init(unsigned int baudrate);
+void flexcom_console_runtime_end(console_t *console);
 
 #endif /*__ASSEMBLER__*/
 

@@ -12,11 +12,12 @@
 #include <assert.h>
 
 
+/* Forward declaration of function */
 int flexcom_console_putc(int character, struct console *console);
 int flexcom_console_getc(struct console *console);
 void flexcom_console_flush(struct console *console);
 
-#if 0
+
 static console_t flexcom_console = {
     .flags = 0u,
     .putc = flexcom_console_putc,
@@ -24,40 +25,12 @@ static console_t flexcom_console = {
     .flush = flexcom_console_flush,
     .base = 0u,
 };
-#endif
-
-static const uintptr_t flexcom_uart_base[] = {
-    [FLEXCOM0] = FLEXCOM0_BASE,
-    [FLEXCOM1] = FLEXCOM1_BASE,
-    [FLEXCOM2] = FLEXCOM2_BASE,
-    [FLEXCOM3] = FLEXCOM3_BASE,
-    [FLEXCOM3] = FLEXCOM4_BASE
-};
-
-
-int console_flexcom_register(uintptr_t baseaddr, uint32_t clock, uint32_t baud, console_t *console)
-{
-
-    flexcom_console_init(baud);
-
-	return 0;
-}
-
-
-uintptr_t flexcom_console_get_base(uint8_t id)
-{
-    uintptr_t base;
-
-    assert(id < ARRAY_SIZE(flexcom_uart_base));
-    base = flexcom_uart_base[id];
-    return base;
-}
 
 
 /*
- * Configure the GIC and the FLEXCOM0 interface
+ * Configure the FLEXCOM interface
  */
-void flexcom_console_init( unsigned int baudrate )
+void flexcom_console_init( uint32_t baudrate )
 {
     /* Reset the receiver and transmitter */
     LAN_WR( USART_CR_RSTRX  |
@@ -81,6 +54,18 @@ void flexcom_console_init( unsigned int baudrate )
 }
 
 
+int console_flexcom_register(uintptr_t baseaddr, uint32_t clock, uint32_t baud, console_t *console)
+{
+    // argument clock needed ?
+    flexcom_console.base = baseaddr;
+
+    /* Initialize console hw */
+    flexcom_console_init(baud);
+
+	return 0;
+}
+
+
 /*
  * Write one character to the FLEXCOM
  */
@@ -91,7 +76,7 @@ int flexcom_console_putc(int character, struct console *console)
 
     LAN_WR(character, FLEXCOM_FLEX_US_THR(FLEXCOM0));
 
-    return 1;
+    return 1; // Check for a better solution
 }
 
 
@@ -124,4 +109,19 @@ int flexcom_console_getc(struct console *console)
         ;
 
     return (char)LAN_RD(FLEXCOM_FLEX_US_RHR(FLEXCOM0));
+}
+
+
+void flexcom_console_flush(struct console *console)
+{
+// ToDo: add content
+}
+
+
+/* Unregister console instance */
+void flexcom_console_end(console_t *console)
+{
+    console_flush();
+
+    (void)console_unregister(console);
 }
