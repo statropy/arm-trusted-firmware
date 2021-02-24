@@ -31,6 +31,7 @@ PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
 BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S			\
 				plat/common/aarch32/crash_console_helpers.S	\
 				lib/xlat_tables/aarch32/xlat_tables.c		\
+				lib/xlat_tables/xlat_tables_common.c		\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
 				drivers/microchip/gpio/vcore_gpio.c		\
@@ -66,4 +67,3 @@ endif
 ifneq (${BL2_AT_EL3}, 0)
     override BL1_SOURCES =
 endif
-

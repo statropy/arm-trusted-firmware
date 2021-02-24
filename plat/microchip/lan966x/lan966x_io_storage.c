@@ -36,8 +36,14 @@ static const io_dev_connector_t *memmap_dev_con;
 static uintptr_t memmap_dev_handle;
 
 static const io_block_spec_t fip_block_spec = {
+#if 0
 	.offset = LAN996X_QSPI0_BASE,
-	.length = LAN996X_FIP_MAX_SIZE,
+	.length = LAN996X_QSPI0_RANGE,
+#else
+	/* For ASIC testing, loading FIP @ S:0x110000 */
+	.offset = LAN996X_SHARED_RAM_BASE,
+	.length = LAN996X_SHARED_RAM_SIZE,
+#endif
 };
 
 static int check_fip(const uintptr_t spec);

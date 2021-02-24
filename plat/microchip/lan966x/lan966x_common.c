@@ -8,11 +8,66 @@
 #include <drivers/console.h>
 #include <drivers/microchip/vcore_gpio.h>
 #include <drivers/microchip/flexcom_uart.h>
+#include <plat/arm/common/arm_config.h>
+#include <plat/arm/common/plat_arm.h>
 
 #include "lan966x_private.h"
 #include "mchp,lan966x_icpu.h"
 
 static console_t lan966x_console;
+
+#define LAN996X_MAP_SHARED_RAM						\
+	MAP_REGION_FLAT(						\
+		LAN996X_SHARED_RAM_BASE,				\
+		LAN996X_SHARED_RAM_SIZE,				\
+		MT_MEMORY | MT_RW | MT_SECURE)
+
+#define LAN996X_MAP_QSPI0						\
+	MAP_REGION_FLAT(						\
+		LAN996X_QSPI0_BASE,					\
+		LAN996X_QSPI0_RANGE,					\
+		MT_MEMORY | MT_RW | MT_SECURE)
+
+#define LAN996X_MAP_APB							\
+	MAP_REGION_FLAT(						\
+		LAN996X_APB_BASE,					\
+		LAN996X_APB_SIZE,					\
+		MT_MEMORY | MT_RW | MT_SECURE)
+
+#ifdef IMAGE_BL1
+const mmap_region_t plat_arm_mmap[] = {
+	LAN996X_MAP_SHARED_RAM,
+	LAN996X_MAP_QSPI0,
+	LAN996X_MAP_APB,
+	{0}
+};
+#endif
+#ifdef IMAGE_BL2
+const mmap_region_t plat_arm_mmap[] = {
+	LAN996X_MAP_SHARED_RAM,
+	MAP_PERIPHBASE,
+	MAP_A5_PERIPHERALS,
+	MAP_BOOT_RW,
+	ARM_MAP_NS_DRAM1,
+	{0}
+};
+#endif
+#ifdef IMAGE_BL32
+const mmap_region_t plat_arm_mmap[] = {
+	LAN996X_MAP_SHARED_RAM,
+	MAP_PERIPHBASE,
+	MAP_A5_PERIPHERALS,
+	{0}
+};
+#endif
+
+/*******************************************************************************
+ * Returns ARM platform specific memory map regions.
+ ******************************************************************************/
+const mmap_region_t *plat_arm_get_mmap(void)
+{
+	return plat_arm_mmap;
+}
 
 void lan966x_console_init(void)
 {

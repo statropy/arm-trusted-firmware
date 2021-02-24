@@ -60,8 +60,6 @@
 #define BL2_SIZE	UL(1024 * 48)
 #define BL2_LIMIT	(BL2_BASE + BL2_SIZE)
 
-#define FIP_TEST	(LAN996X_SRAM_BASE + LAN996X_SRAM_SIZE)
-
 /*
  * Size of cacheable stacks
  */
@@ -87,6 +85,20 @@
 
 #define MAX_IO_DEVICES			3
 #define MAX_IO_HANDLES			4
+
+#if defined(IMAGE_BL1) || defined(IMAGE_BL32)
+#define MAX_XLAT_TABLES			3
+#endif
+
+#ifdef IMAGE_BL31
+#define MAX_XLAT_TABLES			4
+#endif
+
+#ifdef IMAGE_BL2
+#define MAX_XLAT_TABLES			4
+#endif
+
+#define MAX_MMAP_REGIONS		16
 
 #define CACHE_WRITEBACK_SHIFT           U(6)
 #define CACHE_WRITEBACK_GRANULE         (U(1) << CACHE_WRITEBACK_SHIFT)
