@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (C) 2021 Microchip Technology Inc. and its subsidiaries.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
