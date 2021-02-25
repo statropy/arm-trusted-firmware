@@ -50,9 +50,6 @@ static meminfo_t bl2_tzram_layout;
 /* Boolean variable to hold condition whether firmware update needed or not */
 static bool is_fwu_needed;
 
-/* will hold the maserati register structure */
-uint32_t maserati_regs[NUM_TARGETS];
-
 struct meminfo *bl1_plat_sec_mem_layout(void)
 {
 	return &bl1_tzram_layout;
@@ -60,15 +57,8 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 
 void bl1_early_platform_setup(void)
 {
-	/* We need to get rid of this indirection */
-	maserati_regs[TARGET_FLEXCOM] = FLEXCOM0_BASE;
-	maserati_regs[TARGET_GCB] = GCB_ADDR_BASE;
-
 	/* Console */
 	lan966x_console_init();
-
-	/* Initialize  maserati/sunrise specific UART interface */
-    // usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
 
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;
@@ -89,12 +79,11 @@ void bl1_plat_arch_setup(void)
 #else
 	enable_mmu_svc_mon(0);
 #endif /* __aarch64__ */
-
 }
 
 void bl1_platform_setup(void)
 {
-    lan966x_io_setup();
+	lan966x_io_setup();
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)

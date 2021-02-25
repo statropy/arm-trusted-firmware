@@ -76,7 +76,9 @@ void lan966x_console_init(void)
 	vcore_gpio_set_alt(26, 1);
 
 	/* Initialize the console to provide early debug support */
-	console_flexcom_register(FLEXCOM0_BASE, FACTORY_CLK, FLEXCOM_BAUDRATE, &lan966x_console);
+	console_flexcom_register(&lan966x_console,
+				 FLEXCOM0_BASE + FLEXCOM_UART_OFFSET,
+				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
 
 	console_set_scope(&lan966x_console, console_scope);
 }

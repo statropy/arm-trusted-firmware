@@ -33,7 +33,7 @@ PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
 
 LAN966X_CONSOLE_SOURCES	+=	\
 				drivers/microchip/gpio/vcore_gpio.c		\
-				drivers/microchip/flexcom_uart/flexcom_uart.c	\
+				drivers/microchip/flexcom_uart/flexcom_console.S \
 				drivers/gpio/gpio.c
 
 PLAT_BL_COMMON_SOURCES	+=	\
@@ -47,7 +47,6 @@ PLAT_BL_COMMON_SOURCES	+=	\
 BL1_SOURCES		+=	\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
-				drivers/microchip/flexcom_uart/flexcom_console.S	\
 				drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\

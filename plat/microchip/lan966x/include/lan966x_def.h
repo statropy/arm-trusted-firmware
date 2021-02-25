@@ -31,7 +31,9 @@
 #define FLEXCOM1_BASE			UL(0xE0044000)
 #define FLEXCOM2_BASE			UL(0xE0060000)
 #define FLEXCOM3_BASE			UL(0xE0064000)
-#define FLEXCOM4_BASE           UL(0xE0070000)
+#define FLEXCOM4_BASE			UL(0xE0070000)
+
+#define FLEXCOM_UART_OFFSET		UL(0x200)
 
 /*
  * Offset values for USART FLEXCOM interfaces
