@@ -23,6 +23,32 @@ static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 					bl2_tzram_layout.total_size,	\
 					MT_MEMORY | MT_RW | MT_SECURE)
 
+#if SEPARATE_CODE_AND_RODATA
+#define ARM_MAP_BL_RO			MAP_REGION_FLAT(			\
+						BL_CODE_BASE,			\
+						BL_CODE_END - BL_CODE_BASE,	\
+						MT_CODE | MT_SECURE),		\
+					MAP_REGION_FLAT(			\
+						BL_RO_DATA_BASE,		\
+						BL_RO_DATA_END			\
+							- BL_RO_DATA_BASE,	\
+						MT_RO_DATA | MT_SECURE)
+#else
+#define ARM_MAP_BL_RO			MAP_REGION_FLAT(			\
+						BL_CODE_BASE,			\
+						BL_CODE_END - BL_CODE_BASE,	\
+						MT_CODE | MT_SECURE)
+#endif
+
+#if USE_COHERENT_MEM
+#define ARM_MAP_BL_COHERENT_RAM		MAP_REGION_FLAT(			\
+						BL_COHERENT_RAM_BASE,		\
+						BL_COHERENT_RAM_END		\
+							- BL_COHERENT_RAM_BASE, \
+						MT_DEVICE | MT_RW | MT_SECURE)
+#endif
+
+
 /*******************************************************************************
  * Perform the very early platform specific architectural setup here. At the
  * moment this is only initializes the mmu in a quick and dirty way.
@@ -31,6 +57,10 @@ void bl2_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
 		MAP_BL2_TOTAL,
+		ARM_MAP_BL_RO,
+#if USE_COHERENT_MEM
+		ARM_MAP_BL_COHERENT_RAM,
+#endif
 		{0}
 	};
 
@@ -58,6 +88,9 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 
 void bl2_platform_setup(void)
 {
+	/* Placed crudely */
+	lan966x_ddr_init();
+
 	/* Initialize the secure environment */
 	//plat_arm_security_setup();
 }
