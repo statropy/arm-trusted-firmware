@@ -7,6 +7,7 @@
 #ifndef LAN966X_DEF_H
 #define LAN966X_DEF_H
 
+
 /* LAN966X defines */
 #define LAN996X_BOOTROM_BASE	UL(0x00000000)
 #define LAN996X_BOOTROM_SIZE	UL(1024 * 64)
@@ -24,7 +25,7 @@
 #define LAN996X_SHARED_RAM_SIZE	UL(1024 * 64)
 
 /*
- * Flexcom offsets
+ * Flexcom base offsets
  */
 #define FLEXCOM0_BASE			UL(0xE0040000)
 #define FLEXCOM1_BASE			UL(0xE0044000)
@@ -33,10 +34,37 @@
 #define FLEXCOM4_BASE           UL(0xE0070000)
 
 /*
+ * Offset values for USART FLEXCOM interfaces
+ */
+#define FLEXCOM0_USART_REG      UL(0xE0040200)
+#define FLEXCOM1_USART_REG      UL(0xE0044200)
+#define FLEXCOM2_USART_REG      UL(0xE0060200)
+#define FLEXCOM3_USART_REG      UL(0xE0064200)
+#define FLEXCOM4_USART_REG      UL(0xE0070200)
+
+#define FLEXCOM0_USART_OFFSET   UL(0x00000200)
+#define FLEXCOM1_USART_OFFSET   UL(0x00004200)
+#define FLEXCOM2_USART_OFFSET   UL(0x00020200)
+#define FLEXCOM3_USART_OFFSET   UL(0x00024200)
+#define FLEXCOM4_USART_OFFSET   UL(0x00030200)
+
+/*
+ * Offset value for GPIO interface
+ */
+#define GCB_GPIO_ADDR           UL(0xE2004064)
+#define GCB_ADDR_BASE           UL(0xE2004000)
+
+
+/*
  * Flexcom UART related constants
  */
-#define FLEXCOM_BAUDRATE		UL(115200)
-#define FLEXCOM_UART_CLK_IN_HZ		UL(19200000)
+#define FLEXCOM_BAUDRATE            UL(115200)
+#define FLEXCOM_UART_CLK_IN_HZ      UL(19200000)
+
+
+/* ToDo: Check defines */
+#define FACTORY_CLK     UL(30000000)    /* Factory CLK used on sunrise board */
+
 
 /*
  * Timer

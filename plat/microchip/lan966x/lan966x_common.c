@@ -12,7 +12,6 @@
 #include <plat/arm/common/plat_arm.h>
 
 #include "lan966x_private.h"
-#include "mchp,lan966x_icpu.h"
 
 static console_t lan966x_console;
 
@@ -77,8 +76,7 @@ void lan966x_console_init(void)
 	vcore_gpio_set_alt(26, 1);
 
 	/* Initialize the console to provide early debug support */
-	console_flexcom_register(FLEXCOM0_BASE, FLEXCOM_UART_CLK_IN_HZ,
-				 FLEXCOM_BAUDRATE, &lan966x_console);
+	console_flexcom_register(FLEXCOM0_BASE, FACTORY_CLK, FLEXCOM_BAUDRATE, &lan966x_console);
 
 	console_set_scope(&lan966x_console, console_scope);
 }

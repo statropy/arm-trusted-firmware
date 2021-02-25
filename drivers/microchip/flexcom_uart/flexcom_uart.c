@@ -4,12 +4,15 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#if 0
 #include <assert.h>
 
 #include <platform_def.h>
 #include <drivers/microchip/flexcom_uart.h>
 
+
 int console_flexcom_register(uintptr_t baseaddr, uint32_t clock, uint32_t baud, console_t *console)
 {
 	return 0;
 }
+#endif

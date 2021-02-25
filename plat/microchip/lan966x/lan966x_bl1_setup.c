@@ -17,10 +17,6 @@
 #include <plat/common/platform.h>
 
 #include "lan966x_private.h"
-#include "lan966x_regs_common.h"
-#include "lan966x_baremetal_cpu_regs.h"
-#include "mchp,lan966x_icpu.h"
-#include "usart.h"
 
 #define MAP_BL1_TOTAL   MAP_REGION_FLAT(				\
 		bl1_tzram_layout.total_base,				\
@@ -65,14 +61,13 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 void bl1_early_platform_setup(void)
 {
 	/* We need to get rid of this indirection */
-	maserati_regs[TARGET_FLEXCOM] = FLEXCOM_0_ADDR;
-	maserati_regs[TARGET_GCB] = GCB_ADDR;
+	maserati_regs[TARGET_FLEXCOM] = FLEXCOM0_BASE;
+	maserati_regs[TARGET_GCB] = GCB_ADDR_BASE;
 
 	/* Console */
 	lan966x_console_init();
 
 	/* Initialize  maserati/sunrise specific UART interface */
-	// usart_init( BAUDRATE(FACTORY_CLK, UART_BAUDRATE) );
     // usart_puts(">>>>>> Running Arm Trusted Firmware BL1 stage on LAN966x <<<<<< \n");
 
 	/* Allow BL1 to see the whole Trusted RAM */
@@ -99,7 +94,7 @@ void bl1_plat_arch_setup(void)
 
 void bl1_platform_setup(void)
 {
-	lan966x_io_setup();
+    lan966x_io_setup();
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)

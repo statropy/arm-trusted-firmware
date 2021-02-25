@@ -10,6 +10,9 @@ LAN966x_MAX_CPUS_PER_CLUSTER	:= 1
 # Default number of threads per CPU on FVP
 LAN966x_MAX_PE_PER_CPU	:= 1
 
+# To compile with highest log level (VERBOSE) set value to 50
+LOG_LEVEL := 40
+
 # Pass LAN966x_MAX_CPUS_PER_CLUSTER to the build system.
 $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 
@@ -44,6 +47,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 BL1_SOURCES		+=	\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/microchip/flexcom_uart/flexcom_console.S	\
 				drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\

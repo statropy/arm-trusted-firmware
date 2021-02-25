@@ -14,18 +14,6 @@
 #include <stdint.h>
 
 
-/* 32-Bit mask for interrupts */
-#define INTERRUPT_MASK   0xFFFFFFFFu
-
-
-/* Factory CLK used on sunrise board */
-#define FACTORY_CLK     30000000u
-
-
-/* UART interface speed grade */
-#define UART_BAUDRATE   115000u
-
-
 /* calculation routine for baudrate */
 #define BAUDRATE(mck, baud)                                         \
                 (((((mck) * 10u) / ((baud) * 16u)) % 10u) >= 5u) ?  \
@@ -130,10 +118,7 @@
  * for the lifetime of the console, such as a global or static local variable.
  * Its contents will be reinitialized from scratch.
  */
-int console_flexcom_register(uintptr_t baseaddr, uint32_t clock, uint32_t baud,
-			     console_t *console);
-
-void flexcom_console_runtime_end(console_t *console);
+int console_flexcom_register(uintptr_t baseaddr, uint32_t clock, uint32_t baud, console_t *console);
 
 #endif /*__ASSEMBLER__*/
 
