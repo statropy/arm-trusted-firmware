@@ -49,6 +49,7 @@
 
 /* Data structure which holds the extents of the trusted SRAM for BL1*/
 static meminfo_t bl1_tzram_layout;
+static meminfo_t bl2_tzram_layout;
 
 /* Boolean variable to hold condition whether firmware update needed or not */
 static bool is_fwu_needed;
@@ -60,7 +61,6 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 {
 	return &bl1_tzram_layout;
 }
-
 
 void bl1_early_platform_setup(void)
 {
@@ -114,7 +114,6 @@ bool plat_arm_bl1_fwu_needed(void)
 	return false;
 }
 
-
 /*******************************************************************************
  * The following function checks if Firmware update is needed,
  * by checking if TOC in FIP image is valid or not.
@@ -122,4 +121,38 @@ bool plat_arm_bl1_fwu_needed(void)
 unsigned int bl1_plat_get_next_image_id(void)
 {
 	return  is_fwu_needed ? NS_BL1U_IMAGE_ID : BL2_IMAGE_ID;
+}
+
+/*
+ * Implementation for bl1_plat_handle_post_image_load(). This function
+ * populates the default arguments to BL2. The BL2 memory layout structure
+ * is allocated and the calculated layout is populated in arg1 to BL2.
+ */
+int bl1_plat_handle_post_image_load(unsigned int image_id)
+{
+	image_desc_t *image_desc;
+	entry_point_info_t *ep_info;
+
+	if (image_id != BL2_IMAGE_ID) {
+		return 0;
+	}
+
+	/* Get the image descriptor */
+	image_desc = bl1_plat_get_image_desc(BL2_IMAGE_ID);
+	assert(image_desc != NULL);
+
+	/* Get the entry point info */
+	ep_info = &image_desc->ep_info;
+
+	/*
+	 * Create a new layout of memory for BL2 as seen by BL1 i.e.
+	 * tell it the amount of total and free memory available.
+	 */
+	bl1_calc_bl2_mem_layout(&bl1_tzram_layout, &bl2_tzram_layout);
+	ep_info->args.arg1 = (uintptr_t)&bl2_tzram_layout;
+	ep_info->args.arg2 = 0xDEADBEEF;
+
+	VERBOSE("BL1: BL2 memory layout address = %p\n",
+		(void *)&bl2_tzram_layout);
+	return 0;
 }

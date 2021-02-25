@@ -38,4 +38,9 @@
 #define FLEXCOM_BAUDRATE		UL(115200)
 #define FLEXCOM_UART_CLK_IN_HZ		UL(19200000)
 
+/*
+ * Timer
+ */
+#define SYS_COUNTER_FREQ_IN_TICKS	(60000000) /* XXX - note - adjust x10 for silicon */
+
 #endif /* LAN966X_DEF_H */

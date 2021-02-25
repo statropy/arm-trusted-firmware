@@ -45,10 +45,8 @@ const mmap_region_t plat_arm_mmap[] = {
 #ifdef IMAGE_BL2
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_SHARED_RAM,
-	MAP_PERIPHBASE,
-	MAP_A5_PERIPHERALS,
-	MAP_BOOT_RW,
-	ARM_MAP_NS_DRAM1,
+	LAN996X_MAP_QSPI0,
+	LAN996X_MAP_APB,
 	{0}
 };
 #endif
@@ -83,4 +81,9 @@ void lan966x_console_init(void)
 				 FLEXCOM_BAUDRATE, &lan966x_console);
 
 	console_set_scope(&lan966x_console, console_scope);
+}
+
+unsigned int plat_get_syscnt_freq2(void)
+{
+        return SYS_COUNTER_FREQ_IN_TICKS;
 }

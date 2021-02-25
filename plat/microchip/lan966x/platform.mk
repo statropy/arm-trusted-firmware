@@ -28,23 +28,43 @@ include lib/xlat_tables_v2/xlat_tables.mk
 PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
 			-Iinclude/drivers/microchip
 
-BL1_SOURCES		+=	lib/cpus/aarch32/cortex_a7.S			\
-				plat/common/aarch32/crash_console_helpers.S	\
-				lib/xlat_tables/aarch32/xlat_tables.c		\
-				lib/xlat_tables/xlat_tables_common.c		\
-				drivers/delay_timer/delay_timer.c		\
-				drivers/delay_timer/generic_delay_timer.c	\
+LAN966X_CONSOLE_SOURCES	+=	\
 				drivers/microchip/gpio/vcore_gpio.c		\
 				drivers/microchip/flexcom_uart/flexcom_uart.c	\
-				drivers/gpio/gpio.c				\
+				drivers/gpio/gpio.c
+
+PLAT_BL_COMMON_SOURCES	+=	\
+				lib/cpus/aarch32/cortex_a7.S			\
+				${XLAT_TABLES_LIB_SRCS}				\
+				${LAN966X_CONSOLE_SOURCES}			\
+				plat/common/aarch32/crash_console_helpers.S	\
+				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
+				plat/microchip/lan966x/lan966x_common.c
+
+BL1_SOURCES		+=	\
+				drivers/delay_timer/delay_timer.c		\
+				drivers/delay_timer/generic_delay_timer.c	\
 				drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
-				plat/microchip/lan966x/lan966x_common.c		\
 				plat/microchip/lan966x/lan966x_io_storage.c	\
-				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/lan966x_bl1_setup.c
+
+#				lib/aarch32/arm32_aeabi_divmod.c		\
+#				lib/aarch32/arm32_aeabi_divmod_a32.S		\
+#
+
+BL2_SOURCES		+=	common/desc_image_load.c			\
+				drivers/delay_timer/delay_timer.c		\
+				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/io/io_fip.c				\
+				drivers/io/io_memmap.c				\
+				drivers/io/io_storage.c				\
+				plat/microchip/lan966x/lan966x_bl2_setup.c	\
+				plat/microchip/lan966x/lan966x_bl2_mem_params_desc.c \
+				plat/microchip/lan966x/lan966x_image_load.c	\
+				plat/microchip/lan966x/lan966x_io_storage.c
 
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1

@@ -13,6 +13,10 @@
 
 #include "lan966x_def.h"
 
+/*
+ * Generic platform constants
+ */
+
 #define PLAT_MAX_RET_STATE		U(1)
 
 #define PLATFORM_CACHE_LINE_SIZE	64
@@ -59,6 +63,26 @@
 #define BL2_BASE	LAN996X_SRAM_BASE
 #define BL2_SIZE	UL(1024 * 48)
 #define BL2_LIMIT	(BL2_BASE + BL2_SIZE)
+
+/*
+ * BL31
+ */
+
+#define BL31_BASE	0
+#define BL31_LIMIT	0
+
+/*
+ * BL32 (?)
+ */
+#if 0
+#define BL32_BASE	0
+#define BL32_LIMIT	0
+#endif
+
+#define PLAT_ARM_NS_IMAGE_BASE	0
+
+#define ARM_DRAM1_BASE	0
+#define ARM_DRAM1_SIZE	0
 
 /*
  * Size of cacheable stacks
