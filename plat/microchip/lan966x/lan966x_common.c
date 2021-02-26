@@ -31,7 +31,7 @@ static console_t lan966x_console;
 	MAP_REGION_FLAT(						\
 		LAN996X_APB_BASE,					\
 		LAN996X_APB_SIZE,					\
-		MT_MEMORY | MT_RW | MT_SECURE)
+		MT_DEVICE | MT_RW | MT_SECURE)
 
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
