@@ -39,6 +39,7 @@ PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
 
 LAN966X_CONSOLE_SOURCES	+=	\
 				drivers/microchip/gpio/vcore_gpio.c		\
+				drivers/microchip/qspi/qspi.c			\
 				drivers/microchip/flexcom_uart/flexcom_console.S \
 				drivers/gpio/gpio.c
 

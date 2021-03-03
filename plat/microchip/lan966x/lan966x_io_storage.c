@@ -12,6 +12,7 @@
 
 #include <arch_helpers.h>
 #include <common/debug.h>
+#include <drivers/microchip/qspi.h>
 #include <drivers/io/io_block.h>
 #include <drivers/io/io_driver.h>
 #include <drivers/io/io_fip.h>
@@ -37,8 +38,9 @@ static uintptr_t memmap_dev_handle;
 
 static const io_block_spec_t fip_block_spec = {
 #if 0
-	.offset = LAN996X_QSPI0_BASE,
-	.length = LAN996X_QSPI0_RANGE,
+#define FLASH_FIP_OFFSET	0x40000 /* Arbitrary */
+	.offset = LAN996X_QSPI0_BASE + FLASH_FIP_OFFSET,
+	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 #else
 	/* For ASIC testing, loading FIP @ S:0x110000 */
 	.offset = LAN996X_SHARED_RAM_BASE,
@@ -239,6 +241,9 @@ static int check_fip(const uintptr_t spec)
 void lan966x_io_setup(void)
 {
 	int result;
+
+	/* Enable memmap access */
+	qspi_init(QSPI_0_ADDR, QSPI_SIZE);
 
 	result = register_io_dev_fip(&fip_dev_con);
 	assert(result == 0);

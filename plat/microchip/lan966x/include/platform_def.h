@@ -36,11 +36,6 @@
 
 #define LAN966x_PRIMARY_CPU         0x0
 
-/* FVP Power controller base address, ToDo: check address value */
-#define PWRC_BASE           UL(0x1c100000)
-
-#define PSYSR_OFF       U(0x10)
-
 /*
  * BL1 specific defines.
  */
