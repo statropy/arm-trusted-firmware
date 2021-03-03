@@ -22,8 +22,7 @@
 #define PLATFORM_CACHE_LINE_SIZE	64
 #define PLATFORM_CLUSTER_COUNT		U(1)
 #define PLATFORM_CORE_COUNT_PER_CLUSTER	U(1)
-#define PLATFORM_CORE_COUNT		(PLATFORM_CLUSTER_COUNT *	\
-					 PLATFORM_CORE_COUNT_PER_CLUSTER)
+#define PLATFORM_CORE_COUNT		U(1)
 #define PLAT_MAX_PWR_LVL		(MPIDR_AFFLVL2)
 #define PLAT_NUM_PWR_DOMAINS		(PLATFORM_CORE_COUNT + \
 					 PLATFORM_CLUSTER_COUNT + U(1))
@@ -65,24 +64,20 @@
 #define BL2_LIMIT	(BL2_BASE + BL2_SIZE)
 
 /*
- * BL31
+ * BL32 - top of DDR
  */
 
-#define BL31_BASE	0
-#define BL31_LIMIT	0
+#define BL32_BASE	(BL32_LIMIT - BL32_SIZE)
+#define BL32_SIZE	UL(2 * 1024 * 1024)
+#define BL32_LIMIT	(LAN996X_DDR_BASE + LAN996X_DDR_SIZE)
 
 /*
- * BL32 (?)
+ * BL33 - start of DDR
  */
-#if 0
-#define BL32_BASE	0
-#define BL32_LIMIT	0
-#endif
 
-#define PLAT_ARM_NS_IMAGE_BASE	0
-
-#define ARM_DRAM1_BASE	0
-#define ARM_DRAM1_SIZE	0
+#define PLAT_LAN966X_NS_IMAGE_BASE	LAN996X_DDR_BASE
+#define PLAT_LAN966X_NS_IMAGE_SIZE	(LAN996X_DDR_SIZE - BL32_SIZE)
+#define PLAT_LAN966X_NS_IMAGE_LIMIT	BL32_BASE
 
 /*
  * Size of cacheable stacks
@@ -110,16 +105,10 @@
 #define MAX_IO_DEVICES			3
 #define MAX_IO_HANDLES			4
 
-#if defined(IMAGE_BL1) || defined(IMAGE_BL32)
+#if defined(IMAGE_BL1)
 #define MAX_XLAT_TABLES			3
-#endif
-
-#ifdef IMAGE_BL31
-#define MAX_XLAT_TABLES			4
-#endif
-
-#ifdef IMAGE_BL2
-#define MAX_XLAT_TABLES			4
+#else
+#define MAX_XLAT_TABLES			5
 #endif
 
 #define MAX_MMAP_REGIONS		16

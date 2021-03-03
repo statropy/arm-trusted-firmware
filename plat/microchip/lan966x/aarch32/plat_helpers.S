@@ -14,6 +14,7 @@
 	.globl	plat_get_my_entrypoint
 	.globl	plat_is_my_cpu_primary
 	.globl	plat_arm_calc_core_pos
+	.globl	plat_my_core_pos
 
 	/* --------------------------------------------------------------------
 	 * void plat_secondary_cold_boot_setup (void);
@@ -67,6 +68,19 @@ func plat_is_my_cpu_primary
 	movne	r0, #0
 	bx	lr
 endfunc plat_is_my_cpu_primary
+
+
+	/* ------------------------------------
+	 *  unsigned int plat_my_core_pos(void)
+	 * ------------------------------------
+	 */
+func plat_my_core_pos
+	ldcopr	r0, MPIDR
+	and	r1, r0, #MPIDR_CPU_MASK
+	and	r0, r0, #MPIDR_CLUSTER_MASK
+	add	r0, r1, r0, LSR #6
+	bx	lr
+endfunc plat_my_core_pos
 
 	/* ---------------------------------------------------------------------
 	 * unsigned int plat_arm_calc_core_pos(u_register_t mpidr)

@@ -4,6 +4,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+ifeq (${ARCH},aarch64)
+  $(error Error: AArch64 not supported on ${PLAT})
+endif
+
+ARM_CORTEX_A7                   := yes
+
 # Default number of CPUs per cluster on FVP
 LAN966x_MAX_CPUS_PER_CLUSTER	:= 1
 
@@ -40,28 +46,21 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				lib/cpus/aarch32/cortex_a7.S			\
 				${XLAT_TABLES_LIB_SRCS}				\
 				${LAN966X_CONSOLE_SOURCES}			\
-				plat/common/aarch32/crash_console_helpers.S	\
+				common/desc_image_load.c			\
+				drivers/delay_timer/delay_timer.c		\
+				drivers/delay_timer/generic_delay_timer.c	\
+				plat/common/${ARCH}/crash_console_helpers.S	\
 				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/lan966x_common.c
 
-BL1_SOURCES		+=	\
-				drivers/delay_timer/delay_timer.c		\
-				drivers/delay_timer/generic_delay_timer.c	\
-				drivers/io/io_block.c				\
+BL1_SOURCES		+=	drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
 				plat/microchip/lan966x/lan966x_io_storage.c	\
 				plat/microchip/lan966x/lan966x_bl1_setup.c
 
-#				lib/aarch32/arm32_aeabi_divmod.c		\
-#				lib/aarch32/arm32_aeabi_divmod_a32.S		\
-#
-
-BL2_SOURCES		+=	common/desc_image_load.c			\
-				drivers/delay_timer/delay_timer.c		\
-				drivers/delay_timer/generic_delay_timer.c	\
-				drivers/io/io_fip.c				\
+BL2_SOURCES		+=	drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
 				plat/microchip/lan966x/lan966x_bl2_setup.c	\
@@ -73,20 +72,8 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
 
-# Enable reclaiming of BL31 initialisation code for secondary cores
-# stacks for FVP. However, don't enable reclaiming for clang.
-ifneq (${RESET_TO_BL31},1)
-ifeq ($(findstring clang,$(notdir $(CC))),)
-RECLAIM_INIT_CODE	:=	1
-endif
-endif
-
 # Disable stack protector by default
 ENABLE_STACK_PROTECTOR	 	:= 0
-
-ifeq (${ARCH},aarch32)
-    NEED_BL32 := no
-endif
 
 ifneq (${BL2_AT_EL3}, 0)
     override BL1_SOURCES =
