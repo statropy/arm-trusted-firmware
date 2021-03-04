@@ -295,9 +295,6 @@ void qspi_init(uintptr_t base, size_t len)
 {
 	reg_base = base;
 
-	/* Setup HMATRIX2_MATRIX_SRTSR0 */
-	mmio_write_32(0xe0800280, 0xff);
-
 	qspi_init_controller();
 
 	/* set the read command */

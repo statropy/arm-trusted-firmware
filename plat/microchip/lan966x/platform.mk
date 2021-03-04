@@ -50,6 +50,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				common/desc_image_load.c			\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/microchip/tz_matrix/tz_matrix.c		\
 				plat/common/${ARCH}/crash_console_helpers.S	\
 				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/lan966x_common.c

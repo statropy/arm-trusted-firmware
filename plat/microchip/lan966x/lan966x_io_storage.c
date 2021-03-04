@@ -22,6 +22,7 @@
 #include <drivers/partition/partition.h>
 #include <lib/mmio.h>
 #include <tools_share/firmware_image_package.h>
+#include <drivers/microchip/tz_matrix.h>
 
 #include "lan966x_private.h"
 
@@ -244,6 +245,15 @@ void lan966x_io_setup(void)
 
 	/* Enable memmap access */
 	qspi_init(QSPI_0_ADDR, QSPI_SIZE);
+
+	/* Register TZ MATRIX driver */
+	matrix_init(LAN966X_HMATRIX2_BASE);
+
+	/* Ensure we have ample reach on QSPI mmap area */
+	/* XXX - do we need 128M - and for id 0+1 XXX */
+	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
+			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
+			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M));
 
 	result = register_io_dev_fip(&fip_dev_con);
 	assert(result == 0);
