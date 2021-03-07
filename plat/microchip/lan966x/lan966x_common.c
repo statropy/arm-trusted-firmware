@@ -4,13 +4,17 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
+#include <lib/mmio.h>
+
 #include <drivers/console.h>
-#include <drivers/microchip/vcore_gpio.h>
 #include <drivers/microchip/flexcom_uart.h>
+#include <drivers/microchip/vcore_gpio.h>
+
 #include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
+#include <platform_def.h>
 
+#include "lan966x_regs.h"
 #include "lan966x_private.h"
 
 static console_t lan966x_console;
@@ -89,6 +93,16 @@ void lan966x_console_init(void)
 				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
 
 	console_set_scope(&lan966x_console, console_scope);
+}
+
+void lan966x_init_timer(void)
+{
+	uintptr_t syscnt = TARGET_CPU_SYSCNT_OFFSET;
+
+	mmio_write_32(syscnt + CPU_SYSCNT_CNTCVL, 0); /* Low */
+	mmio_write_32(syscnt + CPU_SYSCNT_CNTCVU, 0); /* High */
+	mmio_write_32(syscnt + CPU_SYSCNT_CNTCR,
+		      CPU_SYSCNT_CNTCR_CNTCR_EN(1)); /*Enable */
 }
 
 unsigned int plat_get_syscnt_freq2(void)
