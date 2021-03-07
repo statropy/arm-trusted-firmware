@@ -69,6 +69,7 @@ BL2_SOURCES		+=	drivers/io/io_fip.c				\
 				plat/microchip/lan966x/lan966x_bl2_mem_params_desc.c \
 				plat/microchip/lan966x/lan966x_image_load.c	\
 				plat/microchip/lan966x/lan966x_ddr.c		\
+				plat/microchip/lan966x/lan966x_tz.c		\
 				plat/microchip/lan966x/lan966x_io_storage.c
 
 # Enable Activity Monitor Unit extensions by default

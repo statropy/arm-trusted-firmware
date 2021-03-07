@@ -95,5 +95,5 @@ void bl2_platform_setup(void)
 	lan966x_io_setup();
 
 	/* Initialize the secure environment */
-	//plat_arm_security_setup();
+	//lan966x_tz_init();
 }
