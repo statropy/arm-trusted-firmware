@@ -5,10 +5,9 @@
  */
 
 #include <common/debug.h>
-
+#include <lib/mmio.h>
 #include <platform_def.h>
 #include <stdint.h>
-#include <lib/mmio.h>
 
 #include "lan966x_private.h"
 
@@ -18,10 +17,8 @@
 #include "lan966x_ddr_timing_parameters.h"
 #include "lan966x_baremetal_cpu_regs.h"
 
-#define debug(x) INFO(x)
+#define debug(x) VERBOSE(x)
 
-// 0xE0084000,                     /*  9 (TARGET_DDR_PHY) */
-// 0xE0080000,                     /* 10 (TARGET_DDR_UMCTL2) */
 static uintptr_t _base_TARGET_DDR_PHY = 0xE0084000;
 static uintptr_t _base_TARGET_DDR_UMCTL2 = 0xE0080000;
 static uintptr_t _base_TARGET_CPU = 0xE00C0000;
@@ -619,7 +616,7 @@ void lan966x_ddr_init(void)
 	register uint32_t var, stat;
 	register int timeout;
 
-	debug("STARTING\n");
+	INFO("Initializing DDR\n");
 
 	// Call and assign to static global member (DDRC, PHY configs are inside cfg)
 	// cfg = init_ddr_config();
