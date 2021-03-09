@@ -91,6 +91,9 @@ void bl2_platform_setup(void)
 	/* Placed crudely */
 	lan966x_ddr_init();
 
+	/* IO */
+	lan966x_io_setup();
+
 	/* Initialize the secure environment */
-	//plat_arm_security_setup();
+	//lan966x_tz_init();
 }

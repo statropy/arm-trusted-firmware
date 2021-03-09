@@ -12,6 +12,7 @@
 
 #include <arch_helpers.h>
 #include <common/debug.h>
+#include <drivers/microchip/qspi.h>
 #include <drivers/io/io_block.h>
 #include <drivers/io/io_driver.h>
 #include <drivers/io/io_fip.h>
@@ -21,6 +22,7 @@
 #include <drivers/partition/partition.h>
 #include <lib/mmio.h>
 #include <tools_share/firmware_image_package.h>
+#include <drivers/microchip/tz_matrix.h>
 
 #include "lan966x_private.h"
 
@@ -37,8 +39,9 @@ static uintptr_t memmap_dev_handle;
 
 static const io_block_spec_t fip_block_spec = {
 #if 0
-	.offset = LAN996X_QSPI0_BASE,
-	.length = LAN996X_QSPI0_RANGE,
+#define FLASH_FIP_OFFSET	0x40000 /* Arbitrary */
+	.offset = LAN996X_QSPI0_BASE + FLASH_FIP_OFFSET,
+	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 #else
 	/* For ASIC testing, loading FIP @ S:0x110000 */
 	.offset = LAN996X_SHARED_RAM_BASE,
@@ -239,6 +242,18 @@ static int check_fip(const uintptr_t spec)
 void lan966x_io_setup(void)
 {
 	int result;
+
+	/* Enable memmap access */
+	qspi_init(QSPI_0_ADDR, QSPI_SIZE);
+
+	/* Register TZ MATRIX driver */
+	matrix_init(LAN966X_HMATRIX2_BASE);
+
+	/* Ensure we have ample reach on QSPI mmap area */
+	/* XXX - do we need 128M - and for id 0+1 XXX */
+	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
+			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
+			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M));
 
 	result = register_io_dev_fip(&fip_dev_con);
 	assert(result == 0);

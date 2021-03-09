@@ -30,7 +30,7 @@
 #define REG(r, p) ((r) * VCORE_GPIO_STRIDE + (4 * ((p) / 32)))
 #define REG_ALT(msb, p) (OCELOT_GPIO_ALT0 * VCORE_GPIO_STRIDE + 4 * ((msb) + (VCORE_GPIO_STRIDE * ((p) / 32))))
 
-uintptr_t reg_base;
+static uintptr_t reg_base;
 
 static int vcore_gpio_get_direction(int gpio);
 static void vcore_gpio_set_direction(int gpio, int direction);

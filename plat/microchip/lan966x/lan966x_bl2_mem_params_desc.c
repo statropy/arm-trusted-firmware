@@ -29,24 +29,20 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
 		.next_handoff_image_id = INVALID_IMAGE_ID,
 	},
 
-	/* Fill BL31 related information */
+	/* Fill BL32 related information */
 	{
-		.image_id = BL31_IMAGE_ID,
+		.image_id = BL32_IMAGE_ID,
 
 		SET_STATIC_PARAM_HEAD(ep_info, PARAM_EP,
 				      VERSION_2, entry_point_info_t,
 				      SECURE | EXECUTABLE | EP_FIRST_EXE),
-		.ep_info.pc = BL31_BASE,
+		.ep_info.pc = BL32_BASE,
 		SET_STATIC_PARAM_HEAD(image_info, PARAM_EP,
 				      VERSION_2, image_info_t, IMAGE_ATTRIB_PLAT_SETUP),
-		.image_info.image_base = BL31_BASE,
-		.image_info.image_max_size = BL31_LIMIT - BL31_BASE,
+		.image_info.image_base = BL32_BASE,
+		.image_info.image_max_size = BL32_LIMIT - BL32_BASE,
 
-#ifdef BL32_BASE
-		.next_handoff_image_id = BL32_IMAGE_ID,
-#else
 		.next_handoff_image_id = BL33_IMAGE_ID,
-#endif
 	},
 
 	/* Fill BL33 related information */
@@ -61,13 +57,15 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
 		SET_STATIC_PARAM_HEAD(image_info, PARAM_EP,
 				      VERSION_2, image_info_t, IMAGE_ATTRIB_SKIP_LOADING),
 #else
-		.ep_info.pc = PLAT_ARM_NS_IMAGE_BASE,
+		.ep_info.pc = PLAT_LAN966X_NS_IMAGE_BASE,
+		.ep_info.spsr = SPSR_MODE32(MODE32_svc, SPSR_T_ARM,
+					    SPSR_E_LITTLE,
+					    DISABLE_ALL_EXCEPTIONS),
 
 		SET_STATIC_PARAM_HEAD(image_info, PARAM_EP,
 				      VERSION_2, image_info_t, 0),
-		.image_info.image_base = PLAT_ARM_NS_IMAGE_BASE,
-		.image_info.image_max_size = ARM_DRAM1_BASE + ARM_DRAM1_SIZE
-		- PLAT_ARM_NS_IMAGE_BASE,
+		.image_info.image_base = PLAT_LAN966X_NS_IMAGE_BASE,
+		.image_info.image_max_size = PLAT_LAN966X_NS_IMAGE_SIZE,
 #endif /* PRELOADED_BL33_BASE */
 
 		.next_handoff_image_id = INVALID_IMAGE_ID,

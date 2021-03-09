@@ -4,13 +4,17 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
+#include <lib/mmio.h>
+
 #include <drivers/console.h>
-#include <drivers/microchip/vcore_gpio.h>
 #include <drivers/microchip/flexcom_uart.h>
+#include <drivers/microchip/vcore_gpio.h>
+
 #include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
+#include <platform_def.h>
 
+#include "lan966x_regs.h"
 #include "lan966x_private.h"
 
 static console_t lan966x_console;
@@ -33,6 +37,12 @@ static console_t lan966x_console;
 		LAN996X_APB_SIZE,					\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
+#define LAN966X_MAP_DDR						\
+	MAP_REGION_FLAT(					\
+		LAN996X_DDR_BASE,				\
+		LAN996X_DDR_SIZE,				\
+		MT_MEMORY | MT_RW | MT_NS)
+
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_SHARED_RAM,
@@ -46,14 +56,16 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_SHARED_RAM,
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_APB,
+	LAN966X_MAP_DDR,
 	{0}
 };
 #endif
 #ifdef IMAGE_BL32
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_SHARED_RAM,
-	MAP_PERIPHBASE,
-	MAP_A5_PERIPHERALS,
+	LAN996X_MAP_QSPI0,
+	LAN996X_MAP_APB,
+	LAN966X_MAP_DDR,
 	{0}
 };
 #endif
@@ -81,6 +93,16 @@ void lan966x_console_init(void)
 				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
 
 	console_set_scope(&lan966x_console, console_scope);
+}
+
+void lan966x_init_timer(void)
+{
+	uintptr_t syscnt = TARGET_CPU_SYSCNT_OFFSET;
+
+	mmio_write_32(syscnt + CPU_SYSCNT_CNTCVL, 0); /* Low */
+	mmio_write_32(syscnt + CPU_SYSCNT_CNTCVU, 0); /* High */
+	mmio_write_32(syscnt + CPU_SYSCNT_CNTCR,
+		      CPU_SYSCNT_CNTCR_CNTCR_EN(1)); /*Enable */
 }
 
 unsigned int plat_get_syscnt_freq2(void)

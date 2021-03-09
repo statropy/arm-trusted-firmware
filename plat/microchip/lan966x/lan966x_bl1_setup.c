@@ -60,6 +60,9 @@ void bl1_early_platform_setup(void)
 	/* Console */
 	lan966x_console_init();
 
+	/* Timer */
+	lan966x_init_timer();
+
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;
 	bl1_tzram_layout.total_size = LAN996X_SRAM_SIZE;
