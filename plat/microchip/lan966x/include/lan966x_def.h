@@ -7,12 +7,14 @@
 #ifndef LAN966X_DEF_H
 #define LAN966X_DEF_H
 
+#include "lan966x_targets.h"
+
 /* LAN966X defines */
 #define LAN996X_BOOTROM_BASE	UL(0x00000000)
 #define LAN996X_BOOTROM_SIZE	UL(1024 * 64)
 #define LAN996X_SRAM_BASE	UL(0x00100000)
 #define LAN996X_SRAM_SIZE	UL(1024 * 128)
-#define LAN996X_QSPI0_BASE	UL(0x20000000)
+#define LAN996X_QSPI0_MMAP	UL(0x20000000)
 #define LAN996X_QSPI0_RANGE	UL(16 * 1024 * 1024)
 #define LAN996X_DDR_BASE	UL(0x60000000)
 #define LAN996X_DDR_SIZE	UL(2 * 1024 * 1024 * 1024)
@@ -23,7 +25,6 @@
 /*
  * HMATRIX2, TZ
  */
-#define LAN966X_HMATRIX2_BASE	UL(0xe0800000)
 
 #define MATRIX_SLAVE_QSPI0	0
 #define MATRIX_SLAVE_QSPI1	1
@@ -35,13 +36,8 @@
 #define MATRIX_SLAVE_USB	7
 
 /*
- * Flexcom base offsets
+ * Flexcom
  */
-#define FLEXCOM0_BASE			UL(0xE0040000)
-#define FLEXCOM1_BASE			UL(0xE0044000)
-#define FLEXCOM2_BASE			UL(0xE0060000)
-#define FLEXCOM3_BASE			UL(0xE0064000)
-#define FLEXCOM4_BASE			UL(0xE0070000)
 
 #define FLEXCOM_UART_OFFSET		UL(0x200)
 
@@ -51,16 +47,7 @@
 #define FLEXCOM_BAUDRATE            UL(115200)
 #define FLEXCOM_UART_CLK_IN_HZ      UL(19200000)
 
-/*
- * Offset value for GPIO interface
- */
-#define GCB_GPIO_ADDR           UL(0xE2004064)
-#define GCB_ADDR_BASE           UL(0xE2004000)
-
 /* QSPI controller(s) */
-#define QSPI_0_ADDR	0xe0804000
-#define QSPI_1_ADDR	0xe0054000
-#define QSPI_2_ADDR	0xe0834000
 
 #define QSPI_SIZE	0x00000100
 

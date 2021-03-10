@@ -74,7 +74,7 @@ static void tzaes_asc_region_enable(uintptr_t tzaes_asc,
 
 static void setup_tzaes_asc(void)
 {
-	uintptr_t tzaes_asc = TARGET_AESB_ASC_OFFSET;
+	uintptr_t tzaes_asc = LAN966X_AESB_ASC_BASE;
 
 	/*
 	 * Configure two regions of TZAESBASC with DDR address ranges
@@ -90,7 +90,7 @@ static void setup_tzaes_asc(void)
 
 void lan966x_tz_init(void)
 {
-	uintptr_t tzbase = TARGET_TZPM_OFFSET;
+	uintptr_t tzbase = LAN966X_TZPM_BASE;
 
 	INFO("Configuring TrustZone\n");
 
@@ -105,10 +105,10 @@ void lan966x_tz_init(void)
 	setup_tzaes_asc();
 
 	/* NS setup */
-	setup_tzaesb(TARGET_TZAESBNS_OFFSET);
+	setup_tzaesb(LAN966X_TZAESBNS_BASE);
 
 	/* S setup */
-	setup_tzaesb(TARGET_TZAESBS_OFFSET);
+	setup_tzaesb(LAN966X_TZAESBS_BASE);
 
 	INFO("Initialized TrustZone Controller\n");
 }

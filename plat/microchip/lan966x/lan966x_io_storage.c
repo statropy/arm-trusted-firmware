@@ -39,7 +39,7 @@ static uintptr_t memmap_dev_handle;
 
 static const io_block_spec_t fip_block_spec = {
 #define FLASH_FIP_OFFSET	0x40000 /* Arbitrary */
-	.offset = LAN996X_QSPI0_BASE + FLASH_FIP_OFFSET,
+	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
 	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 };
 
@@ -238,7 +238,7 @@ void lan966x_io_setup(void)
 	int result;
 
 	/* Enable memmap access */
-	qspi_init(QSPI_0_ADDR, QSPI_SIZE);
+	qspi_init(LAN966X_QSPI_0_BASE, QSPI_SIZE);
 
 	/* Register TZ MATRIX driver */
 	matrix_init(LAN966X_HMATRIX2_BASE);

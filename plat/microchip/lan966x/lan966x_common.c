@@ -21,7 +21,7 @@ static console_t lan966x_console;
 
 #define LAN996X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
-		LAN996X_QSPI0_BASE,					\
+		LAN996X_QSPI0_MMAP,					\
 		LAN996X_QSPI0_RANGE,					\
 		MT_MEMORY | MT_RW | MT_SECURE)
 
@@ -73,14 +73,14 @@ void lan966x_console_init(void)
 {
 	int console_scope = CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME;
 
-	vcore_gpio_init(GCB_GPIO_ADDR);
+	vcore_gpio_init(LAN966X_GCB_BASE + GCB_GPIO_OUT_SET);
 
 	vcore_gpio_set_alt(25, 1);
 	vcore_gpio_set_alt(26, 1);
 
 	/* Initialize the console to provide early debug support */
 	console_flexcom_register(&lan966x_console,
-				 FLEXCOM0_BASE + FLEXCOM_UART_OFFSET,
+				 LAN966X_FLEXCOM_0_BASE + FLEXCOM_UART_OFFSET,
 				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
 
 	console_set_scope(&lan966x_console, console_scope);
@@ -88,7 +88,7 @@ void lan966x_console_init(void)
 
 void lan966x_init_timer(void)
 {
-	uintptr_t syscnt = TARGET_CPU_SYSCNT_OFFSET;
+	uintptr_t syscnt = LAN966X_CPU_SYSCNT_BASE;
 
 	mmio_write_32(syscnt + CPU_SYSCNT_CNTCVL, 0); /* Low */
 	mmio_write_32(syscnt + CPU_SYSCNT_CNTCVU, 0); /* High */
