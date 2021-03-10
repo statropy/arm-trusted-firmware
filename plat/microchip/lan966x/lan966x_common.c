@@ -19,12 +19,6 @@
 
 static console_t lan966x_console;
 
-#define LAN996X_MAP_SHARED_RAM						\
-	MAP_REGION_FLAT(						\
-		LAN996X_SHARED_RAM_BASE,				\
-		LAN996X_SHARED_RAM_SIZE,				\
-		MT_MEMORY | MT_RW | MT_SECURE)
-
 #define LAN996X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
 		LAN996X_QSPI0_BASE,					\
@@ -45,7 +39,6 @@ static console_t lan966x_console;
 
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_SHARED_RAM,
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_APB,
 	{0}
@@ -53,7 +46,6 @@ const mmap_region_t plat_arm_mmap[] = {
 #endif
 #ifdef IMAGE_BL2
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_SHARED_RAM,
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_APB,
 	LAN966X_MAP_DDR,
@@ -62,7 +54,6 @@ const mmap_region_t plat_arm_mmap[] = {
 #endif
 #ifdef IMAGE_BL32
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_SHARED_RAM,
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_APB,
 	LAN966X_MAP_DDR,
