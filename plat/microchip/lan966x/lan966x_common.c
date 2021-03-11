@@ -23,7 +23,7 @@ static console_t lan966x_console;
 	MAP_REGION_FLAT(						\
 		LAN996X_QSPI0_MMAP,					\
 		LAN996X_QSPI0_RANGE,					\
-		MT_MEMORY | MT_RW | MT_SECURE)
+		MT_MEMORY | MT_RO | MT_SECURE)
 
 #define LAN996X_MAP_AXI							\
 	MAP_REGION_FLAT(						\

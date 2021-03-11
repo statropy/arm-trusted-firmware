@@ -74,10 +74,9 @@
 /* ToDo: Check defines */
 #define FACTORY_CLK     UL(30000000)    /* Factory CLK used on sunrise board */
 
-
 /*
  * Timer
  */
-#define SYS_COUNTER_FREQ_IN_TICKS	(60000000) /* XXX - note - adjust x10 for silicon */
+#define SYS_COUNTER_FREQ_IN_TICKS	(5000000) /* XXX - note - adjust for real silicon? */
 
 #endif /* LAN966X_DEF_H */
