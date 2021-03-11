@@ -25,10 +25,16 @@ static console_t lan966x_console;
 		LAN996X_QSPI0_RANGE,					\
 		MT_MEMORY | MT_RW | MT_SECURE)
 
-#define LAN996X_MAP_APB							\
+#define LAN996X_MAP_AXI							\
 	MAP_REGION_FLAT(						\
-		LAN996X_APB_BASE,					\
-		LAN996X_APB_SIZE,					\
+		LAN996X_AXI_BASE,					\
+		LAN996X_AXI_SIZE,					\
+		MT_DEVICE | MT_RW | MT_SECURE)
+
+#define LAN996X_MAP_CPU							\
+	MAP_REGION_FLAT(						\
+		LAN996X_CPU_BASE,					\
+		LAN996X_CPU_SIZE,					\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
 #define LAN966X_MAP_DDR						\
@@ -40,14 +46,16 @@ static console_t lan966x_console;
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_APB,
+	LAN996X_MAP_AXI,
+	LAN996X_MAP_CPU,
 	{0}
 };
 #endif
 #ifdef IMAGE_BL2
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_APB,
+	LAN996X_MAP_AXI,
+	LAN996X_MAP_CPU,
 	LAN966X_MAP_DDR,
 	{0}
 };
@@ -55,7 +63,8 @@ const mmap_region_t plat_arm_mmap[] = {
 #ifdef IMAGE_BL32
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_APB,
+	LAN996X_MAP_AXI,
+	LAN996X_MAP_CPU,
 	LAN966X_MAP_DDR,
 	{0}
 };

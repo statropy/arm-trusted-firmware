@@ -13,4 +13,7 @@ void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 
+void plat_lan966x_gic_driver_init(void);
+void plat_lan966x_gic_init(void);
+
 #endif /* LAN966X_PRIVATE_H */

@@ -25,14 +25,8 @@ $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 # Pass LAN966x_MAX_PE_PER_CPU to the build system.
 $(eval $(call add_define,LAN966x_MAX_PE_PER_CPU))
 
-# Include GICv2 driver files
-# include drivers/arm/gic/v2/gicv2.mk
-
 # include lib/libfdt/libfdt.mk
 include lib/xlat_tables_v2/xlat_tables.mk
-
-# GIC_SOURCES	:=	plat/common/plat_gicv2.c	\
-#					plat/arm/common/arm_gicv2.c
 
 PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
 			-Iinclude/drivers/microchip

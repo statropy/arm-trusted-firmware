@@ -101,7 +101,7 @@
 #define MAX_IO_HANDLES			4
 
 #if defined(IMAGE_BL1)
-#define MAX_XLAT_TABLES			3
+#define MAX_XLAT_TABLES			4
 #else
 #define MAX_XLAT_TABLES			5
 #endif

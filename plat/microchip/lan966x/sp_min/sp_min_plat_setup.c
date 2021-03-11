@@ -97,15 +97,9 @@ void sp_min_platform_setup(void)
 {
 	generic_delay_timer_init();
 
-#if 0
-	plat_rockchip_soc_init();
-
-
 	/* Initialize the gic cpu and distributor interfaces */
-	plat_rockchip_gic_driver_init();
-	plat_rockchip_gic_init();
-	plat_rockchip_pmu_init();
-#endif
+	plat_lan966x_gic_driver_init();
+	plat_lan966x_gic_init();
 }
 
 /*******************************************************************************
