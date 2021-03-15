@@ -12,6 +12,9 @@ void lan966x_init_timer(void);
 void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
+void lan966x_trng_init(void);
+
+uint32_t lan966x_trng_read(void);
 
 void plat_lan966x_gic_driver_init(void);
 void plat_lan966x_gic_init(void);
