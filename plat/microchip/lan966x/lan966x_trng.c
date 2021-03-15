@@ -7,10 +7,19 @@
 #include <assert.h>
 #include <common/debug.h>
 #include <drivers/delay_timer.h>
+#include <plat/common/plat_trng.h>
 #include <lib/mmio.h>
 
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
+
+uuid_t plat_trng_uuid = {
+	{0xcf, 0x32, 0x0f, 0x5a},
+	{0x0b, 0xec},
+	{0x4b, 0xa0},
+	0x89, 0x2c,
+	{0x41, 0xff, 0xb0, 0x86, 0x4e, 0x69}
+};
 
 uint32_t lan966x_trng_read(void)
 {
@@ -27,4 +36,19 @@ void lan966x_trng_init(void)
 	mmio_write_32(LAN966X_TRNG_BASE + TRNG_TRNG_CR,
 		      TRNG_TRNG_CR_WAKEY(0x524E47) |
 		      TRNG_TRNG_CR_ENABLE(true));
+}
+
+void plat_entropy_setup(void)
+{
+	lan966x_trng_init();
+}
+
+bool plat_get_entropy(uint64_t *out)
+{
+	uint64_t entropy;
+	entropy = lan966x_trng_read();
+	entropy <<= 32;
+	entropy |= lan966x_trng_read();
+	*out = entropy;
+	return true;
 }

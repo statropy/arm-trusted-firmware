@@ -70,6 +70,9 @@ BL2_SOURCES		+=	drivers/io/io_fip.c				\
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
 
+# We have TRNG
+TRNG_SUPPORT			:=	1
+
 # Disable stack protector by default
 ENABLE_STACK_PROTECTOR	 	:= 0
 
