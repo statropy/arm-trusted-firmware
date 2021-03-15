@@ -86,6 +86,51 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 	bl2_tzram_layout = *mem_layout;
 }
 
+void bl2_aes_ddr_test_block(int block, uintptr_t addr, uint32_t *data, size_t len)
+{
+	//INFO("Test block %02d @ 0x%08lx\n", block, addr);
+
+	memcpy((void*)addr, data, len);
+	flush_dcache_range(addr, len);
+	inv_dcache_range(addr, len);
+	if (memcmp((void*)addr, data, len) == 0) {
+		//INFO("Pass\n");
+		memset((void*)addr, lan966x_trng_read(), len);
+	} else {
+		int i, j, cnt;
+		uint32_t *dest = (void*)addr;
+
+		for (i = j = cnt = 0; i < (len / 4); i++) {
+			if (dest[i] != data[i]) {
+				INFO("Mismatch at %p: 0x%08x vs 0x%08x\n",
+				     &dest[i], dest[i], data[i]);
+				cnt++;
+			}
+		}
+		INFO("FAIL block %02d @ 0x%08lx: %d words failure\n", block, addr, cnt);
+	}
+}
+
+void bl2_aes_ddr_test(void)
+{
+	static uint32_t membuf[256];
+	static uintptr_t bl32 = BL32_BASE;
+	int i, j;
+
+	/* Fill test pattern */
+	for (i = 0; i < ARRAY_SIZE(membuf); i++) {
+		membuf[i] = lan966x_trng_read();
+	}
+
+	/* AESB test sweep */
+	for (j = 0; j < 16; j++)
+		for (i = 0; i < 256; i++)
+			bl2_aes_ddr_test_block(i, bl32 + i * sizeof(membuf),
+					       membuf, sizeof(membuf));
+
+	INFO("AESB DDR Memory test done\n");
+}
+
 void bl2_platform_setup(void)
 {
 	/* Placed crudely */
@@ -94,6 +139,12 @@ void bl2_platform_setup(void)
 	/* IO */
 	lan966x_io_setup();
 
+	/* IO */
+	lan966x_trng_init();
+
 	/* Initialize the secure environment */
-	//lan966x_tz_init();
+	lan966x_tz_init();
+
+	/* Temporary */
+	bl2_aes_ddr_test();
 }
