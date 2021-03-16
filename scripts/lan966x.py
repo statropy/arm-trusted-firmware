@@ -1,0 +1,55 @@
+from arm_ds.debugger_v1 import Debugger
+from arm_ds.debugger_v1 import DebugException
+
+def tohex(rVal):
+    return "0x%s" % ("00000000%x" % (rVal&0xffffffff))[-8:]
+
+def reload_symbols(debugger, file):
+    img = debugger.getCurrentExecutionContext().getImageService()
+    try:
+        img.unloadSymbols(file)
+    except DebugException, e:
+        print("Failed unloading " + file)
+        pass
+    finally:
+        print("Loading " + file)
+        img.addSymbols(file)
+
+def show_disassembly_current(debugger, address = None):
+    dis = debugger.getCurrentExecutionContext().getDisassembleService()
+    if not address:
+        try:
+            address = tohex(debugger.readRegister("PC"))
+        except DebugException, e:
+            print("Unable to read PC")
+            raise
+    print("{}\t{}".format(address, dis.disassemble(address)[0]))
+
+def load_stage(debugger, stage, file, address = None):
+    if not address:
+        try:
+            address = tohex(debugger.readRegister("PC"))
+        except DebugException, e:
+            print("Unable to read PC")
+            raise
+    print("Loading {} image from {} @ {}".format(stage, file, address));
+    #debugger.fillMemory(address, int(address, base = 16) + 1024, 0xdeadbeef, 4);
+    #show_disassembly_current(debugger, address)
+    cmd = "restore {} binary {}".format(file, address)
+    debugger.getCurrentExecutionContext().executeDSCommand(cmd)
+    # For some reason this did not work?
+    #debugger.restore(file, format='binary', offset = 0, startAddress = address)
+    show_disassembly_current(debugger, address)
+
+def run_to(debugger, address):
+    debugger.setHardwareAddressBreakpoint(address, True)
+    try:
+        debugger.run()
+        debugger.waitForStop(5000)
+    except DebugException, e:
+        print("Timout waiting for BL2")
+        if not debugger.isStopped:
+            # didn't stop: try to force stop
+            debugger.stop()
+    finally:
+        print("Stopped in BL2");
