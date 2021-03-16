@@ -99,12 +99,12 @@ int bl2_aes_ddr_test_block(int block, uintptr_t addr, uint32_t *data, size_t len
 
 		for (i = cnt = 0; i < (len / 4); i++) {
 			if (dest[i] != data[i]) {
-				INFO("Mismatch at %p: 0x%08x vs 0x%08x\n",
-				     &dest[i], dest[i], data[i]);
+				ERROR("Mismatch at %p: 0x%08x vs 0x%08x\n",
+				      &dest[i], dest[i], data[i]);
 				cnt++;
 			}
 		}
-		INFO("FAIL block %02d @ 0x%08lx: %d words failure\n", block, addr, cnt);
+		ERROR("FAIL block %02d @ 0x%08lx: %d words failure\n", block, addr, cnt);
 		fail++;
 	}
 	memset((void*)addr, lan966x_trng_read(), len);
@@ -122,14 +122,14 @@ void bl2_aes_ddr_test(uintptr_t ddr)
 
 	/* AESB test sweep */
 	runs = (256 * 1024) / sizeof(membuf);
-	INFO("AESB DDR Memory Test @ %p, start %d runs of %d bytes\n",
-	     (void*)ddr, runs, sizeof(membuf));
+	NOTICE("AESB DDR Memory Test @ %p, start %d runs of %d bytes\n",
+	       (void*)ddr, runs, sizeof(membuf));
 	for (i = failures = 0; i < runs; i++)
 		if (bl2_aes_ddr_test_block(i, ddr + i * sizeof(membuf),
 					   membuf, sizeof(membuf)))
 			failures++;
-	INFO("AESB DDR Memory Test @ %p, completed %d runs, %d failures\n",
-	     (void*)ddr, runs, failures);
+	NOTICE("AESB DDR Memory Test @ %p, completed %d runs, %d failures\n",
+	       (void*)ddr, runs, failures);
 }
 
 void bl2_platform_setup(void)

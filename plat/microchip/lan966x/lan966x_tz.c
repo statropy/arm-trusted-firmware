@@ -69,7 +69,7 @@ static void tzaes_asc_region_enable(uintptr_t tzaes_asc,
 		WARN("RSR_ESx is %04x, expected %04x\n", val, mask);
 	assert(val & mask);
 
-	NOTICE("TrustZone region %d set up - %s\n", region, ns ? "NS" : "S");
+	INFO("TrustZone region %d set up - %s\n", region, ns ? "NS" : "S");
 }
 
 static void setup_tzaes_asc(void)
