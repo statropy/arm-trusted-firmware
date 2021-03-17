@@ -67,6 +67,11 @@ func console_flexcom_register
     mov r3, #(USART_CR_RSTRX|USART_CR_RSTTX|USART_CR_RXDIS|USART_CR_TXDIS)
     str r3, [r1, #USART_REG_CR]
 
+    /* Enable FIFO */
+    ldr r3, [r1, #USART_REG_CR]
+    and r3, r3, #(USART_CR_FIFOEN)
+    str r3, [r1, #USART_REG_CR]
+
     /* Configure the baudrate */
     str r2, [r1, #USART_REG_BRGR]
 
