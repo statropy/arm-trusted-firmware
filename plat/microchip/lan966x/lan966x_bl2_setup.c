@@ -144,9 +144,9 @@ void bl2_platform_setup(void)
 	lan966x_trng_init();
 
 	/* Initialize the secure environment */
-	lan966x_tz_init();
+	//lan966x_tz_init();
 
 	/* Temporary */
-	bl2_aes_ddr_test(PLAT_LAN966X_NS_IMAGE_BASE);
-	bl2_aes_ddr_test(BL32_BASE);
+	//bl2_aes_ddr_test(PLAT_LAN966X_NS_IMAGE_BASE);
+	//bl2_aes_ddr_test(BL32_BASE);
 }
