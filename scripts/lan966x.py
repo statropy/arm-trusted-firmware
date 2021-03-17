@@ -25,7 +25,7 @@ def show_disassembly_current(debugger, address = None):
             raise
     print("{}\t{}".format(address, dis.disassemble(address)[0]))
 
-def load_stage(debugger, stage, file, address = None):
+def load_stage_binary(debugger, stage, file, address = None):
     if not address:
         try:
             address = tohex(debugger.readRegister("PC"))
@@ -40,6 +40,11 @@ def load_stage(debugger, stage, file, address = None):
     # For some reason this did not work?
     #debugger.restore(file, format='binary', offset = 0, startAddress = address)
     show_disassembly_current(debugger, address)
+
+def load_stage(debugger, stage, path):
+    reload_symbols(debugger, path + "{}/{}.elf".format(stage, stage))
+    load_stage_binary(debugger, stage.upper(), path + "{}.bin".format(stage))
+    print("{} image loadeded - set breakpoints and/or continue".format(stage.upper()));
 
 def run_to(debugger, address):
     debugger.setHardwareAddressBreakpoint(address, True)
