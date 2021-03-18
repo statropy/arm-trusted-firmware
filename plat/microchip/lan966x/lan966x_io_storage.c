@@ -240,6 +240,9 @@ void lan966x_io_setup(void)
 	/* Enable memmap access */
 	qspi_init(LAN966X_QSPI_0_BASE, QSPI_SIZE);
 
+	/* Register TZ MATRIX driver */
+	matrix_init(LAN966X_HMATRIX2_BASE);
+
 	/* Ensure we have ample reach on QSPI mmap area */
 	/* XXX - do we need 128M - and for id 0+1 XXX */
 	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
