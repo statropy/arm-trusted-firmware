@@ -15,20 +15,20 @@
 static void setup_tzaesb(uintptr_t tzaesb)
 {
 	/* KEY REGS */
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_MR,
+	mmio_write_32(TZAESBNS_TZAESB_MR(tzaesb),
 		      TZAESBNS_TZAESB_MR_OPMOD(4) | /* CTR mode */
 		      TZAESBNS_TZAESB_MR_DUALBUFF(1) |
 		      TZAESBNS_TZAESB_MR_AAHB(1));
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_KEYWR0, 0x09cf4f3c);
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_KEYWR1, 0xabf71588);
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_KEYWR2, 0x28aed2a6);
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_KEYWR3, 0x2b7e1516);
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR0(tzaesb), 0x09cf4f3c);
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR1(tzaesb), 0xabf71588);
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR2(tzaesb), 0x28aed2a6);
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR3(tzaesb), 0x2b7e1516);
 
 	/* IV REGS */
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_IVR0, 0xfcfdfeff);
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_IVR1, 0xf8f9fafb);
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_IVR2, 0xf4f5f6f7);
-	mmio_write_32(tzaesb + TZAESBNS_TZAESB_IVR3, 0xf0f1f2f3);
+	mmio_write_32(TZAESBNS_TZAESB_IVR0(tzaesb), 0xfcfdfeff);
+	mmio_write_32(TZAESBNS_TZAESB_IVR1(tzaesb), 0xf8f9fafb);
+	mmio_write_32(TZAESBNS_TZAESB_IVR2(tzaesb), 0xf4f5f6f7);
+	mmio_write_32(TZAESBNS_TZAESB_IVR3(tzaesb), 0xf0f1f2f3);
 }
 
 static void tzaes_asc_region_enable(uintptr_t tzaes_asc,
@@ -39,28 +39,28 @@ static void tzaes_asc_region_enable(uintptr_t tzaes_asc,
 	int i;
 
 	/* Region - start/end */
-	mmio_write_32(tzaes_asc + AESB_ASC_TZAESBASC_RBAR0 + (region * 8), start);
-	mmio_write_32(tzaes_asc + AESB_ASC_TZAESBASC_RTAR0 + (region * 8), end - 1);
+	mmio_write_32(AESB_ASC_TZAESBASC_RBAR0(tzaes_asc) + (region * 8), start);
+	mmio_write_32(AESB_ASC_TZAESBASC_RTAR0(tzaes_asc) + (region * 8), end - 1);
 
 	/* One non-secure region */
 	if (ns) {
-		mmio_setbits_32(tzaes_asc + AESB_ASC_TZAESBASC_RSECR,
+		mmio_setbits_32(AESB_ASC_TZAESBASC_RSECR(tzaes_asc),
 				AESB_ASC_TZAESBASC_RSECR_SECx(mask));
 	}
 
 	/* Enable the regions */
-	mmio_setbits_32(tzaes_asc + AESB_ASC_TZAESBASC_RER,
+	mmio_setbits_32(AESB_ASC_TZAESBASC_RER(tzaes_asc),
 			AESB_ASC_TZAESBASC_RER_ENx(mask));
 
 	/* Check - Read Error Status of regions */
-	val = mmio_read_32(tzaes_asc + AESB_ASC_TZAESBASC_RESR);
+	val = mmio_read_32(AESB_ASC_TZAESBASC_RESR(tzaes_asc));
 	if (val & mask)
 		NOTICE("RESR error %04x\n", val);
 	assert((val & mask) == 0);
 
 	/* Wait for Regions Enabled */
 	for (i = 0; i < 10 ; i++) {
-		val = mmio_read_32(tzaes_asc + AESB_ASC_TZAESBASC_RSR);
+		val = mmio_read_32(AESB_ASC_TZAESBASC_RSR(tzaes_asc));
 		if ((AESB_ASC_TZAESBASC_RSR_ESx_X(val)) & mask)
 			break;
 		udelay(1);
@@ -90,15 +90,13 @@ static void setup_tzaes_asc(void)
 
 void lan966x_tz_init(void)
 {
-	uintptr_t tzbase = LAN966X_TZPM_BASE;
-
 	INFO("Configuring TrustZone\n");
 
 	/*
 	 * Enable TZPM for NS transactions, Otherwise all are treated
 	 * as Secure transactions in CPU subsystem
 	 */
-	mmio_write_32(tzbase + TZPM_TZPM_EN,
+	mmio_write_32(TZPM_TZPM_EN(LAN966X_TZPM_BASE),
 		      TZPM_TZPM_EN_TZPM_EN(1));
 
 	/* TZASC controller */

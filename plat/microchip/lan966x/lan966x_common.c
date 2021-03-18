@@ -82,7 +82,7 @@ void lan966x_console_init(void)
 {
 	int console_scope = CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME;
 
-	vcore_gpio_init(LAN966X_GCB_BASE + GCB_GPIO_OUT_SET);
+	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
 	vcore_gpio_set_alt(25, 1);
 	vcore_gpio_set_alt(26, 1);
@@ -99,9 +99,9 @@ void lan966x_init_timer(void)
 {
 	uintptr_t syscnt = LAN966X_CPU_SYSCNT_BASE;
 
-	mmio_write_32(syscnt + CPU_SYSCNT_CNTCVL, 0); /* Low */
-	mmio_write_32(syscnt + CPU_SYSCNT_CNTCVU, 0); /* High */
-	mmio_write_32(syscnt + CPU_SYSCNT_CNTCR,
+	mmio_write_32(CPU_SYSCNT_CNTCVL(syscnt), 0); /* Low */
+	mmio_write_32(CPU_SYSCNT_CNTCVU(syscnt), 0); /* High */
+	mmio_write_32(CPU_SYSCNT_CNTCR(syscnt),
 		      CPU_SYSCNT_CNTCR_CNTCR_EN(1)); /*Enable */
 }
 

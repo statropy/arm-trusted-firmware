@@ -24,16 +24,16 @@ uuid_t plat_trng_uuid = {
 uint32_t lan966x_trng_read(void)
 {
 	/* Wait for data rdy */
-	while ((mmio_read_32(LAN966X_TRNG_BASE + TRNG_TRNG_ISR) &
+	while ((mmio_read_32(TRNG_TRNG_ISR(LAN966X_TRNG_BASE)) &
 		TRNG_TRNG_ISR_DATRDY_ISR_M) == 0)
 		;
 	/* then, read the data and return it */
-	return mmio_read_32(LAN966X_TRNG_BASE + TRNG_TRNG_ODATA);
+	return mmio_read_32(TRNG_TRNG_ODATA(LAN966X_TRNG_BASE));
 }
 
 void lan966x_trng_init(void)
 {
-	mmio_write_32(LAN966X_TRNG_BASE + TRNG_TRNG_CR,
+	mmio_write_32(TRNG_TRNG_CR(LAN966X_TRNG_BASE),
 		      TRNG_TRNG_CR_WAKEY(0x524E47) |
 		      TRNG_TRNG_CR_ENABLE(true));
 }
