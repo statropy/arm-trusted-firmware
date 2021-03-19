@@ -4,15 +4,16 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <lib/mmio.h>
-
+#include <assert.h>
+#include <common/debug.h>
 #include <drivers/console.h>
 #include <drivers/microchip/flexcom_uart.h>
 #include <drivers/microchip/vcore_gpio.h>
+#include <lib/mmio.h>
+#include <platform_def.h>
 
 #include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
-#include <platform_def.h>
 
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
@@ -80,19 +81,68 @@ const mmap_region_t *plat_arm_get_mmap(void)
 
 void lan966x_console_init(void)
 {
-	int console_scope = CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME;
+	uintptr_t base = 0;
 
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
-	vcore_gpio_set_alt(25, 1);
-	vcore_gpio_set_alt(26, 1);
+#if defined(IMAGE_BL1)
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_SAMBA_FC0:
+		base = LAN966X_FLEXCOM_0_BASE;
+		break;
+	case LAN966X_STRAP_SAMBA_FC2:
+		base = LAN966X_FLEXCOM_2_BASE;
+		break;
+	case LAN966X_STRAP_SAMBA_FC3:
+		base = LAN966X_FLEXCOM_3_BASE;
+		break;
+	case LAN966X_STRAP_SAMBA_FC4:
+		base = LAN966X_FLEXCOM_4_BASE;
+		break;
+	default:
+		break;
+	}
+#else
+	/* Except for BL1 bootrom */
+	base = CONSOLE_BASE;
+#endif
 
-	/* Initialize the console to provide early debug support */
-	console_flexcom_register(&lan966x_console,
-				 LAN966X_FLEXCOM_0_BASE + FLEXCOM_UART_OFFSET,
-				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
+	switch (base) {
+	case LAN966X_FLEXCOM_0_BASE:
+		vcore_gpio_set_alt(25, 1);
+		vcore_gpio_set_alt(26, 1);
+		break;
+	case LAN966X_FLEXCOM_1_BASE:
+		vcore_gpio_set_alt(47, 1);
+		vcore_gpio_set_alt(48, 1);
+		break;
+	case LAN966X_FLEXCOM_2_BASE:
+		vcore_gpio_set_alt(44, 1);
+		vcore_gpio_set_alt(45, 1);
+		break;
+	case LAN966X_FLEXCOM_3_BASE:
+		vcore_gpio_set_alt(52, 1);
+		vcore_gpio_set_alt(53, 1);
+		break;
+	case LAN966X_FLEXCOM_4_BASE:
+		vcore_gpio_set_alt(57, 1);
+		vcore_gpio_set_alt(58, 1);
+		break;
+	default:
+		assert(base == 0);
+		break;
+	}
 
-	console_set_scope(&lan966x_console, console_scope);
+	if (base) {
+		int console_scope = CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME;
+
+
+		/* Initialize the console to provide early debug support */
+		console_flexcom_register(&lan966x_console,
+					 base + FLEXCOM_UART_OFFSET,
+					 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
+		console_set_scope(&lan966x_console, console_scope);
+	}
 }
 
 void lan966x_init_timer(void)
@@ -108,4 +158,26 @@ void lan966x_init_timer(void)
 unsigned int plat_get_syscnt_freq2(void)
 {
         return SYS_COUNTER_FREQ_IN_TICKS;
+}
+
+int lan966x_get_strapping(void)
+{
+	uint32_t status;
+	int strapping;
+
+	status = mmio_read_32(CPU_GENERAL_STAT(LAN966X_CPU_BASE));
+	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
+
+#if defined(DEBUG)
+	status = mmio_read_32(CPU_GPR(LAN966X_CPU_BASE, 0));
+	/* Note: Other bits in GPR than vcore_cfg must be set */
+	if (status & ~CPU_GENERAL_STAT_VCORE_CFG_M) {
+		NOTICE("OVERRIDE CPU_GENERAL_STAT = 0x%08x\n", status);
+		strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
+	}
+#endif
+
+	INFO("VCORE_CFG = %d\n", strapping);
+
+	return strapping;
 }

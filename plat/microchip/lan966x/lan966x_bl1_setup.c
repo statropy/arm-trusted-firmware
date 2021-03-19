@@ -11,7 +11,6 @@
 #include <common/bl_common.h>
 #include <lib/fconf/fconf.h>
 #include <lib/utils.h>
-#include <plat/common/platform.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
@@ -87,18 +86,23 @@ void bl1_plat_arch_setup(void)
 void bl1_platform_setup(void)
 {
 	lan966x_io_setup();
+
+	INFO("BL1 platform setup start\n");
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_SAMBA_FC0:
+	case LAN966X_STRAP_SAMBA_FC2:
+	case LAN966X_STRAP_SAMBA_FC3:
+	case LAN966X_STRAP_SAMBA_FC4:
+	case LAN966X_STRAP_SAMBA_USB:
+		lan966x_samba_monitor();
+		break;
+	}
+
+	INFO("BL1 platform setup done\n");
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)
 {
-}
-
-/*
- * On Arm platforms, the FWU process is triggered when the FIP image has been tampered with.
- */
-bool plat_arm_bl1_fwu_needed(void)
-{
-	return false;
 }
 
 /*******************************************************************************
