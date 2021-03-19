@@ -54,6 +54,7 @@ BL1_SOURCES		+=	drivers/io/io_block.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
 				plat/microchip/lan966x/lan966x_io_storage.c	\
+				plat/microchip/lan966x/lan966x_bl1_samba.c	\
 				plat/microchip/lan966x/lan966x_bl1_setup.c
 
 BL2_SOURCES		+=	drivers/io/io_fip.c				\
@@ -67,6 +68,8 @@ BL2_SOURCES		+=	drivers/io/io_fip.c				\
 				plat/microchip/lan966x/lan966x_trng.c		\
 				plat/microchip/lan966x/lan966x_io_storage.c
 
+CONSOLE_BASE			:=	LAN966X_FLEXCOM_0_BASE
+
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
 
@@ -75,6 +78,9 @@ TRNG_SUPPORT			:=	1
 
 # Disable stack protector by default
 ENABLE_STACK_PROTECTOR	 	:= 0
+
+# Process flags
+$(eval $(call add_define,CONSOLE_BASE))
 
 ifneq (${BL2_AT_EL3}, 0)
     override BL1_SOURCES =
