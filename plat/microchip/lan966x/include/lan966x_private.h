@@ -28,7 +28,7 @@ enum {
 
 int lan966x_get_strapping(void);
 
-void lan966x_samba_monitor(void);
+void lan966x_bootstrap_monitor(void);
 void lan966x_console_init(void);
 void lan966x_init_timer(void);
 void lan966x_io_setup(void);

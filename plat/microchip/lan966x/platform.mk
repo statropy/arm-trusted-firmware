@@ -54,7 +54,7 @@ BL1_SOURCES		+=	drivers/io/io_block.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
 				plat/microchip/lan966x/lan966x_io_storage.c	\
-				plat/microchip/lan966x/lan966x_bl1_samba.c	\
+				plat/microchip/lan966x/lan966x_bl1_bootstrap.c	\
 				plat/microchip/lan966x/lan966x_bl1_setup.c
 
 BL2_SOURCES		+=	drivers/io/io_fip.c				\

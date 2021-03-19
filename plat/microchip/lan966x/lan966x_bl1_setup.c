@@ -94,7 +94,7 @@ void bl1_platform_setup(void)
 	case LAN966X_STRAP_SAMBA_FC3:
 	case LAN966X_STRAP_SAMBA_FC4:
 	case LAN966X_STRAP_SAMBA_USB:
-		lan966x_samba_monitor();
+		lan966x_bootstrap_monitor();
 		break;
 	}
 
