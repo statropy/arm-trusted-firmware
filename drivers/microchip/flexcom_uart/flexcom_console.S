@@ -97,14 +97,6 @@ endfunc console_flexcom_register
 	beq 1b
 	.endm
 
-	.macro	waitrdy_rx
-1:
-	/* Check transmit FIFO */
-	ldr r2, [r1, #USART_REG_CSR]
-	tst r2, #USART_IER_RXRDY
-	beq 1b
-	.endm
-
 func console_flexcom_putc
 
 	ldr r1, [r1, #CONSOLE_T_BASE]
@@ -160,24 +152,22 @@ func console_flexcom_getc
 
 	ldr r0, [r0, #CONSOLE_T_BASE]
 
-	waitrdy_rx
-
-	ldr r1, [r0, #USART_REG_RHR]
-	mov r0, r1
-
-	/* ToDo: check if this code is working */
-	cmp r0, #-1
+	/* Check transmit FIFO */
+	ldr r1, [r0, #USART_REG_CSR]
+	tst r1, #USART_IER_RXRDY
 	beq getc_no_char
 
+	/* Get the char, return */
+	ldr r0, [r0, #USART_REG_RHR]
 	bx  lr
 
-	/* common error handler */
 getc_error:
-	mov r0, #-1
+	/* common error handler */
+	mov r0, #ERROR_NO_VALID_CONSOLE
 	bx  lr
 
-	/* Jump here if there is no character available at this time. */
 getc_no_char:
+	/* Jump here if there is no character available at this time. */
 	mov r0, #ERROR_NO_PENDING_CHAR
 	bx  lr
 endfunc console_flexcom_getc
