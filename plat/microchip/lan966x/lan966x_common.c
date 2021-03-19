@@ -134,14 +134,12 @@ void lan966x_console_init(void)
 	}
 
 	if (base) {
-		int console_scope = CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME;
-
-
 		/* Initialize the console to provide early debug support */
 		console_flexcom_register(&lan966x_console,
 					 base + FLEXCOM_UART_OFFSET,
 					 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
-		console_set_scope(&lan966x_console, console_scope);
+		console_set_scope(&lan966x_console,
+				  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
 	}
 }
 
@@ -169,8 +167,23 @@ int lan966x_get_strapping(void)
 	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
 
 #if defined(DEBUG)
+	/*
+	 * NOTE: This allows overriding the strapping switches through
+	 * the GPR registers.
+	 *
+	 * In the DEBUG build, GPR(0) can be used to override the
+	 * actual strapping. If any of the non-cfg (lower 4) bits are
+	 * set, the the low 4 bits will override the actual
+	 * strapping.
+	 *
+	 * You can set the GPR0 in the DSTREAM init like
+	 * this:
+	 *
+	 * > memory set_typed S:0xE00C0000 (unsigned int) (0x10000a)
+	 *
+	 * This would override the strapping with the value: 0xa
+	 */
 	status = mmio_read_32(CPU_GPR(LAN966X_CPU_BASE, 0));
-	/* Note: Other bits in GPR than vcore_cfg must be set */
 	if (status & ~CPU_GENERAL_STAT_VCORE_CFG_M) {
 		NOTICE("OVERRIDE CPU_GENERAL_STAT = 0x%08x\n", status);
 		strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
