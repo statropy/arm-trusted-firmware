@@ -131,13 +131,20 @@ static uint32_t atohex(char *buf, int n)
 	return data;
 }
 
-static void hex2str(char *buf, uint32_t val)
+static void hex2str_byte(char *buf, uint8_t val)
 {
 	static char *cvt = "0123456789ABCDEF";
-	int i;
 
-	for (i = 28; i >= 0; i -= 4)
-		*buf++ = cvt[(val >> i) & 0xF];
+	*buf++ = cvt[(val >> 4) & 0xF];
+	*buf++ = cvt[(val >> 0) & 0xF];
+}
+
+static void hex2str(char *buf, uint32_t val)
+{
+	hex2str_byte(buf + 0, (val >> 24) & 0xFF);
+	hex2str_byte(buf + 2, (val >> 16) & 0xFF);
+	hex2str_byte(buf + 4, (val >>  8) & 0xFF);
+	hex2str_byte(buf + 6, (val >>  0) & 0xFF);
 }
 
 static int MON_GET_Data(char *data, uint32_t length)
@@ -227,6 +234,19 @@ static bool bootstrap_RxReq(bootstrap_req_t *req)
 	return false;
 }
 
+static uint32_t bootstrap_TxPayload(const uint8_t *data,
+				    uint32_t length, uint32_t crc)
+{
+	char out[2];
+
+	while (length--) {
+		hex2str_byte(out, *data++);
+		crc = MON_PUT_Data(out, sizeof(out), crc);
+	}
+
+	return crc;
+}
+
 static void bootstrap_Tx(char cmd, int32_t status,
 			 uint32_t length, const uint8_t *payload)
 {
@@ -249,7 +269,7 @@ static void bootstrap_Tx(char cmd, int32_t status,
 	// payload if provided
 	if (payload) {
 		assert(length != 0);
-		crc = MON_PUT_Data(payload, length, crc);
+		crc = bootstrap_TxPayload(payload, length, crc);
 	}
 
 	/* Send CRC */

@@ -30,8 +30,8 @@ def read_resp(fd)
                :err => items[1].hex,
                :len => items[2].hex }
         len = items[2].hex
-        payload = fd.read(len)
-        obj[:payload] = payload
+        payload = fd.read(len*2)
+        obj[:payload] = [payload].pack('H*')
         obj[:rawdata] = buf + "#" + payload
         obj[:crc] = fd.read(8).downcase
         obj[:calccrc] = Digest::CRC32c.hexdigest(obj[:rawdata])
@@ -77,7 +77,7 @@ ARGV.each do |arg|
             off = 0
             open(file, "r") do |io|
                 while rsp[:err] == 0
-                    data = io.read(512)
+                    data = io.read(128)
                     if data && data.length
                         rsp = do_cmd(fmt_req(CMD_DATA,off,data))
                         if rsp[:cmd] != CMD_ACK
