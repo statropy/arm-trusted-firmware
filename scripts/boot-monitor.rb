@@ -65,7 +65,7 @@ ARGV.each do |arg|
     arg = ARGV.shift
     case arg
     when "version"
-        do_cmd(fmt_req(CMD_VERS,0xa00))
+        do_cmd(fmt_req(CMD_VERS))
     when "send"
         file = ARGV.shift
         sz = File.size?(file)

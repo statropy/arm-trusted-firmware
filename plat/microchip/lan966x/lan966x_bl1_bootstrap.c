@@ -147,12 +147,17 @@ static void hex2str(char *buf, uint32_t val)
 	hex2str_byte(buf + 6, (val >>  0) & 0xFF);
 }
 
+static int MON_GET(void)
+{
+	return console_getc();
+}
+
 static int MON_GET_Data(char *data, uint32_t length)
 {
 	int i, c;
 
 	for (i = 0; i < length; i++)
-		if ((c = console_getc()) < 0)
+		if ((c = MON_GET()) < 0)
 			return -1;
 		else {
 			*data++ = c;
@@ -185,8 +190,8 @@ static void bootstrap_RxPayload(uint8_t *data, bootstrap_req_t *req)
 	char in[2];
 
 	while (datasize--) {
-		in[0] = console_getc();
-		in[1] = console_getc();
+		in[0] = MON_GET();
+		in[1] = MON_GET();
 		*data++ = hex2nibble(in[1]) + (hex2nibble(in[0]) << 4);
 		req->crc = Crc32c(req->crc, in, sizeof(in));
 	}
@@ -209,7 +214,7 @@ static bool bootstrap_RxReq(bootstrap_req_t *req)
 	int rx;
 
 	/* Syncronize SOF */
-	while(console_getc() != BOOTSTRAP_SOF)
+	while(MON_GET() != BOOTSTRAP_SOF)
 		;
 
 	/* Read fixed parts */
