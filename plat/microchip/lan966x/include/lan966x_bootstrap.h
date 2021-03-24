@@ -13,6 +13,10 @@
 #define BOOTSTRAP_SEND         'S'
 // Data transmitted
 #define BOOTSTRAP_DATA         'D'
+// Authenticate data
+#define BOOTSTRAP_AUTH         'U'
+// Exec downloaded data
+#define BOOTSTRAP_EXEC         'E'
 // ACK
 #define BOOTSTRAP_ACK          'A'
 // NACK

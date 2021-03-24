@@ -6,9 +6,12 @@
 
 #include <assert.h>
 #include <plat/common/platform.h>
+#include <../bl1/bl1_private.h>	/* UGLY... */
 
 #include "lan966x_private.h"
 #include "lan966x_bootstrap.h"
+
+__attribute__((__noreturn__)) void plat_bootstrap_exec(void);
 
 /* CRC32C routines, these use a different polynomial */
 /*****************************************************************/
@@ -184,7 +187,7 @@ static uint32_t MON_PUT_Data(const void *buffer, uint32_t length, uint32_t crc)
 	return Crc32c(crc, buffer, length);
 }
 
-static void bootstrap_RxPayload(uint8_t *data, bootstrap_req_t *req)
+/*static*/ void bootstrap_RxPayload(uint8_t *data, bootstrap_req_t *req)
 {
 	int datasize = req->len;
 	char in[2];
@@ -292,7 +295,7 @@ static void bootstrap_TxAck(void)
 	bootstrap_Tx(BOOTSTRAP_ACK, 0, 0, NULL);
 }
 
-static int bootstrap_RxData(uint8_t *data,
+/*static*/ int bootstrap_RxData(uint8_t *data,
 			    int offset,
 			    int datasize)
 {
@@ -330,9 +333,24 @@ static void handle_read_rom_version(void)
 		     (void*)version_string);
 }
 
+static void handle_auth(const bootstrap_req_t *req)
+{
+	/* TBBR not enabled yet */
+	bootstrap_TxAck();
+}
+
+/*static*/ void handle_exec(const bootstrap_req_t *req)
+{
+	bl1_plat_handle_post_image_load(BL2_IMAGE_ID);
+	bl1_prepare_next_image(BL2_IMAGE_ID);
+
+	plat_bootstrap_exec();
+}
+
 static void handle_send_data(uint32_t length)
 {
-	uint8_t *data_buffer_addr = (uint8_t*)BL2_BASE;
+	uintptr_t start = BL2_BASE;
+	uint8_t *ptr;
 	int nBytes, offset;
 
 	if (length == 0 || length > BL2_SIZE) {
@@ -340,16 +358,25 @@ static void handle_send_data(uint32_t length)
 		return;
 	}
 
+	ptr = (uint8_t*)start;
+
 	// Go ahead, receive data
 	bootstrap_TxAck();
 
+	/* Gobble up the data chunks */
 	offset = 0;
 	while (offset < length &&
-	       (nBytes = bootstrap_RxData(data_buffer_addr, offset,
+	       (nBytes = bootstrap_RxData(ptr, offset,
 					  length - offset)) > 0) {
-		data_buffer_addr += nBytes;
+		ptr += nBytes;
 		offset += nBytes;
 	}
+
+	/*
+	 * We need to flush since execution may be using different
+	 * context than the current.
+	 */
+	flush_dcache_range(start, length);
 
 	VERBOSE("Received %d out of %d bytes\n", offset, length);
 }
@@ -373,6 +400,10 @@ void lan966x_bootstrap_monitor(void)
 			handle_read_rom_version();
 		else if (is_cmd(&req, BOOTSTRAP_SEND))
 			handle_send_data(req.arg0);
+		else if (is_cmd(&req, BOOTSTRAP_AUTH))
+			handle_auth(&req);
+		else if (is_cmd(&req, BOOTSTRAP_EXEC))
+			handle_exec(&req);
 		else
 			bootstrap_TxNack("Unknown command");
 	}

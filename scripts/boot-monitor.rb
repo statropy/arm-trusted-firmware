@@ -10,6 +10,7 @@ CMD_QUIT = 'Q'
 CMD_VERS = 'V'
 CMD_SEND = 'S'
 CMD_DATA = 'D'
+CMD_EXEC = 'E'
 
 $id = 0
 
@@ -90,6 +91,10 @@ ARGV.each do |arg|
                 end
             end
         end
+    when "execute"
+        ns = ARGV.shift.to_i
+        STDOUT.write fmt_req(CMD_EXEC,ns)
+        rsp = read_resp(STDIN)
     when "quit"
         STDOUT.write fmt_req(CMD_QUIT)
         rsp = read_resp(STDIN)
