@@ -5,10 +5,7 @@
  */
 
 #include <assert.h>
-#include <common/debug.h>
-#include <plat/common/platform.h>
 
-#include "lan966x_private.h"
 #include "lan966x_bootstrap.h"
 
 /* CRC32C routines, these use a different polynomial */
