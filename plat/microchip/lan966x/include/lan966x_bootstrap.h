@@ -7,8 +7,8 @@
 // BOOTSTRAP Start-Of-Frame
 #define BOOTSTRAP_SOF          '>'
 
-// Quit BOOTSTRAP
-#define BOOTSTRAP_QUIT         'Q'
+// Get version
+#define BOOTSTRAP_VERS         'V'
 // Send Code
 #define BOOTSTRAP_SEND         'S'
 // Data transmitted
@@ -17,12 +17,14 @@
 #define BOOTSTRAP_AUTH         'U'
 // Exec downloaded data
 #define BOOTSTRAP_EXEC         'E'
+// Override strapping
+#define BOOTSTRAP_STRAP        'O'
+// Continue boot
+#define BOOTSTRAP_CONT         'C'
 // ACK
-#define BOOTSTRAP_ACK          'A'
+#define BOOTSTRAP_ACK          'a'
 // NACK
-#define BOOTSTRAP_NACK         'N'
-// Get version
-#define BOOTSTRAP_VERS         'V'
+#define BOOTSTRAP_NACK         'n'
 
 #define BSTRAP_ARG0_MAX_LENGTH	8
 #define BSTRAP_LEN_MAX_LENGTH	8

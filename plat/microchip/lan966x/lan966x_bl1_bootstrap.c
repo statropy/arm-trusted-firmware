@@ -13,6 +13,11 @@
 
 __attribute__((__noreturn__)) void plat_bootstrap_exec(void);
 
+static struct {
+	uint32_t length;
+	bool     authenticated;
+} received_code_status;
+
 /* CRC32C routines, these use a different polynomial */
 /*****************************************************************/
 /*                                                               */
@@ -187,7 +192,7 @@ static uint32_t MON_PUT_Data(const void *buffer, uint32_t length, uint32_t crc)
 	return Crc32c(crc, buffer, length);
 }
 
-/*static*/ void bootstrap_RxPayload(uint8_t *data, bootstrap_req_t *req)
+static void bootstrap_RxPayload(uint8_t *data, bootstrap_req_t *req)
 {
 	int datasize = req->len;
 	char in[2];
@@ -283,6 +288,7 @@ static void bootstrap_Tx(char cmd, int32_t status,
 	/* Send CRC */
 	hex2str(hexdigest, crc);
 	MON_PUT_Data(hexdigest, sizeof(hexdigest), 0);
+	console_flush();
 }
 
 static void bootstrap_TxNack(const char *str)
@@ -295,13 +301,20 @@ static void bootstrap_TxAck(void)
 	bootstrap_Tx(BOOTSTRAP_ACK, 0, 0, NULL);
 }
 
-/*static*/ int bootstrap_RxData(uint8_t *data,
+static void bootstrap_TxAckData(const void *data, uint32_t len)
+{
+	bootstrap_Tx(BOOTSTRAP_ACK, 0, len, data);
+}
+
+static int bootstrap_RxData(uint8_t *data,
 			    int offset,
 			    int datasize)
 {
 	bootstrap_req_t req;
 	const char *errtxt = "Expected DATA";
 
+
+	req.arg0 = 0;
 	if (bootstrap_RxReq(&req) &&
 	    is_cmd(&req, BOOTSTRAP_DATA)) {
 		if (req.len > datasize) {
@@ -314,37 +327,45 @@ static void bootstrap_TxAck(void)
 		}
 		bootstrap_RxPayload(data, &req);
 		if (bootstrap_RxCrcCheck(&req)) {
-			bootstrap_TxAck();
+			bootstrap_Tx(BOOTSTRAP_ACK, req.arg0, 0, NULL);
 			return req.len;
 		}
 		errtxt = "CRC failure";
 	}
 
 send_err:
-	bootstrap_TxNack(errtxt);
+	bootstrap_Tx(BOOTSTRAP_NACK, req.arg0, strlen(errtxt), (const uint8_t*)errtxt);
 	return -1;
 }
 
 static void handle_read_rom_version(void)
 {
 	// Send Version
-	bootstrap_Tx(BOOTSTRAP_VERS, 0,
-		     strlen(version_string),
-		     (void*)version_string);
+	bootstrap_TxAckData(version_string, strlen(version_string));
 }
 
 static void handle_auth(const bootstrap_req_t *req)
 {
 	/* TBBR not enabled yet */
 	bootstrap_TxAck();
+	received_code_status.authenticated = true;
 }
 
-/*static*/ void handle_exec(const bootstrap_req_t *req)
+static void handle_exec(const bootstrap_req_t *req)
 {
-	bl1_plat_handle_post_image_load(BL2_IMAGE_ID);
-	bl1_prepare_next_image(BL2_IMAGE_ID);
+	/* XXXX check tz_ram layout struct */
+	if (received_code_status.length) {
 
-	plat_bootstrap_exec();
+		/* We're going ahead */
+		bootstrap_TxAck();
+
+		bl1_plat_handle_post_image_load(BL2_IMAGE_ID);
+		bl1_prepare_next_image(BL2_IMAGE_ID);
+
+		plat_bootstrap_exec();
+		/* Not reached */
+	}
+	bootstrap_TxNack("Nothing to execute");
 }
 
 static void handle_send_data(uint32_t length)
@@ -378,6 +399,10 @@ static void handle_send_data(uint32_t length)
 	 */
 	flush_dcache_range(start, length);
 
+	/* We have data */
+	received_code_status.length = length;
+	received_code_status.authenticated = false;
+
 	VERBOSE("Received %d out of %d bytes\n", offset, length);
 }
 
@@ -394,7 +419,7 @@ void lan966x_bootstrap_monitor(void)
 			continue;
 		}
 
-		if (is_cmd(&req, BOOTSTRAP_QUIT))
+		if (is_cmd(&req, BOOTSTRAP_CONT))
 			break;
 		else if (is_cmd(&req, BOOTSTRAP_VERS))
 			handle_read_rom_version();
