@@ -39,7 +39,6 @@ static void handle_auth(const bootstrap_req_t *req)
 
 static void handle_exec(const bootstrap_req_t *req)
 {
-	/* XXXX check tz_ram layout struct */
 	if (received_code_status.length) {
 
 		/* We're going ahead */
