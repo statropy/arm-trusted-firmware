@@ -103,7 +103,7 @@
 #if defined(IMAGE_BL1)
 #define MAX_XLAT_TABLES			4
 #else
-#define MAX_XLAT_TABLES			5
+#define MAX_XLAT_TABLES			6
 #endif
 
 #define MAX_MMAP_REGIONS		16

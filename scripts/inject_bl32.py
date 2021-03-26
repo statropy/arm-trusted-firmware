@@ -10,6 +10,6 @@ debugger = Debugger()
 debugger.getCurrentExecutionContext().getExecutionService().stop()
 
 # Run until BL32
-lan966x.run_to(debugger, "S:0xdfe00000")
+lan966x.run_to(debugger, "S:0x9fe00000")
 
 lan966x.load_stage(debugger, "bl32", "build/lan966x/debug/")
