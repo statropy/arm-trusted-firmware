@@ -18,10 +18,16 @@ static struct {
 	bool     authenticated;
 } received_code_status;
 
-static void handle_read_rom_version(void)
+static void handle_read_rom_version(const bootstrap_req_t *req)
 {
 	// Send Version
 	bootstrap_TxAckData(version_string, strlen(version_string));
+}
+
+static void handle_strap(const bootstrap_req_t *req)
+{
+	bootstrap_TxAck();
+	lan966x_set_strapping(req->arg0);
 }
 
 static void handle_auth(const bootstrap_req_t *req)
@@ -48,8 +54,9 @@ static void handle_exec(const bootstrap_req_t *req)
 	bootstrap_TxNack("Nothing to execute");
 }
 
-static void handle_send_data(uint32_t length)
+static void handle_send_data(const bootstrap_req_t *req)
 {
+	uint32_t length = req->arg0;
 	uintptr_t start = BL2_BASE;
 	uint8_t *ptr;
 	int nBytes, offset;
@@ -102,9 +109,11 @@ void lan966x_bootstrap_monitor(void)
 		if (is_cmd(&req, BOOTSTRAP_CONT))
 			break;
 		else if (is_cmd(&req, BOOTSTRAP_VERS))
-			handle_read_rom_version();
+			handle_read_rom_version(&req);
 		else if (is_cmd(&req, BOOTSTRAP_SEND))
-			handle_send_data(req.arg0);
+			handle_send_data(&req);
+		else if (is_cmd(&req, BOOTSTRAP_STRAP))
+			handle_strap(&req);
 		else if (is_cmd(&req, BOOTSTRAP_AUTH))
 			handle_auth(&req);
 		else if (is_cmd(&req, BOOTSTRAP_EXEC))

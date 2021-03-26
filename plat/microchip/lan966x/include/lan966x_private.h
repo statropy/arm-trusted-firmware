@@ -26,7 +26,8 @@ enum {
 	LAN966X_STRAP_SPI_SLAVE,
 };
 
-int lan966x_get_strapping(void);
+uint8_t lan966x_get_strapping(void);
+void    lan966x_set_strapping(uint8_t value);
 
 void lan966x_bootstrap_monitor(void);
 void lan966x_console_init(void);

@@ -3,6 +3,7 @@
 require 'pp'
 require 'io/console'
 require 'digest/crc32'
+require 'optparse'
 
 CMD_SOF  = '>'
 CMD_VERS = 'V'
@@ -70,13 +71,16 @@ STDIN.sync = true
 STDOUT.sync = true
 STDERR.reopen("/var/tmp/bootstrap.txt", "w")
 
-ARGV.each do |arg|
-    arg = ARGV.shift
-    case arg
-    when "version"
+$options = {}
+OptionParser.new do |opts|
+    opts.banner = "Usage: boot-monitor.rb [options]"
+    opts.version = 0.1
+
+    opts.on("-v", "--version", "Do version command exchange") do
         do_cmd(fmt_req(CMD_VERS))
-    when "send"
-        file = ARGV.shift
+    end
+
+    opts.on("-s", "--send <file>", "Send file") do |file|
         sz = File.size?(file)
         if sz
             rsp = do_cmd(fmt_req(CMD_SEND,sz))
@@ -99,13 +103,21 @@ ARGV.each do |arg|
                 end
             end
         end
-    when "execute"
-        STDOUT.write fmt_req(CMD_EXEC)
-        rsp = read_resp(STDIN)
-    when "continue"
-        STDOUT.write fmt_req(CMD_CONT)
-        rsp = read_resp(STDIN)
-    when "examples"
+    end
+
+    opts.on("-e", "--execute", "Do execute command") do
+        rsp = do_cmd(fmt_req(CMD_EXEC))
+    end
+
+    opts.on("-c", "--continue", "Do continue command") do
+        rsp = do_cmd(fmt_req(CMD_CONT))
+    end
+
+    opts.on("-s", "--strapping <num>", "Do strapping command") do |num|
+        rsp = do_cmd(fmt_req(CMD_STRAP,num.to_i))
+    end
+
+    opts.on("-x", "--examples", "Show protocol example encodings") do
         show_examples("Get Version", [
                           fmt_req(CMD_VERS),
                           fmt_req(CMD_ACK,0,"Version 1.3 Manic Mantis")
@@ -127,15 +139,13 @@ ARGV.each do |arg|
                           fmt_req(CMD_ACK)
                       ])
         show_examples("Override strapping", [
-                          fmt_req(CMD_STRAP,1),
+                          fmt_req(CMD_STRAP,10),
                           fmt_req(CMD_ACK)
                       ])
         show_examples("Continue Boot", [
                           fmt_req(CMD_CONT),
                           fmt_req(CMD_NACK)
                       ])
-    else
-        STDERR.puts "Invalid command: #{arg}"
-        exit
     end
-end
+
+end.order!
