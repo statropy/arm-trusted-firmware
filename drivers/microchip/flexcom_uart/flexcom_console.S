@@ -37,7 +37,6 @@ func console_flexcom_register
 	beq register_fail
 
 	str r1, [r0, #CONSOLE_T_BASE]
-	str r2, [r0, #CONSOLE_T_DRVDATA]
 
 	/* Disable the UART interrupt */
 	ldr r3, [r1, #USART_REG_IDR]
