@@ -18,10 +18,12 @@ CMD_NACK = 'n'
 
 def read_resp(fd)
     buf = ""
+    bin = false
     while (fd.read(1) != CMD_SOF)
     end
     while (c = fd.read(1))
-        if c == '#'
+        if c == '#' || c == '%'
+            bin = (c == '%')
             break
         end
         buf += c
@@ -33,9 +35,15 @@ def read_resp(fd)
                :arg => items[1].hex,
                :len => items[2].hex }
         len = items[2].hex
-        payload = fd.read(len*2)
-        obj[:payload] = [payload].pack('H*')
-        obj[:rawdata] = buf + "#" + payload
+        if bin
+            payload = fd.read(len)
+            obj[:payload] = payload
+            obj[:rawdata] = buf + '%' + payload
+        else
+            payload = fd.read(len*2)
+            obj[:payload] = [payload].pack('H*')
+            obj[:rawdata] = buf + '#' + payload
+        end
         obj[:crc] = fd.read(8).downcase
         obj[:calccrc] = Digest::CRC32c.hexdigest(obj[:rawdata])
     end
@@ -46,12 +54,16 @@ end
 def fmt_req(cmd, arg = 0, payload = nil)
     buf = sprintf("%c", cmd)
     buf += sprintf(",%08x", arg)
-    buf += sprintf(",%08x#", !payload.nil? ? payload.length : 0)
+    bin = $options[:binary] ? '%' : '#'
+    buf += sprintf(",%08x%c", !payload.nil? ? payload.length : 0, bin)
     if (!payload.nil?)
-        buf += payload.unpack('H*').first
+        if $options[:binary]
+            buf += payload
+        else
+            buf += payload.unpack('H*').first
+        end
     end
-    crc = Digest::CRC32c.hexdigest(buf)
-    return sprintf("%c", CMD_SOF) + buf + crc
+    return CMD_SOF + buf + Digest::CRC32c.hexdigest(buf)
 end
 
 def do_cmd(cmd)
@@ -75,6 +87,10 @@ $options = {}
 OptionParser.new do |opts|
     opts.banner = "Usage: boot-monitor.rb [options]"
     opts.version = 0.1
+
+    opts.on("-b", "--binary", "Send payload in binary form") do
+        $options[:binary] = true
+    end
 
     opts.on("-v", "--version", "Do version command exchange") do
         do_cmd(fmt_req(CMD_VERS))

@@ -96,6 +96,8 @@ static const uint32_t crc32Table[256] = {
 	0xBE2DA0A5L, 0x4C4623A6L, 0x5F16D052L, 0xAD7D5351L
 };
 
+static uint8_t bootstrap_req_flags;
+
 static uint32_t Crc32c(uint32_t crc, const void *data, size_t size)
 {
 	const uint8_t *p = data;
@@ -159,7 +161,7 @@ static int MON_GET_Data(char *data, uint32_t length)
 			return -1;
 		else {
 			*data++ = c;
-			if (c == '#')
+			if (c == '#' || c == '%')
 				break;
 		}
 
@@ -184,14 +186,19 @@ static uint32_t MON_PUT_Data(const void *buffer, uint32_t length, uint32_t crc)
 
 static void bootstrap_RxPayload(uint8_t *data, bootstrap_req_t *req)
 {
-	int datasize = req->len;
-	char in[2];
+	if (req->flags & BSTRAP_REQ_FLAG_BINARY) {
+		MON_GET_Data((char*)data, req->len);
+		req->crc = Crc32c(req->crc, data, req->len);
+	} else {
+		int datasize = req->len;
+		char in[2];
 
-	while (datasize--) {
-		in[0] = MON_GET();
-		in[1] = MON_GET();
-		*data++ = hex2nibble(in[1]) + (hex2nibble(in[0]) << 4);
-		req->crc = Crc32c(req->crc, in, sizeof(in));
+		while (datasize--) {
+			in[0] = MON_GET();
+			in[1] = MON_GET();
+			*data++ = hex2nibble(in[1]) + (hex2nibble(in[0]) << 4);
+			req->crc = Crc32c(req->crc, in, sizeof(in));
+		}
 	}
 }
 
@@ -222,10 +229,14 @@ bool bootstrap_RxReq(bootstrap_req_t *req)
 	if (rx == sizeof(rxdata) &&
 	    rxdata.delim1 == ',' &&
 	    rxdata.delim2 == ',' &&
-	    rxdata.pay_delim == '#') {
+	    (rxdata.pay_delim == '#' || rxdata.pay_delim == '%')) {
 		req->cmd = rxdata.cmd;
+		req->flags = 0;
 		req->arg0 = atohex(rxdata.arg0, BSTRAP_HEXFLD_LEN);
 		req->len = atohex(rxdata.len, BSTRAP_HEXFLD_LEN);
+		/* Req flags */
+		if (rxdata.pay_delim == '%')
+			req->flags |= BSTRAP_REQ_FLAG_BINARY;
 		/* Fixed part of CRC */
 		req->crc = Crc32c(0, &rxdata, sizeof(rxdata));
 		/* Commands with payloads are checked later */
@@ -264,7 +275,7 @@ void bootstrap_Tx(char cmd, int32_t status,
 
 	bootstrapTx.delim1 =
 		bootstrapTx.delim2 = ',';
-	bootstrapTx.pay_delim = '#';
+	bootstrapTx.pay_delim = (bootstrap_req_flags & BSTRAP_REQ_FLAG_BINARY) ? '%' : '#';
 
 	MON_PUT(BOOTSTRAP_SOF);
 	crc = MON_PUT_Data((char*)&bootstrapTx, sizeof(bootstrapTx), crc);
@@ -272,7 +283,10 @@ void bootstrap_Tx(char cmd, int32_t status,
 	// payload if provided
 	if (payload) {
 		assert(length != 0);
-		crc = bootstrap_TxPayload(payload, length, crc);
+		if (bootstrap_req_flags & BSTRAP_REQ_FLAG_BINARY)
+			crc = MON_PUT_Data(payload, length, crc);
+		else
+			crc = bootstrap_TxPayload(payload, length, crc);
 	}
 
 	/* Send CRC */
@@ -287,7 +301,6 @@ int bootstrap_RxData(uint8_t *data,
 {
 	bootstrap_req_t req;
 	const char *errtxt = "Expected DATA";
-
 
 	req.arg0 = 0;
 	if (bootstrap_RxReq(&req) &&

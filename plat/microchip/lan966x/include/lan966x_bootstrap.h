@@ -34,13 +34,16 @@ typedef struct {
 	char arg0[BSTRAP_HEXFLD_LEN];      /* HHHHHHHH */
 	char delim2;			   /* ','      */
 	char len[BSTRAP_HEXFLD_LEN];       /* HHHHHHHH */
-	char pay_delim;			   /* '#'      */
+	char pay_delim;			   /* '(#|%)'  */
 } __packed bstrap_char_req_t;
 
 #define BSTRAP_CMD_FIXED_LEN (sizeof(bstrap_char_req_t))
 
+#define BSTRAP_REQ_FLAG_BINARY	BIT(0)
+
 typedef struct {
 	uint8_t  cmd;
+	uint8_t  flags;
 	uint32_t arg0;
 	uint32_t len;
 	uint32_t crc;
