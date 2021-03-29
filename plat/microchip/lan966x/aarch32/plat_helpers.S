@@ -6,8 +6,6 @@
 
 #include <arch.h>
 #include <asm_macros.S>
-#include <drivers/arm/fvp/fvp_pwrc.h>
-//#include <assert_macros.S>
 #include <platform_def.h>
 
 	.globl	plat_secondary_cold_boot_setup

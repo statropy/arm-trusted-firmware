@@ -76,14 +76,20 @@ void bl2_plat_arch_setup(void)
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
 	struct meminfo *mem_layout = (struct meminfo *)arg1;
+	uint32_t override_strapping = arg2;
+
+	/* Scribble away memory layout early */
+	bl2_tzram_layout = *mem_layout;
+
+	/* Check if strappings are forwarded */
+	if ((override_strapping >> 16) == 0xBEEF)
+		lan966x_set_strapping((uint8_t)override_strapping);
 
 	/* Console */
 	lan966x_console_init();
 
 	/* Enable arch timer */
 	generic_delay_timer_init();
-
-	bl2_tzram_layout = *mem_layout;
 }
 
 int bl2_aes_ddr_test_block(int block, uintptr_t addr, uint32_t *data, size_t len)
@@ -136,6 +142,10 @@ void bl2_platform_setup(void)
 {
 	/* Placed crudely */
 	lan966x_ddr_init();
+
+	/* XXX just to test override XXX */
+	/* (IO layer will need this at some time) */
+	(void) lan966x_get_strapping();
 
 	/* IO */
 	lan966x_io_setup();

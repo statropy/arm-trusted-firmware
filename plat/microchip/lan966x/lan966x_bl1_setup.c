@@ -94,7 +94,7 @@ void bl1_platform_setup(void)
 	case LAN966X_STRAP_SAMBA_FC3:
 	case LAN966X_STRAP_SAMBA_FC4:
 	case LAN966X_STRAP_SAMBA_USB:
-		lan966x_samba_monitor();
+		lan966x_bootstrap_monitor();
 		break;
 	}
 
@@ -141,7 +141,7 @@ int bl1_plat_handle_post_image_load(unsigned int image_id)
 	 */
 	bl1_calc_bl2_mem_layout(&bl1_tzram_layout, &bl2_tzram_layout);
 	ep_info->args.arg1 = (uintptr_t)&bl2_tzram_layout;
-	ep_info->args.arg2 = 0xDEADBEEF;
+	ep_info->args.arg2 = 0xBEEF0000 | lan966x_get_strapping();
 
 	VERBOSE("BL1: BL2 memory layout address = %p\n",
 		(void *)&bl2_tzram_layout);

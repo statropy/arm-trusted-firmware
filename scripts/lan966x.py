@@ -50,7 +50,7 @@ def run_to(debugger, address):
     debugger.setHardwareAddressBreakpoint(address, True)
     try:
         debugger.run()
-        debugger.waitForStop(5000)
+        debugger.waitForStop(60000)
     except DebugException, e:
         print("Timout waiting for BL2")
         if not debugger.isStopped:
