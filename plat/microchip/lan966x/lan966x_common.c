@@ -120,7 +120,7 @@ static bool lan966x_boot_media_cfg(lan966x_boot_media_config_t *out)
 	case LAN966X_STRAP_BOOT_EMMC_CONT: /* XXX */
 	case LAN966X_STRAP_BOOT_SD:  /* XXX */
 		INFO("Fix me, emulating reading configuration\n");
-		memset(out, 0xff, sizeof(out));
+		memset(out, 0xff, sizeof(*out));
 		out->signature1 = CONFIG_HEADER_SIGNATURE1;
 		out->signature2 = CONFIG_HEADER_SIGNATURE2;
 		out->console = 0;
