@@ -25,7 +25,6 @@ $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 # Pass LAN966x_MAX_PE_PER_CPU to the build system.
 $(eval $(call add_define,LAN966x_MAX_PE_PER_CPU))
 
-# include lib/libfdt/libfdt.mk
 include lib/xlat_tables_v2/xlat_tables.mk
 
 ifneq (${TRUSTED_BOARD_BOOT},0)
@@ -49,7 +48,6 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				${XLAT_TABLES_LIB_SRCS}				\
 				${LAN966X_CONSOLE_SOURCES}			\
 				common/desc_image_load.c			\
-				common/fdt_wrappers.c				\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
 				drivers/microchip/otp/otp.c			\

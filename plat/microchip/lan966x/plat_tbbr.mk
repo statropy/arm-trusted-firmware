@@ -37,6 +37,3 @@ include ${CRYPTO_LIB_MK}
 
 $(info Including ${IMG_PARSER_LIB_MK})
 include ${IMG_PARSER_LIB_MK}
-
-$(info Including libfdt)
-include lib/libfdt/libfdt.mk
