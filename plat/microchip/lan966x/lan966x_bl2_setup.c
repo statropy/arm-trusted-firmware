@@ -140,17 +140,13 @@ void bl2_aes_ddr_test(uintptr_t ddr)
 
 void bl2_platform_setup(void)
 {
-	/* Placed crudely */
-	lan966x_ddr_init();
-
-	/* XXX just to test override XXX */
-	/* (IO layer will need this at some time) */
-	(void) lan966x_get_strapping();
-
 	/* IO */
 	lan966x_io_setup();
 
-	/* IO */
+	/* Initialize DDR for loading BL32/BL33 */
+	lan966x_ddr_init();
+
+	/* TRNG */
 	lan966x_trng_init();
 
 	/* Initialize the secure environment */

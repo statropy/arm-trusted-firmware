@@ -9,9 +9,9 @@ debugger = Debugger()
 # Ensure target is stopped
 debugger.getCurrentExecutionContext().getExecutionService().stop()
 
-# Run until BL32
-lan966x.run_to(debugger, "S:0x9fe00000")
+# Run until BL33
+lan966x.run_to(debugger, "N:0x60000000")
 
-lan966x.load_stage(debugger, "bl32",
-                   "build/lan966x/debug/bl32/bl32.elf",
-                   "build/lan966x/debug/bl32.bin")
+lan966x.load_stage(debugger, "BL33",
+                   "../maserati-uboot/spl/u-boot-spl",
+                   "../maserati-uboot/spl/u-boot-spl.bin")

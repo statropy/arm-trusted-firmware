@@ -12,4 +12,6 @@ debugger.getCurrentExecutionContext().getExecutionService().stop()
 # Run until BL2
 lan966x.run_to(debugger, "S:0x100000")
 
-lan966x.load_stage(debugger, "bl2", "build/lan966x/debug/")
+lan966x.load_stage(debugger, "bl2",
+                   "build/lan966x/debug/bl2/bl2.elf",
+                   "build/lan966x/debug/bl2.bin")

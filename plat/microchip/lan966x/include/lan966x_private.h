@@ -7,6 +7,19 @@
 #ifndef LAN966X_PRIVATE_H
 #define LAN966X_PRIVATE_H
 
+#include <stdint.h>
+
+typedef struct {
+	uint32_t	signature1;
+	uint32_t	signature2;
+	uint32_t	qspi0_dlybs;
+	uint8_t		console;
+	uint8_t		max_log_level;
+	uint8_t		res1[2];
+	uint32_t	res2[11];
+	uint32_t	crc;
+} lan966x_boot_media_config_t;
+
 enum {
 	LAN966X_STRAP_BOOT_MMC = 0,
 	LAN966X_STRAP_BOOT_QSPI,
@@ -27,11 +40,12 @@ enum {
 };
 
 uint8_t lan966x_get_strapping(void);
-void    lan966x_set_strapping(uint8_t value);
+void	lan966x_set_strapping(uint8_t value);
 
 void lan966x_bootstrap_monitor(void);
 void lan966x_console_init(void);
-void lan966x_init_timer(void);
+void lan966x_timer_init(void);
+void lan966x_io_init(void);
 void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
@@ -41,5 +55,9 @@ uint32_t lan966x_trng_read(void);
 
 void plat_lan966x_gic_driver_init(void);
 void plat_lan966x_gic_init(void);
+
+uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
+
+lan966x_boot_media_config_t *lan966x_boot_media_cfg_get(void);
 
 #endif /* LAN966X_PRIVATE_H */

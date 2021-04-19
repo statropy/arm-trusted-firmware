@@ -8,6 +8,8 @@
 #include <common/debug.h>
 #include <drivers/console.h>
 #include <drivers/microchip/flexcom_uart.h>
+#include <drivers/microchip/qspi.h>
+#include <drivers/microchip/tz_matrix.h>
 #include <drivers/microchip/vcore_gpio.h>
 #include <lib/mmio.h>
 #include <platform_def.h>
@@ -17,11 +19,20 @@
 
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
+#include "plat_otp.h"
+
+/* Boot media config blob, little endian */
+#define CONFIG_HEADER_SIGNATURE1	0x5048434d	// MCHP
+#define CONFIG_HEADER_SIGNATURE2	0x58363639	// 966X
+#define CONFIG_SPACE_SPI_OFFSET		0
 
 static console_t lan966x_console;
 
+static lan966x_boot_media_config_t lan966x_conf;
+bool conf_read, conf_valid;
+
 static struct {
-	bool    read;
+	bool	read;
 	uint8_t value;
 } strap_data;
 
@@ -84,13 +95,113 @@ const mmap_region_t *plat_arm_get_mmap(void)
 	return plat_arm_mmap;
 }
 
-void lan966x_console_init(void)
+static bool lan966x_boot_media_cfg_parse(uint8_t *src, lan966x_boot_media_config_t *out)
+{
+	lan966x_boot_media_config_t *in = (lan966x_boot_media_config_t *)src;
+
+	if (in->signature1 == CONFIG_HEADER_SIGNATURE1 &&
+	    in->signature2 == CONFIG_HEADER_SIGNATURE2) {
+		uint32_t crc = Crc32c(0, src, sizeof(lan966x_boot_media_config_t) - 4);
+		if (crc == in->crc) {
+			memcpy(out, in, sizeof(lan966x_boot_media_config_t));
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static bool lan966x_boot_media_cfg(lan966x_boot_media_config_t *out)
+{
+	bool ret = false;
+
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_MMC: /* XXX */
+	case LAN966X_STRAP_BOOT_EMMC_CONT: /* XXX */
+	case LAN966X_STRAP_BOOT_SD:  /* XXX */
+		INFO("Fix me, emulating reading configuration\n");
+		memset(out, 0xff, sizeof(out));
+		out->signature1 = CONFIG_HEADER_SIGNATURE1;
+		out->signature2 = CONFIG_HEADER_SIGNATURE2;
+		out->console = 0;
+		out->max_log_level = LOG_LEVEL_VERBOSE;
+		ret = true;
+		break;
+
+	case LAN966X_STRAP_BOOT_QSPI_CONT:
+	case LAN966X_STRAP_BOOT_QSPI:
+		ret = lan966x_boot_media_cfg_parse((void*)LAN996X_QSPI0_MMAP +
+						   CONFIG_SPACE_SPI_OFFSET, out);
+		break;
+
+	default:
+		break;
+	}
+
+	return ret;
+}
+
+lan966x_boot_media_config_t *lan966x_boot_media_cfg_get(void)
+{
+	if (!conf_read) {
+		conf_read = true;
+		conf_valid = lan966x_boot_media_cfg(&lan966x_conf);
+	}
+
+	return conf_valid ? &lan966x_conf : NULL;
+}
+
+static uintptr_t lan966x_get_conf_console(void)
 {
 	uintptr_t base = 0;
+	lan966x_boot_media_config_t *cfg;
+
+	cfg = lan966x_boot_media_cfg_get();
+	if (cfg) {
+		switch (cfg->console) {
+		case 0:
+			base = LAN966X_FLEXCOM_0_BASE;
+			break;
+		case 1:
+			base = LAN966X_FLEXCOM_1_BASE;
+			break;
+		case 2:
+			base = LAN966X_FLEXCOM_2_BASE;
+			break;
+		case 3:
+			base = LAN966X_FLEXCOM_3_BASE;
+			break;
+		case 4:
+			base = LAN966X_FLEXCOM_4_BASE;
+			break;
+		default:
+			/* Unsupported value, ignore */
+			break;
+		}
+
+		if ((cfg->max_log_level % 10U) == 0U &&
+		    cfg->max_log_level <= LOG_LEVEL_VERBOSE)
+			tf_log_set_max_level(cfg->max_log_level);
+
+	}
+
+	return base;
+}
+
+void lan966x_console_init(void)
+{
+	uintptr_t base;
+
+	/* NB: Needed as OTP emulation need qspi */
+	lan966x_io_init();
 
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
+	/* See if boot media config defines a console */
+	base = lan966x_get_conf_console();
+
 #if defined(IMAGE_BL1)
+	/* Override if strappings say so */
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_SAMBA_FC0:
 		base = LAN966X_FLEXCOM_0_BASE;
@@ -108,8 +219,9 @@ void lan966x_console_init(void)
 		break;
 	}
 #else
-	/* Except for BL1 bootrom */
-	base = CONSOLE_BASE;
+	/* If no console, use compile-time value (for BL2/BL3x) */
+	if (!base)
+		base = CONSOLE_BASE;
 #endif
 
 	switch (base) {
@@ -148,7 +260,22 @@ void lan966x_console_init(void)
 	}
 }
 
-void lan966x_init_timer(void)
+void lan966x_io_init(void)
+{
+	/* Enable memmap access */
+	qspi_init(LAN966X_QSPI_0_BASE, QSPI_SIZE);
+
+	/* Register TZ MATRIX driver */
+	matrix_init(LAN966X_HMATRIX2_BASE);
+
+	/* Ensure we have ample reach on QSPI mmap area */
+	/* XXX - do we need 128M - and for id 0+1 XXX */
+	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
+			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
+			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M));
+}
+
+void lan966x_timer_init(void)
 {
 	uintptr_t syscnt = LAN966X_CPU_SYSCNT_BASE;
 
@@ -160,7 +287,7 @@ void lan966x_init_timer(void)
 
 unsigned int plat_get_syscnt_freq2(void)
 {
-        return SYS_COUNTER_FREQ_IN_TICKS;
+	return SYS_COUNTER_FREQ_IN_TICKS;
 }
 
 uint8_t lan966x_get_strapping(void)
@@ -213,4 +340,15 @@ void lan966x_set_strapping(uint8_t value)
 {
 	strap_data.read = true;
 	strap_data.value = value;
+}
+
+void qspi_plat_configure(void)
+{
+	lan966x_boot_media_config_t *cfg;
+
+	cfg = lan966x_boot_media_cfg_get();
+	if (cfg) {
+		INFO("Speed up QSPI, dlybs = %d\n", cfg->qspi0_dlybs);
+		qspi_set_dly(cfg->qspi0_dlybs);
+	}
 }

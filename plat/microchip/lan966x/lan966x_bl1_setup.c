@@ -60,7 +60,7 @@ void bl1_early_platform_setup(void)
 	lan966x_console_init();
 
 	/* Timer */
-	lan966x_init_timer();
+	lan966x_timer_init();
 
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;
@@ -85,9 +85,11 @@ void bl1_plat_arch_setup(void)
 
 void bl1_platform_setup(void)
 {
+	INFO("BL1 platform setup start\n");
+
+	/* IO */
 	lan966x_io_setup();
 
-	INFO("BL1 platform setup start\n");
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_SAMBA_FC0:
 	case LAN966X_STRAP_SAMBA_FC2:

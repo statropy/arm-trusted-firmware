@@ -14,4 +14,6 @@ debugger.getCurrentExecutionContext().getExecutionService().setExecutionAddress(
 debugger.removeAllBreakpoints()
 
 # Load stage BL1
-lan966x.load_stage(debugger, "bl1", "build/lan966x/debug/")
+lan966x.load_stage(debugger, "bl1",
+                   "build/lan966x/debug/bl1/bl1.elf",
+                   "build/lan966x/debug/bl1.bin")

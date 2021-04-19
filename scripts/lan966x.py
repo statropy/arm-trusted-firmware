@@ -41,10 +41,10 @@ def load_stage_binary(debugger, stage, file, address = None):
     #debugger.restore(file, format='binary', offset = 0, startAddress = address)
     show_disassembly_current(debugger, address)
 
-def load_stage(debugger, stage, path):
-    reload_symbols(debugger, path + "{}/{}.elf".format(stage, stage))
-    load_stage_binary(debugger, stage.upper(), path + "{}.bin".format(stage))
-    print("{} image loadeded - set breakpoints and/or continue".format(stage.upper()));
+def load_stage(debugger, stage, elf, bin):
+    reload_symbols(debugger, elf)
+    load_stage_binary(debugger, stage, bin)
+    print("{} image loadeded - set breakpoints and/or continue".format(stage));
 
 def run_to(debugger, address):
     debugger.setHardwareAddressBreakpoint(address, True)

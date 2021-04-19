@@ -10,5 +10,7 @@
 #include <stdint.h>
 
 void qspi_init(uintptr_t base, size_t len);
+int qspi_set_dly(uint32_t delay);
+void qspi_plat_configure(void);
 
 #endif  /* QSPI_H */

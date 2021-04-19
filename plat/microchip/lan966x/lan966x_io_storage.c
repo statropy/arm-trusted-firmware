@@ -12,7 +12,6 @@
 
 #include <arch_helpers.h>
 #include <common/debug.h>
-#include <drivers/microchip/qspi.h>
 #include <drivers/io/io_block.h>
 #include <drivers/io/io_driver.h>
 #include <drivers/io/io_fip.h>
@@ -22,7 +21,6 @@
 #include <drivers/partition/partition.h>
 #include <lib/mmio.h>
 #include <tools_share/firmware_image_package.h>
-#include <drivers/microchip/tz_matrix.h>
 
 #include "lan966x_private.h"
 
@@ -43,8 +41,9 @@ static const io_block_spec_t fip_block_spec = {
 	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 };
 
-static int check_fip(const uintptr_t spec);
-static int check_memmap(const uintptr_t spec);
+static const io_uuid_spec_t bl2_uuid_spec = {
+	.uuid = UUID_TRUSTED_BOOT_FIRMWARE_BL2,
+};
 
 static const io_uuid_spec_t bl31_uuid_spec = {
 	.uuid = UUID_EL3_RUNTIME_FIRMWARE_BL31,
@@ -66,11 +65,31 @@ static const io_uuid_spec_t bl33_uuid_spec = {
 	.uuid = UUID_NON_TRUSTED_FIRMWARE_BL33,
 };
 
-static const io_uuid_spec_t bl2_uuid_spec = {
-	.uuid = UUID_TRUSTED_BOOT_FIRMWARE_BL2,
+static const io_uuid_spec_t tb_fw_config_uuid_spec = {
+	.uuid = UUID_TB_FW_CONFIG,
+};
+
+static const io_uuid_spec_t hw_config_uuid_spec = {
+	.uuid = UUID_HW_CONFIG,
+};
+
+static const io_uuid_spec_t soc_fw_config_uuid_spec = {
+	.uuid = UUID_SOC_FW_CONFIG,
+};
+
+static const io_uuid_spec_t tos_fw_config_uuid_spec = {
+	.uuid = UUID_TOS_FW_CONFIG,
+};
+
+static const io_uuid_spec_t nt_fw_config_uuid_spec = {
+	.uuid = UUID_NT_FW_CONFIG,
 };
 
 #if TRUSTED_BOARD_BOOT
+static const io_uuid_spec_t tb_fw_cert_uuid_spec = {
+	.uuid = UUID_TRUSTED_BOOT_FW_CERT,
+};
+
 static const io_uuid_spec_t trusted_key_cert_uuid_spec = {
 	.uuid = UUID_TRUSTED_KEY_CERT,
 };
@@ -108,6 +127,9 @@ static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 };
 #endif /* TRUSTED_BOARD_BOOT */
 
+static int check_fip(const uintptr_t spec);
+static int check_memmap(const uintptr_t spec);
+
 static const struct plat_io_policy policies[] = {
 	[FIP_IMAGE_ID] = {
 		&memmap_dev_handle,
@@ -144,7 +166,37 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl33_uuid_spec,
 		check_fip
 	},
+	[TB_FW_CONFIG_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&tb_fw_config_uuid_spec,
+		check_fip
+	},
+	[HW_CONFIG_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&hw_config_uuid_spec,
+		check_fip
+	},
+	[SOC_FW_CONFIG_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&soc_fw_config_uuid_spec,
+		check_fip
+	},
+	[TOS_FW_CONFIG_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&tos_fw_config_uuid_spec,
+		check_fip
+	},
+	[NT_FW_CONFIG_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&nt_fw_config_uuid_spec,
+		check_fip
+	},
 #if TRUSTED_BOARD_BOOT
+	[TRUSTED_BOOT_FW_CERT_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&tb_fw_cert_uuid_spec,
+		check_fip
+	},
 	[TRUSTED_KEY_CERT_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&trusted_key_cert_uuid_spec,
@@ -237,17 +289,7 @@ void lan966x_io_setup(void)
 {
 	int result;
 
-	/* Enable memmap access */
-	qspi_init(LAN966X_QSPI_0_BASE, QSPI_SIZE);
-
-	/* Register TZ MATRIX driver */
-	matrix_init(LAN966X_HMATRIX2_BASE);
-
-	/* Ensure we have ample reach on QSPI mmap area */
-	/* XXX - do we need 128M - and for id 0+1 XXX */
-	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
-			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
-			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M));
+	lan966x_io_init();
 
 	result = register_io_dev_fip(&fip_dev_con);
 	assert(result == 0);

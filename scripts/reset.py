@@ -41,4 +41,6 @@ print "Reset done, FPGA BUILD_ID: 0x%08x" % (ms.readMemory32("S:0xE00C0080"))
 #print "BUILD ID 0x%08x" % (ms.readMemory32("S:0xE00C0080"))
 
 # Load stage BL1
-lan966x.load_stage(debugger, "bl1", "build/lan966x/debug/")
+lan966x.load_stage(debugger, "bl1",
+                   "build/lan966x/debug/bl1/bl1.elf",
+                   "build/lan966x/debug/bl1.bin")

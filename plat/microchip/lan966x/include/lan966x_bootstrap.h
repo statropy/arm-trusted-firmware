@@ -49,7 +49,7 @@ typedef struct {
 	uint32_t crc;
 } bootstrap_req_t;
 
-static bool is_cmd(const bootstrap_req_t *req, const char cmd)
+static inline bool is_cmd(const bootstrap_req_t *req, const char cmd)
 {
 	return req->cmd == cmd;
 }

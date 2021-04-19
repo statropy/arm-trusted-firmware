@@ -28,6 +28,13 @@ $(eval $(call add_define,LAN966x_MAX_PE_PER_CPU))
 # include lib/libfdt/libfdt.mk
 include lib/xlat_tables_v2/xlat_tables.mk
 
+ifneq (${TRUSTED_BOARD_BOOT},0)
+
+    $(info Including platform TBBR)
+    include plat/microchip/lan966x/plat_tbbr.mk
+
+endif
+
 PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
 			-Iinclude/drivers/microchip
 
@@ -42,11 +49,14 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				${XLAT_TABLES_LIB_SRCS}				\
 				${LAN966X_CONSOLE_SOURCES}			\
 				common/desc_image_load.c			\
+				common/fdt_wrappers.c				\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/microchip/otp/otp.c			\
 				drivers/microchip/tz_matrix/tz_matrix.c		\
 				plat/common/${ARCH}/crash_console_helpers.S	\
 				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
+				plat/microchip/lan966x/lan966x_crc32.c		\
 				plat/microchip/lan966x/lan966x_common.c
 
 BL1_SOURCES		+=	drivers/io/io_block.c				\
@@ -79,11 +89,15 @@ ENABLE_AMU			:=	1
 TRNG_SUPPORT			:=	1
 
 # Disable stack protector by default
-ENABLE_STACK_PROTECTOR	 	:= 0
+ENABLE_STACK_PROTECTOR	 	:= strong
 
 # Process flags
 $(eval $(call add_define,CONSOLE_BASE))
 
 ifneq (${BL2_AT_EL3}, 0)
     override BL1_SOURCES =
+endif
+
+ifneq (${ENABLE_STACK_PROTECTOR},0)
+PLAT_BL_COMMON_SOURCES  +=      plat/microchip/lan966x/lan966x_stack_protector.c
 endif
