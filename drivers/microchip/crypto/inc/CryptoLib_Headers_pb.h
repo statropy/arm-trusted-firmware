@@ -51,7 +51,7 @@
 #include "CryptoLib_Fill_pb.h"
 #include "CryptoLib_Fmult_pb.h"
 #include "CryptoLib_GCD_pb.h"
-#include "CryptoLib_Nop_pb.h"
+#include "CryptoLib_NOP_pb.h"
 #include "CryptoLib_PrimeGen_pb.h"
 #include "CryptoLib_RedMod_pb.h"
 #include "CryptoLib_Rng_pb.h"
@@ -243,11 +243,9 @@ typedef struct _CPKCL_param {
 // Calling a cryptographic service
 #define vCPKCL_Process(a,b)     \
           {\
-          b->CPKCL_Header.u1Service = CPKCL_SERVICE_##a##;\
+          b->CPKCL_Header.u1Service = CPKCL_SERVICE_##a;\
           b->CPKCL_Header.u2Status  = CPKCL_COMPUTATION_NOT_STARTED;\
-          __vCPKCLCs##a##(b);\
+          __vCPKCLCs##a(b);\
           }
 
 #endif // _CryptoLib_HEADERS_PB_INCLUDED
-
-
