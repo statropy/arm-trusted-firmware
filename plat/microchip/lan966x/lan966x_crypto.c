@@ -20,34 +20,10 @@
 
 #define LIB_NAME		"SAMA5 crypto core"
 
-static const uint32_t hash_sha1_1[] = { 0x2fd4e1c6, 0x7a2d28fc, 0xed849ee1, 0xbb76e739, 0x1b93eb12 };
-static const uint32_t hash_sha1_2[] = { 0xa9993e36, 0x4706816a, 0xba3e2571, 0x7850c26c, 0x9cd0d89d };
-static const char inp_sha1_1[] = "The quick brown fox jumps over the lazy dog";
-static const char inp_sha1_2[] = "abc";
-
-static struct {
-	int hash_type;
-	const void *data;
-	size_t len;
-	const void *hash;
-	size_t hash_len;
-} testdata[] = {
-	{ MBEDTLS_MD_SHA1, inp_sha1_1, sizeof(inp_sha1_1)-1, hash_sha1_1, sizeof(hash_sha1_1) },
-	{ MBEDTLS_MD_SHA1, inp_sha1_2, sizeof(inp_sha1_2)-1, hash_sha1_2, sizeof(hash_sha1_2) },
-};
-
 static void init(void)
 {
-	int i;
 
 	sha_init();
-	for (i = 0; i < ARRAY_SIZE(testdata); i++) {
-		sha_verify(testdata[i].hash_type,
-			   testdata[i].data,
-			   testdata[i].len,
-			   testdata[i].hash,
-			   testdata[i].hash_len);
-	}
 	pkcl_init();
 }
 
