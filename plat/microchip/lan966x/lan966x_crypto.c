@@ -17,6 +17,7 @@
 
 #include "pkcl.h"
 #include "sha.h"
+#include "aes.h"
 
 #define LIB_NAME		"SAMA5 crypto core"
 
@@ -24,6 +25,7 @@ static void init(void)
 {
 
 	sha_init();
+	aes_init();
 	pkcl_init();
 }
 
@@ -105,14 +107,6 @@ static int verify_hash(void *data_ptr, unsigned int data_len,
 			hash, len);
 
 	return rc;
-}
-
-static int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
-			   unsigned int key_len, const void *iv,
-			   unsigned int iv_len, const void *tag,
-			   unsigned int tag_len)
-{
-	return CRYPTO_ERR_DECRYPTION;
 }
 
 /*
