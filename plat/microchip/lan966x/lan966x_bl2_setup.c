@@ -92,6 +92,24 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 	generic_delay_timer_init();
 }
 
+void bl2_el3_early_platform_setup(u_register_t arg1, u_register_t arg2,
+				  u_register_t arg3, u_register_t arg4)
+{
+	/* Console */
+	lan966x_console_init();
+
+	/* Enable arch timer */
+	generic_delay_timer_init();
+
+	bl2_tzram_layout.total_base = BL2_BASE;
+	bl2_tzram_layout.total_size = BL2_SIZE;
+}
+
+void bl2_el3_plat_arch_setup(void)
+{
+	bl2_plat_arch_setup();
+}
+
 int bl2_aes_ddr_test_block(int block, uintptr_t addr, uint32_t *data, size_t len)
 {
 	int fail = 0;

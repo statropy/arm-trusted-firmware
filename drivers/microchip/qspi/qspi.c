@@ -10,6 +10,7 @@
 #include <lib/libc/errno.h>
 
 #include <drivers/microchip/qspi.h>
+#include <drivers/microchip/lan966x_clock.h>
 
 static uintptr_t reg_base;
 
@@ -234,6 +235,12 @@ static int qspi_init_controller(void)
 	/* Disable QSPI controller */
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_QSPIDIS);
 
+#if defined(EVB_9662)
+	lan966x_clk_disable(LAN966X_CLK_QSPI0);
+	lan966x_clk_set_rate(LAN966X_CLK_QSPI0, 30000000); /* ??? */
+	lan966x_clk_enable(LAN966X_CLK_QSPI0);
+#endif
+
 	/* Reset the QSPI controller */
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_SWRST);
 
@@ -331,6 +338,7 @@ void qspi_init(uintptr_t base, size_t len)
 
 	assert(ret == 0);
 
+	/* Init clock */
 	/* set the read command */
 	mmio_write_32(reg_base + QSPI_RICR, QSPI_FAST_READ);
 

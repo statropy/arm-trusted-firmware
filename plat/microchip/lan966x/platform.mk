@@ -51,6 +51,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
 				drivers/microchip/otp/otp.c			\
+				drivers/microchip/clock/lan966x_clock.c		\
 				drivers/microchip/tz_matrix/tz_matrix.c		\
 				plat/common/${ARCH}/crash_console_helpers.S	\
 				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
@@ -78,7 +79,13 @@ BL2_SOURCES		+=	drivers/io/io_fip.c				\
 				plat/microchip/lan966x/lan966x_trng.c		\
 				plat/microchip/lan966x/lan966x_io_storage.c
 
+ifeq (${EVB_9662},1)
+$(eval $(call add_define,EVB_9662))
+CONSOLE_BASE			:=	LAN966X_FLEXCOM_3_BASE
+BL2_AT_EL3			:=	1
+else
 CONSOLE_BASE			:=	LAN966X_FLEXCOM_0_BASE
+endif
 
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
