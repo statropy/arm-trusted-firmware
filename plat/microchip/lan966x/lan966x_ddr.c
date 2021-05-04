@@ -34,29 +34,12 @@
 static inline uint32_t reg_read(uintptr_t addr)
 {
 	uint32_t val = mmio_read_32(addr);
-#if defined(READ_DEBUG)
-	printch('R');
-	printhex2(((u64)addr) >> 32);
-	printhex8((ulong) addr);
-	printch('=');
-	printhex8(val);
-	printch('\n');
-#endif
 	return val;
 }
 
 static inline void reg_write(uint32_t val, uintptr_t addr)
 {
-	INFO("W(%08lx, %08x)\n", addr, val);
 	mmio_write_32(addr, val);
-#if defined(WRITE_DEBUG)
-	printch('W');
-	printhex2(((u64)addr) >> 32);
-	printhex8((ulong) addr);
-	printch(',');
-	printhex8(val);
-	printch('\n');
-#endif
 }
 
 #undef __REG
