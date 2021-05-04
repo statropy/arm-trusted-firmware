@@ -57,6 +57,10 @@ func console_flexcom_register
 
 	/* Configure USART in Asynchronous mode */
 	mov r4, #(USART_MR_PAR_NONE | USART_MR_CHMODE_NORMAL | USART_MR_CHRL_8BIT | USART_MR_NBSTOP_1BIT)
+#if defined(EVB_9662)
+	/* Use GCLKPMC_PCK */
+	orr r4, r4, #(USART_MR_USCLK_SEL(2))
+#endif
 	str r4, [r1, #USART_REG_MR]
 
 	/* Enable RX and Tx */

@@ -237,7 +237,7 @@ static int qspi_init_controller(void)
 
 #if defined(EVB_9662)
 	lan966x_clk_disable(LAN966X_CLK_QSPI0);
-	lan966x_clk_set_rate(LAN966X_CLK_QSPI0, 30000000); /* ??? */
+	lan966x_clk_set_rate(LAN966X_CLK_QSPI0, 20000000);
 	lan966x_clk_enable(LAN966X_CLK_QSPI0);
 #endif
 

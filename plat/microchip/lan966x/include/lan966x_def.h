@@ -77,6 +77,10 @@
 /*
  * Timer
  */
-#define SYS_COUNTER_FREQ_IN_TICKS	(5000000) /* XXX - note - adjust for real silicon? */
+#if defined(EVB_9662)
+#define SYS_COUNTER_FREQ_IN_TICKS	(60000000)
+#else
+#define SYS_COUNTER_FREQ_IN_TICKS	(5000000)
+#endif
 
 #endif /* LAN966X_DEF_H */

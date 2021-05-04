@@ -8,6 +8,7 @@
 #include <common/debug.h>
 #include <drivers/console.h>
 #include <drivers/microchip/flexcom_uart.h>
+#include <drivers/microchip/lan966x_clock.h>
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/tz_matrix.h>
 #include <drivers/microchip/vcore_gpio.h>
@@ -249,6 +250,12 @@ void lan966x_console_init(void)
 		assert(base == 0);
 		break;
 	}
+
+#if defined(EVB_9662)
+	lan966x_clk_disable(LAN966X_CLK_FC3);
+	lan966x_clk_set_rate(LAN966X_CLK_FC3, 30000000); /* 30MHz */
+	lan966x_clk_enable(LAN966X_CLK_FC3);
+#endif
 
 	if (base) {
 		/* Initialize the console to provide early debug support */
