@@ -49,6 +49,12 @@ static struct {
 		LAN996X_AXI_SIZE,					\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
+#define LAN996X_MAP_ORG							\
+	MAP_REGION_FLAT(						\
+		LAN996X_ORG_BASE,					\
+		LAN996X_ORG_SIZE,					\
+		MT_DEVICE | MT_RW | MT_SECURE)
+
 #define LAN996X_MAP_CPU							\
 	MAP_REGION_FLAT(						\
 		LAN996X_CPU_BASE,					\
@@ -74,6 +80,7 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_AXI,
 	LAN996X_MAP_CPU,
+	LAN996X_MAP_ORG,
 	LAN966X_MAP_DDR,
 	{0}
 };
@@ -83,6 +90,7 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_AXI,
 	LAN996X_MAP_CPU,
+	LAN996X_MAP_ORG,
 	LAN966X_MAP_DDR,
 	{0}
 };

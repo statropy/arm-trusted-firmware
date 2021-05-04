@@ -104,7 +104,7 @@ static inline uint32_t readl(uintptr_t addr)
 	return mmio_read_32(addr);
 }
 
-static inline void writel(uintptr_t addr, uint32_t val)
+static inline void writel(uint32_t val, uintptr_t addr)
 {
 	mmio_write_32(addr, val);
 }
