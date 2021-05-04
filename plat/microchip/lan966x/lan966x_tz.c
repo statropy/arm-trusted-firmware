@@ -45,12 +45,12 @@ static void tzaes_asc_region_enable(uintptr_t tzaes_asc,
 	/* One non-secure region */
 	if (ns) {
 		mmio_setbits_32(AESB_ASC_TZAESBASC_RSECR(tzaes_asc),
-				AESB_ASC_TZAESBASC_RSECR_SECx(mask));
+				AESB_ASC_TZAESBASC_RSECR_SECX(mask));
 	}
 
 	/* Enable the regions */
 	mmio_setbits_32(AESB_ASC_TZAESBASC_RER(tzaes_asc),
-			AESB_ASC_TZAESBASC_RER_ENx(mask));
+			AESB_ASC_TZAESBASC_RER_ENX(mask));
 
 	/* Check - Read Error Status of regions */
 	val = mmio_read_32(AESB_ASC_TZAESBASC_RESR(tzaes_asc));
@@ -61,11 +61,11 @@ static void tzaes_asc_region_enable(uintptr_t tzaes_asc,
 	/* Wait for Regions Enabled */
 	for (i = 0; i < 10 ; i++) {
 		val = mmio_read_32(AESB_ASC_TZAESBASC_RSR(tzaes_asc));
-		if ((AESB_ASC_TZAESBASC_RSR_ESx_X(val)) & mask)
+		if ((AESB_ASC_TZAESBASC_RSR_ESX_X(val)) & mask)
 			break;
 		udelay(1);
 	}
-	if (!((AESB_ASC_TZAESBASC_RSR_ESx_X(val)) & mask))
+	if (!((AESB_ASC_TZAESBASC_RSR_ESX_X(val)) & mask))
 		WARN("RSR_ESx is %04x, expected %04x\n", val, mask);
 	assert(val & mask);
 
