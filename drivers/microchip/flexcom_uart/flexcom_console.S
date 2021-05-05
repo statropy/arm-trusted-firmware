@@ -56,16 +56,16 @@ func console_flexcom_register
 	str r2, [r1, #USART_REG_BRGR]
 
 	/* Configure USART in Asynchronous mode */
-	mov r4, #(USART_MR_PAR_NONE | USART_MR_CHMODE_NORMAL | USART_MR_CHRL_8BIT | USART_MR_NBSTOP_1BIT)
+	mov r3, #(USART_MR_PAR_NONE | USART_MR_CHMODE_NORMAL | USART_MR_CHRL_8BIT | USART_MR_NBSTOP_1BIT)
 #if defined(EVB_9662)
 	/* Use GCLKPMC_PCK */
-	orr r4, r4, #(USART_MR_USCLK_SEL(2))
+	orr r3, r3, #(USART_MR_USCLK_SEL(2))
 #endif
-	str r4, [r1, #USART_REG_MR]
+	str r3, [r1, #USART_REG_MR]
 
 	/* Enable RX and Tx */
-	mov r4, #(USART_CR_RXEN | USART_CR_TXEN)
-	str r4, [r1, #USART_REG_CR]
+	mov r3, #(USART_CR_RXEN | USART_CR_TXEN)
+	str r3, [r1, #USART_REG_CR]
 
 	/*
 	* Macro to finish up registration and return (needs valid r0 + lr).
