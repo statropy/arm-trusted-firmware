@@ -24,7 +24,8 @@
 #include "ddr_timing_parameters.h"
 #endif
 
-#define debug(x) INFO(x)
+#define debug(x) VERBOSE(x)
+#define error(x) ERROR(x)
 
 #define _base_TARGET_DDR_PHY		LAN966X_DDR_PHY_BASE
 #define _base_TARGET_DDR_UMCTL2		LAN966X_DDR_UMCTL2_BASE
@@ -840,7 +841,7 @@ inline static void poll_pbdone(int32_t timeout_in)
 	} while (stat == 0 && timeout != 0); // break loop when init done = 1 or timeout reached
 
 	if (stat != 1) {
-		debug("ERROR:DDR_FPGAPHY_CFG, Timeout reached while waiting for playback done\r\n");
+		error("ERROR:DDR_FPGAPHY_CFG, Timeout reached while waiting for playback done\r\n");
 	}
 
 	// Also poll for playback running status = 0 (ensure that PB is stopped running)
@@ -852,7 +853,7 @@ inline static void poll_pbdone(int32_t timeout_in)
 	} while (stat == 1 && timeout != 0); // break when running = 0
 
 	if (stat) {
-		debug("ERROR:DDR_FPGAPHY_CFG, Playback running status is still not set to 0\r\n");
+		error("ERROR:DDR_FPGAPHY_CFG, Playback running status is still not set to 0\r\n");
 	}
 }
 
@@ -871,20 +872,20 @@ inline static void poll_trdone(int32_t timeout_in)
 
 	if (stat != 1) {
 		if (timeout == 0) {
-		debug("ERROR:DDR_FPGAPHY_CFG, Timeout reached while waiting for Autotraining to succeed\r\n");
+		error("ERROR:DDR_FPGAPHY_CFG, Timeout reached while waiting for Autotraining to succeed\r\n");
 		}
 
 		stat = (stat & 0x4) >> 2;  // extract bit 2
 
 		//if (stat[2]) begin
 		if (stat == 1) {
-		debug("ERROR:DDR_FPGAPHY_CFG, Training is failed and reading back offset registers\r\n");
+		error("ERROR:DDR_FPGAPHY_CFG, Training is failed and reading back offset registers\r\n");
 		rd_reg(DDR_PHY, DDR_MULTIPHY_REGS, FCLK_READ_OFFSET_RANK_0_BYTES_7_0); // only [7:4] = byte1, [3:0] = byte0 is valid
-		//debug("ERROR:DDR_FPGAPHY_CFG, FCLK_READ_OFFSET_RANK_0_BYTES_7_0 = %x\r\n",offset);
+		//error("ERROR:DDR_FPGAPHY_CFG, FCLK_READ_OFFSET_RANK_0_BYTES_7_0 = %x\r\n",offset);
 		rd_reg(DDR_PHY, DDR_MULTIPHY_REGS, FCLK_READ_OFFSET_RANK_0_BYTES_7_0); // only [7:4] = byte1, [3:0] = byte0 is valid
 
 		rd_reg(DDR_PHY, DDR_MULTIPHY_REGS, FCLK_READ_OFFSET_RANK_0_BYTE_8);  // not valid
-		//debug("ERROR:DDR_FPGAPHY_CFG, FCLK_READ_OFFSET_RANK_0_BYTE_8 = %x\r\n",offset);
+		//error("ERROR:DDR_FPGAPHY_CFG, FCLK_READ_OFFSET_RANK_0_BYTE_8 = %x\r\n",offset);
 		rd_reg(DDR_PHY, DDR_MULTIPHY_REGS, FCLK_READ_OFFSET_RANK_0_BYTE_8);  // not valid
 		}
 	}
@@ -893,7 +894,6 @@ inline static void poll_trdone(int32_t timeout_in)
 // Uncomment below once printf linking available
 // // Define to enable and write quasi dynamic group registers in DDRC
 #define quasi_write(tgt, grp, reg, fld, value) \
-	INFO("%s:%s:%d\n", __FILE__, __FUNCTION__, __LINE__);\
 	wr_fld_r_r(DDR_UMCTL2, UMCTL2_REGS, SWCTL, SW_DONE, 0); \
 	wr_fld_r_r(tgt, grp, reg, fld, value); \
 	wr_fld_r_r(DDR_UMCTL2, UMCTL2_REGS, SWCTL, SW_DONE, 1); \
@@ -907,7 +907,7 @@ inline static void poll_trdone(int32_t timeout_in)
 		timeout = 0; \
 	} else { \
 		timeout = 0; \
-		debug("ERROR:DDRC_CFG, Timeout reached while waiting for SW DONE ACK\r\n"); \
+		error("ERROR:DDRC_CFG, Timeout reached while waiting for SW DONE ACK\r\n"); \
 	}
 
 
@@ -933,7 +933,7 @@ inline static void poll_opmode(int32_t timeout_in)
 	if (stat == 1) {
 		debug("DDRC_CFG, STAT.operating_mode is set to normal\r\n");
 	} else {
-		debug("ERROR:DDRC_CFG, Timeout reached while waiting for operating mode as normal\r\n");
+		error("ERROR:DDRC_CFG, Timeout reached while waiting for operating mode as normal\r\n");
 	}
 }
 
