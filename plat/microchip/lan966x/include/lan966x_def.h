@@ -80,7 +80,7 @@
 /*
  * Timer
  */
-#if defined(EVB_9662)
+#if defined(LAN966X_ASIC)
 #define SYS_COUNTER_FREQ_IN_TICKS	(60000000)
 #else
 #define SYS_COUNTER_FREQ_IN_TICKS	(5000000)

@@ -73,6 +73,15 @@ void bl2_plat_arch_setup(void)
 #endif
 }
 
+static void bl2_early_platform_setup(void)
+{
+	/* Enable arch timer */
+	generic_delay_timer_init();
+
+	/* Console */
+	lan966x_console_init();
+}
+
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
 	struct meminfo *mem_layout = (struct meminfo *)arg1;
@@ -85,24 +94,18 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 	if ((override_strapping >> 16) == 0xBEEF)
 		lan966x_set_strapping((uint8_t)override_strapping);
 
-	/* Console */
-	lan966x_console_init();
-
-	/* Enable arch timer */
-	generic_delay_timer_init();
+	/* Common setup */
+	bl2_early_platform_setup();
 }
 
 void bl2_el3_early_platform_setup(u_register_t arg1, u_register_t arg2,
 				  u_register_t arg3, u_register_t arg4)
 {
-	/* Console */
-	lan966x_console_init();
-
-	/* Enable arch timer */
-	generic_delay_timer_init();
-
 	bl2_tzram_layout.total_base = BL2_BASE;
 	bl2_tzram_layout.total_size = BL2_SIZE;
+
+	/* Common setup */
+	bl2_early_platform_setup();
 }
 
 void bl2_el3_plat_arch_setup(void)

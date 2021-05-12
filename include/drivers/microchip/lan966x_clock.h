@@ -9,7 +9,7 @@
 
 #define LAN966X_MAX_CLOCK	14U
 
-#if defined(EVB_9662)
+#if defined(LAN966X_ASIC)
 #define LAN966X_CLK_QSPI0	0U
 #define LAN966X_CLK_EMMC	3U
 #define LAN966X_CLK_FC3		10U
