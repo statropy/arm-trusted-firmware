@@ -13,7 +13,7 @@
 #include "lan966x_private.h"
 
 #if defined(EVB_9662)
-#define LAN966X_ASIC
+// Already defined: #define LAN966X_ASIC
 #define CONFIG_DDR_MASERATI_EVB
 #include "lan966x_baremetal_cpu_regs.h"
 #include "ddr.h"
