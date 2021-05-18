@@ -288,6 +288,13 @@ void lan966x_io_init(void)
 	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
 			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
 			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M));
+
+	/* Enable QSPI0 for NS access */
+	matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
+					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
+					MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M),
+					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_128M),
+					MATRIX_LANSECH_NS(0));
 }
 
 void lan966x_timer_init(void)

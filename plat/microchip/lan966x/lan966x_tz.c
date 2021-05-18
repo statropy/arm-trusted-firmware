@@ -12,6 +12,28 @@
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
 
+static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
+{
+	mmio_write_32(GPV_SECURITY_CPU_REGS(gpv), true);
+	mmio_write_32(GPV_SECURITY_CSR_REGS(gpv), true);
+
+	/* Magic key to unlock protection */
+	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0x12AC4B5D);
+	mmio_setbits_32(TZPM_TZPCTL0(tzpm),
+			TZPM_TZPCTL0_QSPI0(1) |
+			TZPM_TZPCTL0_SDMMC(1));
+	mmio_setbits_32(TZPM_TZPCTL1(tzpm),
+			TZPM_TZPCTL1_FLEXCOM0(1) |
+			TZPM_TZPCTL1_FLEXCOM1(1) |
+			TZPM_TZPCTL1_FLEXCOM2(1) |
+			TZPM_TZPCTL1_FLEXCOM3(1));
+	mmio_setbits_32(TZPM_TZPCTL3(tzpm),
+			TZPM_TZPCTL3_RTE(1) |
+			TZPM_TZPCTL3_FDMA(1));
+	/* Reset key to reestablish protection */
+	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0);
+}
+
 static void setup_tzaesb(uintptr_t tzaesb)
 {
 	/* KEY REGS */
@@ -107,6 +129,9 @@ void lan966x_tz_init(void)
 
 	/* S setup */
 	setup_tzaesb(LAN966X_TZAESBS_BASE);
+
+	/* NS periph access */
+	setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
 
 	INFO("Initialized TrustZone Controller\n");
 }
