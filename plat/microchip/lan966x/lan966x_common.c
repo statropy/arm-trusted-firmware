@@ -160,6 +160,7 @@ lan966x_boot_media_config_t *lan966x_boot_media_cfg_get(void)
 	return conf_valid ? &lan966x_conf : NULL;
 }
 
+#if defined(LAN966X_ASIC)
 static uintptr_t lan966x_get_conf_console(void)
 {
 	uintptr_t base = 0;
@@ -196,6 +197,7 @@ static uintptr_t lan966x_get_conf_console(void)
 
 	return base;
 }
+#endif
 
 void lan966x_console_init(void)
 {

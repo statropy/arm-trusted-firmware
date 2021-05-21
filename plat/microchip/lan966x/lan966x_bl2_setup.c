@@ -14,6 +14,7 @@
 #include <plat/common/platform.h>
 
 #include "lan966x_private.h"
+#include "lan966x_regs.h"
 
 /* Data structure which holds the extents of the trusted SRAM for BL2 */
 static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
@@ -75,6 +76,11 @@ void bl2_plat_arch_setup(void)
 
 static void bl2_early_platform_setup(void)
 {
+	/* Spin if in debugger */
+	while (mmio_read_32(CPU_CPU_DBG(LAN966X_CPU_BASE)) &
+	       CPU_CPU_DBG_CORE_IN_DBG(1))
+		/* nop */;
+
 #if defined(BL2_AT_EL3)
 	/* BL1 was not there */
 	lan966x_timer_init();
@@ -85,6 +91,10 @@ static void bl2_early_platform_setup(void)
 
 	/* Console */
 	lan966x_console_init();
+
+	/* Announce HW */
+	INFO("Running on platform build: 0x%08x\n",
+	     mmio_read_32(CPU_BUILDID(LAN966X_CPU_BASE)));
 }
 
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
