@@ -82,6 +82,8 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 {
 	params_early_setup(arg1);
 
+	generic_delay_timer_init();
+
 	/* Console */
 	lan966x_console_init();
 
@@ -95,8 +97,6 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
  ******************************************************************************/
 void sp_min_platform_setup(void)
 {
-	generic_delay_timer_init();
-
 	/* Initialize the gic cpu and distributor interfaces */
 	plat_lan966x_gic_driver_init();
 	plat_lan966x_gic_init();

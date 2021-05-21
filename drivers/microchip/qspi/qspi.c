@@ -9,10 +9,12 @@
 #include <lib/mmio.h>
 #include <lib/libc/errno.h>
 
+#include <drivers/delay_timer.h>
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/lan966x_clock.h>
 
 static uintptr_t reg_base;
+static bool qspi_init_done;
 
 /* QSPI register offsets */
 #define QSPI_CR	     0x0000  /* Control Register */
@@ -183,7 +185,7 @@ static uintptr_t reg_base;
 #define QSPI_WPSR_WPVSRC(src)		 (((src) << 8) & QSPI_WPSR_WPVSRC)
 
 #define QSPI_DLYBS			 0x2
-#define QSPI_DLYCS			 0x2
+#define QSPI_DLYCS			 0x7
 #define QSPI_WPKEY			 0x515350
 #define QSPI_TIMEOUT			 0x1000U
 
@@ -199,28 +201,37 @@ void qspi_plat_configure(void)
 
 static bool qspi_wait_flag(const uintptr_t reg,
 			   const uint32_t flag,
-			   const uint8_t value)
+			   const uint32_t value,
+			   const char *fname)
 {
-	uint32_t timeout = QSPI_TIMEOUT;
-	while (((mmio_read_32(reg) & flag) != value) && (--timeout > 0))
-		;
+	int timeout = QSPI_TIMEOUT;
+	uint32_t w;
 
-	if (!timeout)
-		return true;
+	do {
+		w = mmio_read_32(reg);
+		if ((w & flag) == value)
+			return false;
+		udelay(1);
+	} while (--timeout > 0);
 
-	return false;
+	ERROR("QSPI: Timeout waiting for %s %s (%08x, %08x)\n", fname,
+	      value ? "set" : "clear", w, flag);
+
+	return true;
 }
 
 static bool qspi_wait_flag_set(const uintptr_t reg,
-			       const uint32_t flag)
+			       const uint32_t flag,
+			       const char *fname)
 {
-	return qspi_wait_flag(reg, flag, flag);
+	return qspi_wait_flag(reg, flag, flag, fname);
 }
 
 static bool qspi_wait_flag_clear(const uintptr_t reg,
-				 const uint32_t flag)
+				 const uint32_t flag,
+				 const char *fname)
 {
-	return qspi_wait_flag(reg, flag, 0x0);
+	return qspi_wait_flag(reg, flag, 0x0, fname);
 }
 
 static int qspi_init_controller(void)
@@ -229,26 +240,48 @@ static int qspi_init_controller(void)
 
 	/* Already initialized? */
 	status = mmio_read_32(reg_base + QSPI_SR);
-	if (status & QSPI_SR_QSPIENS)
-		return -EALREADY;
+	if (status & QSPI_SR_QSPIENS) {
+		/* Disable in a failsafe way */
+		mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLOFF);
+
+#ifdef LAN966X_ASIC
+		if (qspi_wait_flag_clear(reg_base+ QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
+			return -EIO;
+#endif
+
+		/* Set DLLON and STPCAL register */
+		mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLON | QSPI_CR_STPCAL);
+
+#ifdef LAN966X_ASIC
+		if (qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
+			return -EIO;
+#endif
+	}
 
 	/* Disable QSPI controller */
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_QSPIDIS);
 
-#if defined(EVB_9662)
-	lan966x_clk_disable(LAN966X_CLK_QSPI0);
-	lan966x_clk_set_rate(LAN966X_CLK_QSPI0, 20000000);
-	lan966x_clk_enable(LAN966X_CLK_QSPI0);
-#endif
+	/* Synchronize configuration */
+	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+		return -EIO;
 
 	/* Reset the QSPI controller */
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_SWRST);
 
+	/* Synchronize configuration */
+	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+		return -EIO;
+
 	/* Disable write protection */
 	mmio_write_32(reg_base + QSPI_WPMR, QSPI_WPMR_WPKEY(QSPI_WPKEY));
 
-	///* Set DLLON and STPCAL register */
+	/* Set DLLON and STPCAL register */
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLON | QSPI_CR_STPCAL);
+
+#if defined(LAN966X_ASIC)
+        if (qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
+                return -EIO;
+#endif
 
 	/* Set the QSPI controller by default in Serial Memory Mode */
 	mmio_write_32(reg_base + QSPI_MR, QSPI_MR_SMM | QSPI_MR_DLYCS(QSPI_DLYCS));
@@ -257,20 +290,20 @@ static int qspi_init_controller(void)
 	mmio_write_32(reg_base + QSPI_SCR, QSPI_SCR_DLYBS(QSPI_DLYBS));
 
 	/* Synchronize configuration */
-	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY))
+	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -EIO;
 
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_UPDCFG);
 
 	/* Wait end of QSPI sync busy */
-	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY))
+	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -EIO;
 
 	/* Enable the QSPI controller */
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_QSPIEN);
 
 	/* Wait effective enable */
-	if (qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_QSPIENS))
+	if (qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_QSPIENS, "SR:QSPIENS"))
 		return -EIO;
 
 	return 0;
@@ -285,27 +318,27 @@ static int qspi_change_ifr(uint32_t ifr)
 	mmio_read_32(reg_base + QSPI_SR);
 
 	/* Wait for QSPI_SR_RBUSY */
-	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_RBUSY))
+	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_RBUSY, "SR:RBUSY"))
 		return -ETIMEDOUT;
 
 	/* Wait for SR.RBUSY == 0 */
-	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY))
+	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -ETIMEDOUT;
 
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_LASTXFER);
 
-	/* wait for SR.HIDLE == 1*/
-	if (qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_HIDLE))
+	/* wait for SR.HIDLE == 1 */
+	if (qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_HIDLE, "SR:HIDLE"))
 		return -ETIMEDOUT;
 
-	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY))
+	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -ETIMEDOUT;
 
 	/* Synchronize configuration */
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_UPDCFG);
 
 	/* Wait end of QSPI sync busy */
-	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY))
+	if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -ETIMEDOUT;
 
 	return 0;
@@ -332,11 +365,23 @@ void qspi_init(uintptr_t base, size_t len)
 
 	reg_base = base;
 
-	ret = qspi_init_controller();
-	if (ret == -EALREADY)
+	/* Already initialized? */
+	if (qspi_init_done) {
+		INFO("QSPI: Alredy enabled\n");
 		return;		/* Already initialized */
+	}
 
+#if defined(LAN966X_ASIC)
+	lan966x_clk_disable(LAN966X_CLK_QSPI0);
+	lan966x_clk_set_rate(LAN966X_CLK_QSPI0, 20000000);
+	lan966x_clk_enable(LAN966X_CLK_QSPI0);
+#endif
+
+	/* Do actual QSPI init */
+	ret = qspi_init_controller();
 	assert(ret == 0);
+
+	qspi_init_done = true;
 
 	/* Init clock */
 	/* set the read command */

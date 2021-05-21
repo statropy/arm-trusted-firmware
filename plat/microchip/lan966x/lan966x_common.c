@@ -207,7 +207,13 @@ void lan966x_console_init(void)
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
 	/* See if boot media config defines a console */
+#if defined(LAN966X_ASIC)
 	base = lan966x_get_conf_console();
+	if (!base)
+		base = LAN966X_FLEXCOM_3_BASE;
+#else
+	base = LAN966X_FLEXCOM_0_BASE;
+#endif
 
 #if defined(IMAGE_BL1)
 	/* Override if strappings say so */
@@ -259,7 +265,7 @@ void lan966x_console_init(void)
 		break;
 	}
 
-#if defined(EVB_9662)
+#if defined(LAN966X_ASIC)
 	lan966x_clk_disable(LAN966X_CLK_FC3);
 	lan966x_clk_set_rate(LAN966X_CLK_FC3, 30000000); /* 30MHz */
 	lan966x_clk_enable(LAN966X_CLK_FC3);
@@ -273,10 +279,16 @@ void lan966x_console_init(void)
 		console_set_scope(&lan966x_console,
 				  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
 	}
+
+	lan966x_io_init();
 }
 
 void lan966x_io_init(void)
 {
+	/* We own SPI */
+	mmio_setbits_32(CPU_GENERAL_CTRL(LAN966X_CPU_BASE),
+			CPU_GENERAL_CTRL_IF_SI_OWNER_M);
+
 	/* Enable memmap access */
 	qspi_init(LAN966X_QSPI_0_BASE, QSPI_SIZE);
 
@@ -284,17 +296,19 @@ void lan966x_io_init(void)
 	matrix_init(LAN966X_HMATRIX2_BASE);
 
 	/* Ensure we have ample reach on QSPI mmap area */
-	/* XXX - do we need 128M - and for id 0+1 XXX */
+	/* 16M should be more than adequate - EVB/SVB have 2M */
 	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
-			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
-			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M));
+			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
 
+#if defined(LAN966X_ASIC)
 	/* Enable QSPI0 for NS access */
 	matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
-					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
-					MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M),
-					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_128M),
+					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+					MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
+					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
 					MATRIX_LANSECH_NS(0));
+#endif
 }
 
 void lan966x_timer_init(void)

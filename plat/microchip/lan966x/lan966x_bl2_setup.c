@@ -75,6 +75,11 @@ void bl2_plat_arch_setup(void)
 
 static void bl2_early_platform_setup(void)
 {
+#if defined(BL2_AT_EL3)
+	/* BL1 was not there */
+	lan966x_timer_init();
+#endif
+
 	/* Enable arch timer */
 	generic_delay_timer_init();
 
@@ -124,6 +129,8 @@ void bl2_platform_setup(void)
 	/* TRNG */
 	lan966x_trng_init();
 
+#if !defined(LAN966X_ASIC)   /* N/A on LAN966X-A0 due to chip error */
 	/* Initialize the secure environment */
 	lan966x_tz_init();
+#endif
 }
