@@ -367,7 +367,7 @@ void qspi_init(uintptr_t base, size_t len)
 
 	/* Already initialized? */
 	if (qspi_init_done) {
-		INFO("QSPI: Alredy enabled\n");
+		VERBOSE("QSPI: Already enabled\n");
 		return;		/* Already initialized */
 	}
 
