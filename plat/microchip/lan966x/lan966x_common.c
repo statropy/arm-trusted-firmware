@@ -303,7 +303,7 @@ void lan966x_io_init(void)
 			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
 			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
 
-#if defined(LAN966X_ASIC)
+#if defined(LAN966X_TZ)
 	/* Enable QSPI0 for NS access */
 	matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
 					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |

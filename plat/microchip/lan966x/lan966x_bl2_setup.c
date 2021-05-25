@@ -139,7 +139,7 @@ void bl2_platform_setup(void)
 	/* TRNG */
 	lan966x_trng_init();
 
-#if !defined(LAN966X_ASIC)   /* N/A on LAN966X-A0 due to chip error */
+#if defined(LAN966X_TZ)   /* N/A on LAN966X-A0 due to chip error */
 	/* Initialize the secure environment */
 	lan966x_tz_init();
 #endif
