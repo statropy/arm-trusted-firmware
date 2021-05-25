@@ -12,6 +12,8 @@ debugger.getCurrentExecutionContext().getExecutionService().stop()
 # Run until BL32
 lan966x.run_to(debugger, "S:0x9fe00000")
 
+build = lan966x.get_build_path()
+
 lan966x.load_stage(debugger, "bl32",
-                   "build/lan966x/debug/bl32/bl32.elf",
-                   "build/lan966x/debug/bl32.bin")
+                   build + "/bl32/bl32.elf",
+                   build + "/bl32.bin")

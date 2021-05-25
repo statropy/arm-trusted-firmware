@@ -30,11 +30,12 @@ include lib/xlat_tables_v2/xlat_tables.mk
 ifneq (${TRUSTED_BOARD_BOOT},0)
 
     $(info Including platform TBBR)
-    include plat/microchip/lan966x/plat_tbbr.mk
+    include plat/microchip/lan966x/common/plat_tbbr.mk
 
 endif
 
-PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/include	\
+PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/${PLAT}/include	\
+			-Iplat/microchip/lan966x/common/include		\
 			-Iinclude/drivers/microchip
 
 LAN966X_CONSOLE_SOURCES	+=	\
@@ -54,41 +55,32 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/microchip/clock/lan966x_clock.c		\
 				drivers/microchip/tz_matrix/tz_matrix.c		\
 				plat/common/${ARCH}/crash_console_helpers.S	\
-				plat/microchip/lan966x/${ARCH}/plat_helpers.S	\
-				plat/microchip/lan966x/lan966x_crc32.c		\
-				plat/microchip/lan966x/lan966x_common.c
+				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
+				plat/microchip/lan966x/common/lan966x_crc32.c		\
+				plat/microchip/lan966x/common/lan966x_common.c
 
 BL1_SOURCES		+=	drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
-				plat/microchip/lan966x/lan966x_io_storage.c	\
-				plat/microchip/lan966x/${ARCH}/plat_bootstrap.S	\
-				plat/microchip/lan966x/lan966x_bootstrap.c	\
-				plat/microchip/lan966x/lan966x_bl1_bootstrap.c	\
-				plat/microchip/lan966x/lan966x_bl1_setup.c
+				plat/microchip/lan966x/common/lan966x_io_storage.c	\
+				plat/microchip/lan966x/common/${ARCH}/plat_bootstrap.S	\
+				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_bl1_setup.c
 
 BL2_SOURCES		+=	drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
-				plat/microchip/lan966x/lan966x_bl2_setup.c	\
-				plat/microchip/lan966x/lan966x_bl2_mem_params_desc.c \
-				plat/microchip/lan966x/lan966x_image_load.c	\
-				plat/microchip/lan966x/lan966x_ddr.c		\
-				plat/microchip/lan966x/lan966x_tz.c		\
-				plat/microchip/lan966x/lan966x_trng.c		\
-				plat/microchip/lan966x/lan966x_io_storage.c
+				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
+				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
+				plat/microchip/lan966x/common/lan966x_image_load.c	\
+				plat/microchip/lan966x/common/lan966x_ddr.c		\
+				plat/microchip/lan966x/common/lan966x_tz.c		\
+				plat/microchip/lan966x/common/lan966x_trng.c		\
+				plat/microchip/lan966x/common/lan966x_io_storage.c
 
-ifeq (${EVB_9662},1)
-$(eval $(call add_define,EVB_9662))
-$(eval $(call add_define,LAN966X_ASIC))
-$(eval $(call add_define,LAN966X_SAMA))
-CONSOLE_BASE			:=	LAN966X_FLEXCOM_3_BASE
-BL2_AT_EL3			:=	1
-else
-$(eval $(call add_define,LAN966X_TZ))
 CONSOLE_BASE			:=	LAN966X_FLEXCOM_0_BASE
-endif
 
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
@@ -107,5 +99,5 @@ ifneq (${BL2_AT_EL3}, 0)
 endif
 
 ifneq (${ENABLE_STACK_PROTECTOR},0)
-PLAT_BL_COMMON_SOURCES  +=      plat/microchip/lan966x/lan966x_stack_protector.c
+PLAT_BL_COMMON_SOURCES  +=      plat/microchip/lan966x/common/lan966x_stack_protector.c
 endif

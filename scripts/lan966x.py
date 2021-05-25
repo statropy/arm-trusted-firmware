@@ -2,6 +2,12 @@ import sys,os
 from arm_ds.debugger_v1 import Debugger
 from arm_ds.debugger_v1 import DebugException
 
+def get_build_path():
+    try:
+        return open(os.getenv('HOME') + '/.atfpath', 'r').read().rstrip()
+    except:
+        return "build/lan966x_sr/debug"
+
 def tohex(rVal):
     return "0x%s" % ("00000000%x" % (rVal&0xffffffff))[-8:]
 

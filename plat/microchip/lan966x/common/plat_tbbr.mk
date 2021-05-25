@@ -21,12 +21,12 @@ else
 endif
 
 BL1_SOURCES	+=	${AUTH_SOURCES}					\
-			plat/microchip/lan966x/lan966x_tbbr.c		\
+			plat/microchip/lan966x/common/lan966x_tbbr.c	\
 			bl1/tbbr/tbbr_img_desc.c			\
 			plat/common/tbbr/plat_tbbr.c
 
 BL2_SOURCES	+=	${AUTH_SOURCES}					\
-			plat/microchip/lan966x/lan966x_tbbr.c		\
+			plat/microchip/lan966x/common/lan966x_tbbr.c	\
 			plat/common/tbbr/plat_tbbr.c
 
 CRYPTO_LIB_MK := drivers/auth/mbedtls/mbedtls_crypto.mk
