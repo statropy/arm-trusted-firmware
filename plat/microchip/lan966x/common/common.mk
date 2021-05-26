@@ -9,6 +9,7 @@ ifeq (${ARCH},aarch64)
 endif
 
 ARM_CORTEX_A7                   := yes
+ARM_ARCH_MAJOR			:= 7
 
 # Default number of CPUs per cluster on FVP
 LAN966x_MAX_CPUS_PER_CLUSTER	:= 1
