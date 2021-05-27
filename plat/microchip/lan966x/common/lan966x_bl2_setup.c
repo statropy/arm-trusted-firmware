@@ -76,10 +76,12 @@ void bl2_plat_arch_setup(void)
 
 static void bl2_early_platform_setup(void)
 {
+#if defined(DEBUG)
 	/* Spin if in debugger */
 	while (mmio_read_32(CPU_CPU_DBG(LAN966X_CPU_BASE)) &
 	       CPU_CPU_DBG_CORE_IN_DBG(1))
 		/* nop */;
+#endif
 
 #if defined(BL2_AT_EL3)
 	/* BL1 was not there */

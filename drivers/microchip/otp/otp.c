@@ -26,7 +26,7 @@
  */
 
 #define OTP_MEM_SIZE	8192
-#define OTP_SPI_OFFSET	0x80000
+#define OTP_SPI_OFFSET	0x1C0000 /* 1536k + 256k */
 
 static bool otp_initialized;
 static bool otp_emulation;
