@@ -16,6 +16,7 @@
 
 #include "lan966x_private.h"
 #include "lan966x_regs.h"
+#include "lan966x_memmap.h"
 
 /* Data structure which holds the extents of the trusted SRAM for BL2 */
 static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
@@ -58,6 +59,8 @@ void bl2_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
 		MAP_BL2_TOTAL,
+		MAP_PKCL_CODE,
+		MAP_PKCL_DATA,
 		ARM_MAP_BL_RO,
 #if USE_COHERENT_MEM
 		ARM_MAP_BL_COHERENT_RAM,
