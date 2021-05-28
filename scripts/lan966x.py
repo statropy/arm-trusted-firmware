@@ -1,5 +1,12 @@
+import sys,os
 from arm_ds.debugger_v1 import Debugger
 from arm_ds.debugger_v1 import DebugException
+
+def get_build_path():
+    try:
+        return open(os.getenv('HOME') + '/.atfpath', 'r').read().rstrip()
+    except:
+        return "build/lan966x_sr/debug"
 
 def tohex(rVal):
     return "0x%s" % ("00000000%x" % (rVal&0xffffffff))[-8:]
@@ -58,3 +65,18 @@ def run_to(debugger, address):
             debugger.stop()
     finally:
         print("Stopped in BL2");
+
+def get_uboot_dir(debugger):
+    baddr = "S:0xE00C0080"
+    debugger.getCurrentExecutionContext().getExecutionService().stop()
+    ec = debugger.getCurrentExecutionContext()
+    bld = ec.getMemoryService().readMemory32(baddr)
+    if bld != 0:
+        dir = os.getenv('LAN966_UBOOT_FPGA')
+        if dir == None:
+            dir = "../maserati-uboot"
+    else:
+        dir = os.getenv('LAN966_UBOOT_ASIC')
+        if dir == None:
+            dir = "../maserati-uboot-evb"
+    return dir

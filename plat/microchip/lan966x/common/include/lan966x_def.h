@@ -22,6 +22,9 @@
 #define LAN996X_AXI_BASE	UL(0xE0000000)
 #define LAN996X_AXI_SIZE	UL(0x00900000)
 
+#define LAN996X_ORG_BASE	LAN966X_ORG_0_BASE
+#define LAN996X_ORG_SIZE	UL(0x00800000)
+
 #define LAN996X_CPU_BASE	UL(0xE8800000)
 #define LAN996X_CPU_SIZE	UL(0x00800000)
 
@@ -77,6 +80,10 @@
 /*
  * Timer
  */
-#define SYS_COUNTER_FREQ_IN_TICKS	(5000000) /* XXX - note - adjust for real silicon? */
+#if defined(LAN966X_ASIC)
+#define SYS_COUNTER_FREQ_IN_TICKS	(60000000)
+#else
+#define SYS_COUNTER_FREQ_IN_TICKS	(5000000)
+#endif
 
 #endif /* LAN966X_DEF_H */

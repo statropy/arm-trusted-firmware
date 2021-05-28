@@ -110,6 +110,7 @@
 #define USART_MR_CHMODE_AUTO        (0x1UL << 14u)
 #define USART_MR_CHMODE_LOCAL       (0x2UL << 14u)
 #define USART_MR_CHMODE_REMOTE      (0x3UL << 14u)
+#define USART_MR_USCLK_SEL(x)	    (x << 4u)
 
 
 /* -------- (USART Offset: 0x8) FLEXCOM USART Interrupt Enable Register -------- */

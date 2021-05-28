@@ -14,6 +14,7 @@
 #include <plat/common/platform.h>
 
 #include "lan966x_private.h"
+#include "lan966x_regs.h"
 
 /* Data structure which holds the extents of the trusted SRAM for BL2 */
 static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
@@ -73,6 +74,31 @@ void bl2_plat_arch_setup(void)
 #endif
 }
 
+static void bl2_early_platform_setup(void)
+{
+#if defined(DEBUG)
+	/* Spin if in debugger */
+	while (mmio_read_32(CPU_CPU_DBG(LAN966X_CPU_BASE)) &
+	       CPU_CPU_DBG_CORE_IN_DBG(1))
+		/* nop */;
+#endif
+
+#if defined(BL2_AT_EL3)
+	/* BL1 was not there */
+	lan966x_timer_init();
+#endif
+
+	/* Enable arch timer */
+	generic_delay_timer_init();
+
+	/* Console */
+	lan966x_console_init();
+
+	/* Announce HW */
+	INFO("Running on platform build: 0x%08x\n",
+	     mmio_read_32(CPU_BUILDID(LAN966X_CPU_BASE)));
+}
+
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
 	struct meminfo *mem_layout = (struct meminfo *)arg1;
@@ -85,57 +111,23 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 	if ((override_strapping >> 16) == 0xBEEF)
 		lan966x_set_strapping((uint8_t)override_strapping);
 
-	/* Console */
-	lan966x_console_init();
-
-	/* Enable arch timer */
-	generic_delay_timer_init();
+	/* Common setup */
+	bl2_early_platform_setup();
 }
 
-int bl2_aes_ddr_test_block(int block, uintptr_t addr, uint32_t *data, size_t len)
+void bl2_el3_early_platform_setup(u_register_t arg1, u_register_t arg2,
+				  u_register_t arg3, u_register_t arg4)
 {
-	int fail = 0;
+	bl2_tzram_layout.total_base = BL2_BASE;
+	bl2_tzram_layout.total_size = BL2_SIZE;
 
-	memcpy((void*)addr, data, len);
-	flush_dcache_range(addr, len);
-	inv_dcache_range(addr, len);
-	if (memcmp((void*)addr, data, len)) {
-		int i, cnt;
-		uint32_t *dest = (void*)addr;
-
-		for (i = cnt = 0; i < (len / 4); i++) {
-			if (dest[i] != data[i]) {
-				ERROR("Mismatch at %p: 0x%08x vs 0x%08x\n",
-				      &dest[i], dest[i], data[i]);
-				cnt++;
-			}
-		}
-		ERROR("FAIL block %02d @ 0x%08lx: %d words failure\n", block, addr, cnt);
-		fail++;
-	}
-	memset((void*)addr, lan966x_trng_read(), len);
-	return fail;
+	/* Common setup */
+	bl2_early_platform_setup();
 }
 
-void bl2_aes_ddr_test(uintptr_t ddr)
+void bl2_el3_plat_arch_setup(void)
 {
-	static uint32_t membuf[256];
-	int i, runs, failures;
-
-	/* Fill test pattern */
-	for (i = 0; i < ARRAY_SIZE(membuf); i++)
-		membuf[i] = lan966x_trng_read();
-
-	/* AESB test sweep */
-	runs = (256 * 1024) / sizeof(membuf);
-	NOTICE("AESB DDR Memory Test @ %p, start %d runs of %d bytes\n",
-	       (void*)ddr, runs, sizeof(membuf));
-	for (i = failures = 0; i < runs; i++)
-		if (bl2_aes_ddr_test_block(i, ddr + i * sizeof(membuf),
-					   membuf, sizeof(membuf)))
-			failures++;
-	NOTICE("AESB DDR Memory Test @ %p, completed %d runs, %d failures\n",
-	       (void*)ddr, runs, failures);
+	bl2_plat_arch_setup();
 }
 
 void bl2_platform_setup(void)
@@ -149,10 +141,8 @@ void bl2_platform_setup(void)
 	/* TRNG */
 	lan966x_trng_init();
 
+#if defined(LAN966X_TZ)   /* N/A on LAN966X-A0 due to chip error */
 	/* Initialize the secure environment */
-	//lan966x_tz_init();
-
-	/* Temporary */
-	//bl2_aes_ddr_test(PLAT_LAN966X_NS_IMAGE_BASE);
-	//bl2_aes_ddr_test(BL32_BASE);
+	lan966x_tz_init();
+#endif
 }

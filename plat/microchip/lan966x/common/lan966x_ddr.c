@@ -9,45 +9,38 @@
 #include <platform_def.h>
 #include <stdint.h>
 
+#include "lan966x_targets.h"
 #include "lan966x_private.h"
 
+#if defined(EVB_9662)
+// Already defined: #define LAN966X_ASIC
+#define CONFIG_DDR_MASERATI_EVB
+#include "lan966x_baremetal_cpu_regs.h"
+#include "ddr.h"
+#else
 #define EXB_FPGA
 #define INIT_MODE 1
-
-#include "lan966x_ddr_timing_parameters.h"
-#include "lan966x_baremetal_cpu_regs.h"
+#include "lan966x_baremetal_cpu_regs_sr.h"
+#include "ddr_timing_parameters.h"
+#endif
 
 #define debug(x) VERBOSE(x)
+#define error(x) ERROR(x)
 
-static uintptr_t _base_TARGET_DDR_PHY = 0xE0084000;
-static uintptr_t _base_TARGET_DDR_UMCTL2 = 0xE0080000;
-static uintptr_t _base_TARGET_CPU = 0xE00C0000;
+#define _base_TARGET_DDR_PHY		LAN966X_DDR_PHY_BASE
+#define _base_TARGET_DDR_UMCTL2		LAN966X_DDR_UMCTL2_BASE
+#define _base_TARGET_CPU		LAN966X_CPU_BASE
+#define _base_TARGET_CHIP_TOP		LAN966X_CHIP_TOP_BASE
 
 static inline uint32_t reg_read(uintptr_t addr)
 {
 	uint32_t val = mmio_read_32(addr);
-#if defined(READ_DEBUG)
-	printch('R');
-	printhex2(((u64)addr) >> 32);
-	printhex8((ulong) addr);
-	printch('=');
-	printhex8(val);
-	printch('\n');
-#endif
 	return val;
 }
 
 static inline void reg_write(uint32_t val, uintptr_t addr)
 {
 	mmio_write_32(addr, val);
-#if defined(WRITE_DEBUG)
-	printch('W');
-	printhex2(((u64)addr) >> 32);
-	printhex8((ulong) addr);
-	printch(',');
-	printhex8(val);
-	printch('\n');
-#endif
 }
 
 #undef __REG
@@ -90,6 +83,742 @@ static inline void reg_write(uint32_t val, uintptr_t addr)
 
 #define REG_WR(reg, val) reg_write(val, reg)
 
+static inline uint32_t readl(uintptr_t addr)
+{
+	return mmio_read_32(addr);
+}
+
+static inline void writel(uint32_t val, uintptr_t addr)
+{
+	mmio_write_32(addr, val);
+}
+
+static inline void setbits_le32(uintptr_t addr, uint32_t val)
+{
+	mmio_setbits_32(addr, val);
+}
+
+static inline void clrbits_le32(uintptr_t addr, uint32_t val)
+{
+	mmio_clrbits_32(addr, val);
+}
+
+#ifdef LAN966X_ASIC
+
+#define params_clk_div   CONFIG_DDR_MASERATI_CLK_DIV
+#define CEIL_VAL(x)  ((uint32_t)((x)+0.999999))
+
+#define DW_APB_LOAD_VAL		(LAN966X_TIMERS_BASE + (0*4))
+#define DW_APB_CURR_VAL		(LAN966X_TIMERS_BASE + (1*4))
+#define DW_APB_CTRL		(LAN966X_TIMERS_BASE + (2*4))
+#define DW_APB_EOI		(LAN966X_TIMERS_BASE + (3*4))
+#define DW_APB_INTSTAT		(LAN966X_TIMERS_BASE + (4*4))
+
+#define CLOC_SPEED	(250 * 1000000) /* 250Mhz */
+#define NS_PER_TICK	(1000000000/CLOC_SPEED) /* ns = (10 ** 9), ns/tick = 4 */
+#define usec2ns(x)	(x * 1000)
+
+#define params_tck_min		16666
+
+#define WAIT_START	"start"
+#define WAIT_FINISH	"finish"
+#define TIMEOUT		"timeout"
+#define ERROR_MSG	"error"
+#define SUCCESS		"sucess"
+
+inline static void pause(uint32_t val)
+{
+	register int i = 0;
+
+	for (i = 0; i < val; ++i)
+	    asm volatile("nop;");
+}
+
+static inline void my_print(const char *what, const uint16_t msg)
+{
+	VERBOSE("%s %d\n", what, msg);
+}
+
+// Function to implement wait
+static inline void my_wait(uint32_t t_nsec, const uint16_t msg)
+{
+	my_print(WAIT_START, msg);
+	/* init timer */
+	t_nsec /= NS_PER_TICK;
+	writel(t_nsec, DW_APB_LOAD_VAL);
+	writel(0xffffffff, DW_APB_CURR_VAL);
+	setbits_le32(DW_APB_CTRL, 0x3);
+	while (readl(DW_APB_INTSTAT) == 0)
+		;
+	clrbits_le32(DW_APB_CTRL, 0x3);
+	(void) readl(DW_APB_EOI);
+	my_print(WAIT_FINISH, msg);
+}
+
+// Function to poll for Init done
+inline static uint32_t poll_idone(uint16_t msg_id) { // default 1ms
+	uint32_t timeout_in = 1000;
+	uint32_t timeout;
+	uint32_t stat;
+
+  // polling for fld value becomes 1 for 1ms
+  // rd fld of PGSR0.IDONE
+  timeout = timeout_in;
+  do {
+    my_wait(1000, msg_id); // 1us
+    stat = rd_fld_r(DDR_PHY,DDR3_2_PHY_PUB,PGSR0,IDONE);
+    timeout--;
+  } while (stat != 1 && timeout != 0);
+
+  return timeout;
+}
+
+
+// Function to poll for sw done ack
+inline static uint32_t poll_sw_ack(uint16_t msg_id) { // default 1ms
+	uint32_t timeout_in = 1000;
+	uint32_t timeout;
+	uint32_t stat;
+
+  // polling for fld value becomes 1 for 1ms
+  // rd fld of SWSTAT.SW_DONE_ACK
+  timeout = timeout_in;
+  do {
+    my_wait(1000, msg_id);
+    stat = rd_fld_r(DDR_UMCTL2,UMCTL2_REGS,SWSTAT,SW_DONE_ACK);
+    timeout--;
+  } while (stat != 1 && timeout != 0);
+
+  return timeout;
+}
+
+#define _DDR_DUMMY 0
+uint8_t DDR_initialization(void) {
+uint32_t var;
+uint32_t stat;
+uint32_t timeout;
+
+  // Check if already booting from DDR therefore DDR is initialized
+  // if (rd_fld_r(CPU, CPU_REGS, GENERAL_CTRL, BOOT_MODE_ENA) == 0) {
+  //   return 1;
+  // }
+
+  if (_DDR_DUMMY) {
+    return 1;
+  } else {
+
+    // clock, reset enables
+    // wr fld of DDRCTRL_CLK.DDR_CLK_ENA
+    var = wr_fld_r_s(    CPU,DDRCTRL,DDRCTRL_CLK,DDR_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_APB_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDRPHY_CTL_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDRPHY_APB_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_AXI0_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_AXI1_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_AXI2_CLK_ENA,0x1);
+    wr_fld_s_r(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_AXI2_CLK_ENA,0x1);
+
+    // wr fld of DDRCTRL_RST.DDRC_RST
+    var = wr_fld_r_s(    CPU,DDRCTRL,DDRCTRL_RST,DDRC_RST,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,DDR_AXI0_RST,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,DDR_AXI1_RST,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,DDR_AXI2_RST,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,DDRPHY_CTL_RST,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,FPGA_DDRPHY_SOFT_RST,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,DDRPHY_APB_RST,0x1);
+    wr_fld_s_r(var,CPU,DDRCTRL,DDRCTRL_RST,DDRPHY_APB_RST,0x1);
+
+    // wr fld of DDRCTRL_RST.DDR_APB_RST
+    var = wr_fld_r_s(    CPU,DDRCTRL,DDRCTRL_RST,DDR_APB_RST,0x1);
+    wr_fld_s_r(var,CPU,DDRCTRL,DDRCTRL_RST,DDR_APB_RST,0x1);
+
+    // wr fld of DDRCTRL_CLK.DDR_CLK_ENA
+    var = wr_fld_r_s(    CPU,DDRCTRL,DDRCTRL_CLK,DDR_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_APB_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDRPHY_CTL_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDRPHY_APB_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_AXI0_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_AXI1_CLK_ENA,0x1);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_AXI2_CLK_ENA,0x1);
+    wr_fld_s_r(var,CPU,DDRCTRL,DDRCTRL_CLK,DDR_AXI2_CLK_ENA,0x1);
+
+    // wr fld of DDRCTRL_RST.DDR_APB_RST
+    wr_fld_r_r(    CPU,DDRCTRL,DDRCTRL_RST,DDR_APB_RST,0x0);
+
+    // DDRC configurations
+    // wr fld of ECCCFG0.ECC_MODE
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ECCCFG0,ECC_MODE, params_DDR_UMCTL2_ECC_MODE);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ECCCFG0,ECC_REGION_MAP, params_DDR_UMCTL2_ECC_REGION_MAP);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ECCCFG0,ECC_REGION_MAP_GRANU, params_DDR_UMCTL2_ECC_REGION_MAP_GRANU);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ECCCFG0,ECC_REGION_MAP_OTHER, params_DDR_UMCTL2_ECC_REGION_MAP_OTHER);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ECCCFG0,ECC_REGION_MAP_OTHER, params_DDR_UMCTL2_ECC_REGION_MAP_OTHER);
+
+    // wr fld of RFSHCTL3.DIS_AUTO_REFRESH
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,RFSHCTL3,DIS_AUTO_REFRESH, 0x1);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,RFSHCTL3,DIS_AUTO_REFRESH, 0x1);
+
+    // wr fld of PWRCTL.SELFREF_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,PWRCTL,SELFREF_EN, 0x0);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,PWRCTL,POWERDOWN_EN, 0x0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,PWRCTL,POWERDOWN_EN, 0x0);
+
+    // wr fld of INIT0.PRE_CKE_X1024
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,INIT0,PRE_CKE_X1024, params_DDR_UMCTL2_PRE_CKE_X1024);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,INIT0,POST_CKE_X1024,params_DDR_UMCTL2_POST_CKE_X1024);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,INIT0,SKIP_DRAM_INIT,params_DDR_UMCTL2_SKIP_DRAM_INIT);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,INIT0,SKIP_DRAM_INIT, params_DDR_UMCTL2_SKIP_DRAM_INIT);
+
+    // wr fld of INIT1.DRAM_RSTN_X1024
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,INIT1,DRAM_RSTN_X1024, params_DDR_UMCTL2_DRAM_RSTN_X1024);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,INIT1,DRAM_RSTN_X1024, params_DDR_UMCTL2_DRAM_RSTN_X1024);
+
+    // wr fld of INIT3.MR
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,INIT3,MR, params_DDR_UMCTL2_MR);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,INIT3,EMR,params_DDR_UMCTL2_EMR);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,INIT3,EMR, params_DDR_UMCTL2_EMR);
+
+    // wr fld of INIT4.EMR2
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,INIT4,EMR2, params_DDR_UMCTL2_EMR2);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,INIT4,EMR3, params_DDR_UMCTL2_EMR3);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,INIT4,EMR3, params_DDR_UMCTL2_EMR3);
+
+    // wr fld of INIT5.DEV_ZQINIT_X32
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,INIT5,DEV_ZQINIT_X32, params_DDR_UMCTL2_DEV_ZQINIT_X32);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,INIT5,DEV_ZQINIT_X32, params_DDR_UMCTL2_DEV_ZQINIT_X32);
+
+    // wr fld of MSTR.DDR3
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,MSTR,DDR3ENA, params_DDR_UMCTL2_DDR3);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,MSTR,EN_2T_TIMING_MODE, params_DDR_UMCTL2_EN_2T_TIMING_MODE);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,MSTR,DLL_OFF_MODE, params_DDR_UMCTL2_DLL_OFF_MODE);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,MSTR,BURST_RDWR, params_DDR_UMCTL2_BURST_RDWR);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,MSTR,BURSTCHOP, params_DDR_UMCTL2_BURSTCHOP);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,MSTR,ACTIVE_RANKS, params_DDR_UMCTL2_ACTIVE_RANKS);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,MSTR,ACTIVE_RANKS, params_DDR_UMCTL2_ACTIVE_RANKS);
+
+    // wr fld of DRAMTMG0.WR2PRE
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DRAMTMG0,WR2PRE, params_DDR_UMCTL2_WR2PRE);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG0,T_FAW,  params_DDR_UMCTL2_T_FAW);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG0,T_RAS_MAX, params_DDR_UMCTL2_T_RAS_MAX);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG0,T_RAS_MIN, params_DDR_UMCTL2_T_RAS_MIN);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG0,T_RAS_MIN, params_DDR_UMCTL2_T_RAS_MIN);
+
+    // wr fld of DRAMTMG1.T_XP
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DRAMTMG1,T_XP, params_DDR_UMCTL2_T_XP);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG1,RD2PRE, params_DDR_UMCTL2_RD2PRE);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG1,T_RC, params_DDR_UMCTL2_T_RC);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG1,T_RC, params_DDR_UMCTL2_T_RC);
+
+    // wr fld of DRAMTMG2.RD2WR
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DRAMTMG2,RD2WR, params_DDR_UMCTL2_RD2WR);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG2,WR2RD, params_DDR_UMCTL2_WR2RD);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG2,WR2RD, params_DDR_UMCTL2_WR2RD);
+
+    // wr fld of DRAMTMG3.T_MOD
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DRAMTMG3,T_MOD, params_DDR_UMCTL2_T_MOD);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG3,T_MRD, params_DDR_UMCTL2_T_MRD);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG3,T_MRD, params_DDR_UMCTL2_T_MRD);
+
+    // wr fld of DRAMTMG4.T_RCD
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DRAMTMG4,T_RCD, params_DDR_UMCTL2_T_RCD);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG4,T_CCD, params_DDR_UMCTL2_T_CCD);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG4,T_RRD, params_DDR_UMCTL2_T_RRD);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG4,T_RP,  params_DDR_UMCTL2_T_RP);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG4,T_RP, params_DDR_UMCTL2_T_RP);
+
+    // wr fld of DRAMTMG5.T_CKSRX
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DRAMTMG5,T_CKSRX, params_DDR_UMCTL2_T_CKSRX);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG5,T_CKSRE, params_DDR_UMCTL2_T_CKSRE);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG5,T_CKESR, params_DDR_UMCTL2_T_CKESR);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG5,T_CKE,   params_DDR_UMCTL2_T_CKE);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG5,T_CKE, params_DDR_UMCTL2_T_CKE);
+
+    // wr fld of DRAMTMG8.T_XS_X32
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DRAMTMG8,T_XS_X32, params_DDR_UMCTL2_T_XS_X32);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG8,T_XS_DLL_X32, params_DDR_UMCTL2_T_XS_DLL_X32);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DRAMTMG8,T_XS_DLL_X32, params_DDR_UMCTL2_T_XS_DLL_X32);
+
+    // wr fld of DFITMG0.DFI_TPHY_WRLAT
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_TPHY_WRLAT,   params_DDR_UMCTL2_DFI_TPHY_WRLAT);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_TPHY_WRDATA,  params_DDR_UMCTL2_DFI_TPHY_WRDATA);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_T_RDDATA_EN,  params_DDR_UMCTL2_DFI_T_RDDATA_EN);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_T_CTRL_DELAY, params_DDR_UMCTL2_DFI_T_CTRL_DELAY);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_T_CTRL_DELAY, params_DDR_UMCTL2_DFI_T_CTRL_DELAY);
+
+    // wr fld of DFITMG1.DFI_T_DRAM_CLK_ENABLE
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_DRAM_CLK_ENABLE, params_DDR_UMCTL2_DFI_T_DRAM_CLK_ENABLE);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_DRAM_CLK_DISABLE,params_DDR_UMCTL2_DFI_T_DRAM_CLK_DISABLE);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_WRDATA_DELAY, params_DDR_UMCTL2_DFI_T_WRDATA_DELAY);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_WRDATA_DELAY, params_DDR_UMCTL2_DFI_T_WRDATA_DELAY);
+
+    // wr fld of DFIMISC.DFI_INIT_COMPLETE_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN, 0x0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN, 0x0);
+
+    // wr fld of DFIUPD0.DIS_AUTO_CTRLUPD_SRX
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DFIUPD0,DIS_AUTO_CTRLUPD_SRX, params_DDR_UMCTL2_DIS_AUTO_CTRLUPD_SRX);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DFIUPD0,DIS_AUTO_CTRLUPD, (unsigned int)params_DDR_UMCTL2_DIS_AUTO_CTRLUPD);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DFIUPD0,DIS_AUTO_CTRLUPD, (unsigned int)params_DDR_UMCTL2_DIS_AUTO_CTRLUPD);
+
+    // wr fld of DFIUPD1.DFI_T_CTRLUPD_INTERVAL_MIN_X1024
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DFIUPD1,DFI_T_CTRLUPD_INTERVAL_MIN_X1024, params_DDR_UMCTL2_DFI_T_CTRLUPD_INTERVAL_MIN_X1024);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,DFIUPD1,DFI_T_CTRLUPD_INTERVAL_MAX_X1024, params_DDR_UMCTL2_DFI_T_CTRLUPD_INTERVAL_MAX_X1024);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DFIUPD1,DFI_T_CTRLUPD_INTERVAL_MAX_X1024, params_DDR_UMCTL2_DFI_T_CTRLUPD_INTERVAL_MAX_X1024);
+
+    // wr fld of RFSHCTL0.REFRESH_BURST
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,RFSHCTL0,REFRESH_BURST, params_DDR_UMCTL2_REFRESH_BURST);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,RFSHCTL0,REFRESH_BURST, params_DDR_UMCTL2_REFRESH_BURST);
+
+    // wr fld of RFSHTMG.T_RFC_NOM_X1_X32
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,RFSHTMG,T_RFC_NOM_X1_X32, params_DDR_UMCTL2_T_RFC_NOM_X1_X32);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,RFSHTMG,T_RFC_MIN, params_DDR_UMCTL2_T_RFC_MIN);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,RFSHTMG,T_RFC_MIN, params_DDR_UMCTL2_T_RFC_MIN);
+
+    // wr fld of ODTCFG.RD_ODT_DELAY
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ODTCFG,RD_ODT_DELAY, params_DDR_UMCTL2_RD_ODT_DELAY);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ODTCFG,RD_ODT_HOLD,  params_DDR_UMCTL2_RD_ODT_HOLD);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ODTCFG,WR_ODT_DELAY, params_DDR_UMCTL2_WR_ODT_DELAY);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ODTCFG,WR_ODT_HOLD,  params_DDR_UMCTL2_WR_ODT_HOLD);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ODTCFG,WR_ODT_HOLD, params_DDR_UMCTL2_WR_ODT_HOLD);
+
+    // wr fld of SARBASE0.BASE_ADDR
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,SARBASE0,BASE_ADDR, params_DDR_UMCTL2_BASE_ADDR);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,SARBASE0,BASE_ADDR, params_DDR_UMCTL2_BASE_ADDR);
+
+    // wr fld of SARSIZE0.NBLOCKS
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,SARSIZE0,NBLOCKS, params_DDR_UMCTL2_NBLOCKS);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,SARSIZE0,NBLOCKS, params_DDR_UMCTL2_NBLOCKS);
+
+    // wr fld of ADDRMAP1.ADDRMAP_BANK_B2
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ADDRMAP1,ADDRMAP_BANK_B2, params_DDR_UMCTL2_ADDRMAP_BANK_B2);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP1,ADDRMAP_BANK_B1, params_DDR_UMCTL2_ADDRMAP_BANK_B1);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP1,ADDRMAP_BANK_B0, params_DDR_UMCTL2_ADDRMAP_BANK_B0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP1,ADDRMAP_BANK_B0, params_DDR_UMCTL2_ADDRMAP_BANK_B0);
+
+    // wr fld of ADDRMAP2.ADDRMAP_COL_B5
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ADDRMAP2,ADDRMAP_COL_B5, params_DDR_UMCTL2_ADDRMAP_COL_B5);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP2,ADDRMAP_COL_B4, params_DDR_UMCTL2_ADDRMAP_COL_B4);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP2,ADDRMAP_COL_B3, params_DDR_UMCTL2_ADDRMAP_COL_B3);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP2,ADDRMAP_COL_B2, params_DDR_UMCTL2_ADDRMAP_COL_B2);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP2,ADDRMAP_COL_B2, params_DDR_UMCTL2_ADDRMAP_COL_B2);
+
+    // wr fld of ADDRMAP3.ADDRMAP_COL_B9
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ADDRMAP3,ADDRMAP_COL_B9, params_DDR_UMCTL2_ADDRMAP_COL_B9);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP3,ADDRMAP_COL_B8, params_DDR_UMCTL2_ADDRMAP_COL_B8);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP3,ADDRMAP_COL_B7, params_DDR_UMCTL2_ADDRMAP_COL_B7);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP3,ADDRMAP_COL_B6, params_DDR_UMCTL2_ADDRMAP_COL_B6);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP3,ADDRMAP_COL_B6, params_DDR_UMCTL2_ADDRMAP_COL_B6);
+
+    // wr fld of ADDRMAP4.ADDRMAP_COL_B11
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ADDRMAP4,ADDRMAP_COL_B11, params_DDR_UMCTL2_ADDRMAP_COL_B11);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP4,ADDRMAP_COL_B10, params_DDR_UMCTL2_ADDRMAP_COL_B10);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP4,ADDRMAP_COL_B10, params_DDR_UMCTL2_ADDRMAP_COL_B10);
+
+    // wr fld of ADDRMAP5.ADDRMAP_ROW_B0
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ADDRMAP5,ADDRMAP_ROW_B0, params_DDR_UMCTL2_ADDRMAP_ROW_B0);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP5,ADDRMAP_ROW_B1, params_DDR_UMCTL2_ADDRMAP_ROW_B1);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP5,ADDRMAP_ROW_B2_10, params_DDR_UMCTL2_ADDRMAP_ROW_B2_10);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP5,ADDRMAP_ROW_B11,   params_DDR_UMCTL2_ADDRMAP_ROW_B11);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP5,ADDRMAP_ROW_B11, params_DDR_UMCTL2_ADDRMAP_ROW_B11);
+
+    // wr fld of ADDRMAP6.ADDRMAP_ROW_B12
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ADDRMAP6,ADDRMAP_ROW_B12, params_DDR_UMCTL2_ADDRMAP_ROW_B12);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP6,ADDRMAP_ROW_B13, params_DDR_UMCTL2_ADDRMAP_ROW_B13);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP6,ADDRMAP_ROW_B14, params_DDR_UMCTL2_ADDRMAP_ROW_B14);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP6,ADDRMAP_ROW_B15, params_DDR_UMCTL2_ADDRMAP_ROW_B15);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP6,ADDRMAP_ROW_B15, params_DDR_UMCTL2_ADDRMAP_ROW_B15);
+
+    // wr fld of ADDRMAP0.ADDRMAP_CS_BIT0
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,ADDRMAP0,ADDRMAP_CS_BIT0, params_DDR_UMCTL2_ADDRMAP_CS_BIT0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,ADDRMAP0,ADDRMAP_CS_BIT0, params_DDR_UMCTL2_ADDRMAP_CS_BIT0);
+
+    // wr fld of RESET.CPU_CORE_0_COLD_RST
+    wr_fld_r_r(    CPU,DDRCTRL,RESET,CPU_CORE_0_COLD_RST,0x0);
+    // wr fld of RESET.MEM_RST
+    wr_fld_r_r(    CPU,DDRCTRL,RESET,MEM_RST,0x0);
+
+
+    // Release all other resets
+    // wr fld of DDRCTRL_RST.DDR_AXI0_RST
+    var = wr_fld_r_s(    CPU,DDRCTRL,DDRCTRL_RST,DDR_AXI0_RST,0x0);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,DDR_AXI1_RST,0x0);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,DDR_AXI2_RST,0x0);
+    wr_fld_s_r(var,CPU,DDRCTRL,DDRCTRL_RST,DDR_AXI2_RST,0x0);
+
+    // wr fld of DDRCTRL_RST.DDRPHY_CTL_RST
+    var = wr_fld_r_s(    CPU,DDRCTRL,DDRCTRL_RST,DDRPHY_CTL_RST,0x0);
+    var = wr_fld_s_s(var,CPU,DDRCTRL,DDRCTRL_RST,FPGA_DDRPHY_SOFT_RST,0x0);
+    wr_fld_s_r(var,CPU,DDRCTRL,DDRCTRL_RST,FPGA_DDRPHY_SOFT_RST,0x0);
+
+    // wr fld of DDRCTRL_RST.DDRPHY_APB_RST
+    var = wr_fld_r_s(    CPU,DDRCTRL,DDRCTRL_RST,DDRPHY_APB_RST,0x0);
+    wr_fld_s_r(var,CPU,DDRCTRL,DDRCTRL_RST,DDRPHY_APB_RST,0x0);
+
+    // wr fld of DDRCTRL_RST.DDRC_RST
+    var = wr_fld_r_s(    CPU,DDRCTRL,DDRCTRL_RST,DDRC_RST,0x0);
+    wr_fld_s_r(var,CPU,DDRCTRL,DDRCTRL_RST,DDRC_RST,0x0);
+
+
+    // PHY-PUB initialization
+    if (params_PHY_init) {
+
+      // wr fld of DSGCR.RRMODE
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DSGCR,RRMODE, params_DDR_PHY_RRMODE);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DSGCR,RRMODE, params_DDR_PHY_RRMODE);
+
+      // wr fld of PGCR2.TREFPRD
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,PGCR2,TREFPRD, params_DDR_PHY_TREFPRD);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,PGCR2,TREFPRD, params_DDR_PHY_TREFPRD);
+
+      // wr fld of PTR0.TPLLGS
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,PTR0,TPLLGS, params_DDR_PHY_TPLLGS);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,PTR0,TPLLPD, params_DDR_PHY_TPLLPD);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,PTR0,TPLLPD, params_DDR_PHY_TPLLPD);
+
+      // wr fld of PTR1.TPLLRST
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,PTR1,TPLLRST,  params_DDR_PHY_TPLLRST);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,PTR1,TPLLLOCK, params_DDR_PHY_TPLLLOCK);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,PTR1,TPLLLOCK, params_DDR_PHY_TPLLLOCK);
+
+      // rd reg of PIR
+      stat = rd_reg(DDR_PHY,DDR3_2_PHY_PUB,PIR);
+
+      // wr reg of PIR
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,PIR,0x73);
+
+      // Configure remaining reg
+      // wr fld of DCR.DDR2T
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DCR,DDR2T, params_DDR_PHY_DDR2T);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DCR,DDRMD, params_DDR_PHY_DDRMD);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DCR,DDRMD, params_DDR_PHY_DDRMD);
+
+      // wr reg of MR0
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,MR0, params_DDR_PHY_MR0);
+
+      // wr reg of MR1
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,MR1, params_DDR_PHY_MR1);
+
+      // wr reg of MR2
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,MR2, params_DDR_PHY_MR2);
+
+      // wr reg of MR3
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,MR3, params_DDR_PHY_MR3);
+
+      // wr fld of DTPR0.TRTP
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DTPR0,TRTP, params_DDR_PHY_TRTP);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR0,TWTR, params_DDR_PHY_TWTR);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR0,TRP,  params_DDR_PHY_TRP);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR0,TRCD, params_DDR_PHY_TRCD);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR0,TRAS, params_DDR_PHY_TRAS);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR0,TRRD, params_DDR_PHY_TRRD);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR0,TRC,  params_DDR_PHY_TRC);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR0,TRC, params_DDR_PHY_TRC);
+
+      // wr fld of DTPR1.TMRD
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DTPR1,TMRD,  params_DDR_PHY_TMRD);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR1,TMOD,  params_DDR_PHY_TMOD);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR1,TFAW,  params_DDR_PHY_TFAW);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR1,TRFC,  params_DDR_PHY_TRFC);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR1,TWLMRD,params_DDR_PHY_TWLMRD);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR1,TWLO,  params_DDR_PHY_TWLO);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR1,TWLO, params_DDR_PHY_TWLO);
+
+      // wr fld of DTPR2.TXS
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DTPR2,TXS,  params_DDR_PHY_TXS);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR2,TXP,  params_DDR_PHY_TXP);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR2,TCKE, params_DDR_PHY_TCKE);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR2,TDLLK,params_DDR_PHY_TDLLK);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DTPR2,TDLLK,params_DDR_PHY_TDLLK);
+
+      // wr fld of PTR3.TDINIT0
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,PTR3,TDINIT0, CEIL_VAL(500000000.0/params_tck_min)); // params_DDR_PHY_TDINIT0);  // 500us pre cke
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,PTR3,TDINIT1, params_DDR_PHY_TDINIT1);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,PTR3,TDINIT1, params_DDR_PHY_TDINIT1);
+
+      // wr fld of PTR4.TDINIT2
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,PTR4,TDINIT2, CEIL_VAL(200000000.0/params_tck_min)); // params_DDR_PHY_TDINIT2);  // 200us DRAM RSTn
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,PTR4,TDINIT3, params_DDR_PHY_TDINIT3);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,PTR4,TDINIT3, params_DDR_PHY_TDINIT3);
+
+      // wr fld of DXCCR.DQSRES
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DXCCR,DQSRES, params_DDR_PHY_DQSRES);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DXCCR,DQSNRES,params_DDR_PHY_DQSNRES);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DXCCR,DQSNRES, params_DDR_PHY_DQSNRES);
+
+      // wr fld of DSGCR.CUAEN
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DSGCR,CUAEN, params_DDR_PHY_CUAEN);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DSGCR,SDRMODE, params_DDR_PHY_SDRMODE);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DSGCR,SDRMODE, params_DDR_PHY_SDRMODE);
+
+      // polling for init done for 1ms
+      timeout = poll_idone(0XB5);
+
+      if (timeout == 0) {
+        my_print(TIMEOUT,1);
+        my_print(ERROR_MSG,1);
+        return 0;
+      }
+    }
+
+    if (params_DRAM_init) {
+
+      // rd reg of PIR
+      stat = rd_reg(DDR_PHY,DDR3_2_PHY_PUB,PIR);
+
+      // wr reg of PIR
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,PIR,0x181);
+
+      // poll for DRAM init done in case of PUB
+      if (params_init_by_pub) {
+        // rd fld of PGSR0.DIDONE
+        timeout = 1000; // 1ms
+        do {
+          my_wait(1000, 0XA3);
+          stat = rd_fld_r(DDR_PHY,DDR3_2_PHY_PUB,PGSR0,DIDONE);
+          timeout--;
+        } while (stat != 1 && timeout != 0);
+
+        if (timeout==0) {
+          my_print(TIMEOUT,2);
+          my_print(ERROR_MSG,2);
+          return 0;
+        }
+      }
+    }
+
+
+    // Watiing for op mode set to normal
+    // rd fld of DFIMISC.DFI_INIT_COMPLETE_EN
+    stat = rd_fld_r(DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN);
+
+    // wr fld of SWCTL.SW_DONE
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x0);
+
+    // wr fld of DFIMISC.DFI_INIT_COMPLETE_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN,0x1);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN,0x1);
+
+    // wr fld of SWCTL.SW_DONE
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x1);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x1);
+
+    // poll for sw done ack
+    timeout = poll_sw_ack(0XD5);
+
+    if (timeout==0) {
+      my_print(TIMEOUT,6);
+      return 0;
+    }
+
+    // polling for fld value becomes 1 for 1ms
+    // rd fld of STAT.OPERATING_MODE
+    timeout = 1000;
+    do {
+      my_wait(1000, 0XBC);
+      stat = rd_fld_r(DDR_UMCTL2,UMCTL2_REGS,STAT,OPERATING_MODE);
+      timeout--;
+    } while (stat != 1 && timeout != 0);
+
+    if (timeout==0) {
+      my_print(TIMEOUT,7);
+      return 0;
+    }
+
+
+    if (params_data_training) {
+
+      // wr fld of SWCTL.SW_DONE
+      var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x0);
+      wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x0);
+
+      // wr fld of DFIMISC.DFI_INIT_COMPLETE_EN
+      var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN,0x0);
+      wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN,0x0);
+
+      // wr fld of SWCTL.SW_DONE
+      var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x1);
+      wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x1);
+
+      // poll for sw done ack
+      timeout = poll_sw_ack(0XD6);
+
+      if (timeout==0) {
+        my_print(TIMEOUT,8);
+        return 0;
+      }
+
+      // DATA training
+      // Waiting for Write leveling, DQS gate training, Write_latency adjustment done
+      stat = rd_reg(DDR_PHY,DDR3_2_PHY_PUB,PIR);
+
+      // wr fld of DTCR.RANKEN
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DTCR,RANKEN, params_DDR_PHY_RANKEN);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DTCR,RANKEN, params_DDR_PHY_RANKEN);
+
+      // wr fld of DTCR.DTMPR
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DTCR,DTMPR,  0x1);
+      var = wr_fld_s_s(var,DDR_PHY,DDR3_2_PHY_PUB,DTCR,DTRPTN, params_DDR_PHY_DTRPTN);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DTCR,DTRPTN, params_DDR_PHY_DTRPTN);
+
+      // wr reg of PIR
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,PIR,0xe01);
+
+      // polling for init done for 1ms
+      timeout = poll_idone(0XB6);
+
+      if (timeout==0) {
+        my_print(TIMEOUT,3);
+        return 0;
+      }
+
+      // wr fld of DTCR.DTMPR
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DTCR,DTMPR, 0x0);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DTCR,DTMPR, 0x0);
+
+      // wr fld of DTCR.DTRANK
+      var = wr_fld_r_s(    DDR_PHY,DDR3_2_PHY_PUB,DTCR,DTRANK, params_DDR_PHY_DTRANK);
+      wr_fld_s_r(var,DDR_PHY,DDR3_2_PHY_PUB,DTCR,DTRANK, params_DDR_PHY_DTRANK);
+
+      // wr reg of PIR
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,PIR,0x1001);
+
+      // polling for init done for 1ms
+      timeout = poll_idone(0XB7);
+
+      if (timeout==0) {
+        my_print(TIMEOUT,4);
+        return 0;
+      }
+
+      // wr reg of PIR
+      wr_reg(DDR_PHY,DDR3_2_PHY_PUB,PIR,0xe001);
+
+      // polling for init done for 1ms
+      timeout = poll_idone(0XB8);
+
+      if (timeout==0) {
+        my_print(TIMEOUT,5);
+        my_print(ERROR_MSG,0xbad);
+        return 0;
+      } else {
+        my_print(SUCCESS,0xeeee);
+      }
+    }
+
+
+    // rd reg of DX0GSR0
+    stat = rd_reg(DDR_PHY,DDR3_2_PHY_PUB,DX0GSR0);
+
+    // rd reg of PGSR0
+    stat = rd_reg(DDR_PHY,DDR3_2_PHY_PUB,PGSR0);
+
+    // wr fld of RFSHCTL3.DIS_AUTO_REFRESH
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,RFSHCTL3,DIS_AUTO_REFRESH,0x0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,RFSHCTL3,DIS_AUTO_REFRESH,0x0);
+
+    // wr fld of PWRCTL.POWERDOWN_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,PWRCTL,POWERDOWN_EN,0x0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,PWRCTL,POWERDOWN_EN,0x0);
+
+    // wr fld of SWCTL.SW_DONE
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x0);
+
+    // wr fld of DFIMISC.DFI_INIT_COMPLETE_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN,0x1);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,DFIMISC,DFI_INIT_COMPLETE_EN,0x1);
+
+    // wr fld of SWCTL.SW_DONE
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x1);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,SWCTL,SW_DONE,0x1);
+
+    // poll for sw done ack
+    timeout = poll_sw_ack(0XD7);
+
+    if (timeout==0) {
+      my_print(TIMEOUT,9);
+      return 0;
+    }
+
+
+    // wr fld of RFSHCTL3.DIS_AUTO_REFRESH
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,RFSHCTL3,DIS_AUTO_REFRESH,0x0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,RFSHCTL3,DIS_AUTO_REFRESH,0x0);
+
+    // wr fld of PWRCTL.SELFREF_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,PWRCTL,SELFREF_EN,0x0);
+    var = wr_fld_s_s(var,DDR_UMCTL2,UMCTL2_REGS,PWRCTL,POWERDOWN_EN,0x0);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_REGS,PWRCTL,POWERDOWN_EN,0x0);
+
+    // wr fld of PCTRL_0.PCTRL_0_PORT_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_MP,PCTRL_0,PCTRL_0_PORT_EN,0x1);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_MP,PCTRL_0,PCTRL_0_PORT_EN,0x1);
+
+    // wr fld of PCTRL_1.PCTRL_1_PORT_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_MP,PCTRL_1,PCTRL_1_PORT_EN,0x1);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_MP,PCTRL_1,PCTRL_1_PORT_EN,0x1);
+
+    // wr fld of PCTRL_2.PCTRL_2_PORT_EN
+    var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_MP,PCTRL_2,PCTRL_2_PORT_EN,0x1);
+    wr_fld_s_r(var,DDR_UMCTL2,UMCTL2_MP,PCTRL_2,PCTRL_2_PORT_EN,0x1);
+
+    return 1;
+  }
+}
+
+
+static void ecc_enable_scrubbing(void)
+{
+	uint32_t size = DDR_BASE_ADDR;
+	size += DDR_MEM_SIZE;
+
+	/* 1.  Disable AXI port. port_en = 0 */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, PCTRL_0, PCTRL_0_PORT_EN, 0);
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, PCTRL_1, PCTRL_1_PORT_EN, 0);
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, PCTRL_2, PCTRL_2_PORT_EN, 0);
+
+    /* 2. Set addr range to scrub */
+    /* Here configured full addr range for scrub */
+    wr_reg (DDR_UMCTL2, UMCTL2_MP, SBRSTART0, DDR_BASE_ADDR>>1);                // As per HIF addr (offset addr and >>1 (word))
+    wr_reg (DDR_UMCTL2, UMCTL2_MP, SBRRANGE0, size>>1); // max 1K (512x1word (2bytes))
+    wr_reg (DDR_UMCTL2, UMCTL2_MP, SBRSTART1, 0);
+    wr_reg (DDR_UMCTL2, UMCTL2_MP, SBRRANGE1, 0);
+
+	/* 2. scrub_mode = 1 */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_MODE, 1);
+
+	/* 3. scrub_interval = 0 */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_INTERVAL, 0);
+
+	/* 4. Data pattern = 0 */
+	wr_reg     (DDR_UMCTL2, UMCTL2_MP, SBRWDATA0, 0);
+
+	/* 5. (skip) */
+	/* 6. Enable SBR programming */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_EN, 1);
+
+	/* 7. Poll SBRSTAT.scrub_done */
+	while (rd_fld_r(DDR_UMCTL2, UMCTL2_MP, SBRSTAT, SCRUB_DONE) == 0)
+		;
+	/* 8. Poll SBRSTAT.scrub_busy */
+	while (rd_fld_r(DDR_UMCTL2, UMCTL2_MP, SBRSTAT, SCRUB_BUSY) == 1)
+		;
+	/* 9. Disable SBR programming */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_EN, 0);
+#if 0
+	/* 10. Normal scrub operation, mode = 0, interval = 100 */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_MODE, 0);
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_INTERVAL, 100);
+	/* 11. Enable SBR progeramming again  */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_EN, 1);
+#endif
+	/* 12. Enable AXI port */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, PCTRL_0, PCTRL_0_PORT_EN, 1);
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, PCTRL_1, PCTRL_1_PORT_EN, 1);
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, PCTRL_2, PCTRL_2_PORT_EN, 1);
+}
+
+#else
 inline static void pause(uint32_t val)
 {
 	register int i = 0;
@@ -112,7 +841,7 @@ inline static void poll_pbdone(int32_t timeout_in)
 	} while (stat == 0 && timeout != 0); // break loop when init done = 1 or timeout reached
 
 	if (stat != 1) {
-		debug("ERROR:DDR_FPGAPHY_CFG, Timeout reached while waiting for playback done\r\n");
+		error("ERROR:DDR_FPGAPHY_CFG, Timeout reached while waiting for playback done\r\n");
 	}
 
 	// Also poll for playback running status = 0 (ensure that PB is stopped running)
@@ -124,7 +853,7 @@ inline static void poll_pbdone(int32_t timeout_in)
 	} while (stat == 1 && timeout != 0); // break when running = 0
 
 	if (stat) {
-		debug("ERROR:DDR_FPGAPHY_CFG, Playback running status is still not set to 0\r\n");
+		error("ERROR:DDR_FPGAPHY_CFG, Playback running status is still not set to 0\r\n");
 	}
 }
 
@@ -143,20 +872,20 @@ inline static void poll_trdone(int32_t timeout_in)
 
 	if (stat != 1) {
 		if (timeout == 0) {
-		debug("ERROR:DDR_FPGAPHY_CFG, Timeout reached while waiting for Autotraining to succeed\r\n");
+		error("ERROR:DDR_FPGAPHY_CFG, Timeout reached while waiting for Autotraining to succeed\r\n");
 		}
 
 		stat = (stat & 0x4) >> 2;  // extract bit 2
 
 		//if (stat[2]) begin
 		if (stat == 1) {
-		debug("ERROR:DDR_FPGAPHY_CFG, Training is failed and reading back offset registers\r\n");
+		error("ERROR:DDR_FPGAPHY_CFG, Training is failed and reading back offset registers\r\n");
 		rd_reg(DDR_PHY, DDR_MULTIPHY_REGS, FCLK_READ_OFFSET_RANK_0_BYTES_7_0); // only [7:4] = byte1, [3:0] = byte0 is valid
-		//debug("ERROR:DDR_FPGAPHY_CFG, FCLK_READ_OFFSET_RANK_0_BYTES_7_0 = %x\r\n",offset);
+		//error("ERROR:DDR_FPGAPHY_CFG, FCLK_READ_OFFSET_RANK_0_BYTES_7_0 = %x\r\n",offset);
 		rd_reg(DDR_PHY, DDR_MULTIPHY_REGS, FCLK_READ_OFFSET_RANK_0_BYTES_7_0); // only [7:4] = byte1, [3:0] = byte0 is valid
 
 		rd_reg(DDR_PHY, DDR_MULTIPHY_REGS, FCLK_READ_OFFSET_RANK_0_BYTE_8);  // not valid
-		//debug("ERROR:DDR_FPGAPHY_CFG, FCLK_READ_OFFSET_RANK_0_BYTE_8 = %x\r\n",offset);
+		//error("ERROR:DDR_FPGAPHY_CFG, FCLK_READ_OFFSET_RANK_0_BYTE_8 = %x\r\n",offset);
 		rd_reg(DDR_PHY, DDR_MULTIPHY_REGS, FCLK_READ_OFFSET_RANK_0_BYTE_8);  // not valid
 		}
 	}
@@ -178,7 +907,7 @@ inline static void poll_trdone(int32_t timeout_in)
 		timeout = 0; \
 	} else { \
 		timeout = 0; \
-		debug("ERROR:DDRC_CFG, Timeout reached while waiting for SW DONE ACK\r\n"); \
+		error("ERROR:DDRC_CFG, Timeout reached while waiting for SW DONE ACK\r\n"); \
 	}
 
 
@@ -204,7 +933,7 @@ inline static void poll_opmode(int32_t timeout_in)
 	if (stat == 1) {
 		debug("DDRC_CFG, STAT.operating_mode is set to normal\r\n");
 	} else {
-		debug("ERROR:DDRC_CFG, Timeout reached while waiting for operating mode as normal\r\n");
+		error("ERROR:DDRC_CFG, Timeout reached while waiting for operating mode as normal\r\n");
 	}
 }
 
@@ -611,12 +1340,12 @@ static inline void ddr_fpga_training(void) {
 
 }
 
-void lan966x_ddr_init(void)
+static void lan966x_init(void)
 {
 	register uint32_t var, stat;
 	register int timeout;
 
-	INFO("Initializing DDR\n");
+	debug("STARTING\n");
 
 	// Call and assign to static global member (DDRC, PHY configs are inside cfg)
 	// cfg = init_ddr_config();
@@ -670,7 +1399,7 @@ void lan966x_ddr_init(void)
 
 	// Updating it after INIT, to program DLL OFF in a sequence
 	//sean var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,MSTR,DDR3, 0x1); // MEM_DDR3);                           // select DDR3
-	var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,MSTR,DDR3, 0x1); // MEM_DDR3);                           // select DDR3
+	var = wr_fld_r_s(    DDR_UMCTL2,UMCTL2_REGS,MSTR,DDR3ENA, 0x1); // MEM_DDR3);                           // select DDR3
 
 	var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,MSTR,EN_2T_TIMING_MODE,0x0); // cfg.timing_2t_en);
 	// var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,MSTR,DLL_OFF_MODE,cfg.dll_off_en);              // dll off enabled for fpga only
@@ -854,7 +1583,7 @@ void lan966x_ddr_init(void)
 	wr_fld_r_r(DDR_UMCTL2, UMCTL2_REGS, MRCTRL1,MR_DATA, 3);    // RTT_NOM = 0x0
 
 	// MRCTRL0
-	var = wr_fld_r_s(   DDR_UMCTL2, UMCTL2_REGS, MRCTRL0,MR_ADDR, 1);
+	var = wr_fld_r_s(   DDR_UMCTL2, UMCTL2_REGS, MRCTRL0,MR_ADDR, 1U);
 	wr_fld_s_r(var, DDR_UMCTL2, UMCTL2_REGS, MRCTRL0,MR_WR,1U);      // Triggers mode register write
 
 	// poll for clear of MR_WR_BUSY
@@ -913,4 +1642,16 @@ void lan966x_ddr_init(void)
 	wr_fld_r_r(    DDR_UMCTL2, UMCTL2_MP, PCTRL_2, PCTRL_2_PORT_EN, 0x1); // cfg.axi_port2_en);
 
 	debug("DDR_INIT, #### Done with the DDR initialization sequence ####\n");
+}
+#endif /* LAN966X_ASIC */
+
+void lan966x_ddr_init(void)
+{
+#ifdef LAN966X_ASIC
+	wr_fld_r_r (CHIP_TOP, DDR_PLL_CFG, DDR_PLL_CFG, DIVF, params_clk_div);
+	DDR_initialization();
+	ecc_enable_scrubbing();
+#else
+	lan966x_init();
+#endif
 }
