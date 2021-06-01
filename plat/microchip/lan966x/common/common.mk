@@ -80,6 +80,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/microchip/lan966x/common/lan966x_common.c
 
 BL1_SOURCES		+=	drivers/io/io_block.c					\
+				drivers/io/io_encrypted.c				\
 				drivers/io/io_fip.c					\
 				drivers/io/io_memmap.c					\
 				drivers/io/io_storage.c					\
@@ -89,10 +90,12 @@ BL1_SOURCES		+=	drivers/io/io_block.c					\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/${ARCH}/plat_bootstrap.S	\
-				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_pcie.c
+				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_io_storage.c	\
+				plat/microchip/lan966x/common/lan966x_mmc.c
 
 BL2_SOURCES		+=	drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
@@ -100,14 +103,15 @@ BL2_SOURCES		+=	drivers/io/io_block.c				\
 				drivers/io/io_storage.c				\
 				drivers/partition/gpt.c				\
 				drivers/partition/partition.c			\
-				plat/microchip/lan966x/common/lan966x_mmc.c		\
-				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
-				plat/microchip/lan966x/common/lan966x_image_load.c	\
+				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c		\
-				plat/microchip/lan966x/common/lan966x_tz.c		\
+				plat/microchip/lan966x/common/lan966x_image_load.c	\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
-				plat/microchip/lan966x/common/lan966x_sjtag.c
+				plat/microchip/lan966x/common/lan966x_mmc.c		\
+				plat/microchip/lan966x/common/lan966x_sjtag.c		\
+				plat/microchip/lan966x/common/lan966x_trng.c		\
+				plat/microchip/lan966x/common/lan966x_tz.c
 
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1

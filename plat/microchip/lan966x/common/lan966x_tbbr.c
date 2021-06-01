@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <assert.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
+#include <tools_share/firmware_encrypted.h>
 
 #include "plat_otp.h"
 
@@ -40,6 +42,27 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 	}
 
 	return 0;
+}
+
+int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
+                          size_t *key_len, unsigned int *flags,
+                          const uint8_t *img_id, size_t img_id_len)
+{
+	int ret;
+	size_t otp_keylen = (OTP_LEN_SSK / 8);
+
+	assert(*key_len >= otp_keylen);
+
+	otp_keylen = MIN(otp_keylen, *key_len);
+	ret = otp_read_bits(key, OTP_OFF_SSK, otp_keylen * 8);
+	if (ret < 0) {
+		return ret;
+	} else {
+		*key_len = otp_keylen;
+		*flags = 0;
+	}
+
+        return 0;
 }
 
 int plat_get_nv_ctr(void *cookie, unsigned int *nv_ctr)
