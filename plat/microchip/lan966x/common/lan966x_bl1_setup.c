@@ -9,6 +9,7 @@
 #include <arch.h>
 #include <bl1/bl1.h>
 #include <common/bl_common.h>
+#include <drivers/generic_delay_timer.h>
 #include <lib/fconf/fconf.h>
 #include <lib/utils.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
@@ -61,6 +62,12 @@ void bl1_early_platform_setup(void)
 
 	/* Timer */
 	lan966x_timer_init();
+
+	/* Enable arch timer */
+	generic_delay_timer_init();
+
+	/* Setup MMC */
+	lan966x_sdmmc_init();
 
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;

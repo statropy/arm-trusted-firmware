@@ -60,10 +60,13 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/microchip/lan966x/common/lan966x_crc32.c		\
 				plat/microchip/lan966x/common/lan966x_common.c
 
-BL1_SOURCES		+=	drivers/io/io_block.c				\
-				drivers/io/io_fip.c				\
-				drivers/io/io_memmap.c				\
-				drivers/io/io_storage.c				\
+BL1_SOURCES		+=	drivers/io/io_block.c					\
+				drivers/io/io_fip.c					\
+				drivers/io/io_memmap.c					\
+				drivers/io/io_storage.c					\
+				drivers/mmc/mmc.c					\
+				drivers/microchip/emmc/emmc.c				\
+				plat/microchip/lan966x/common/lan966x_mmc.c		\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/${ARCH}/plat_bootstrap.S	\
 				plat/microchip/lan966x/common/lan966x_bootstrap.c	\

@@ -39,6 +39,12 @@ enum {
 	LAN966X_STRAP_SPI_SLAVE,
 };
 
+typedef enum {
+  BOOT_SOURCE_EMMC = 0,
+  BOOT_SOURCE_SDMMC
+} boot_source_type;
+
+
 uint8_t lan966x_get_strapping(void);
 void	lan966x_set_strapping(uint8_t value);
 
@@ -50,6 +56,7 @@ void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 void lan966x_trng_init(void);
+void lan966x_sdmmc_init(void);
 
 uint32_t lan966x_trng_read(void);
 
