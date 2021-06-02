@@ -18,6 +18,7 @@
 #include <drivers/io/io_memmap.h>
 #include <drivers/io/io_storage.h>
 #include <drivers/mmc.h>
+#include <drivers/microchip/emmc.h>
 #include <drivers/partition/partition.h>
 #include <lib/mmio.h>
 #include <tools_share/firmware_image_package.h>
@@ -34,6 +35,30 @@ static const io_dev_connector_t *fip_dev_con;
 static uintptr_t fip_dev_handle;
 static const io_dev_connector_t *memmap_dev_con;
 static uintptr_t memmap_dev_handle;
+static const io_dev_connector_t *emmc_dev_con;
+static uintptr_t emmc_dev_handle;
+
+static uint32_t block_buffer[MMC_BLOCK_SIZE] __aligned(MMC_BLOCK_SIZE);
+static const io_block_dev_spec_t emmc_dev_spec = {
+	.buffer = {
+		   .offset = (size_t)&block_buffer,
+		   .length = MMC_BLOCK_SIZE,
+		   },
+	.ops = {
+		.read = lan966x_read_single_block,
+		.write = NULL,
+		},
+	.block_size = MMC_BLOCK_SIZE,
+};
+
+#if 0  // ToDo: Set correct params
+static const io_block_spec_t emmc_gpt_spec = {
+	.offset		= 0,
+	.length		= PLAT_PARTITION_BLOCK_SIZE *
+			  (PLAT_PARTITION_MAX_ENTRIES / 4 + 2),
+};
+#endif
+
 
 #define FLASH_FIP_OFFSET	0x180000 /* 1.5M for BL2/SPL + U-Boot */
 static const io_block_spec_t fip_block_spec = {
@@ -129,6 +154,7 @@ static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 
 static int check_fip(const uintptr_t spec);
 static int check_memmap(const uintptr_t spec);
+// static int check_emmc(const uintptr_t spec);
 
 static const struct plat_io_policy policies[] = {
 	[FIP_IMAGE_ID] = {
@@ -268,6 +294,22 @@ static int check_memmap(const uintptr_t spec)
 	return result;
 }
 
+#if 0
+static int check_emmc(const uintptr_t spec)
+{
+	int result;
+	uintptr_t local_handle;
+
+	result = io_dev_init(emmc_dev_handle, (uintptr_t) NULL);
+	if (result == 0) {
+		result = io_open(emmc_dev_handle, spec, &local_handle);
+		if (result == 0)
+			io_close(local_handle);
+	}
+	return result;
+}
+#endif
+
 static int check_fip(const uintptr_t spec)
 {
 	int result;
@@ -297,10 +339,16 @@ void lan966x_io_setup(void)
 	result = register_io_dev_memmap(&memmap_dev_con);
 	assert(result == 0);
 
+	result = register_io_dev_block(&emmc_dev_con);
+	assert(result == 0);
+	
 	result = io_dev_open(fip_dev_con, (uintptr_t)NULL, &fip_dev_handle);
 	assert(result == 0);
 
 	result = io_dev_open(memmap_dev_con, (uintptr_t)NULL, &memmap_dev_handle);
+	assert(result == 0);
+
+	result = io_dev_open(emmc_dev_con, (uintptr_t) &emmc_dev_spec, &emmc_dev_handle);
 	assert(result == 0);
 
 	/* Ignore improbable errors in release builds */

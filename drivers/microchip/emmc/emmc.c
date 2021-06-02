@@ -266,6 +266,9 @@ static void lan996x_mmc_initialize(void)
 
 	retVal = lan966x_host_init();
 	assert(retVal == 0);
+	
+	/* Prevent compiler warning in release build */
+	(void)retVal;
 }
 
 static void lan966x_get_cid_register(void)
@@ -832,8 +835,7 @@ size_t lan966x_read_single_block(int block_number,
 		       (SDMMC_NISTER_BRDRDY | SDMMC_NISTER_CMDC));
 
 	/* Call ATF read block function */
-	retSize =
-	    mmc_read_blocks(block_number, (uintptr_t) dest_buffer, block_size);
+	retSize = mmc_read_blocks(block_number, (uintptr_t) dest_buffer, block_size);
 	if (retSize == 0u) {
 		ERROR("Read of single block failed \n");
 		return 1;
@@ -878,4 +880,7 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 	/* Set bus clock to 10MHz (supported by all SD card type) */
 	retVal = lan966x_set_clk_freq(SDCLOCK_10MHZ, SDMMC_CLK_CTRL_PROG_MODE);
 	assert(retVal == 0);
+
+	/* Prevent compiler warning in release build */
+	(void)retVal;
 }
