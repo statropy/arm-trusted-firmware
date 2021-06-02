@@ -49,12 +49,13 @@ int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
                           const uint8_t *img_id, size_t img_id_len)
 {
 	int ret;
-	size_t otp_keylen = (OTP_LEN_SSK / 8);
+	size_t otp_keylen = OTP_TBBR_SSK_SIZE;
 
 	assert(*key_len >= otp_keylen);
+	assert(fw_enc_status == FW_ENC_WITH_SSK);
 
 	otp_keylen = MIN(otp_keylen, *key_len);
-	ret = otp_read_bits(key, OTP_OFF_SSK, otp_keylen * 8);
+	ret = otp_read_otp_tbbr_ssk(key, otp_keylen);
 	if (ret < 0) {
 		return ret;
 	} else {

@@ -12,9 +12,10 @@
 
 #include <arch_helpers.h>
 #include <common/debug.h>
-#include <drivers/io/io_block.h>
 #include <drivers/io/io_driver.h>
+#include <drivers/io/io_encrypted.h>
 #include <drivers/io/io_fip.h>
+#include <drivers/io/io_block.h>
 #include <drivers/io/io_memmap.h>
 #include <drivers/io/io_storage.h>
 #include <drivers/mmc.h>
@@ -36,6 +37,10 @@ static const io_dev_connector_t *memmap_dev_con;
 static uintptr_t fip_dev_handle;
 static uintptr_t mmc_dev_handle;
 static uintptr_t memmap_dev_handle;
+#ifndef DECRYPTION_SUPPORT_none
+static const io_dev_connector_t *enc_dev_con;
+static uintptr_t enc_dev_handle;
+#endif
 
 #if defined(IMAGE_BL2)
 static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
@@ -146,12 +151,20 @@ static int check_fip(const uintptr_t spec);
 static int check_mmc(const uintptr_t spec);
 static int check_memmap(const uintptr_t spec);
 static int check_error(const uintptr_t spec);
+#ifndef DECRYPTION_SUPPORT_none
+static int open_enc_fip(const uintptr_t spec);
+#endif
 
 static const struct plat_io_policy policies[] = {
 	[FIP_IMAGE_ID] = {
 		&mmc_dev_handle,
 		(uintptr_t)&fip_mmc_block_spec,
 		check_mmc
+	},
+	[ENC_IMAGE_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&bl32_uuid_spec, /* Dummy */
+		check_fip
 	},
 	[BL2_IMAGE_ID] = {
 		&fip_dev_handle,
@@ -163,6 +176,23 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl31_uuid_spec,
 		check_fip
 	},
+#if ENCRYPT_BL32 && !defined(DECRYPTION_SUPPORT_none)
+	[BL32_IMAGE_ID] = {
+		&enc_dev_handle,
+		(uintptr_t)&bl32_uuid_spec,
+		open_enc_fip
+	},
+	[BL32_EXTRA1_IMAGE_ID] = {
+		&enc_dev_handle,
+		(uintptr_t)&bl32_extra1_uuid_spec,
+		open_enc_fip
+	},
+	[BL32_EXTRA2_IMAGE_ID] = {
+		&enc_dev_handle,
+		(uintptr_t)&bl32_extra2_uuid_spec,
+		open_enc_fip
+	},
+#else
 	[BL32_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl32_uuid_spec,
@@ -178,6 +208,7 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl32_extra2_uuid_spec,
 		check_fip
 	},
+#endif
 	[BL33_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl33_uuid_spec,
@@ -267,6 +298,25 @@ static const struct plat_io_policy boot_source_policies[] = {
 	},
 	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
+
+#ifndef DECRYPTION_SUPPORT_none
+static int open_enc_fip(const uintptr_t spec)
+{
+	int result;
+	uintptr_t local_image_handle;
+
+	/* See if an encrypted FIP is available */
+	result = io_dev_init(enc_dev_handle, (uintptr_t)ENC_IMAGE_ID);
+	if (result == 0) {
+		result = io_open(enc_dev_handle, spec, &local_image_handle);
+		if (result == 0) {
+			VERBOSE("Using encrypted FIP\n");
+			io_close(local_image_handle);
+		}
+	}
+	return result;
+}
+#endif
 
 static int check_fip(const uintptr_t spec)
 {
@@ -367,6 +417,15 @@ void lan966x_io_setup(void)
 		panic();
 		break;
 	}
+
+#ifndef DECRYPTION_SUPPORT_none
+	result = register_io_dev_enc(&enc_dev_con);
+	assert(result == 0);
+
+	result = io_dev_open(enc_dev_con, (uintptr_t)NULL,
+			     &enc_dev_handle);
+	assert(result == 0);
+#endif
 
 	/* Ignore improbable errors in release builds */
 	(void)result;
