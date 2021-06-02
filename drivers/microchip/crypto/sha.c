@@ -27,52 +27,63 @@
 
 static const uint32_t base = LAN966X_SHA_BASE;
 
-#define SHA_TESTS
+//#define SHA_TESTS
 #if defined(SHA_TESTS)
 #define FOX "The quick brown fox jumps over the lazy dog"
 static const char inp_1[] = FOX;
 static const char inp_2[] = "abc";
 static const char inp_3[] = FOX FOX FOX;
 static const uint32_t hash_sha1_1[] = {
-	0x2fd4e1c6, 0x7a2d28fc, 0xed849ee1, 0xbb76e739, 0x1b93eb12
+	__ntohl(0x2fd4e1c6), __ntohl(0x7a2d28fc), __ntohl(0xed849ee1), __ntohl(0xbb76e739),
+	__ntohl(0x1b93eb12)
 };
 static const uint32_t hash_sha1_2[] = {
-	0xa9993e36, 0x4706816a, 0xba3e2571, 0x7850c26c, 0x9cd0d89d
+	__ntohl(0xa9993e36), __ntohl(0x4706816a), __ntohl(0xba3e2571), __ntohl(0x7850c26c),
+	__ntohl(0x9cd0d89d)
 };
 static const uint32_t hash_sha224_1[] = {
-	0x730e109b, 0xd7a8a32b, 0x1cb9d9a0, 0x9aa2325d, 0x2430587d, 0xdbc0c38b, 0xad911525
+	__ntohl(0x730e109b), __ntohl(0xd7a8a32b), __ntohl(0x1cb9d9a0), __ntohl(0x9aa2325d),
+	__ntohl(0x2430587d), __ntohl(0xdbc0c38b), __ntohl(0xad911525)
 };
 static const uint32_t hash_sha224_2[] = {
-	0x23097d22, 0x3405d822, 0x8642a477, 0xbda255b3, 0x2aadbce4, 0xbda0b3f7, 0xe36c9da7
+	__ntohl(0x23097d22), __ntohl(0x3405d822), __ntohl(0x8642a477), __ntohl(0xbda255b3),
+	__ntohl(0x2aadbce4), __ntohl(0xbda0b3f7), __ntohl(0xe36c9da7)
 };
 static const uint32_t hash_sha256_1[] = {
-	0xd7a8fbb3, 0x07d78094, 0x69ca9abc, 0xb0082e4f, 0x8d5651e4, 0x6d3cdb76, 0x2d02d0bf, 0x37c9e592
+	__ntohl(0xd7a8fbb3), __ntohl(0x07d78094), __ntohl(0x69ca9abc), __ntohl(0xb0082e4f),
+	__ntohl(0x8d5651e4), __ntohl(0x6d3cdb76), __ntohl(0x2d02d0bf), __ntohl(0x37c9e592)
 };
 static const uint32_t hash_sha256_2[] = {
-	0xba7816bf, 0x8f01cfea, 0x414140de, 0x5dae2223, 0xb00361a3, 0x96177a9c, 0xb410ff61, 0xf20015ad
+	__ntohl(0xba7816bf), __ntohl(0x8f01cfea), __ntohl(0x414140de), __ntohl(0x5dae2223),
+	__ntohl(0xb00361a3), __ntohl(0x96177a9c), __ntohl(0xb410ff61), __ntohl(0xf20015ad)
 };
 static const uint32_t hash_sha384_1[] = {
-	0xca737f10, 0x14a48f4c, 0x0b6dd43c, 0xb177b0af, 0xd9e51693, 0x67544c49, 0x4011e331,
-	0x7dbf9a50, 0x9cb1e5dc, 0x1e85a941, 0xbbee3d7f, 0x2afbc9b1,
+	__ntohl(0xca737f10), __ntohl(0x14a48f4c), __ntohl(0x0b6dd43c), __ntohl(0xb177b0af),
+	__ntohl(0xd9e51693), __ntohl(0x67544c49), __ntohl(0x4011e331), __ntohl(0x7dbf9a50),
+	__ntohl(0x9cb1e5dc), __ntohl(0x1e85a941), __ntohl(0xbbee3d7f), __ntohl(0x2afbc9b1),
 };
 static const uint32_t hash_sha384_2[] = {
-	0xcb00753f, 0x45a35e8b, 0xb5a03d69, 0x9ac65007, 0x272c32ab, 0x0eded163, 0x1a8b605a,
-	0x43ff5bed, 0x8086072b, 0xa1e7cc23, 0x58baeca1, 0x34c825a7,
+	__ntohl(0xcb00753f), __ntohl(0x45a35e8b), __ntohl(0xb5a03d69), __ntohl(0x9ac65007),
+	__ntohl(0x272c32ab), __ntohl(0x0eded163), __ntohl(0x1a8b605a), __ntohl(0x43ff5bed),
+	__ntohl(0x8086072b), __ntohl(0xa1e7cc23), __ntohl(0x58baeca1), __ntohl(0x34c825a7),
 };
 static const uint32_t hash_sha512_1[] = {
-	0x07e547d9, 0x586f6a73, 0xf73fbac0, 0x435ed769, 0x51218fb7, 0xd0c8d788, 0xa309d785,
-	0x436bbb64, 0x2e93a252, 0xa954f239, 0x12547d1e, 0x8a3b5ed6, 0xe1bfd709, 0x7821233f,
-	0xa0538f3d, 0xb854fee6,
+	__ntohl(0x07e547d9), __ntohl(0x586f6a73), __ntohl(0xf73fbac0), __ntohl(0x435ed769),
+	__ntohl(0x51218fb7), __ntohl(0xd0c8d788), __ntohl(0xa309d785), __ntohl(0x436bbb64),
+	__ntohl(0x2e93a252), __ntohl(0xa954f239), __ntohl(0x12547d1e), __ntohl(0x8a3b5ed6),
+	__ntohl(0xe1bfd709), __ntohl(0x7821233f), __ntohl(0xa0538f3d), __ntohl(0xb854fee6),
 };
 static const uint32_t hash_sha512_2[] = {
-	0xddaf35a1, 0x93617aba, 0xcc417349, 0xae204131, 0x12e6fa4e, 0x89a97ea2, 0x0a9eeee6,
-	0x4b55d39a, 0x2192992a, 0x274fc1a8, 0x36ba3c23, 0xa3feebbd, 0x454d4423, 0x643ce80e,
-	0x2a9ac94f, 0xa54ca49f,
+	__ntohl(0xddaf35a1), __ntohl(0x93617aba), __ntohl(0xcc417349), __ntohl(0xae204131),
+	__ntohl(0x12e6fa4e), __ntohl(0x89a97ea2), __ntohl(0x0a9eeee6), __ntohl(0x4b55d39a),
+	__ntohl(0x2192992a), __ntohl(0x274fc1a8), __ntohl(0x36ba3c23), __ntohl(0xa3feebbd),
+	__ntohl(0x454d4423), __ntohl(0x643ce80e), __ntohl(0x2a9ac94f), __ntohl(0xa54ca49f),
 };
 static const uint32_t hash_sha512_3[] = {
-	0x8bbc0670, 0xdc3e29c7, 0x341035e6, 0x110968c8, 0x78dca505, 0x248f09b3, 0x380899ed,
-	0x9b3a1aec, 0x19282f1d, 0x2de75d6c, 0x6acc1d3e, 0x0b63be33, 0xc0c5a731, 0xac00f7d2,
-	0x9c02e31c, 0x2846cfde,
+	__ntohl(0x8bbc0670), __ntohl(0xdc3e29c7), __ntohl(0x341035e6), __ntohl(0x110968c8),
+	__ntohl(0x78dca505), __ntohl(0x248f09b3), __ntohl(0x380899ed), __ntohl(0x9b3a1aec),
+	__ntohl(0x19282f1d), __ntohl(0x2de75d6c), __ntohl(0x6acc1d3e), __ntohl(0x0b63be33),
+	__ntohl(0xc0c5a731), __ntohl(0xac00f7d2), __ntohl(0x9c02e31c), __ntohl(0x2846cfde),
 };
 
 static struct {
@@ -178,7 +189,7 @@ static uint32_t sha_wait_flag(uint32_t mask)
 
 	assert(tmo > 0);
 
-	INFO("Wait(%d): %08x\n", tmo, s);
+	VERBOSE("Wait(%d): %08x\n", tmo, s);
 	return s;
 }
 
@@ -199,7 +210,7 @@ static int sha_process(int hash_type, const void *input, size_t len,
 	assert((hash_len % 4) == 0);
 	hash_len /= 4;
 
-	INFO("SHA algo %d, %d words hash, input %d bytes\n", hash_type, hash_len, len);
+	VERBOSE("SHA algo %d, %d words hash, input %d bytes\n", hash_type, hash_len, len);
 
 	/* Set algo and mode */
 	w = SHA_SHA_MR_ALGO(hash_type) | SHA_SHA_MR_CHKCNT(hash_len);
@@ -216,8 +227,7 @@ static int sha_process(int hash_type, const void *input, size_t len,
 		mmio_setbits_32(SHA_SHA_CR(base), SHA_SHA_CR_WUIEHV(1));
 		for (i = 0; i < hash_len; i++) {
 			w = unaligned_get32(in_hash + (i * 4));
-			w = __ntohl(w); 	/* Always in BE */
-			INFO("Exp(%d): %08x\n", i, w);
+			VERBOSE("Exp(%d): %08x\n", i, w);
 			mmio_write_32(SHA_SHA_IDATAR(base, i), w);
 		}
 		mmio_clrbits_32(SHA_SHA_CR(base), SHA_SHA_CR_WUIEHV(1));
@@ -226,9 +236,9 @@ static int sha_process(int hash_type, const void *input, size_t len,
 	/* Write data */
 	nwords = div_round_up(len, 4);
 	mmio_setbits_32(SHA_SHA_CR(base), SHA_SHA_CR_FIRST(1));
-	INFO("Len(%d) -> %d words\n", len, nwords);
+	VERBOSE("Len(%d) -> %d words\n", len, nwords);
 
-	/* Fox sha384/512, also use IODATARx */
+	/* For sha384/512, also use IODATARx */
 	fifo = ((hash_type == SHA_MR_ALGO_SHA384) |
 		(hash_type == SHA_MR_ALGO_SHA512)) ? 32 : 16;
 
@@ -239,7 +249,7 @@ static int sha_process(int hash_type, const void *input, size_t len,
 			/* Up to 16/32 words at a time */
 			for (j = 0; j < fifo && i < nwords; j++, i++) {
 				w = unaligned_get32(input + (i * 4));
-				INFO("Inp(%d -> %d): %08x\n", i, j, w);
+				VERBOSE("Inp(%d -> %d): %08x\n", i, j, w);
 				mmio_write_32(SHA_SHA_IDATAR(base, j), w);
 			}
 			sha_start_process();
@@ -248,7 +258,7 @@ static int sha_process(int hash_type, const void *input, size_t len,
 	/* Wait until checked */
 	if (in_hash) {
 		w = sha_wait_flag(SHA_SHA_ISR_CHECKF_ISR_M);
-		INFO("Check(%08x) -> %d\n", w, SHA_SHA_ISR_CHKST_ISR_X(w));
+		VERBOSE("Check(%08x) -> %d\n", w, SHA_SHA_ISR_CHKST_ISR_X(w));
 		return SHA_SHA_ISR_CHKST_ISR_X(w) == CHKST_OK ?
 			CRYPTO_SUCCESS : CRYPTO_ERR_SIGNATURE;
 	}
@@ -257,10 +267,8 @@ static int sha_process(int hash_type, const void *input, size_t len,
 	assert(out_hash != NULL);
 	for (i = 0; i < hash_len; i++) {
 		w = mmio_read_32(SHA_SHA_IODATAR(base, i));
-		w = __ntohl(w);	/* Always in BE */
-		*(uint32_t *)(out_hash + (i * 4)) = __ntohl(w);
-		INFO("HASH(%d): %08x vs %08x\n", i, w,
-		     unaligned_get32(in_hash + (i * 4)));
+		*(uint32_t *)(out_hash + (i * 4)) = w;
+		VERBOSE("HASH(%d): %08x\n", i, w);
 	}
 
 	return 0;
