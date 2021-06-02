@@ -7,7 +7,7 @@
 # Include common TBB sources
 AUTH_SOURCES	:=	drivers/auth/auth_mod.c				\
 			drivers/auth/crypto_mod.c			\
-			plat/microchip/lan966x/lan966x_crypto.c		\
+			plat/microchip/lan966x/common/lan966x_crypto.c	\
 			drivers/microchip/crypto/aes.c			\
 			drivers/microchip/crypto/sha.c			\
 			drivers/microchip/crypto/pkcl.c			\
