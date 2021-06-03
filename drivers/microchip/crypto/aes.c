@@ -27,6 +27,7 @@
 #define AES_OPMOD_XTS	6	/* XEX-based tweaked-codebook mode */
 
 #define AES_BLOCK_LEN	(4 * 4)	/* 4 32-bits unit */
+#define AES_IV_LEN	(3 * 4)	/* 3 32-bits unit */
 
 #define AES_AES_KEYWR(b, n)	(AES_AES_KEYWR0(b) + (n * 4))
 #define AES_AES_IVR(b, n)	(AES_AES_IVR0(b) + (n * 4))
@@ -66,13 +67,17 @@ static uint32_t aes_wait_flag(uint32_t mask)
 		s = mmio_read_32(AES_AES_ISR(base));
 		if (mask & s)
 			break;
+		if (s & AES_AES_IER_SECE(1)) {
+			s = mmio_read_32(AES_AES_WPSR(base));
+			WARN("WPSR: %08x\n", s);
+		}
 		/* Hummmm */
 		//udelay(1);
 	}
 
 	assert(tmo > 0);
 
-	INFO("Wait(%d): %08x\n", tmo, s);
+	//INFO("Wait(%d): %08x\n", tmo, s);
 	return s;
 }
 
@@ -101,6 +106,8 @@ static int aes_setkey(const unsigned char *key, unsigned int keylen,
 	}
 
 	mmio_write_32(AES_AES_MR(base),
+		      AES_AES_MR_SMOD(0) | /* Manual start */
+		      AES_AES_MR_CIPHER(0) | /* Decrypt */
 		      AES_AES_MR_KEYSIZE(kc) |
 		      AES_AES_MR_OPMOD(AES_OPMOD_GCM) |
 		      AES_AES_MR_GTAGEN(1));
@@ -113,9 +120,10 @@ static int aes_setkey(const unsigned char *key, unsigned int keylen,
 	/* Wait for Hash subkey */
 	(void) aes_wait_flag(AES_AES_ISR_DATRDY_ISR(1));
 
-	/* IVR */
-	for (i = 0; i < 4; i++)
+	/* IVR - 12 bytes + (initial) counter */
+	for (i = 0; i < (AES_IV_LEN / 4); i++)
 		mmio_write_32(AES_AES_IVR(base, i), unaligned_get32(iv + (i * 4)));
+	mmio_write_32(AES_AES_IVR(base, 3), 1); /* Counter starts at "1" */
 
 	return CRYPTO_SUCCESS;
 }
@@ -129,11 +137,12 @@ static void aes_decrypt(uint8_t *data, size_t len)
 		nb = MIN((size_t)AES_BLOCK_LEN, len);
 		nw = div_round_up(nb, 4); /* To word count */
 		/* Write input */
+		INFO("AES: len %d, bytes %d, words %d\n", len, nb, nw);
 		for (i = 0; i < nw; i++)
 			mmio_write_32(AES_AES_IDATAR(base, i),
 				      unaligned_get32(data +  + (i * 4)));
 		/* Start processing */
-		mmio_setbits_32(AES_AES_CR(base), AES_AES_CR_START(1));
+		mmio_write_32(AES_AES_CR(base), AES_AES_CR_START(1));
 		/* Wait until processed */
 		(void) aes_wait_flag(AES_AES_ISR_DATRDY_ISR(1));
 		/* Get output data */
@@ -153,6 +162,7 @@ static int aes_check_tag(const uint8_t *tag, size_t tag_len)
 	int i, diff, rc;
 	uint8_t tag_buf[AES_BLOCK_LEN];
 
+	INFO("AES: get tag - %d bytes\n", tag_len);
 	(void) aes_wait_flag(AES_AES_ISR_TAGRDY_ISR(1));
 	for (i = 0; i < 4; i++) {
 		uint32_t w = mmio_read_32(AES_AES_TAGR(base, i));
@@ -160,8 +170,10 @@ static int aes_check_tag(const uint8_t *tag, size_t tag_len)
 	}
 
 	/* Check tag in "constant-time" */
-	for (diff = 0, i = 0; i < tag_len; i++)
-		diff |= ((const unsigned char *)tag)[i] ^ tag_buf[i];
+	for (diff = 0, i = 0; i < tag_len; i++) {
+		INFO("TAG[%d]: %02x vs %02x\n", i, tag[i], tag_buf[i]);
+		diff |= tag[i] ^ tag_buf[i];
+	}
 
 	rc = (diff != 0) ? CRYPTO_ERR_DECRYPTION : CRYPTO_SUCCESS;
 
@@ -175,8 +187,11 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 {
 	int rc;
 
-	/* For GCM, iv is 128 bits/16 bytes */
-	if (iv_len != AES_BLOCK_LEN) {
+	INFO("aes-gcm: key_len %d, iv_len %d, tag_len %d\n",
+	     key_len, iv_len, tag_len);
+
+	/* NIST recommendation: 96 bits/12 bytes */
+	if (iv_len != AES_IV_LEN) {
 		rc = CRYPTO_ERR_DECRYPTION;
 		goto exit_gcm;
 	}
@@ -188,7 +203,7 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 	}
 
 	/* Set AADLEN, CLEN */
-	mmio_write_32(AES_AES_AADLENR(base), len);
+	mmio_write_32(AES_AES_AADLENR(base), 0);
 	mmio_write_32(AES_AES_CLENR(base), len);
 
 	/* Now run data through decrypt */
