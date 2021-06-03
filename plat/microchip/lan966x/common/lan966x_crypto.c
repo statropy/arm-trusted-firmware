@@ -21,80 +21,11 @@
 
 #define LIB_NAME		"SAMA5 crypto core"
 
-#define AES_TESTS
-#ifdef AES_TESTS
-#define AES_TEST_MAXBUF	64
-static const struct {
-	int ct_len;
-	const uint8_t key[32];
-	const uint8_t iv[12];
-	const uint8_t ct[AES_TEST_MAXBUF];
-	const uint8_t pt[AES_TEST_MAXBUF];
-	const uint8_t tag[16];
-} test_data[] = {
-	{
-		.ct_len = 16,
-		/* key */
-		{
-			0x4c, 0x8e, 0xbf, 0xe1, 0x44, 0x4e, 0xc1, 0xb2, 0xd5, 0x03, 0xc6, 0x98, 0x66, 0x59, 0xaf, 0x2c, 0x94, 0xfa, 0xfe, 0x94, 0x5f, 0x72, 0xc1, 0xe8, 0x48, 0x6a, 0x5a, 0xcf, 0xed, 0xb8, 0xa0, 0xf8,
-		},
-		/* iv */
-		{
-			0x47, 0x33, 0x60, 0xe0, 0xad, 0x24, 0x88, 0x99, 0x59, 0x85, 0x89, 0x95,
-		},
-		/* ct */
-		{
-			0xd2, 0xc7, 0x81, 0x10, 0xac, 0x7e, 0x8f, 0x10, 0x7c, 0x0d, 0xf0, 0x57, 0x0b, 0xd7, 0xc9, 0x0c,
-		},
-		/* pt */
-		{
-			0x77, 0x89, 0xb4, 0x1c, 0xb3, 0xee, 0x54, 0x88, 0x14, 0xca, 0x0b, 0x38, 0x8c, 0x10, 0xb3, 0x43,
-		},
-		/* tag */
-		{
-			0xc2, 0x6a, 0x37, 0x9b, 0x6d, 0x98, 0xef, 0x28, 0x52, 0xea, 0xd8, 0xce, 0x83, 0xa8, 0x33, 0xa7,
-		},
-	},
-};
-
-static void aes_run_tests(void)
-{
-	int i, rc;
-	uint8_t buf[AES_TEST_MAXBUF];
-
-	for (i = 0; i < ARRAY_SIZE(test_data); i++) {
-		assert(test_data[i].ct_len <= AES_TEST_MAXBUF);
-		memcpy(buf, test_data[i].ct, test_data[i].ct_len);
-		rc = crypto_mod_auth_decrypt(CRYPTO_GCM_DECRYPT,
-					     buf,
-					     test_data[i].ct_len,
-					     test_data[i].key,
-					     32, 0,
-					     test_data[i].iv,
-					     12,
-					     test_data[i].tag,
-					     16);
-		if (rc) {
-			WARN("test(%d): decrypt failed: %d\n", i, rc);
-			assert(0);
-		}
-		if (memcmp(buf, test_data[i].pt, test_data[i].ct_len)) {
-			WARN("test(%d): data compare fails\n", i);
-			assert(0);
-		}
-	}
-
-}
-#endif
-
 static void init(void)
 {
 
 	sha_init();
 	aes_init();
-#if defined(AES_TESTS)
-	aes_run_tests();
-#endif
 	pkcl_init();
 }
 

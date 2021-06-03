@@ -187,14 +187,17 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 {
 	int rc;
 
-	INFO("aes-gcm: key_len %d, iv_len %d, tag_len %d\n",
-	     key_len, iv_len, tag_len);
+	INFO("aes-gcm: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
+	     len, key_len, iv_len, tag_len);
 
 	/* NIST recommendation: 96 bits/12 bytes */
 	if (iv_len != AES_IV_LEN) {
 		rc = CRYPTO_ERR_DECRYPTION;
 		goto exit_gcm;
 	}
+
+	/* Reset state */
+	mmio_write_32(AES_AES_CR(base), AES_AES_CR_SWRST(1));
 
 	rc = aes_setkey(key, key_len, iv);
 	if (rc != 0) {

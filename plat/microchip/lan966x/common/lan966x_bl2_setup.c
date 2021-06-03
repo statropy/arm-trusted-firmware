@@ -159,4 +159,7 @@ void bl2_platform_setup(void)
 	/* Initialize the secure environment */
 	lan966x_tz_init();
 #endif
+#if defined(LAN966X_AES_TESTS)
+	lan966x_crypto_tests();
+#endif
 }

@@ -4,14 +4,31 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+LAN966X_HW_CRYPTO	:=	yes
+
+LAN966X_CRYPTO_TEST	:=	yes
+
 # Include common TBB sources
 AUTH_SOURCES	:=	drivers/auth/auth_mod.c				\
 			drivers/auth/crypto_mod.c			\
-			plat/microchip/lan966x/common/lan966x_crypto.c	\
 			drivers/microchip/crypto/aes.c			\
 			drivers/microchip/crypto/sha.c			\
 			drivers/microchip/crypto/pkcl.c			\
 			drivers/auth/img_parser_mod.c
+
+ifeq (${LAN966X_HW_CRYPTO},yes)
+AUTH_SOURCES	+= plat/microchip/lan966x/common/lan966x_crypto.c
+else
+CRYPTO_LIB_MK := drivers/auth/mbedtls/mbedtls_crypto.mk
+$(info Including ${CRYPTO_LIB_MK})
+include ${CRYPTO_LIB_MK}
+endif
+
+# Include the selected chain of trust sources.
+ifeq (${LAN966X_CRYPTO_TEST},yes)
+$(eval $(call add_define,LAN966X_AES_TESTS))
+BL2_SOURCES	+= plat/microchip/lan966x/common/lan966x_crypto_tests.c
+endif
 
 # Include the selected chain of trust sources.
 ifeq (${COT},tbbr)
