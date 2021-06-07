@@ -51,14 +51,11 @@ static const io_block_dev_spec_t emmc_dev_spec = {
 	.block_size = MMC_BLOCK_SIZE,
 };
 
-#if 0  // ToDo: Set correct params
+/* ToDo: check parameters */
 static const io_block_spec_t emmc_gpt_spec = {
 	.offset		= 0,
-	.length		= PLAT_PARTITION_BLOCK_SIZE *
-			  (PLAT_PARTITION_MAX_ENTRIES / 4 + 2),
+	.length		= MMC_BLOCK_SIZE,
 };
-#endif
-
 
 #define FLASH_FIP_OFFSET	0x180000 /* 1.5M for BL2/SPL + U-Boot */
 static const io_block_spec_t fip_block_spec = {
@@ -154,7 +151,7 @@ static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 
 static int check_fip(const uintptr_t spec);
 static int check_memmap(const uintptr_t spec);
-// static int check_emmc(const uintptr_t spec);
+static int check_emmc(const uintptr_t spec);
 
 static const struct plat_io_policy policies[] = {
 	[FIP_IMAGE_ID] = {
@@ -269,7 +266,8 @@ static const struct plat_io_policy policies[] = {
 		check_fip
 	},
 #endif /* TRUSTED_BOARD_BOOT */
-#if 0
+#if 1
+	/* ToDo: check GPT_IMAGE_ID value and image_spec name */
 	[GPT_IMAGE_ID] = {
 		&emmc_dev_handle,
 		(uintptr_t)&emmc_gpt_spec,
@@ -294,7 +292,6 @@ static int check_memmap(const uintptr_t spec)
 	return result;
 }
 
-#if 0
 static int check_emmc(const uintptr_t spec)
 {
 	int result;
@@ -308,7 +305,6 @@ static int check_emmc(const uintptr_t spec)
 	}
 	return result;
 }
-#endif
 
 static int check_fip(const uintptr_t spec)
 {
@@ -348,7 +344,7 @@ void lan966x_io_setup(void)
 	result = io_dev_open(memmap_dev_con, (uintptr_t)NULL, &memmap_dev_handle);
 	assert(result == 0);
 
-	result = io_dev_open(emmc_dev_con, (uintptr_t) &emmc_dev_spec, &emmc_dev_handle);
+	result = io_dev_open(emmc_dev_con, (uintptr_t)&emmc_dev_spec, &emmc_dev_handle);
 	assert(result == 0);
 
 	/* Ignore improbable errors in release builds */

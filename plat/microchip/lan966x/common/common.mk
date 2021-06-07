@@ -52,6 +52,8 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				common/desc_image_load.c			\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/mmc/mmc.c				\
+				drivers/microchip/emmc/emmc.c			\
 				drivers/microchip/otp/otp.c			\
 				drivers/microchip/clock/lan966x_clock.c		\
 				drivers/microchip/tz_matrix/tz_matrix.c		\
@@ -64,8 +66,6 @@ BL1_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/io/io_fip.c					\
 				drivers/io/io_memmap.c					\
 				drivers/io/io_storage.c					\
-				drivers/mmc/mmc.c					\
-				drivers/microchip/emmc/emmc.c				\
 				plat/microchip/lan966x/common/lan966x_mmc.c		\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/${ARCH}/plat_bootstrap.S	\
