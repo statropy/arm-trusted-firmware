@@ -56,6 +56,8 @@
 /* -------- SDMMC_HC1R : (SDMMC Offset: 0x28) Host Control 1 Register ------ */
 #define SDMMC_HC1R	0x28	/* uint8_t */
 #define   SDMMC_HC1R_DW (0x1u << 1)	/* Data Width */
+#define   SDMMC_HC1R_DW_1_BIT (0x0u << 1) /* 1-bit mode. */
+#define   SDMMC_HC1R_DW_4_BIT (0x1u << 1) /* 4-bit mode. */
 /* -------- SDMMC_PCR : (SDMMC Offset: 0x29) Power Control Register -------- */
 #define SDMMC_PCR	0x29	/* uint8_t */
 #define   SDMMC_PCR_SDBPWR (0x1u << 0)	/* SD Bus Power */
@@ -249,7 +251,7 @@ static int lan966x_host_init(void)
 	mmc_setbits_8(reg_base + SDMMC_PCR, SDMMC_PCR_SDBPWR);
 
 	/* Set host controller data bus width to 4 bit */
-	mmc_setbits_8(reg_base + SDMMC_HC1R, SDMMC_HC1R_DW);
+	mmc_setbits_8(reg_base + SDMMC_HC1R, SDMMC_HC1R_DW_4_BIT);
 
 	if (lan966x_set_clk_freq(SDCLOCK_400KHZ, SDMMC_CLK_CTRL_PROG_MODE)) {
 		return -1;
