@@ -38,6 +38,7 @@ static uintptr_t memmap_dev_handle;
 static const io_dev_connector_t *emmc_dev_con;
 static uintptr_t emmc_dev_handle;
 
+/* Create 512 bytes test buffer */
 static uint32_t block_buffer[MMC_BLOCK_SIZE] __aligned(MMC_BLOCK_SIZE);
 static const io_block_dev_spec_t emmc_dev_spec = {
 	.buffer = {
@@ -51,16 +52,16 @@ static const io_block_dev_spec_t emmc_dev_spec = {
 	.block_size = MMC_BLOCK_SIZE,
 };
 
-/* ToDo: check parameters */
-static const io_block_spec_t emmc_gpt_spec = {
-	.offset		= 0,
-	.length		= MMC_BLOCK_SIZE,
-};
-
 #define FLASH_FIP_OFFSET	0x180000 /* 1.5M for BL2/SPL + U-Boot */
 static const io_block_spec_t fip_block_spec = {
 	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
 	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
+};
+
+/* ToDo: check mem address/size settings, check offset values */
+static const io_block_spec_t emmc_gpt_spec = {
+	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
+	.length	= LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 };
 
 static const io_uuid_spec_t bl2_uuid_spec = {

@@ -10,9 +10,9 @@
 #include <drivers/mmc.h>
 #include <lib/mmio.h>
 
+#define SDCLOCK_400KHZ	375000u
 #define SDCLOCK_10MHZ	10000000u
 #define SDCLOCK_25MHZ	25000000u
-#define SDCLOCK_400KHZ	375000u
 #define SDCLOCK_50MHZ	50000000u
 
 #define SDMMC_CLK_CTRL_DIV_MODE		0
@@ -28,7 +28,7 @@
 #define EMMC_POLL_LOOP_DELAY	8u	/* 8µs */
 #define EMMC_POLLING_TIMEOUT	2000000u	/* 2sec */
 
-#define TIME_MSEC(x)	(x*1000)	/* Converts arg from ms to microsec */
+#define TIME_MSEC(x)	(x * 1000)	/* Converts arg from ms to microsec */
 
 #ifndef DIV_ROUND_UP
 #define DIV_ROUND_UP(x, y)	(((x) + (y) - 1) / (y))
