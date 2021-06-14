@@ -6,7 +6,7 @@
 
 LAN966X_HW_CRYPTO	:=	yes
 
-LAN966X_CRYPTO_TEST	:=	yes
+LAN966X_CRYPTO_TEST	:=	no
 
 # Include common TBB sources
 AUTH_SOURCES	:=	drivers/auth/auth_mod.c				\

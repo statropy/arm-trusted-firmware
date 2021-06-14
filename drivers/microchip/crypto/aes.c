@@ -77,7 +77,7 @@ static uint32_t aes_wait_flag(uint32_t mask)
 
 	assert(tmo > 0);
 
-	//INFO("Wait(%d): %08x\n", tmo, s);
+	//VERBOSE("Wait(%d): %08x\n", tmo, s);
 	return s;
 }
 
@@ -123,7 +123,7 @@ static int aes_setkey(const unsigned char *key, unsigned int keylen,
 	/* IVR - 12 bytes + (initial) counter */
 	for (i = 0; i < (AES_IV_LEN / 4); i++)
 		mmio_write_32(AES_AES_IVR(base, i), unaligned_get32(iv + (i * 4)));
-	mmio_write_32(AES_AES_IVR(base, 3), 1); /* Counter starts at "1" */
+	mmio_write_32(AES_AES_IVR(base, 3), __htonl(2)); /* Inc32(j0) */
 
 	return CRYPTO_SUCCESS;
 }
@@ -137,7 +137,7 @@ static void aes_decrypt(uint8_t *data, size_t len)
 		nb = MIN((size_t)AES_BLOCK_LEN, len);
 		nw = div_round_up(nb, 4); /* To word count */
 		/* Write input */
-		INFO("AES: len %d, bytes %d, words %d\n", len, nb, nw);
+		VERBOSE("AES: len %d, bytes %d, words %d\n", len, nb, nw);
 		for (i = 0; i < nw; i++)
 			mmio_write_32(AES_AES_IDATAR(base, i),
 				      unaligned_get32(data +  + (i * 4)));
@@ -162,7 +162,7 @@ static int aes_check_tag(const uint8_t *tag, size_t tag_len)
 	int i, diff, rc;
 	uint8_t tag_buf[AES_BLOCK_LEN];
 
-	INFO("AES: get tag - %d bytes\n", tag_len);
+	VERBOSE("AES: get tag - %d bytes\n", tag_len);
 	(void) aes_wait_flag(AES_AES_ISR_TAGRDY_ISR(1));
 	for (i = 0; i < 4; i++) {
 		uint32_t w = mmio_read_32(AES_AES_TAGR(base, i));
@@ -171,7 +171,7 @@ static int aes_check_tag(const uint8_t *tag, size_t tag_len)
 
 	/* Check tag in "constant-time" */
 	for (diff = 0, i = 0; i < tag_len; i++) {
-		INFO("TAG[%d]: %02x vs %02x\n", i, tag[i], tag_buf[i]);
+		VERBOSE("TAG[%d]: %02x vs %02x\n", i, tag[i], tag_buf[i]);
 		diff |= tag[i] ^ tag_buf[i];
 	}
 
@@ -187,8 +187,8 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 {
 	int rc;
 
-	INFO("aes-gcm: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
-	     len, key_len, iv_len, tag_len);
+	VERBOSE("aes-gcm: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
+		len, key_len, iv_len, tag_len);
 
 	/* NIST recommendation: 96 bits/12 bytes */
 	if (iv_len != AES_IV_LEN) {

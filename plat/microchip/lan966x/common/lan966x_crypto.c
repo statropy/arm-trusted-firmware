@@ -126,6 +126,8 @@ static int auth_decrypt(enum crypto_dec_algo dec_algo, void *data_ptr,
 	case CRYPTO_GCM_DECRYPT:
 		rc = aes_gcm_decrypt(data_ptr, len, key, key_len, iv, iv_len,
 				     tag, tag_len);
+		INFO("%s: Called len = %d, key_len = %d, flags 0x%x - ret = %d\n", __FUNCTION__,
+		     len, key_len, key_flags, rc);
 		if (rc != 0)
 			return rc;
 		break;
