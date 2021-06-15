@@ -101,18 +101,21 @@ def process_yaml(fn)
     return YAML::load( File.open( fn ) )
 end
 
-def output_yaml()
-    puts $data.to_yaml
+def output_yaml(fd)
+    fd.puts $data.to_yaml
 end
 
-def output_headers()
-    puts ERB.new($template, nil, '-').result(binding)
+def output_headers(fd)
+    fd.puts ERB.new($template, nil, '-').result(binding)
 end
 
-$options = {}
+$options = { :out => $stdout }
 OptionParser.new do |opts|
     opts.banner = "Usage: otpgen.rb [options]"
     opts.version = 0.1
+    opts.on("-o", "--output <file>", "Output to file") do |f|
+        $options[:out] = File.open(f, "w")
+    end
     opts.on("-e", "--read-excel <file>", "Read Excel") do |f|
         $data = process_excel(f)
     end
@@ -125,7 +128,7 @@ OptionParser.new do |opts|
 end.order!
 
 if $options[:headers]
-    output_headers()
+    output_headers($options[:out])
 else
-    output_yaml()
+    output_yaml($options[:out])
 end
