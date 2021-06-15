@@ -1,0 +1,382 @@
+---
+- name: OTP_PRG
+  width: 32
+  start: '0x0000_0000'
+  end: '0x0000_0003'
+  desc: Indicates which parts of HW OTP memory have been programmed and are now write
+    protected.
+  fields:
+  - name: OTP_PRG_FEAT_DIS
+    width: 1
+    desc: 'Set to ‘1’ to indicate that the FEAT_DIS has been programmed. Note: Setting
+      this bit write protects the FEAT_DIS memory; OTP HW shall prevent writing to
+      this memory once this bit is set.'
+    bits: 3
+  - name: OTP_PRG_PARTID
+    width: 1
+    desc: 'Set to ‘1’ to indicate that the PARTID has been programmed. Note: Setting
+      this bit write protects the PARTID memory; OTP HW shall prevent writing to this
+      memory once this bit is set.'
+    bits: 2
+  - name: OTP_PRG_JTAG_UUID
+    width: 1
+    desc: |-
+      Set to ‘1’ to indicate that JTAG_UUID has been programmed.
+      Note: Setting this bit write protects the JTAG_UUID memory; OTP HW shall prevent writing to this memory once this bit is set.
+    bits: 1
+  - name: OTP_PRG_SECURE_JTAG
+    width: 1
+    desc: |-
+      Set to ‘1’ to indicate that SECURE_JTAG has been programmed.
+      Note: Setting this bit write protects the SECURE_JTAG memory; OTP
+      HW shall prevent writing to this memory once this bit is set.
+    bits: 0
+  - name: RTE_DISABLE
+    width: 1
+    desc: RTE is disabled for LAN9668
+    bits: 0
+  - name: SERDES2_DISABLE
+    width: 1
+    desc: SERDES2 is disabled for LAN9662
+    bits: 0
+  - name: CAN_DISABLE
+    width: 1
+    desc: Set to ‘1’ to disable CAN.
+    bits: 3
+  - name: CPU_SEC_DBG_DISABLE
+    width: 1
+    desc: Set to ‘1’ to disable secure debug for the CPU.
+    bits: 2
+  - name: CPU_DBG_DISABLE
+    width: 1
+    desc: Set to ‘1’ to disable debug for the CPU.
+    bits: 1
+  - name: CPU_DISABLE
+    width: 1
+    desc: Set to ‘1’ to disable the internal CPU.
+    bits: 0
+- name: PARTID
+  width: 16
+  start: '0x0000_0005'
+  end: '0x0000_0006'
+  desc: Indicates the Part ID.
+  fields: []
+- name: SERIAL_NUMBER
+  width: 64
+  start: '0x0000_0007'
+  end: '0x0000_000E'
+  desc: Production serial number
+  fields: []
+- name: TST_TRK
+  width: 8
+  start: '0x0000_000F'
+  end: 
+  desc: Test tracking
+  fields: []
+- name: SECURE_JTAG
+  width: 32
+  start: '0x0000_0010'
+  end: '0x0000_0013'
+  desc: Indicates the Secure JTAG mode of operation.
+  fields:
+  - name: JTAG_DISABLE
+    width: 1
+    desc: When set JTAG mode is set to “Closed”. This has priority over JTAG_MODE[1:0]
+      setting.
+    bits: 27
+- name: WAFER_TRK
+  width: 56
+  start: '0x0000_0014'
+  end: '0x0000_001B'
+  desc: 'Wafer tracking info '
+  fields: []
+- name: JTAG_UUID
+  width: 80
+  start: '0x0000_0020'
+  end: '0x0000_0029'
+  desc: Contains the 10-byte JTAG UUID. Includes (X, Y) wafer coordinates
+  fields: []
+- name: PROTECT_OTP_WRITE
+  width: 32
+  start: '0x0000_0040'
+  end: '0x0000_0043'
+  desc: Indicates which regions of OTP memory are write protected.
+  fields:
+  - name: OTP_WRITE_PROTECT[7:0]
+    width: 8
+    desc: |-
+      Each bit in the OTP_WRITE_PROTECT[7:0] field corresponds to a region of OTP memory with bit 0 = region 0, bit 1 = region 1 etc.
+      Writing a ‘1’ to a bit in the OTP_WRITE_PROTECT[7:0] field locks the corresponding region permanently from being written to.
+    bits: '7:0'
+- name: PROTECT_REGION_ADDR
+  width: 256
+  start: 
+  end: 
+  desc: 
+  fields:
+  - name: PROTECT_REGION0_START_ADDR
+    width: 16
+    desc: Start address of protected region 0.
+  - name: PROTECT_REGION0_END_ADDR
+    width: 16
+    desc: End address of protected region 0.
+  - name: PROTECT_REGION1_START_ADDR
+    width: 16
+    desc: Start address of protected region 1.
+  - name: PROTECT_REGION1_END_ADDR
+    width: 16
+    desc: End address of protected region 1.
+  - name: PROTECT_REGION2_START_ADDR
+    width: 16
+    desc: Start address of protected region 2.
+  - name: PROTECT_REGION2_END_ADDR
+    width: 16
+    desc: End address of protected region 2.
+  - name: PROTECT_REGION3_START_ADDR
+    width: 16
+    desc: Start address of protected region 3.
+  - name: PROTECT_REGION3_END_ADDR
+    width: 16
+    desc: End address of protected region 3.
+  - name: PROTECT_REGION4_START_ADDR
+    width: 16
+    desc: Start address of protected region 4.
+  - name: PROTECT_REGION4_END_ADDR
+    width: 16
+    desc: End address of protected region 4.
+  - name: PROTECT_REGION5_START_ADDR
+    width: 16
+    desc: Start address of protected region 5.
+  - name: PROTECT_REGION5_END_ADDR
+    width: 16
+    desc: End address of protected region 5.
+  - name: PROTECT_REGION6_START_ADDR
+    width: 16
+    desc: Start address of protected region 6.
+  - name: PROTECT_REGION6_END_ADDR
+    width: 16
+    desc: End address of protected region 6.
+  - name: PROTECT_REGION7_START_ADDR
+    width: 16
+    desc: Start address of protected region 7.
+  - name: PROTECT_REGION7_END_ADDR
+    width: 16
+    desc: End address of protected region 7.
+- name: DEF_MAC_ADDR_AND_LEN
+  width: 64
+  start: TBD
+  end: 
+  desc: Defines base MAC address of block of MAC addresses allocated by MCHP and the
+    length of the block
+  fields: []
+- name: TRIM
+  width: 64
+  start: 
+  end: 
+  desc: 
+  fields:
+  - name: UVOV_TRIM0
+    width: 6
+    desc: UVOV 0 trim value
+  - name: UVOV_TRIM1
+    width: 6
+    desc: UVOV 1 trim value
+  - name: UVOV_TRIM2
+    width: 6
+    desc: UVOV 2 trim value
+  - name: UVOV_TRIM3
+    width: 6
+    desc: UVOV 3 trim value
+  - name: com_bias_bg_TC_trim
+    width: 5
+    desc: Common for all units (bench characterization)
+  - name: com_bias_bg_MAG_trim
+    width: 6
+    desc: Trim bits are determined in ATE trim sequence and vary from part to part
+  - name: com_rbias_TC_trim
+    width: 2
+    desc: Common for all units (bench characterization)
+  - name: com_rbias_MAG_trim
+    width: 6
+    desc: Trim bits are determined in ATE trim sequence and vary from part to part
+- name: WAFER_TRK
+  width: 56
+  start: 
+  end: 
+  desc: 'Wafer tracking info '
+  fields: []
+- name: SERIAL_NUMBER
+  width: 64
+  start: 
+  end: 
+  desc: Production serial number
+  fields: []
+- name: TST_TRK
+  width: 8
+  start: 
+  end: 
+  desc: Test tracking
+  fields: []
+- name: OTP_PCIE
+  width: 104
+  start: 
+  end: 
+  desc: 
+  fields:
+  - name: OTP_PCIE_DISABLE_REV_3
+    width: 1
+    desc: TODO
+    bits: 0
+  - name: OTP_PCIE_DISABLE_REV_2
+    width: 1
+    desc: TODO
+    bits: 0
+  - name: OTP_PCIE_VENDOR_ID
+    width: 16
+    desc: TODO
+  - name: OTP_PCIE_VENDOR_SUB_ID
+    width: 16
+    desc: TODO
+  - name: OTP_PCIE_CLASS_CODE
+    width: 24
+    desc: TODO
+  - name: OTP_PCIE_REVISION_ID
+    width: 8
+    desc: TODO
+  - name: OTP_PCIE_SUBSYSTEM_ID
+    width: 16
+    desc: TODO
+  - name: OTP_PCIE_SUBSYSTEM_VENDOR_ID
+    width: 16
+    desc: TODO
+- name: OTP_FLAGS1
+  width: 28
+  start: 
+  end: 
+  desc: 
+  fields:
+  - name: OTP_FLAGS1_DISABLE_OTP_EMU
+    width: 1
+    desc: By default, OTP emulation is enabled. Setting this bit will permanently
+      disable OTP emulation, and only values from the real OTP can be used.
+    bits: 0
+  - name: OTP_FLAGS1_ENABLE_TBBR
+    width: 1
+    desc: If set to one, all the OTP_TBBR_* fields will be configured and the system
+      will be setup for firmware authentication. This is a pre-request for firmware
+      encryption
+    bits: 0
+  - name: OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT
+    width: 1
+    desc: If set to 1, firmware is assumed to be encrypted in flash, and will be decrypted
+      on load.
+    bits: 0
+  - name: OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
+    width: 1
+    desc: If OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT is set, firmware is assumed to be
+      encrypted in flash, and will be decrypted on load. If   TP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
+      is set the HW Unique binding key will be used, otherwise the shared secret (SSK)
+      will be used.
+    bits: 0
+  - name: OTP_FLAGS1_ENABLE_DDR_ENCRYPT
+    width: 1
+    desc: If set to one, encryption of DDR memory will be enabled. This is required
+      to achieve a fully secured system, but it as a performance penalty as it introduce
+      a longer latency to the DDR memory. Attacks based on snooping/altering the DDR
+      bus are complicated, and not all designs may require this level of protection.
+    bits: 0
+  - name: OTP_FLAGS1_SJTAG_FREEZE
+    width: 1
+    desc: If this bit is set, the SJTAG:SJTAG_REGS:CTL.SJTAG_FREEZE register will
+      be set   after the secure JTAG is configured. This means that the Secure JTAG
+      cannot be unlocked by using the UART monitor or by using a PSCI call.
+    bits: 0
+  - name: OTP_FLAGS1_QSPI_HEADER_DISABLE
+    width: 1
+    desc: TODO
+    bits: 0
+  - name: OTP_FLAGS1_EMMC_HEADER_DISABLE
+    width: 1
+    desc: TODO
+    bits: 0
+  - name: OTP_FLAGS1_COPY_USER_AREA_0
+    width: 1
+    desc: 'If set, copy the content of OTP_USER_AREA_0 to DDR memory. NOTE: This is
+      shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
+      feature.'
+    bits: 0
+  - name: OTP_FLAGS1_COPY_USER_AREA_1
+    width: 1
+    desc: 'If set, copy the content of OTP_USER_AREA_1 to DDR memory. NOTE: This is
+      shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
+      feature.'
+    bits: 0
+  - name: OTP_FLAGS1_COPY_USER_AREA_2
+    width: 1
+    desc: 'If set, copy the content of OTP_USER_AREA_2 to DDR memory. NOTE: This is
+      shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
+      feature.'
+    bits: 0
+  - name: OTP_FLAGS1_COPY_USER_AREA_3
+    width: 1
+    desc: 'If set, copy the content of OTP_USER_AREA_3 to DDR memory. NOTE: This is
+      shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
+      feature.'
+    bits: 0
+  - name: OTP_FLAGS1_STRAP_DISABLE_MASK
+    width: 16
+    desc: TODO
+- name: OTP_TBBR
+  width: 960
+  start: 
+  end: 
+  desc: 
+  fields:
+  - name: OTP_TBBR_ROTPK
+    width: 256
+    desc: SHA-256 has of the Root of trust Public Key. See <<TBBR>> for detailed description.
+  - name: OTP_TBBR_HUK
+    width: 128
+    desc: TODO...
+  - name: OTP_TBBR_EK
+    width: 128
+    desc: Endorsement key. TODO, See <<TBBR>> for details.
+  - name: OTP_TBBR_SSK
+    width: 128
+    desc: Endorsement key. TODO, See <<TBBR>> for details.
+  - name: OTP_TBBR_TNVCT
+    width: 64
+    desc: TODO
+  - name: OTP_TBBR_NTNVCT
+    width: 256
+    desc: TODO
+- name: OTP_USER
+  width: 2816
+  start: 
+  end: 
+  desc: 
+  fields:
+  - name: OTP_USER_AREA_0
+    width: 256
+    desc: If OTP_FLAGS1_COPY_USER_AREA_0 is set, then this area is raw copied to DDR
+      memory by BL2. Content is not used by the boot ROM, but an insecure copy is
+      made available for others to use. This can be used for stuff like MAC-addresses,
+      board ID, board-eco, etc. OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT
+  - name: OTP_USER_AREA_1
+    width: 512
+    desc: If OTP_FLAGS1_COPY_USER_AREA_1 is set, then this area is raw copied to DDR
+      memory by BL2. Content is not used by the boot ROM, but an insecure copy is
+      made available for others to use. This can be used for stuff like MAC-addresses,
+      board ID, board-eco, etc.
+  - name: OTP_USER_AREA_2
+    width: 1024
+    desc: If OTP_FLAGS1_COPY_USER_AREA_2 is set, then this area is raw copied to DDR
+      memory by BL2. Content is not used by the boot ROM, but an insecure copy is
+      made available for others to use. This can be used for stuff like MAC-addresses,
+      board ID, board-eco, etc.
+  - name: OTP_USER_AREA_3
+    width: 1024
+    desc: If OTP_FLAGS1_COPY_USER_AREA_3 is set, then this area is raw copied to DDR
+      memory by BL2. Content is not used by the boot ROM, but an insecure copy is
+      made available for others to use. This can be used for stuff like MAC-addresses,
+      board ID, board-eco, etc.
