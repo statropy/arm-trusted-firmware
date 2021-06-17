@@ -39,11 +39,10 @@ static const io_dev_connector_t *emmc_dev_con;
 static uintptr_t emmc_dev_handle;
 
 /* Create 512 bytes test buffer */
-static uint32_t block_buffer[MMC_BLOCK_SIZE] __aligned(MMC_BLOCK_SIZE);
 static const io_block_dev_spec_t emmc_dev_spec = {
 	.buffer = {
-		   .offset = (size_t)&block_buffer,
-		   .length = MMC_BLOCK_SIZE,
+		   .offset = LAN966x_EMMC_FIP_ADDR,
+		   .length = LAN966X_FIP_SIZE,
 		   },
 	.ops = {
 		.read = lan966x_read_single_block,
@@ -60,8 +59,8 @@ static const io_block_spec_t fip_block_spec = {
 
 /* ToDo: check mem address/size settings, check offset values */
 static const io_block_spec_t emmc_gpt_spec = {
-	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
-	.length	= LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
+	.offset = LAN996X_DDR_BASE,
+	.length	= LAN966X_FIP_SIZE,
 };
 
 static const io_uuid_spec_t bl2_uuid_spec = {

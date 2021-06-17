@@ -565,8 +565,10 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 		op = SDMMC_MMC_CMD16;
 		break;
 	case 17:
-	case 18:
 		op = SDMMC_SD_CMD17;
+		break;
+	case 18:
+		op = SDMMC_SD_CMD18;
 		break;
 	case 51:
 		op = SDMMC_SD_ACMD51;
@@ -658,6 +660,7 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 	case 12:
 	case 13:
 	case 17:
+	case 18:
 	case 55:
 		cmd->resp_data[0] = mmio_read_32(reg_base + SDMMC_RR0);
 		break;
