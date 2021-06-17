@@ -41,6 +41,51 @@ $template = %Q(
 <%- end -%>
 <%- end -%>
 
+/* OTP access functions */
+#define otp_accessor_group_read(aname, grp_name)			\\
+static inline int aname(uint8_t *dst, size_t nbytes)			\\
+{									\\
+	assert((nbytes * 8) >= grp_name##_LEN);				\\
+	return otp_read_bits(dst, grp_name##_ADDR * 8, grp_name##_LEN); \\
+}
+
+#define otp_accessor_read_bool(aname, grp_name, fld_name)		\\
+static inline bool aname(void)						\\
+{									\\
+	uint8_t b;							\\
+	int addr = grp_name##_ADDR + (OTP_##fld_name##_OFF / 8);	\\
+	int off = OTP_##fld_name##_OFF % 8;				\\
+	(void) otp_read_bits(&b, addr * 8, 8);				\\
+	return !!(b & (1 << off));					\\
+}
+
+#define otp_accessor_read_field(aname, grp_name, fld_name)		\\
+static inline uint32_t aname(void)					\\
+{									\\
+	uint32_t w;							\\
+	int addr = grp_name##_ADDR + (OTP_##fld_name##_OFF / 8);	\\
+	int off = OTP_##fld_name##_OFF % 8;				\\
+	(void) otp_read_uint32(&w, addr * 8);				\\
+	return (w >> off) & GENMASK(OTP_##fld_name##_LEN - 1, 0);	\\
+}
+
+<%- for g in $data -%>
+<%- if g["accessor"] != nil -%>
+<%- gname = g["name"].downcase -%>
+otp_accessor_group_read(otp_read_<%= gname %>, <%= g["name"] %>);
+<%- end -%>
+<%- for f in g["fields"] -%>
+<%- if f["accessor"] != nil -%>
+<%- fname = f["name"].downcase -%>
+<%- if f["width"] == 1 -%>
+otp_accessor_read_bool(otp_read_<%= fname %>, <%= g["name"] %>, <%= f["name"] %>);
+<%- else -%>
+otp_accessor_read_field(otp_read_<%= fname %>, <%= g["name"] %>, <%= f["name"] %>);
+<%- end -%>
+<%- end -%>
+<%- end -%>
+<%- end -%>
+
 #endif	/* PLAT_OTP_H */
 )
 
@@ -61,17 +106,18 @@ def process_excel(fn)
             row = row.values
             next if row[0] != "x"
 
-            if row[1] && row[1] != ""
+            if row[2] && row[2] != ""
                 # puts "New group: #{row[1]}"
                 if group
                     data << group
                     group = nil
                 end
                 group = Hash[
-                    "name"   => row[1].strip.upcase,
-                    "width"  => row[3].to_i,
-                    "address"   => row[7],
-                    "desc"   => row[10],
+                    "accessor" => row[1],
+                    "name"   => row[2].strip.upcase,
+                    "width"  => row[4].to_i,
+                    "address"   => row[8],
+                    "desc"   => row[11],
                     "fields" => Array.new,
                 ]
                 ["address"].each do|k|
@@ -79,14 +125,15 @@ def process_excel(fn)
                 end
             else
                 elem = Hash[
-                    "name"    => row[2].strip.upcase,
-                    "width"   => row[4].to_i,
-                    "desc"    => row[10],
+                    "accessor" => row[1],
+                    "name"    => row[3].strip.upcase,
+                    "width"   => row[5].to_i,
+                    "desc"    => row[11],
                 ]
                 if elem["width"] > 1
-                    ignore_exception { elem["offset"] = row[9].strip }
+                    ignore_exception { elem["offset"] = row[10].strip }
                 else
-                    elem["offset"] = row[9].to_i
+                    elem["offset"] = row[10].to_i
                 end
                 group["fields"] << elem
             end
@@ -131,10 +178,20 @@ def cleanup()
             g["address"] = offset
         end
         offset = (g["width"] / 8) + g["address"]
+        allblank = true
         g["fields"].each do |fld|
             if fld["offset"].is_a?(String)
                 bits = fld["offset"].split(":")
                 fld["offset"] = bits[1].to_i
+            end
+            allblank = allblank && (fld["offset"] == nil || fld["offset"] == 0)
+        end
+        # Assign bits iff all fields unassigned
+        if allblank
+            start = 0
+            g["fields"].reverse_each do |fld|
+                fld["offset"] = start
+                start += fld["width"]
             end
         end
     end
