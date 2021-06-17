@@ -70,12 +70,12 @@ static inline uint32_t aname(void)					\\
 }
 
 <%- for g in $data -%>
-<%- if g["accessor"] != nil -%>
+<%- if g["accessor"] -%>
 <%- gname = g["name"].downcase -%>
 otp_accessor_group_read(otp_read_<%= gname %>, <%= g["name"] %>);
 <%- end -%>
 <%- for f in g["fields"] -%>
-<%- if f["accessor"] != nil -%>
+<%- if f["accessor"] -%>
 <%- fname = f["name"].downcase -%>
 <%- if f["width"] == 1 -%>
 otp_accessor_read_bool(otp_read_<%= fname %>, <%= g["name"] %>, <%= f["name"] %>);
@@ -113,23 +113,31 @@ def process_excel(fn)
                     group = nil
                 end
                 group = Hash[
-                    "accessor" => row[1],
+                    "accessor" => row[1] != nil,
                     "name"   => row[2].strip.upcase,
                     "width"  => row[4].to_i,
-                    "address"   => row[8],
+                    "address"=> row[8],
                     "desc"   => row[11],
                     "fields" => Array.new,
                 ]
+                group.delete("accessor") unless group["accessor"]
                 ["address"].each do|k|
                     group[k].strip! if group[k]
                 end
+                ["prod_probe", "prod_ate", "prod_cust"].each_with_index do|k, i|
+                    group[k] = true if row[13 + i]
+                end
+                ["init_hw", "init_rom", "init_boot"].each_with_index do|k, i|
+                    group[k] = row[17 + i] if row[17 + i]
+                end
             else
                 elem = Hash[
-                    "accessor" => row[1],
+                    "accessor" => row[1] != nil,
                     "name"    => row[3].strip.upcase,
                     "width"   => row[5].to_i,
                     "desc"    => row[11],
                 ]
+                elem.delete("accessor") unless elem["accessor"]
                 if elem["width"] > 1
                     ignore_exception { elem["offset"] = row[10].strip }
                 else
@@ -152,7 +160,9 @@ def process_yaml(fn)
 end
 
 def output_yaml(fd)
-    fd.puts $data.to_yaml
+    $data.to_yaml.each_line do |line|
+        fd.puts line.rstrip
+    end
 end
 
 def output_headers(fd)
