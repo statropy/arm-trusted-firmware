@@ -170,7 +170,7 @@ def output_headers(fd)
 end
 
 def cleanup_addr(a)
-    if a
+    if a && a.is_a?(String)
         a.gsub!(/_/, "")
         a = a.hex
     end
