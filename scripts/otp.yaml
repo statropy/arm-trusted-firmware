@@ -399,27 +399,33 @@
   address: 136
   desc:
   fields:
-  - name: OTP_TBBR_ROTPK
+  - accessor: true
+    name: OTP_TBBR_ROTPK
     width: 256
     desc: SHA-256 has of the Root of trust Public Key. See <<TBBR>> for detailed description.
     offset: 1088
-  - name: OTP_TBBR_HUK
+  - accessor: true
+    name: OTP_TBBR_HUK
     width: 256
     desc: TODO...
     offset: 832
-  - name: OTP_TBBR_EK
+  - accessor: true
+    name: OTP_TBBR_EK
     width: 256
     desc: Endorsement key. TODO, See <<TBBR>> for details.
     offset: 576
-  - name: OTP_TBBR_SSK
+  - accessor: true
+    name: OTP_TBBR_SSK
     width: 256
     desc: Endorsement key. TODO, See <<TBBR>> for details.
     offset: 320
-  - name: OTP_TBBR_TNVCT
+  - accessor: true
+    name: OTP_TBBR_TNVCT
     width: 64
     desc: TODO
     offset: 256
-  - name: OTP_TBBR_NTNVCT
+  - accessor: true
+    name: OTP_TBBR_NTNVCT
     width: 256
     desc: TODO
     offset: 0
@@ -429,28 +435,32 @@
   address: 304
   desc:
   fields:
-  - name: OTP_USER_AREA_0
+  - accessor: true
+    name: OTP_USER_AREA_0
     width: 256
     desc: If OTP_FLAGS1_COPY_USER_AREA_0 is set, then this area is raw copied to DDR
       memory by BL2. Content is not used by the boot ROM, but an insecure copy is
       made available for others to use. This can be used for stuff like MAC-addresses,
       board ID, board-eco, etc. OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT
     offset: 2560
-  - name: OTP_USER_AREA_1
+  - accessor: true
+    name: OTP_USER_AREA_1
     width: 512
     desc: If OTP_FLAGS1_COPY_USER_AREA_1 is set, then this area is raw copied to DDR
       memory by BL2. Content is not used by the boot ROM, but an insecure copy is
       made available for others to use. This can be used for stuff like MAC-addresses,
       board ID, board-eco, etc.
     offset: 2048
-  - name: OTP_USER_AREA_2
+  - accessor: true
+    name: OTP_USER_AREA_2
     width: 1024
     desc: If OTP_FLAGS1_COPY_USER_AREA_2 is set, then this area is raw copied to DDR
       memory by BL2. Content is not used by the boot ROM, but an insecure copy is
       made available for others to use. This can be used for stuff like MAC-addresses,
       board ID, board-eco, etc.
     offset: 1024
-  - name: OTP_USER_AREA_3
+  - accessor: true
+    name: OTP_USER_AREA_3
     width: 1024
     desc: If OTP_FLAGS1_COPY_USER_AREA_3 is set, then this area is raw copied to DDR
       memory by BL2. Content is not used by the boot ROM, but an insecure copy is

@@ -227,6 +227,14 @@ static inline bool aname(void)						\
 	return !!(b & (1 << off));					\
 }
 
+#define otp_accessor_read_bytes(aname, grp_name, fld_name)		\
+static inline int aname(uint8_t *dst, size_t nbytes)			\
+{									\
+	assert((nbytes * 8) >= OTP_##fld_name##_LEN);			\
+	return otp_read_bits(dst, grp_name##_ADDR * 8 + 		\
+		OTP_##fld_name##_OFF, OTP_##fld_name##_LEN);		\
+}
+
 #define otp_accessor_read_field(aname, grp_name, fld_name)		\
 static inline uint32_t aname(void)					\
 {									\
@@ -260,5 +268,15 @@ otp_accessor_read_field(otp_read_otp_flags1_strap_disable_mask, OTP_FLAGS1, OTP_
 otp_accessor_read_bool(otp_read_otp_flags1_allow_clear_text, OTP_FLAGS1, OTP_FLAGS1_ALLOW_CLEAR_TEXT);
 otp_accessor_read_bool(otp_read_otp_flags1_allow_ssk_encrypted, OTP_FLAGS1, OTP_FLAGS1_ALLOW_SSK_ENCRYPTED);
 otp_accessor_read_bool(otp_read_otp_flags1_allow_bssk_encrypted, OTP_FLAGS1, OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED);
+otp_accessor_read_bytes(otp_read_otp_tbbr_rotpk, OTP_TBBR, OTP_TBBR_ROTPK);
+otp_accessor_read_bytes(otp_read_otp_tbbr_huk, OTP_TBBR, OTP_TBBR_HUK);
+otp_accessor_read_bytes(otp_read_otp_tbbr_ek, OTP_TBBR, OTP_TBBR_EK);
+otp_accessor_read_bytes(otp_read_otp_tbbr_ssk, OTP_TBBR, OTP_TBBR_SSK);
+otp_accessor_read_bytes(otp_read_otp_tbbr_tnvct, OTP_TBBR, OTP_TBBR_TNVCT);
+otp_accessor_read_bytes(otp_read_otp_tbbr_ntnvct, OTP_TBBR, OTP_TBBR_NTNVCT);
+otp_accessor_read_bytes(otp_read_otp_user_area_0, OTP_USER, OTP_USER_AREA_0);
+otp_accessor_read_bytes(otp_read_otp_user_area_1, OTP_USER, OTP_USER_AREA_1);
+otp_accessor_read_bytes(otp_read_otp_user_area_2, OTP_USER, OTP_USER_AREA_2);
+otp_accessor_read_bytes(otp_read_otp_user_area_3, OTP_USER, OTP_USER_AREA_3);
 
 #endif	/* PLAT_OTP_H */

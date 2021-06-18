@@ -59,6 +59,14 @@ static inline bool aname(void)						\\
 	return !!(b & (1 << off));					\\
 }
 
+#define otp_accessor_read_bytes(aname, grp_name, fld_name)		\\
+static inline int aname(uint8_t *dst, size_t nbytes)			\\
+{									\\
+	assert((nbytes * 8) >= OTP_##fld_name##_LEN);			\\
+	return otp_read_bits(dst, grp_name##_ADDR * 8 + 		\\
+		OTP_##fld_name##_OFF, OTP_##fld_name##_LEN);		\\
+}
+
 #define otp_accessor_read_field(aname, grp_name, fld_name)		\\
 static inline uint32_t aname(void)					\\
 {									\\
@@ -79,6 +87,8 @@ otp_accessor_group_read(otp_read_<%= gname %>, <%= g["name"] %>);
 <%- fname = f["name"].downcase -%>
 <%- if f["width"] == 1 -%>
 otp_accessor_read_bool(otp_read_<%= fname %>, <%= g["name"] %>, <%= f["name"] %>);
+<%- elsif (f["offset"] % 8) == 0 && (f["width"] % 8) == 0 -%>
+otp_accessor_read_bytes(otp_read_<%= fname %>, <%= g["name"] %>, <%= f["name"] %>);
 <%- else -%>
 otp_accessor_read_field(otp_read_<%= fname %>, <%= g["name"] %>, <%= f["name"] %>);
 <%- end -%>
