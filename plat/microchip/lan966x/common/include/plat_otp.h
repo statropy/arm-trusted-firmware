@@ -8,6 +8,8 @@
 #ifndef PLAT_OTP_H
 #define PLAT_OTP_H
 
+#include <assert.h>
+#include <stdint.h>
 #include <drivers/microchip/otp.h>
 
 /* OTP_PRG */
