@@ -15,5 +15,5 @@ lan966x.run_to(debugger, "N:0x60000000")
 uboot = lan966x.get_uboot_dir(debugger)
 
 lan966x.load_stage(debugger, "BL33",
-                   uboot + "/spl/u-boot-spl",
-                   uboot + "/spl/u-boot-spl.bin")
+                   uboot + "/u-boot",
+                   uboot + "/u-boot.bin")
