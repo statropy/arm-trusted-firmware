@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require 'optparse'
+require 'yaml'
 require 'pp'
 
 platforms = {
@@ -10,7 +11,6 @@ platforms = {
 }
 
 $option = { :platform	=> "lan966x_sr",
-             :prefix	=> "arm-none-eabi-",
              :loglevel	=> 40,
              :tbbr	=> true,
              :debug	=> true,
@@ -27,11 +27,8 @@ OptionParser.new do |opts|
     opts.on("-p", "--platform <platform>", "Build for given platform") do |p|
         $option[:platform] = p
     end
-    opts.on("-P", "--compile-prefix <platform>", "Set toolchain prefix") do |p|
-        $option[:prefix] = p
-    end
     opts.on("-r", "--root-of-trust <keyfile>", "Set ROT key file") do |k|
-        $option[:prefix] = p
+        $option[:rot] = k
     end
     opts.on("-t", "--[no-]tbbr", "Enable/disable TBBR") do |v|
         $option[:tbbr] = v
@@ -47,20 +44,40 @@ OptionParser.new do |opts|
     end
 end.order!
 
+def install_sdk()
+    brsdk_name = "mscc-brsdk-#{$option[:arch]}-#{$option[:sdk]}"
+    brsdk_base = "/opt/mscc/#{brsdk_name}"
+    if not File.exist? brsdk_base
+        if File.exist? "/usr/local/bin/mscc-install-pkg"
+            system "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}-brsdk #{brsdk_name}"
+        end
+        raise "Unable to install SDK to #{brsdk_base}" unless File.exist? brsdk_base
+    end
+    return brsdk_base
+end
+
+def install_toolchain(tc_vers)
+    tc_folder = tc_vers
+    tc_folder = "#{tc_vers}-toolchain" if not tc_vers.include? "toolchain"
+    tc_path = "mscc-toolchain-bin-#{tc_vers}"
+    bin = "/opt/mscc/" + tc_path + "/arm-cortex_a8-linux-gnueabihf/bin"
+    if !File.directory?(bin)
+        system "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
+        raise "Unable to install toolchain to #{bin}" unless File.exist?(bin)
+    end
+    ENV["PATH"] = bin + ":" + ENV["PATH"]
+    ENV["CROSS_COMPILE"] = "arm-cortex_a8-linux-gnueabihf-"
+    puts "Using toolchain #{tc_vers} at #{bin}"
+end
+
 pdef = platforms[$option[:platform]]
 raise "Unknown platform: #{$option[:platform]}" unless pdef
 
-brsdk_name = "mscc-brsdk-#{$option[:arch]}-#{$option[:sdk]}"
-brsdk_base = "/opt/mscc/#{brsdk_name}"
+sdk_dir = install_sdk()
+tc_conf = YAML::load( File.open( sdk_dir + "/.mscc-version" ) )
+install_toolchain(tc_conf["toolchain"])
 
-if not File.exist? brsdk_base
-    if File.exist? "/usr/local/bin/mscc-install-pkg"
-        system "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}-brsdk #{brsdk_name}"
-    end
-    raise "Unable to install SDK to #{brsdk_base}" unless File.exist? brsdk_base
-end
-
-bootloaders = brsdk_base + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x"
+bootloaders = sdk_dir + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x"
 uboot = bootloaders + "/" + pdef[:uboot]
 args += "BL33=#{uboot} "
 
@@ -93,8 +110,6 @@ if $option[:clean] || $option[:coverity]
 end
 
 args += "LOG_LEVEL=#{$option[:loglevel]} " if $option[:loglevel]
-
-ENV["CROSS_COMPILE"] = $option[:prefix]
 
 if ARGV.length > 0
     targets = ARGV.join(" ")
