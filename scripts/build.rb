@@ -66,7 +66,7 @@ def install_toolchain(tc_vers)
         raise "Unable to install toolchain to #{bin}" unless File.exist?(bin)
     end
     ENV["PATH"] = bin + ":" + ENV["PATH"]
-    ENV["CROSS_COMPILE"] = "arm-cortex_a8-linux-gnueabihf-"
+    ENV["CROSS_COMPILE"] = "arm-linux-"
     puts "Using toolchain #{tc_vers} at #{bin}"
 end
 
