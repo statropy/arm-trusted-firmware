@@ -89,7 +89,7 @@ if $option[:tbbr]
         system("git clone https://github.com/ARMmbed/mbedtls.git")
     end
     # We're currently using this as a reference - needs to be in sync with TFA
-    system "git -C mbedtls co -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
+    system "git -C mbedtls checkout -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
 end
 
 if $option[:debug]
