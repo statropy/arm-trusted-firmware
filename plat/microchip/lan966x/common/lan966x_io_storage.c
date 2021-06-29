@@ -38,14 +38,13 @@ static uintptr_t memmap_dev_handle;
 static const io_dev_connector_t *emmc_dev_con;
 static uintptr_t emmc_dev_handle;
 
-/* Create 512 bytes test buffer */
 static const io_block_dev_spec_t emmc_dev_spec = {
 	.buffer = {
 		   .offset = LAN966x_EMMC_FIP_ADDR,
 		   .length = LAN966X_FIP_SIZE,
 		   },
 	.ops = {
-		.read = lan966x_read_single_block,
+		.read = mmc_read_blocks,
 		.write = NULL,
 		},
 	.block_size = MMC_BLOCK_SIZE,
