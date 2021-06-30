@@ -16,7 +16,7 @@ $option = { :platform	=> "lan966x_sr",
              :debug	=> true,
              :rot	=> "keys/rotprivk_rsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2021.02-476",
+             :sdk	=> "2021.02-483",
           }
 
 args = ""
@@ -131,11 +131,15 @@ else
     b = "/dev/null"
 end
 FileUtils.cp(b, img)
-system("truncate --size=80k #{img}")
-# U-Boot is now == BL33 (and is in FIP)
-system("truncate --size=1536k #{img}")
+tsize = 80
+system("truncate --size=#{tsize}k #{img}")
+# Reserve UBoot env 2 * 256k
+tsize += 512
+system("truncate --size=#{tsize}k #{img}")
 system("cat #{build}/fip.bin >> #{img}")
-system("truncate --size=1792k #{img}")
+# OTP @ 1792k
+tsize = 1792
+system("truncate --size=#{tsize}k #{img}")
 system("cat bin/otp.bin >> #{img}")
 system("ls -l #{build}/*.bin #{build}/*.img")
 

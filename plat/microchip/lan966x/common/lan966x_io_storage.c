@@ -35,7 +35,8 @@ static uintptr_t fip_dev_handle;
 static const io_dev_connector_t *memmap_dev_con;
 static uintptr_t memmap_dev_handle;
 
-#define FLASH_FIP_OFFSET	0x180000 /* 1.5M for BL2/SPL + U-Boot */
+/* 80k BL2/SPL + 2 * 256 U-Boot Env */
+#define FLASH_FIP_OFFSET	(1024 * (80 + 2 * 256))
 static const io_block_spec_t fip_block_spec = {
 	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
 	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
