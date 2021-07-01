@@ -289,7 +289,7 @@
   prod_ate: true
 - accessor: true
   name: OTP_FLAGS1
-  width: 63
+  width: 32
   address: 129
   desc:
   fields:
@@ -298,20 +298,20 @@
     width: 1
     desc: By default, OTP emulation is enabled. Setting this bit will permanently
       disable OTP emulation, and only values from the real OTP can be used.
-    offset: 30
+    offset: 14
   - accessor: true
     name: OTP_FLAGS1_ENABLE_TBBR
     width: 1
     desc: If set to one, all the OTP_TBBR_* fields will be configured and the system
       will be setup for firmware authentication. This is a pre-request for firmware
       encryption
-    offset: 29
+    offset: 13
   - accessor: true
     name: OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT
     width: 1
     desc: If set to 1, firmware is assumed to be encrypted in flash, and will be decrypted
       on load.
-    offset: 28
+    offset: 12
   - accessor: true
     name: OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
     width: 1
@@ -319,7 +319,7 @@
       encrypted in flash, and will be decrypted on load. If   TP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
       is set the HW Unique binding key will be used, otherwise the shared secret (SSK)
       will be used.
-    offset: 27
+    offset: 11
   - accessor: true
     name: OTP_FLAGS1_ENABLE_DDR_ENCRYPT
     width: 1
@@ -327,56 +327,51 @@
       to achieve a fully secured system, but it as a performance penalty as it introduce
       a longer latency to the DDR memory. Attacks based on snooping/altering the DDR
       bus are complicated, and not all designs may require this level of protection.
-    offset: 26
+    offset: 10
   - accessor: true
     name: OTP_FLAGS1_SJTAG_FREEZE
     width: 1
     desc: If this bit is set, the SJTAG:SJTAG_REGS:CTL.SJTAG_FREEZE register will
       be set   after the secure JTAG is configured. This means that the Secure JTAG
       cannot be unlocked by using the UART monitor or by using a PSCI call.
-    offset: 25
+    offset: 9
   - accessor: true
     name: OTP_FLAGS1_QSPI_HEADER_DISABLE
     width: 1
     desc: TODO
-    offset: 24
+    offset: 8
   - accessor: true
     name: OTP_FLAGS1_EMMC_HEADER_DISABLE
     width: 1
     desc: TODO
-    offset: 23
+    offset: 7
   - accessor: true
     name: OTP_FLAGS1_COPY_USER_AREA_0
     width: 1
     desc: 'If set, copy the content of OTP_USER_AREA_0 to DDR memory. NOTE: This is
       shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
       feature.'
-    offset: 22
+    offset: 6
   - accessor: true
     name: OTP_FLAGS1_COPY_USER_AREA_1
     width: 1
     desc: 'If set, copy the content of OTP_USER_AREA_1 to DDR memory. NOTE: This is
       shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
       feature.'
-    offset: 21
+    offset: 5
   - accessor: true
     name: OTP_FLAGS1_COPY_USER_AREA_2
     width: 1
     desc: 'If set, copy the content of OTP_USER_AREA_2 to DDR memory. NOTE: This is
       shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
       feature.'
-    offset: 20
+    offset: 4
   - accessor: true
     name: OTP_FLAGS1_COPY_USER_AREA_3
     width: 1
     desc: 'If set, copy the content of OTP_USER_AREA_3 to DDR memory. NOTE: This is
       shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
       feature.'
-    offset: 19
-  - accessor: true
-    name: OTP_FLAGS1_STRAP_DISABLE_MASK
-    width: 16
-    desc: TODO
     offset: 3
   - accessor: true
     name: OTP_FLAGS1_ALLOW_CLEAR_TEXT
@@ -394,9 +389,15 @@
     desc: TODO
     offset: 0
   prod_cust: true
+- accessor: true
+  name: OTP_STRAP_DISABLE_MASK
+  width: 16
+  address: 133
+  desc: TODO
+  fields: []
 - name: OTP_TBBR
   width: 1344
-  address: 136
+  address: 135
   desc:
   fields:
   - accessor: true
@@ -432,7 +433,7 @@
   prod_cust: true
 - name: OTP_USER
   width: 2816
-  address: 304
+  address: 303
   desc:
   fields:
   - accessor: true

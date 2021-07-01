@@ -157,29 +157,31 @@
 
 /* OTP_FLAGS1 */
 #define OTP_FLAGS1_ADDR                          129
-#define OTP_FLAGS1_LEN                           63
+#define OTP_FLAGS1_LEN                           32
 
 /* Fields in OTP_FLAGS1 */
-#define OTP_OTP_FLAGS1_DISABLE_OTP_EMU_OFF       30
-#define OTP_OTP_FLAGS1_ENABLE_TBBR_OFF           29
-#define OTP_OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT_OFF 28
-#define OTP_OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK_OFF 27
-#define OTP_OTP_FLAGS1_ENABLE_DDR_ENCRYPT_OFF    26
-#define OTP_OTP_FLAGS1_SJTAG_FREEZE_OFF          25
-#define OTP_OTP_FLAGS1_QSPI_HEADER_DISABLE_OFF   24
-#define OTP_OTP_FLAGS1_EMMC_HEADER_DISABLE_OFF   23
-#define OTP_OTP_FLAGS1_COPY_USER_AREA_0_OFF      22
-#define OTP_OTP_FLAGS1_COPY_USER_AREA_1_OFF      21
-#define OTP_OTP_FLAGS1_COPY_USER_AREA_2_OFF      20
-#define OTP_OTP_FLAGS1_COPY_USER_AREA_3_OFF      19
-#define OTP_OTP_FLAGS1_STRAP_DISABLE_MASK_OFF    3
-#define OTP_OTP_FLAGS1_STRAP_DISABLE_MASK_LEN    16
+#define OTP_OTP_FLAGS1_DISABLE_OTP_EMU_OFF       14
+#define OTP_OTP_FLAGS1_ENABLE_TBBR_OFF           13
+#define OTP_OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT_OFF 12
+#define OTP_OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK_OFF 11
+#define OTP_OTP_FLAGS1_ENABLE_DDR_ENCRYPT_OFF    10
+#define OTP_OTP_FLAGS1_SJTAG_FREEZE_OFF          9
+#define OTP_OTP_FLAGS1_QSPI_HEADER_DISABLE_OFF   8
+#define OTP_OTP_FLAGS1_EMMC_HEADER_DISABLE_OFF   7
+#define OTP_OTP_FLAGS1_COPY_USER_AREA_0_OFF      6
+#define OTP_OTP_FLAGS1_COPY_USER_AREA_1_OFF      5
+#define OTP_OTP_FLAGS1_COPY_USER_AREA_2_OFF      4
+#define OTP_OTP_FLAGS1_COPY_USER_AREA_3_OFF      3
 #define OTP_OTP_FLAGS1_ALLOW_CLEAR_TEXT_OFF      2
 #define OTP_OTP_FLAGS1_ALLOW_SSK_ENCRYPTED_OFF   1
 #define OTP_OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED_OFF  0
 
+/* OTP_STRAP_DISABLE_MASK */
+#define OTP_STRAP_DISABLE_MASK_ADDR              133
+#define OTP_STRAP_DISABLE_MASK_LEN               16
+
 /* OTP_TBBR */
-#define OTP_TBBR_ADDR                            136
+#define OTP_TBBR_ADDR                            135
 #define OTP_TBBR_LEN                             1344
 
 /* Fields in OTP_TBBR */
@@ -197,7 +199,7 @@
 #define OTP_OTP_TBBR_NTNVCT_LEN                  256
 
 /* OTP_USER */
-#define OTP_USER_ADDR                            304
+#define OTP_USER_ADDR                            303
 #define OTP_USER_LEN                             2816
 
 /* Fields in OTP_USER */
@@ -266,10 +268,10 @@ otp_accessor_read_bool(otp_read_otp_flags1_copy_user_area_0, OTP_FLAGS1, OTP_FLA
 otp_accessor_read_bool(otp_read_otp_flags1_copy_user_area_1, OTP_FLAGS1, OTP_FLAGS1_COPY_USER_AREA_1);
 otp_accessor_read_bool(otp_read_otp_flags1_copy_user_area_2, OTP_FLAGS1, OTP_FLAGS1_COPY_USER_AREA_2);
 otp_accessor_read_bool(otp_read_otp_flags1_copy_user_area_3, OTP_FLAGS1, OTP_FLAGS1_COPY_USER_AREA_3);
-otp_accessor_read_field(otp_read_otp_flags1_strap_disable_mask, OTP_FLAGS1, OTP_FLAGS1_STRAP_DISABLE_MASK);
 otp_accessor_read_bool(otp_read_otp_flags1_allow_clear_text, OTP_FLAGS1, OTP_FLAGS1_ALLOW_CLEAR_TEXT);
 otp_accessor_read_bool(otp_read_otp_flags1_allow_ssk_encrypted, OTP_FLAGS1, OTP_FLAGS1_ALLOW_SSK_ENCRYPTED);
 otp_accessor_read_bool(otp_read_otp_flags1_allow_bssk_encrypted, OTP_FLAGS1, OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED);
+otp_accessor_group_read(otp_read_otp_strap_disable_mask, OTP_STRAP_DISABLE_MASK);
 otp_accessor_read_bytes(otp_read_otp_tbbr_rotpk, OTP_TBBR, OTP_TBBR_ROTPK);
 otp_accessor_read_bytes(otp_read_otp_tbbr_huk, OTP_TBBR, OTP_TBBR_HUK);
 otp_accessor_read_bytes(otp_read_otp_tbbr_ek, OTP_TBBR, OTP_TBBR_EK);

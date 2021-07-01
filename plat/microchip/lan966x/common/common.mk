@@ -53,6 +53,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
 				drivers/microchip/otp/otp.c			\
+				drivers/microchip/otp/otp_emu.c			\
 				drivers/microchip/clock/lan966x_clock.c		\
 				drivers/microchip/tz_matrix/tz_matrix.c		\
 				plat/common/${ARCH}/crash_console_helpers.S	\

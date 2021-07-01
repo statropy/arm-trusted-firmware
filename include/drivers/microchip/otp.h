@@ -9,6 +9,8 @@
 
 #include <stdint.h>
 
+#define OTP_MEM_SIZE	1024
+
 int otp_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits);
 int otp_read_uint32(uint32_t *dst, unsigned int offset);
 
