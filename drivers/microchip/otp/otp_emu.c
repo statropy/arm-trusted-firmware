@@ -37,9 +37,9 @@ bool otp_emu_init(void)
 	return active;
 }
 
-int otp_emu_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
+void otp_emu_add_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
 {
-	uint8_t *spi_src, bits;
+	uint8_t *spi_src;
 	int i, len;
 
 	offset /= 8;
@@ -47,13 +47,7 @@ int otp_emu_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
 
 	spi_src = (uint8_t*) (LAN996X_QSPI0_MMAP + OTP_SPI_OFFSET + offset);
 
-	/* Copy data from SPI */
-	memcpy(dst, spi_src, len);
-
-	/* Check if any bits cleared */
-	for (bits = 0, i = 0; i < len; i++)
-		bits |= ~dst[i];
-
-	/* Was a bit set? */
-	return bits ? nbits : -EIO;
+	/* Or in data from SPI */
+	for (i = 0; i < len; i++)
+		dst[i] |= spi_src[i];
 }

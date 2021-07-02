@@ -5,7 +5,7 @@ require 'optparse'
 require 'digest/crc32'
 require 'pp'
 
-$bits = [ 255 ] * (1024)
+$bits = [ 0 ] * (1024)
 $data = nil
 
 def set_bits(elem, field)

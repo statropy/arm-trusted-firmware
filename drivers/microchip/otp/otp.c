@@ -19,7 +19,6 @@
 enum {
 	OTP_FLAG_INITIALIZED = BIT(0),
 	OTP_FLAG_EMULATION   = BIT(1),
-	OTP_FLAG_HW_BLANK    = BIT(2),
 };
 
 static uint32_t otp_flags;
@@ -86,8 +85,6 @@ static int otp_hw_blankcheck(void)
 	rc = otp_hw_execute_status();
 	if (rc >= 0) {
 		INFO("OTP blank check: %s\n", rc ? "blank" : "non-blank");
-		if (rc == 0)
-			otp_flags |= OTP_FLAG_HW_BLANK;
 	}
 	otp_hw_power(false);
 
@@ -136,19 +133,60 @@ static int otp_hw_read_byte(uint8_t *dst, unsigned int offset)
 
 static int otp_hw_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
 {
-	uint8_t data, bits;
+	uint8_t data;
 	int i, rc = 0, len = nbits / 8;
 
-	if (otp_flags & OTP_FLAG_HW_BLANK)
-		return -EIO;	/* Bail out early if not programmed */
-
 	otp_hw_power(true);
-	for (bits = 0, i = 0; i < len; i++, offset += 8) {
+	for (i = 0; i < len; i++, offset += 8) {
 		rc = otp_hw_read_byte(&data, offset);
 		if (rc < 0)
 			break;
-		bits |= data;
 		*dst++ = data;
+	}
+	otp_hw_power(false);
+
+	return rc;
+}
+
+static int otp_hw_write_byte(uint8_t data, unsigned int offset)
+{
+	int rc;
+
+	otp_hw_set_address(offset);
+	mmio_write_32(OTP_OTP_PRGM_MODE(reg_base), OTP_OTP_PRGM_MODE_OTP_PGM_MODE_BYTE(1));
+	mmio_write_32(OTP_OTP_PRGM_DATA(reg_base), data);
+	mmio_write_32(OTP_OTP_FUNC_CMD(reg_base), OTP_OTP_FUNC_CMD_OTP_PROGRAM(1));
+	mmio_write_32(OTP_OTP_CMD_GO(reg_base), OTP_OTP_CMD_GO_OTP_GO(1));
+	rc = otp_hw_execute();
+	if (rc >= 0) {
+		uint32_t pass = mmio_read_32(OTP_OTP_PASS_FAIL(reg_base));
+		if (pass & OTP_OTP_PASS_FAIL_OTP_WRITE_PROHIBITED(1))
+			return -EACCES;
+		if (pass & OTP_OTP_PASS_FAIL_OTP_FAIL(1))
+			return -EIO;
+		VERBOSE("OTP wrote %02x @ %d\n", data, offset);
+	}
+	return rc;
+}
+
+static int otp_hw_write_bits(const uint8_t *src, unsigned int offset, unsigned int nbits)
+{
+	uint8_t data, bits;
+	int i, rc = 0, len = nbits / 8;
+
+	otp_hw_power(true);
+	for (bits = 0, i = 0; i < len; i++, offset += 8) {
+		/* Skip zero bytes */
+		if (src[i]) {
+			rc = otp_hw_read_byte(&data, offset);
+			if (rc < 0)
+				break;
+			if (src[i] != data) {
+				rc = otp_hw_write_byte(src[i], offset);
+				if (rc < 0)
+					break;
+			}
+		}
 	}
 	otp_hw_power(false);
 
@@ -157,7 +195,6 @@ static int otp_hw_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbit
 
 	return bits ? 0 : -EIO;	/* Signal if "blank" read */
 }
-
 static void otp_hw_init(void)
 {
 	otp_hw_reset();
@@ -190,6 +227,8 @@ static void otp_init(void)
 
 int otp_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
 {
+	int rc;
+
 	assert(nbits > 0);
 	assert((nbits % 8) == 0);
 	assert((offset % 8) == 0);
@@ -198,12 +237,35 @@ int otp_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
 	/* Make sure we're initialized */
 	otp_init();
 
-	return (otp_flags & OTP_FLAG_EMULATION) ?
-		otp_emu_read_bits(dst, offset, nbits) :
-		otp_hw_read_bits(dst, offset, nbits);
+	/* Read bitstream */
+	rc = otp_hw_read_bits(dst, offset, nbits);
+
+	/* If we read data, possibly or in emulation data */
+	if (rc >= 0 && otp_flags & OTP_FLAG_EMULATION)
+		otp_emu_add_bits(dst, offset, nbits);
+
+	return rc;
 }
 
 int otp_read_uint32(uint32_t *dst, unsigned int offset)
 {
 	return otp_read_bits((uint8_t *)dst, offset, 32);
+}
+
+int otp_write_bits(const uint8_t *dst, unsigned int offset, unsigned int nbits)
+{
+	assert(nbits > 0);
+	assert((nbits % 8) == 0);
+	assert((offset % 8) == 0);
+	assert((offset + nbits) < (OTP_MEM_SIZE*8));
+
+	/* Make sure we're initialized */
+	otp_init();
+
+	return otp_hw_write_bits(dst, offset, nbits);
+}
+
+int otp_write_uint32(uint32_t w, unsigned int offset)
+{
+	return otp_write_bits((const uint8_t *)&w, offset, 32);
 }
