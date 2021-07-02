@@ -9,11 +9,13 @@
 
 #include <stdint.h>
 
-#define OTP_MEM_SIZE	1024
+#define OTP_MEM_SIZE	8192
 
 int otp_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits);
 int otp_write_bits(const uint8_t *dst, unsigned int offset, unsigned int nbits);
 int otp_read_uint32(uint32_t *dst, unsigned int offset);
 int otp_write_uint32(uint32_t w, unsigned int offset);
+
+bool otp_all_zero(const uint8_t *p, size_t len);
 
 #endif  /* TFA_OTP_H */

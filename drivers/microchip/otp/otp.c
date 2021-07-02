@@ -26,8 +26,8 @@ static uintptr_t reg_base = LAN966X_OTP_BASE;
 
 static bool otp_hw_wait_flag_clear(uintptr_t reg, uint32_t flag)
 {
-	int i = 100;		/* Wait at most 100 ms */
-	while (--i) {
+	int i = 500;		/* Wait at most 500 ms*/
+	while (i--) {
 		uint32_t val = mmio_read_32(reg);
 		VERBOSE("Wait reg 0x%lx for clr %08x: Have %08x iter %d\n",
 			(reg - reg_base) / 4, flag, val, i);
@@ -171,7 +171,7 @@ static int otp_hw_write_byte(uint8_t data, unsigned int offset)
 
 static int otp_hw_write_bits(const uint8_t *src, unsigned int offset, unsigned int nbits)
 {
-	uint8_t data, bits;
+	uint8_t data, newdata, bits;
 	int i, rc = 0, len = nbits / 8;
 
 	otp_hw_power(true);
@@ -181,8 +181,10 @@ static int otp_hw_write_bits(const uint8_t *src, unsigned int offset, unsigned i
 			rc = otp_hw_read_byte(&data, offset);
 			if (rc < 0)
 				break;
-			if (src[i] != data) {
-				rc = otp_hw_write_byte(src[i], offset);
+			/* Will setting input data change cell? */
+			newdata = data | src[i];
+			if (newdata != data) {
+				rc = otp_hw_write_byte(newdata, offset);
 				if (rc < 0)
 					break;
 			}
@@ -268,4 +270,16 @@ int otp_write_bits(const uint8_t *dst, unsigned int offset, unsigned int nbits)
 int otp_write_uint32(uint32_t w, unsigned int offset)
 {
 	return otp_write_bits((const uint8_t *)&w, offset, 32);
+}
+
+/* Check to see if all bits are clear */
+bool otp_all_zero(const uint8_t *p, size_t len)
+{
+	int i;
+
+	for (i = 0; i < len; i++)
+		if (p[i] != 0)
+			return false;
+
+	return true;
 }

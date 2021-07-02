@@ -30,7 +30,7 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 
 	ret = otp_read_otp_tbbr_rotpk(rotpk_hash_der + LAN966X_ROTPK_HEADER, LAN966X_ROTPK_HASH_LEN);
 
-	if (ret < 0) {
+	if (ret < 0 || otp_all_zero(rotpk_hash_der + LAN966X_ROTPK_HEADER, LAN966X_ROTPK_HASH_LEN / 8)) {
 		*flags = ROTPK_NOT_DEPLOYED;
 	} else {
 		*key_ptr = (void *)rotpk_hash_der;
