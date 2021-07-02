@@ -39,7 +39,7 @@ static uintptr_t emmc_dev_handle;
 static const io_block_dev_spec_t emmc_dev_spec = {
 	.buffer = {
 		   .offset = MMC_BUF_BASE,
-		   .length = MMC_BUF_SIZE,
+		   .length = MMC_BLOCK_SIZE,
 		   },
 	.ops = {
 		.read = mmc_read_blocks,
