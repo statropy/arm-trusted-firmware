@@ -33,15 +33,13 @@ struct plat_io_policy {
 
 static const io_dev_connector_t *fip_dev_con;
 static uintptr_t fip_dev_handle;
-static const io_dev_connector_t *memmap_dev_con;
-static uintptr_t memmap_dev_handle;
 static const io_dev_connector_t *emmc_dev_con;
 static uintptr_t emmc_dev_handle;
 
 static const io_block_dev_spec_t emmc_dev_spec = {
 	.buffer = {
-		   .offset = LAN966x_EMMC_FIP_ADDR,
-		   .length = LAN966X_FIP_SIZE,
+		   .offset = MMC_BUF_BASE,
+		   .length = MMC_BUF_SIZE,
 		   },
 	.ops = {
 		.read = mmc_read_blocks,
@@ -50,16 +48,9 @@ static const io_block_dev_spec_t emmc_dev_spec = {
 	.block_size = MMC_BLOCK_SIZE,
 };
 
-#define FLASH_FIP_OFFSET	0x180000 /* 1.5M for BL2/SPL + U-Boot */
 static const io_block_spec_t fip_block_spec = {
-	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
-	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
-};
-
-/* ToDo: check mem address/size settings, check offset values */
-static const io_block_spec_t emmc_gpt_spec = {
-	.offset = LAN996X_DDR_BASE,
-	.length	= LAN966X_FIP_SIZE,
+	.offset = 0x0,
+	.length = LAN966X_FIP_SIZE,
 };
 
 static const io_uuid_spec_t bl2_uuid_spec = {
@@ -149,14 +140,13 @@ static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 #endif /* TRUSTED_BOARD_BOOT */
 
 static int check_fip(const uintptr_t spec);
-static int check_memmap(const uintptr_t spec);
 static int check_emmc(const uintptr_t spec);
 
 static const struct plat_io_policy policies[] = {
 	[FIP_IMAGE_ID] = {
-		&memmap_dev_handle,
+		&emmc_dev_handle,
 		(uintptr_t)&fip_block_spec,
-		check_memmap
+		check_emmc
 	},
 	[BL2_IMAGE_ID] = {
 		&fip_dev_handle,
@@ -265,31 +255,7 @@ static const struct plat_io_policy policies[] = {
 		check_fip
 	},
 #endif /* TRUSTED_BOARD_BOOT */
-#if 1
-	/* ToDo: check GPT_IMAGE_ID value and image_spec name */
-	[GPT_IMAGE_ID] = {
-		&emmc_dev_handle,
-		(uintptr_t)&emmc_gpt_spec,
-		check_emmc
-	},
-#endif
 };
-
-static int check_memmap(const uintptr_t spec)
-{
-	int result;
-	uintptr_t local_image_handle;
-
-	result = io_dev_init(memmap_dev_handle, (uintptr_t)NULL);
-	if (result == 0) {
-		result = io_open(memmap_dev_handle, spec, &local_image_handle);
-		if (result == 0) {
-			VERBOSE("Using Memmap\n");
-			io_close(local_image_handle);
-		}
-	}
-	return result;
-}
 
 static int check_emmc(const uintptr_t spec)
 {
@@ -328,22 +294,17 @@ void lan966x_io_setup(void)
 
 	lan966x_io_init();
 
+	result = register_io_dev_block(&emmc_dev_con);
+	assert(result == 0);
+
 	result = register_io_dev_fip(&fip_dev_con);
 	assert(result == 0);
 
-	result = register_io_dev_memmap(&memmap_dev_con);
+	result = io_dev_open(emmc_dev_con, (uintptr_t)&emmc_dev_spec,
+			     &emmc_dev_handle);
 	assert(result == 0);
 
-	result = register_io_dev_block(&emmc_dev_con);
-	assert(result == 0);
-	
 	result = io_dev_open(fip_dev_con, (uintptr_t)NULL, &fip_dev_handle);
-	assert(result == 0);
-
-	result = io_dev_open(memmap_dev_con, (uintptr_t)NULL, &memmap_dev_handle);
-	assert(result == 0);
-
-	result = io_dev_open(emmc_dev_con, (uintptr_t)&emmc_dev_spec, &emmc_dev_handle);
 	assert(result == 0);
 
 	/* Ignore improbable errors in release builds */

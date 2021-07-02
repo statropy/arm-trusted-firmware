@@ -565,10 +565,10 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 		op = SDMMC_MMC_CMD16;
 		break;
 	case 17:
-		op = SDMMC_SD_CMD17;
+		op = SDMMC_MMC_CMD17;
 		break;
 	case 18:
-		op = SDMMC_SD_CMD18;
+		op = SDMMC_MMC_CMD18;
 		break;
 	case 51:
 		op = SDMMC_SD_ACMD51;
