@@ -66,16 +66,16 @@ static int otp_hw_execute(void)
 static int otp_hw_execute_status(void)
 {
 	int rc = otp_hw_execute();
-	if (!rc) {
+	if (rc == 0) {
 		uint32_t pass = mmio_read_32(OTP_OTP_PASS_FAIL(reg_base));
 		VERBOSE("OTP exec Status: %0x\n", pass);
 		assert(pass & (OTP_OTP_PASS_FAIL_OTP_PASS_M | OTP_OTP_PASS_FAIL_OTP_FAIL_M));
-		rc = !!(pass & OTP_OTP_PASS_FAIL_OTP_PASS(1));
+		rc = (pass & OTP_OTP_PASS_FAIL_OTP_PASS(1)) ? 0 : -EFAULT;
 	}
 	return rc;
 }
 
-static int otp_hw_blankcheck(void)
+static void otp_hw_blankcheck(void)
 {
 	int rc;
 
@@ -83,15 +83,13 @@ static int otp_hw_blankcheck(void)
 	mmio_write_32(OTP_OTP_TEST_CMD(reg_base), OTP_OTP_TEST_CMD_OTP_BLANKCHECK(1));
 	mmio_write_32(OTP_OTP_CMD_GO(reg_base), OTP_OTP_CMD_GO_OTP_GO(1));
 	rc = otp_hw_execute_status();
-	if (rc >= 0) {
+	if (rc == 0) {
 		INFO("OTP blank check: %s\n", rc ? "blank" : "non-blank");
 	}
 	otp_hw_power(false);
-
-	return rc;
 }
 
-static int otp_hw_reset(void)
+static void otp_hw_reset(void)
 {
 	int rc;
 
@@ -99,12 +97,10 @@ static int otp_hw_reset(void)
 	mmio_write_32(OTP_OTP_FUNC_CMD(reg_base), OTP_OTP_FUNC_CMD_OTP_RESET(1));
 	mmio_write_32(OTP_OTP_CMD_GO(reg_base), OTP_OTP_CMD_GO_OTP_GO(1));
 	rc = otp_hw_execute();
-	if (rc >= 0) {
+	if (rc == 0) {
 		INFO("OTP reset: done\n");
 	}
 	otp_hw_power(false);
-
-	return rc;
 }
 
 static void otp_hw_set_address(unsigned int offset)
@@ -121,7 +117,7 @@ static int otp_hw_read_byte(uint8_t *dst, unsigned int offset)
 	mmio_write_32(OTP_OTP_FUNC_CMD(reg_base), OTP_OTP_FUNC_CMD_OTP_READ(1));
 	mmio_write_32(OTP_OTP_CMD_GO(reg_base), OTP_OTP_CMD_GO_OTP_GO(1));
 	rc = otp_hw_execute();
-	if (rc >= 0) {
+	if (rc == 0) {
 		uint32_t pass = mmio_read_32(OTP_OTP_PASS_FAIL(reg_base));
 		if (pass & OTP_OTP_PASS_FAIL_OTP_READ_PROHIBITED(1))
 			return -EACCES;
@@ -158,7 +154,7 @@ static int otp_hw_write_byte(uint8_t data, unsigned int offset)
 	mmio_write_32(OTP_OTP_FUNC_CMD(reg_base), OTP_OTP_FUNC_CMD_OTP_PROGRAM(1));
 	mmio_write_32(OTP_OTP_CMD_GO(reg_base), OTP_OTP_CMD_GO_OTP_GO(1));
 	rc = otp_hw_execute();
-	if (rc >= 0) {
+	if (rc == 0) {
 		uint32_t pass = mmio_read_32(OTP_OTP_PASS_FAIL(reg_base));
 		if (pass & OTP_OTP_PASS_FAIL_OTP_WRITE_PROHIBITED(1))
 			return -EACCES;
