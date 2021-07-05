@@ -49,7 +49,7 @@ static const io_block_dev_spec_t emmc_dev_spec = {
 };
 
 static const io_block_spec_t fip_block_spec = {
-	.offset = 0x0,
+	.offset = LAN966x_EMMC_FIP_ADDR,
 	.length = LAN966X_FIP_SIZE,
 };
 

@@ -77,6 +77,7 @@ BL2_SOURCES		+=	drivers/io/io_block.c				\
 				drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
+				plat/microchip/lan966x/common/lan966x_mmc.c		\
 				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
 				plat/microchip/lan966x/common/lan966x_image_load.c	\
