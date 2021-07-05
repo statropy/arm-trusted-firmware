@@ -39,13 +39,14 @@ static void handle_otp_data(bootstrap_req_t *req)
 {
 	uint8_t *ptr = (uint8_t *) BL2_BASE;
 
-	if (req->len > 0 &&
-	    req->len < MAX_OTP_DATA &&
+	if (req->len > 0 && req->len < MAX_OTP_DATA &&
 	    bootstrap_RxDataCrc(req, ptr)) {
 		if (otp_write_bits(ptr, req->arg0 * 8, req->len * 8) == 0)
 			bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 		else
 			bootstrap_TxNack("OTP program failed");
+		/* Wipe data */
+		memset(ptr, 0, req->len);
 	} else
 		bootstrap_TxNack("OTP rx data failed or illegal data size");
 }
@@ -67,6 +68,8 @@ static void handle_otp_random(bootstrap_req_t *req)
 				bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 			else
 				bootstrap_TxNack("OTP program random failed");
+			/* Wipe data */
+			memset(data, 0, datalen);
 		} else
 			bootstrap_TxNack("OTP random data illegal length");
 	} else
