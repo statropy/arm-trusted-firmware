@@ -26,14 +26,14 @@ static uintptr_t reg_base = LAN966X_OTP_BASE;
 
 static bool otp_hw_wait_flag_clear(uintptr_t reg, uint32_t flag)
 {
-	int i = 500;		/* Wait at most 500 ms*/
+	int i = 500 * 1000;		/* Wait at most 500 ms*/
 	while (i--) {
 		uint32_t val = mmio_read_32(reg);
 		VERBOSE("Wait reg 0x%lx for clr %08x: Have %08x iter %d\n",
 			(reg - reg_base) / 4, flag, val, i);
 		if (!(val & flag))
 			return true;
-		mdelay(1);
+		udelay(1);
 	}
 	return false;
 }
