@@ -6,10 +6,15 @@
 
 #include <common/debug.h>
 #include <plat/common/platform.h>
+#include <endian.h>
 #include <../bl1/bl1_private.h>	/* UGLY... */
 
 #include "lan966x_private.h"
 #include "lan966x_bootstrap.h"
+#include "otp.h"
+
+/* Max OTP data to write in one req */
+#define MAX_OTP_DATA	1024
 
 __attribute__((__noreturn__)) void plat_bootstrap_exec(void);
 
@@ -28,6 +33,52 @@ static void handle_strap(const bootstrap_req_t *req)
 {
 	bootstrap_TxAck();
 	lan966x_set_strapping(req->arg0);
+}
+
+static void handle_otp_data(bootstrap_req_t *req)
+{
+	uint8_t *ptr = (uint8_t *) BL2_BASE;
+
+	if (req->len > 0 &&
+	    req->len < MAX_OTP_DATA &&
+	    bootstrap_RxDataCrc(req, ptr)) {
+		if (otp_write_bits(ptr, req->arg0 * 8, req->len * 8) == 0)
+			bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
+		else
+			bootstrap_TxNack("OTP program failed");
+	} else
+		bootstrap_TxNack("OTP rx data failed or illegal data size");
+}
+
+static void handle_otp_random(bootstrap_req_t *req)
+{
+	uint32_t datalen, *data = (uint32_t *) BL2_BASE;
+	int i;
+
+	if (req->len == sizeof(uint32_t) && bootstrap_RxDataCrc(req, (uint8_t *)&datalen)) {
+		datalen = __ntohl(datalen);
+		if (datalen > 0 &&
+		    datalen < MAX_OTP_DATA) {
+			/* Read TRNG data */
+			for (i = 0; i < div_round_up(datalen, sizeof(uint32_t)); i++)
+				data[i] = lan966x_trng_read();
+			/* Write to OTP */
+			if (otp_write_bits((uint8_t *)data, req->arg0 * 8, datalen * 8) == 0)
+				bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
+			else
+				bootstrap_TxNack("OTP program random failed");
+		} else
+			bootstrap_TxNack("OTP random data illegal length");
+	} else
+		bootstrap_TxNack("OTP random data illegal req length length");
+}
+
+static void handle_otp_commit(const bootstrap_req_t *req)
+{
+	if (otp_commit_emulation() == 0)
+		bootstrap_TxAck();
+	else
+		bootstrap_TxNack("OTP commit failed");
 }
 
 static void handle_auth(const bootstrap_req_t *req)
@@ -113,6 +164,12 @@ void lan966x_bootstrap_monitor(void)
 			handle_send_data(&req);
 		else if (is_cmd(&req, BOOTSTRAP_STRAP))
 			handle_strap(&req);
+		else if (is_cmd(&req, BOOTSTRAP_OTPD))
+			handle_otp_data(&req);
+		else if (is_cmd(&req, BOOTSTRAP_OTPR))
+			handle_otp_random(&req);
+		else if (is_cmd(&req, BOOTSTRAP_OTPC))
+			handle_otp_commit(&req);
 		else if (is_cmd(&req, BOOTSTRAP_AUTH))
 			handle_auth(&req);
 		else if (is_cmd(&req, BOOTSTRAP_EXEC))

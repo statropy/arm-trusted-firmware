@@ -105,6 +105,7 @@ static void otp_hw_reset(void)
 
 static void otp_hw_set_address(unsigned int offset)
 {
+	assert(offset < (OTP_MEM_SIZE*8));
 	mmio_write_32(OTP_OTP_ADDR_HI(reg_base), 0xff & (offset >> 8));
 	mmio_write_32(OTP_OTP_ADDR_LO(reg_base), 0xff & offset);
 }
@@ -122,7 +123,9 @@ static int otp_hw_read_byte(uint8_t *dst, unsigned int offset)
 		if (pass & OTP_OTP_PASS_FAIL_OTP_READ_PROHIBITED(1))
 			return -EACCES;
 		*dst = mmio_read_32(OTP_OTP_RD_DATA(reg_base));
-		VERBOSE("OTP read %02x @ %d\n", *dst, offset);
+		if (*dst) {
+			VERBOSE("OTP read %02x @ %04x\n", *dst, offset / 8);
+		}
 	}
 	return rc;
 }
@@ -160,18 +163,18 @@ static int otp_hw_write_byte(uint8_t data, unsigned int offset)
 			return -EACCES;
 		if (pass & OTP_OTP_PASS_FAIL_OTP_FAIL(1))
 			return -EIO;
-		VERBOSE("OTP wrote %02x @ %d\n", data, offset);
+		VERBOSE("OTP wrote %02x @ %04x\n", data, offset / 8);
 	}
 	return rc;
 }
 
 static int otp_hw_write_bits(const uint8_t *src, unsigned int offset, unsigned int nbits)
 {
-	uint8_t data, newdata, bits;
+	uint8_t data, newdata;
 	int i, rc = 0, len = nbits / 8;
 
 	otp_hw_power(true);
-	for (bits = 0, i = 0; i < len; i++, offset += 8) {
+	for (i = 0; i < len; i++, offset += 8) {
 		/* Skip zero bytes */
 		if (src[i]) {
 			rc = otp_hw_read_byte(&data, offset);
@@ -188,11 +191,9 @@ static int otp_hw_write_bits(const uint8_t *src, unsigned int offset, unsigned i
 	}
 	otp_hw_power(false);
 
-	if (rc < 0)
-		return rc;
-
-	return bits ? 0 : -EIO;	/* Signal if "blank" read */
+	return rc;
 }
+
 static void otp_hw_init(void)
 {
 	otp_hw_reset();
@@ -278,4 +279,33 @@ bool otp_all_zero(const uint8_t *p, size_t len)
 			return false;
 
 	return true;
+}
+
+int otp_commit_emulation(void)
+{
+	int rc = -ENODEV, i;
+
+	if (otp_flags & OTP_FLAG_EMULATION) {
+		otp_hw_power(true);
+		for (i = 0; i < OTP_MEM_SIZE; i++) {
+			uint8_t eb = 0, ob, nb;
+			otp_emu_add_bits(&eb, i * 8, 8);
+			if (eb) {
+				rc = otp_hw_read_byte(&ob, i * 8);
+				if (rc != 0)
+					break;
+				/* Add emulation data */
+				nb = (eb | ob);
+				/* Update iff new data differs */
+				if (nb != ob) {
+					rc = otp_hw_write_byte(nb, i * 8);
+					if (rc != 0)
+						break;
+				}
+			}
+		}
+		otp_hw_power(false);
+	}
+
+	return rc;
 }

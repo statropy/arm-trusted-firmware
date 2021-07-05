@@ -55,7 +55,6 @@ void lan966x_io_init(void);
 void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
-void lan966x_trng_init(void);
 void lan966x_sdmmc_init(void);
 
 uint32_t lan966x_trng_read(void);

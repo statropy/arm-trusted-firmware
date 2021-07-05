@@ -19,6 +19,12 @@
 #define BOOTSTRAP_EXEC         'E'
 // Override strapping
 #define BOOTSTRAP_STRAP        'O'
+// Program OTP data
+#define BOOTSTRAP_OTPD         'P'
+// Program OTP random data
+#define BOOTSTRAP_OTPR         'R'
+// Commit OTP emulation data
+#define BOOTSTRAP_OTPC         'M'
 // Continue boot
 #define BOOTSTRAP_CONT         'C'
 // ACK
@@ -77,3 +83,5 @@ static inline void bootstrap_TxNack(const char *str)
 {
 	bootstrap_Tx(BOOTSTRAP_NACK, 0, strlen(str), (const uint8_t*)str);
 }
+
+bool bootstrap_RxDataCrc(bootstrap_req_t *req, uint8_t *data);
