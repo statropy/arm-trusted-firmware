@@ -32,9 +32,11 @@ struct plat_io_policy {
 };
 
 static const io_dev_connector_t *fip_dev_con;
-static uintptr_t fip_dev_handle;
 static const io_dev_connector_t *emmc_dev_con;
+static const io_dev_connector_t *memmap_dev_con;
+static uintptr_t fip_dev_handle;
 static uintptr_t emmc_dev_handle;
+static uintptr_t memmap_dev_handle;
 
 static const io_block_dev_spec_t emmc_dev_spec = {
 	.buffer = {
@@ -48,9 +50,16 @@ static const io_block_dev_spec_t emmc_dev_spec = {
 	.block_size = MMC_BLOCK_SIZE,
 };
 
-static const io_block_spec_t fip_block_spec = {
+static const io_block_spec_t fip_emmc_block_spec = {
 	.offset = LAN966x_EMMC_FIP_ADDR,
 	.length = LAN966X_FIP_SIZE,
+};
+
+/* 80k BL2/SPL + 2 * 256 U-Boot Env */
+#define FLASH_FIP_OFFSET	(1024 * (80 + 2 * 256))
+static const io_block_spec_t fip_qspi_block_spec = {
+	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
+	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 };
 
 static const io_uuid_spec_t bl2_uuid_spec = {
@@ -141,11 +150,12 @@ static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 
 static int check_fip(const uintptr_t spec);
 static int check_emmc(const uintptr_t spec);
+static int check_memmap(const uintptr_t spec);
 
 static const struct plat_io_policy policies[] = {
 	[FIP_IMAGE_ID] = {
 		&emmc_dev_handle,
-		(uintptr_t)&fip_block_spec,
+		(uintptr_t)&fip_emmc_block_spec,
 		check_emmc
 	},
 	[BL2_IMAGE_ID] = {
@@ -257,19 +267,19 @@ static const struct plat_io_policy policies[] = {
 #endif /* TRUSTED_BOARD_BOOT */
 };
 
-static int check_emmc(const uintptr_t spec)
-{
-	int result;
-	uintptr_t local_handle;
-
-	result = io_dev_init(emmc_dev_handle, (uintptr_t) NULL);
-	if (result == 0) {
-		result = io_open(emmc_dev_handle, spec, &local_handle);
-		if (result == 0)
-			io_close(local_handle);
-	}
-	return result;
-}
+/* Set io_policy structures for allowing boot from eMMC or QSPI */
+static const struct plat_io_policy boot_source_policies[] = {
+	[BOOT_SOURCE_EMMC] = {
+		&emmc_dev_handle,
+		(uintptr_t)&fip_emmc_block_spec,
+		check_emmc
+	},
+	[BOOT_SOURCE_QSPI] = {
+		&memmap_dev_handle,
+		(uintptr_t)&fip_qspi_block_spec,
+		check_memmap
+	},
+};
 
 static int check_fip(const uintptr_t spec)
 {
@@ -288,24 +298,79 @@ static int check_fip(const uintptr_t spec)
 	return result;
 }
 
+static int check_emmc(const uintptr_t spec)
+{
+	int result;
+	uintptr_t local_image_handle;
+
+	result = io_dev_init(emmc_dev_handle, (uintptr_t) NULL);
+	if (result == 0) {
+		result = io_open(emmc_dev_handle, spec, &local_image_handle);
+		if (result == 0)
+			VERBOSE("Using eMMC\n");
+			io_close(local_image_handle);
+	}
+	return result;
+}
+
+static int check_memmap(const uintptr_t spec)
+{
+	int result;
+	uintptr_t local_image_handle;
+
+	result = io_dev_init(memmap_dev_handle, (uintptr_t)NULL);
+	if (result == 0) {
+		result = io_open(memmap_dev_handle, spec, &local_image_handle);
+		if (result == 0) {
+			VERBOSE("Using Memmap\n");
+			io_close(local_image_handle);
+		}
+	}
+	return result;
+}
+
 void lan966x_io_setup(void)
 {
 	int result;
+	boot_source_type bootSource;
 
 	lan966x_io_init();
-
-	result = register_io_dev_block(&emmc_dev_con);
-	assert(result == 0);
 
 	result = register_io_dev_fip(&fip_dev_con);
 	assert(result == 0);
 
-	result = io_dev_open(emmc_dev_con, (uintptr_t)&emmc_dev_spec,
-			     &emmc_dev_handle);
-	assert(result == 0);
-
 	result = io_dev_open(fip_dev_con, (uintptr_t)NULL, &fip_dev_handle);
 	assert(result == 0);
+
+	bootSource = lan966x_get_boot_source();
+
+	switch (bootSource) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+
+		result = register_io_dev_block(&emmc_dev_con);
+		assert(result == 0);
+
+		result = io_dev_open(emmc_dev_con, (uintptr_t)&emmc_dev_spec,
+				     &emmc_dev_handle);
+		assert(result == 0);
+		break;
+	case BOOT_SOURCE_QSPI:
+
+		result = register_io_dev_memmap(&memmap_dev_con);
+		assert(result == 0);
+
+		result = io_dev_open(memmap_dev_con, (uintptr_t)NULL,
+				     &memmap_dev_handle);
+		assert(result == 0);
+		break;
+	default:
+		ERROR("Unknown boot source \n");
+		assert(false);
+		break;
+	}
+
+
 
 	/* Ignore improbable errors in release builds */
 	(void)result;
@@ -318,11 +383,17 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 			  uintptr_t *image_spec)
 {
 	int result;
+	uint32_t bootSource;
 	const struct plat_io_policy *policy;
 
 	assert(image_id < ARRAY_SIZE(policies));
 
-	policy = &policies[image_id];
+	bootSource = lan966x_get_boot_source();
+	if (image_id == FIP_IMAGE_ID)
+		policy = &boot_source_policies[bootSource];
+	else
+		policy = &policies[image_id];
+
 	result = policy->check(policy->image_spec);
 	assert(result == 0);
 

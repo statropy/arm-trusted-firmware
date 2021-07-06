@@ -21,37 +21,30 @@ Code Locations
    `link <https://bitbucket.microchip.com/scm/unge/sw-arm-trusted-firmware.git>`__ branch "lan966x-v0"
 
 -  U-Boot:
-   `link <https://bitbucket.microchip.com/scm/unge/sw-uboot.git>`__ branch "lan966x.spl-atf"
+   `link <https://bitbucket.microchip.com/scm/unge/sw-uboot.git>`__ branch "lan966x.spl.asic"
 
 
 Build Procedure
 ~~~~~~~~~~~~~~~
 
--  Install LAN966X toolchain (and BSP)
-
--  Build u-boot, and get binary images: "spl/u-boot-spl.bin" (BL33) and "u-boot.img"
+-  Run ruby build script
 
    .. code:: shell
 
-       make lan966x_defconfig
-       CROSS_COMPILE=arm-none-eabi- make
+       ruby scripts/build.rb -p lan966x_sr
 
--  Build TF-A
+The build script will ensure the SDK and toolchain is installed, or it
+will install the appropriate version required. U-Boot (BL33) will be
+taken from the BSP.
 
-      Build bl1, bl2, bl32 and fip:
-
-   .. code:: shell
-
-       export CROSS_COMPILE=arm-none-eabi-
-       make PLAT=lan966x_sr DEBUG=1 ARCH=aarch32 AARCH32_SP=sp_min BL33=path-to-spl-uboot all fip
 
 Deploy TF-A Images
 ~~~~~~~~~~~~~~~~~~
 
-TF-A binary fip.bin and U-Boot is combined to form a flash image
-called "flash.img". This binary image should be flashed into the
-device NOR, and the board strapping be set to "1" in order to boot
-from NOR flash.
+TF-A binary bl2.bin, fip.bin and U-Boot is combined to form a flash
+image called "lan966x_sr.img". This binary image should be flashed
+into the device NOR, and the board strapping be set to "1" in order to
+boot from NOR flash.
 
 As the FPGA image typically not has the bootrom in it, the BL1 must be
 placed at SP:0x0 with a JTAG. Alternatively, it may also be made part
@@ -64,7 +57,9 @@ Flash image layout:
 +-----------------+
 |  unused (80k)   |
 +-----------------+ <--- 80k
-|  U-Boot         |
-+-----------------+ <--- 1536k (1.5Mb)
+|  U-Boot Env 512k|
++-----------------+ <--- 592k
 |  fip.bin        |
++-----------------+ <--- 1792k
+|  OTP emulation  |
 +-----------------+
