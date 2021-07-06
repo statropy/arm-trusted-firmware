@@ -182,22 +182,12 @@
   address: 0x30
   fields: []
 
-- name: OTP_PCIE_CLASS_CODE
-  size: 4
-  area: 2
-  emu: false
-  desc: TODO
-  offset: 40
-  address: 0x32
-  fields: []
-
 - name: OTP_PCIE_SUBSYSTEM_ID
   size: 2
   area: 2
   emu: false
   desc: TODO
-  offset: 16
-  address: 0x36
+  address: 0x32
   fields: []
 
 - name: OTP_PCIE_SUBSYSTEM_VENDOR_ID
@@ -205,8 +195,15 @@
   area: 2
   emu: false
   desc: TODO
-  offset: 0
-  address: 0x38
+  address: 0x34
+  fields: []
+
+- name: OTP_PCIE_CLASS_CODE
+  size: 4
+  area: 2
+  emu: false
+  desc: TODO
+  address: 0x36
   fields: []
 
 

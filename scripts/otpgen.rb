@@ -226,15 +226,15 @@ def cleanup()
 end
 
 def dump_table fd
-  fd.printf "Start    End     Size  RTL  EMU  AREA  Name\n"
-  fd.printf "------   ------  ----  ---  ---  ----  ----------------\n"
+  fd.printf "    Start    End     Size  RTL  EMU  AREA  Name\n"
+  fd.printf "    ------   ------  ----  ---  ---  ----  ----------------\n"
 
   offset = 0
   $data.each do |g|
     star = " "
 
     if g["address"] > offset
-      fd.printf "reserved %d bytes\n" % [g["address"] - offset]
+      fd.printf "    reserved %d bytes\n" % [g["address"] - offset]
     end
     offset = g["address"] + g["size"]
 
@@ -252,7 +252,7 @@ def dump_table fd
     emu = ""
     emu = "X" if g["emu"]
 
-    fd.printf "0x%04x%s  0x%04x  %4d  %3s  %3s  %4d  %-25s\n" %
+    fd.printf "    0x%04x%s  0x%04x  %4d  %3s  %3s  %4d  %-25s\n" %
         [g["address"], star, g["address"] + g["size"] - 1, g["size"], rtl, emu, g["area"], g["name"]]
 
   end
