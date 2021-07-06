@@ -16,7 +16,7 @@ static const uint8_t lan966x_rotpk_header[] = {
 	0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20
 };
 
-#define LAN966X_ROTPK_HASH_LEN	(OTP_OTP_TBBR_ROTPK_LEN / 8)
+#define LAN966X_ROTPK_HASH_LEN	(OTP_OTP_TBBR_ROTPK_BITS / 8)
 #define LAN966X_ROTPK_HEADER	sizeof(lan966x_rotpk_header)
 
 static uint8_t rotpk_hash_der[LAN966X_ROTPK_HEADER + LAN966X_ROTPK_HASH_LEN];
@@ -24,13 +24,14 @@ static uint8_t rotpk_hash_der[LAN966X_ROTPK_HEADER + LAN966X_ROTPK_HASH_LEN];
 int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 			unsigned int *flags)
 {
+	uint8_t *rotpk = &rotpk_hash_der[LAN966X_ROTPK_HEADER];
 	int ret;
 
 	memcpy(rotpk_hash_der, lan966x_rotpk_header, sizeof(lan966x_rotpk_header));
 
-	ret = otp_read_otp_tbbr_rotpk(rotpk_hash_der + LAN966X_ROTPK_HEADER, LAN966X_ROTPK_HASH_LEN);
+	ret = otp_read_otp_tbbr_rotpk(rotpk, LAN966X_ROTPK_HASH_LEN);
 
-	if (ret < 0) {
+	if (ret < 0 || otp_all_zero(rotpk, LAN966X_ROTPK_HASH_LEN)) {
 		*flags = ROTPK_NOT_DEPLOYED;
 	} else {
 		*key_ptr = (void *)rotpk_hash_der;

@@ -228,3 +228,9 @@ send_err:
 	bootstrap_Tx(BOOTSTRAP_NACK, req.arg0, strlen(errtxt), (const uint8_t*)errtxt);
 	return -1;
 }
+
+bool bootstrap_RxDataCrc(bootstrap_req_t *req, uint8_t *data)
+{
+	bootstrap_RxPayload(data, req);
+	return bootstrap_RxCrcCheck(req);
+}

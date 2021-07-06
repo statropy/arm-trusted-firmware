@@ -29,14 +29,14 @@ $template = %Q(
 <%- for g in $data -%>
 /* <%= g["name"] %> */
 #define <%= sprintf("%s_%s", g["name"], "ADDR").ljust(40) %> <%= g["address"] %>
-#define <%= sprintf("%s_%s", g["name"], "LEN").ljust(40) %> <%= g["width"] %>
+#define <%= sprintf("%s_%s", g["name"], "SIZE").ljust(40) %> <%= g["size"] %>
 
 <%- if g["fields"].length > 0 -%>
 /* Fields in <%= g["name"] %> */
 <%- for f in g["fields"] -%>
 #define <%= sprintf("%s_%s_%s", "OTP", f["name"], "OFF").ljust(40) %> <%= f["offset"] %>
 <%- if f["width"] > 1 -%>
-#define <%= sprintf("%s_%s_%s", "OTP", f["name"], "LEN").ljust(40) %> <%= f["width"] %>
+#define <%= sprintf("%s_%s_%s", "OTP", f["name"], "BITS").ljust(40) %> <%= f["width"] %>
 <%- end -%>
 <%- end -%>
 
@@ -47,8 +47,8 @@ $template = %Q(
 #define otp_accessor_group_read(aname, grp_name)			\\
 static inline int aname(uint8_t *dst, size_t nbytes)			\\
 {									\\
-	assert((nbytes * 8) >= grp_name##_LEN);				\\
-	return otp_read_bits(dst, grp_name##_ADDR * 8, grp_name##_LEN); \\
+	assert(nbytes >= grp_name##_SIZE);				\\
+	return otp_read_bytes(grp_name##_ADDR, grp_name##_SIZE, dst);   \\
 }
 
 #define otp_accessor_read_bool(aname, grp_name, fld_name)		\\
@@ -57,26 +57,27 @@ static inline bool aname(void)						\\
 	uint8_t b;							\\
 	int addr = grp_name##_ADDR + (OTP_##fld_name##_OFF / 8);	\\
 	int off = OTP_##fld_name##_OFF % 8;				\\
-	(void) otp_read_bits(&b, addr * 8, 8);				\\
+	(void) otp_read_bytes(addr, 1, &b);				\\
 	return !!(b & (1 << off));					\\
 }
 
 #define otp_accessor_read_bytes(aname, grp_name, fld_name)		\\
 static inline int aname(uint8_t *dst, size_t nbytes)			\\
 {									\\
-	assert((nbytes * 8) >= OTP_##fld_name##_LEN);			\\
-	return otp_read_bits(dst, grp_name##_ADDR * 8 + 		\\
-		OTP_##fld_name##_OFF, OTP_##fld_name##_LEN);		\\
+	assert(nbytes >= (OTP_##fld_name##_BITS / 8));			\\
+	assert((OTP_##fld_name##_OFF % 8) == 0);			\\
+	return otp_read_bytes(grp_name##_ADDR + 			\\
+		OTP_##fld_name##_OFF / 8, OTP_##fld_name##_BITS / 8, dst); \\
 }
 
 #define otp_accessor_read_field(aname, grp_name, fld_name)		\\
 static inline uint32_t aname(void)					\\
 {									\\
 	uint32_t w;							\\
-	int addr = grp_name##_ADDR + (OTP_##fld_name##_OFF / 8);	\\
+	int addr = grp_name##_ADDR + OTP_##fld_name##_OFF;		\\
 	int off = OTP_##fld_name##_OFF % 8;				\\
-	(void) otp_read_uint32(&w, addr * 8);				\\
-	return (w >> off) & GENMASK(OTP_##fld_name##_LEN - 1, 0);	\\
+	(void) otp_read_uint32(addr, &w);				\\
+	return (w >> off) & GENMASK(OTP_##fld_name##_BITS - 1, 0);	\\
 }
 
 <%- for g in $data -%>
@@ -124,10 +125,11 @@ def process_excel(fn)
                     data << group
                     group = nil
                 end
+                raise "Invalid width: #{row[4]}" unless (row[4].to_i % 8) == 0
                 group = Hash[
                     "accessor" => row[1] != nil,
                     "name"   => row[2].strip.upcase,
-                    "width"  => row[4].to_i,
+                    "size"  => row[4].to_i / 8,
                     "address"=> row[8],
                     "desc"   => row[11],
                     "fields" => Array.new,
@@ -193,13 +195,13 @@ def cleanup()
     offset = 0
     $data.each do|g|
         g["address"] = cleanup_addr(g["address"])
-        raise "No width" if g["width"] == nil || g["width"] == 0
+        raise "No size" if g["size"] == nil || g["size"] == 0
         if g["address"] != nil && g["address"] != 0
             raise "expected offset #{offset} for group #{g["name"]}, have #{g["address"]}" if g["address"] < offset
         else
             g["address"] = offset
         end
-        offset = (g["width"] / 8) + g["address"]
+        offset = g["size"] + g["address"]
         allblank = true
         g["fields"].each do |fld|
             if fld["offset"].is_a?(String)

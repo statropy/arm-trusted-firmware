@@ -53,7 +53,9 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
 				drivers/microchip/otp/otp.c			\
+				drivers/microchip/otp/otp_emu.c			\
 				drivers/microchip/clock/lan966x_clock.c		\
+				plat/microchip/lan966x/common/lan966x_trng.c	\
 				drivers/microchip/tz_matrix/tz_matrix.c		\
 				plat/common/${ARCH}/crash_console_helpers.S	\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
@@ -81,7 +83,6 @@ BL2_SOURCES		+=	drivers/io/io_fip.c				\
 				plat/microchip/lan966x/common/lan966x_image_load.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c		\
 				plat/microchip/lan966x/common/lan966x_tz.c		\
-				plat/microchip/lan966x/common/lan966x_trng.c		\
 				plat/microchip/lan966x/common/lan966x_io_storage.c
 
 CONSOLE_BASE			:=	LAN966X_FLEXCOM_0_BASE

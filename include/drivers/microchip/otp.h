@@ -9,7 +9,15 @@
 
 #include <stdint.h>
 
-int otp_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits);
-int otp_read_uint32(uint32_t *dst, unsigned int offset);
+#define OTP_MEM_SIZE	8192
+
+int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst);
+int otp_write_bytes(unsigned int offset, unsigned int nbytes, const uint8_t *src);
+int otp_read_uint32(unsigned int offset, uint32_t *dst);
+int otp_write_uint32(unsigned int offset, uint32_t w);
+
+int otp_commit_emulation(void);
+
+bool otp_all_zero(const uint8_t *p, size_t nbytes);
 
 #endif  /* TFA_OTP_H */

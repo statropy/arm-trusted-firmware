@@ -12,6 +12,9 @@ CMD_DATA = 'D'
 CMD_AUTH = 'U'
 CMD_EXEC = 'E'
 CMD_STRAP= 'O'
+CMD_OTPD = 'P'
+CMD_OTPR = 'R'
+CMD_OTPC = 'M'
 CMD_CONT = 'C'
 CMD_ACK  = 'a'
 CMD_NACK = 'n'
@@ -64,6 +67,19 @@ def fmt_req(cmd, arg = 0, payload = nil)
         end
     end
     return CMD_SOF + buf + Digest::CRC32c.hexdigest(buf)
+end
+
+def fmt_otp_data(offset, data)
+    odata = [data].pack('H*')
+    e = (offset.to_i(16) + odata.length)
+    raise "OTP data extends capacity #{e}" if e > 8192
+    return fmt_req(CMD_OTPD, offset, odata)
+end
+
+def fmt_otp_rand(offset, len)
+    e = (offset.to_i(16) + len.to_i(16))
+    raise "OTP data extends capacity #{e}" if e > 8192
+    return fmt_req(CMD_OTPR, offset, [len.to_i(16)].pack('N'))
 end
 
 def do_cmd(cmd)
@@ -131,6 +147,22 @@ OptionParser.new do |opts|
 
     opts.on("-s", "--strapping <num>", "Do strapping command") do |num|
         rsp = do_cmd(fmt_req(CMD_STRAP,num.to_i))
+    end
+
+    opts.on("-o", "--otp-data <offset>:<hexstring>", "Program OTP at offset <offset> with <hexstring> ") do |arg|
+        a = arg.split(":")
+        raise "Need OTP args as offset:data" unless a.length == 2
+        rsp = do_cmd(fmt_otp_data(a[0], a[1]))
+    end
+
+    opts.on("-r", "--otp-random <offset>:<length>", "Program OTP at offset <offset> with <length> random data") do |arg|
+        a = arg.split(":")
+        raise "Need OTP args as offset:length" unless a.length == 2
+        rsp = do_cmd(fmt_otp_rand(a[0], a[1]))
+    end
+
+    opts.on("-m", "--otp-commit", "Program OTP with current emulation data") do
+        rsp = do_cmd(fmt_req(CMD_OTPC))
     end
 
     opts.on("-x", "--examples", "Show protocol example encodings") do
