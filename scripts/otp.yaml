@@ -1,5 +1,6 @@
 ---
 - accessor: true
+  area: 0
   name: OTP_PRG
   size: 4
   address: 0
@@ -33,7 +34,11 @@
     offset: 0
   prod_ate: true
   prod_cust: true
+  init_hw: X
+
+
 - accessor: true
+  area: 0
   name: FEAT_DIS
   size: 1
   address: 4
@@ -65,7 +70,10 @@
     offset: 0
   prod_ate: true
   init_hw: X
+
+
 - accessor: true
+  area: 0
   name: PARTID
   size: 2
   address: 5
@@ -73,20 +81,27 @@
   fields: []
   prod_ate: true
   init_hw: X
-- accessor: true
-  name: SERIAL_NUMBER
-  size: 8
-  address: 7
-  desc: Production serial number
-  fields: []
-  init_boot: BL2
+
 - name: TST_TRK
+  area: 0
   size: 1
-  address: 15
+  address: 7
   desc: Test tracking
   fields: []
   prod_probe: true
+
+- accessor: true
+  area: 0
+  name: SERIAL_NUMBER
+  size: 8
+  address: 8
+  desc: Production serial number
+  fields: []
+  init_boot: BL2
+
+
 - name: SECURE_JTAG
+  area: 0
   size: 4
   address: 16
   desc: Indicates the Secure JTAG mode of operation.
@@ -110,20 +125,94 @@
     offset: 0
   prod_cust: true
   init_hw: X
+
+
 - name: WAFER_TRK
+  area: 0
   size: 7
   address: 20
   desc: 'Wafer tracking info '
   fields: []
   prod_probe: true
+
+
 - name: JTAG_UUID
+  area: 0
   size: 10
   address: 32
   desc: 'Contains the 10-byte JTAG UUID. '
   fields: []
   prod_ate: true
   init_hw: X
+
+- name: OTP_PCIE_FLAGS
+  area: 2
+  size: 4
+  emu: false
+  address: 0x2A
+  desc:
+  fields:
+  - name: OTP_PCIE_FLAGS_REVISION_ID
+    width: 8
+    area: 2
+    emu: false
+    desc: TODO
+    offset: 8
+  - name: OTP_PCIE_FLAGS_DISABLE_REV_3
+    width: 1
+    desc: TODO
+    offset: 1
+  - name: OTP_PCIE_FLAGS_DISABLE_REV_2
+    width: 1
+    desc: TODO
+    offset: 0
+
+- name: OTP_PCIE_VENDOR_ID
+  area: 2
+  emu: false
+  size: 2
+  desc: TODO
+  address: 0x2E
+  fields: []
+- name: OTP_PCIE_VENDOR_SUB_ID
+  size: 2
+  area: 2
+  emu: false
+  desc: TODO
+  address: 0x30
+  fields: []
+
+- name: OTP_PCIE_CLASS_CODE
+  size: 4
+  area: 2
+  emu: false
+  desc: TODO
+  offset: 40
+  address: 0x32
+  fields: []
+
+- name: OTP_PCIE_SUBSYSTEM_ID
+  size: 2
+  area: 2
+  emu: false
+  desc: TODO
+  offset: 16
+  address: 0x36
+  fields: []
+
+- name: OTP_PCIE_SUBSYSTEM_VENDOR_ID
+  size: 2
+  area: 2
+  emu: false
+  desc: TODO
+  offset: 0
+  address: 0x38
+  fields: []
+
+
 - name: PROTECT_OTP_WRITE
+  init_hw: X
+  area: 0
   size: 4
   address: 64
   desc: Indicates which regions of OTP memory are write protected.
@@ -134,7 +223,11 @@
       Each bit in the OTP_WRITE_PROTECT[7:0] field corresponds to a region of OTP memory with bit 0 = region 0, bit 1 = region 1 etc.
       Writing a ‘1’ to a bit in the OTP_WRITE_PROTECT[7:0] field locks the corresponding region permanently from being written to.
     offset: 0
+
+
 - name: PROTECT_REGION_ADDR
+  init_hw: X
+  area: 0
   size: 32
   address: 68
   desc:
@@ -204,17 +297,126 @@
     desc: End address of protected region 7.
     offset: 0
   prod_cust: true
-- name: DEF_MAC_ADDR_AND_LEN
-  size: 8
-  address: 100
-  desc: Defines base MAC address of block of MAC addresses allocated by MCHP and the
-    length of the block
+
+- accessor: true
+  area: 1
+  emu: true
+  name: OTP_TBBR_ROTPK
+  size: 32
+  desc: SHA-256 has of the Root of trust Public Key. See <<TBBR>> for detailed description.
+  address: 0x100
   fields: []
-  prod_ate: true
-  init_boot: BL2?
+
+- accessor: true
+  area: 1
+  emu: true
+  name: OTP_TBBR_HUK
+  size: 32
+  desc: TODO...
+  address: 0x120
+  fields: []
+
+- accessor: true
+  area: 1
+  emu: true
+  name: OTP_TBBR_EK
+  size: 32
+  desc: Endorsement key. TODO, See <<TBBR>> for details.
+  address: 0x140
+  fields: []
+
+- accessor: true
+  area: 1
+  emu: true
+  name: OTP_TBBR_SSK
+  size: 32
+  desc: Endorsement key. TODO, See <<TBBR>> for details.
+  address: 0x160
+  fields: []
+
+- accessor: true
+  area: 1
+  emu: true
+  name: OTP_SJTAG_SSK
+  size: 32
+  desc: Endorsement key. TODO, See <<TBBR>> for details.
+  address: 0x180
+  fields: []
+
+- accessor: true
+  area: 1
+  emu: true
+  name: OTP_FLAGS1
+  size: 4
+  address: 0x1A0
+  desc:
+  fields:
+  - accessor: true
+    name: OTP_FLAGS1_DISABLE_OTP_EMU
+    width: 1
+    desc: By default, OTP emulation is enabled. Setting this bit will permanently
+      disable OTP emulation, and only values from the real OTP can be used.
+    offset: 7
+  - accessor: true
+    name: OTP_FLAGS1_ENABLE_TBBR
+    width: 1
+    desc: If set to one, all the OTP_TBBR_* fields will be configured and the system
+      will be setup for firmware authentication. This is a pre-request for firmware
+      encryption
+    offset: 6
+  - accessor: true
+    name: OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT
+    width: 1
+    desc: If set to 1, firmware is assumed to be encrypted in flash, and will be decrypted
+      on load.
+    offset: 5
+  - accessor: true
+    name: OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
+    width: 1
+    desc: If OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT is set, firmware is assumed to be
+      encrypted in flash, and will be decrypted on load. If   TP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
+      is set the HW Unique binding key will be used, otherwise the shared secret (SSK)
+      will be used.
+    offset: 4
+  - accessor: true
+    name: OTP_FLAGS1_ENABLE_DDR_ENCRYPT
+    width: 1
+    desc: If set to one, encryption of DDR memory will be enabled. This is required
+      to achieve a fully secured system, but it as a performance penalty as it introduce
+      a longer latency to the DDR memory. Attacks based on snooping/altering the DDR
+      bus are complicated, and not all designs may require this level of protection.
+    offset: 3
+  - accessor: true
+    name: OTP_FLAGS1_ALLOW_CLEAR_TEXT
+    width: 1
+    desc: TODO
+    offset: 2
+  - accessor: true
+    name: OTP_FLAGS1_ALLOW_SSK_ENCRYPTED
+    width: 1
+    desc: TODO
+    offset: 1
+  - accessor: true
+    name: OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED
+    width: 1
+    desc: TODO
+    offset: 0
+  prod_cust: true
+
+- accessor: true
+  area: 1
+  emu: true
+  name: OTP_STRAP_DISABLE_MASK
+  size: 2
+  address: 0x1A4
+  desc: TODO
+  fields: []
+
 - name: TRIM
+  area: 2
   size: 8
-  address: 108
+  emu: true
+  address: 0x200
   desc:
   fields:
   - name: UVOV_TRIM0
@@ -249,223 +451,23 @@
     width: 6
     desc: Trim bits are determined in ATE trim sequence and vary from part to part
     offset: 0
-- name: OTP_PCIE
-  size: 13
-  address: 116
-  desc:
-  fields:
-  - name: OTP_PCIE_DISABLE_REV_3
-    width: 1
-    desc: TODO
-    offset: 97
-  - name: OTP_PCIE_DISABLE_REV_2
-    width: 1
-    desc: TODO
-    offset: 96
-  - name: OTP_PCIE_VENDOR_ID
-    width: 16
-    desc: TODO
-    offset: 80
-  - name: OTP_PCIE_VENDOR_SUB_ID
-    width: 16
-    desc: TODO
-    offset: 64
-  - name: OTP_PCIE_CLASS_CODE
-    width: 24
-    desc: TODO
-    offset: 40
-  - name: OTP_PCIE_REVISION_ID
-    width: 8
-    desc: TODO
-    offset: 32
-  - name: OTP_PCIE_SUBSYSTEM_ID
-    width: 16
-    desc: TODO
-    offset: 16
-  - name: OTP_PCIE_SUBSYSTEM_VENDOR_ID
-    width: 16
-    desc: TODO
-    offset: 0
-  prod_ate: true
+
 - accessor: true
-  name: OTP_FLAGS1
-  size: 4
-  address: 129
-  desc:
-  fields:
-  - accessor: true
-    name: OTP_FLAGS1_DISABLE_OTP_EMU
-    width: 1
-    desc: By default, OTP emulation is enabled. Setting this bit will permanently
-      disable OTP emulation, and only values from the real OTP can be used.
-    offset: 14
-  - accessor: true
-    name: OTP_FLAGS1_ENABLE_TBBR
-    width: 1
-    desc: If set to one, all the OTP_TBBR_* fields will be configured and the system
-      will be setup for firmware authentication. This is a pre-request for firmware
-      encryption
-    offset: 13
-  - accessor: true
-    name: OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT
-    width: 1
-    desc: If set to 1, firmware is assumed to be encrypted in flash, and will be decrypted
-      on load.
-    offset: 12
-  - accessor: true
-    name: OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
-    width: 1
-    desc: If OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT is set, firmware is assumed to be
-      encrypted in flash, and will be decrypted on load. If   TP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
-      is set the HW Unique binding key will be used, otherwise the shared secret (SSK)
-      will be used.
-    offset: 11
-  - accessor: true
-    name: OTP_FLAGS1_ENABLE_DDR_ENCRYPT
-    width: 1
-    desc: If set to one, encryption of DDR memory will be enabled. This is required
-      to achieve a fully secured system, but it as a performance penalty as it introduce
-      a longer latency to the DDR memory. Attacks based on snooping/altering the DDR
-      bus are complicated, and not all designs may require this level of protection.
-    offset: 10
-  - accessor: true
-    name: OTP_FLAGS1_SJTAG_FREEZE
-    width: 1
-    desc: If this bit is set, the SJTAG:SJTAG_REGS:CTL.SJTAG_FREEZE register will
-      be set   after the secure JTAG is configured. This means that the Secure JTAG
-      cannot be unlocked by using the UART monitor or by using a PSCI call.
-    offset: 9
-  - accessor: true
-    name: OTP_FLAGS1_QSPI_HEADER_DISABLE
-    width: 1
-    desc: TODO
-    offset: 8
-  - accessor: true
-    name: OTP_FLAGS1_EMMC_HEADER_DISABLE
-    width: 1
-    desc: TODO
-    offset: 7
-  - accessor: true
-    name: OTP_FLAGS1_COPY_USER_AREA_0
-    width: 1
-    desc: 'If set, copy the content of OTP_USER_AREA_0 to DDR memory. NOTE: This is
-      shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
-      feature.'
-    offset: 6
-  - accessor: true
-    name: OTP_FLAGS1_COPY_USER_AREA_1
-    width: 1
-    desc: 'If set, copy the content of OTP_USER_AREA_1 to DDR memory. NOTE: This is
-      shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
-      feature.'
-    offset: 5
-  - accessor: true
-    name: OTP_FLAGS1_COPY_USER_AREA_2
-    width: 1
-    desc: 'If set, copy the content of OTP_USER_AREA_2 to DDR memory. NOTE: This is
-      shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
-      feature.'
-    offset: 4
-  - accessor: true
-    name: OTP_FLAGS1_COPY_USER_AREA_3
-    width: 1
-    desc: 'If set, copy the content of OTP_USER_AREA_3 to DDR memory. NOTE: This is
-      shall be done in BL2 (not BL1) - designs without DDR memory cannot utilize this
-      feature.'
-    offset: 3
-  - accessor: true
-    name: OTP_FLAGS1_ALLOW_CLEAR_TEXT
-    width: 1
-    desc: TODO
-    offset: 2
-  - accessor: true
-    name: OTP_FLAGS1_ALLOW_SSK_ENCRYPTED
-    width: 1
-    desc: TODO
-    offset: 1
-  - accessor: true
-    name: OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED
-    width: 1
-    desc: TODO
-    offset: 0
-  prod_cust: true
-- accessor: true
-  name: OTP_STRAP_DISABLE_MASK
-  size: 2
-  address: 133
+  area: 3
+  emu: true
+  name: OTP_TBBR_NTNVCT
+  size: 32
   desc: TODO
+  address: 0x240
   fields: []
-- name: OTP_TBBR
-  size: 168
-  address: 135
-  desc:
-  fields:
-  - accessor: true
-    name: OTP_TBBR_ROTPK
-    width: 256
-    desc: SHA-256 has of the Root of trust Public Key. See <<TBBR>> for detailed description.
-    offset: 1088
-  - accessor: true
-    name: OTP_TBBR_HUK
-    width: 256
-    desc: TODO...
-    offset: 832
-  - accessor: true
-    name: OTP_TBBR_EK
-    width: 256
-    desc: Endorsement key. TODO, See <<TBBR>> for details.
-    offset: 576
-  - accessor: true
-    name: OTP_TBBR_SSK
-    width: 256
-    desc: Endorsement key. TODO, See <<TBBR>> for details.
-    offset: 320
-  - accessor: true
-    name: OTP_TBBR_TNVCT
-    width: 64
-    desc: TODO
-    offset: 256
-  - accessor: true
-    name: OTP_TBBR_NTNVCT
-    width: 256
-    desc: TODO
-    offset: 0
-  prod_cust: true
-- name: OTP_USER
-  size: 352
-  address: 303
-  desc:
-  fields:
-  - accessor: true
-    name: OTP_USER_AREA_0
-    width: 256
-    desc: If OTP_FLAGS1_COPY_USER_AREA_0 is set, then this area is raw copied to DDR
-      memory by BL2. Content is not used by the boot ROM, but an insecure copy is
-      made available for others to use. This can be used for stuff like MAC-addresses,
-      board ID, board-eco, etc. OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT
-    offset: 2560
-  - accessor: true
-    name: OTP_USER_AREA_1
-    width: 512
-    desc: If OTP_FLAGS1_COPY_USER_AREA_1 is set, then this area is raw copied to DDR
-      memory by BL2. Content is not used by the boot ROM, but an insecure copy is
-      made available for others to use. This can be used for stuff like MAC-addresses,
-      board ID, board-eco, etc.
-    offset: 2048
-  - accessor: true
-    name: OTP_USER_AREA_2
-    width: 1024
-    desc: If OTP_FLAGS1_COPY_USER_AREA_2 is set, then this area is raw copied to DDR
-      memory by BL2. Content is not used by the boot ROM, but an insecure copy is
-      made available for others to use. This can be used for stuff like MAC-addresses,
-      board ID, board-eco, etc.
-    offset: 1024
-  - accessor: true
-    name: OTP_USER_AREA_3
-    width: 1024
-    desc: If OTP_FLAGS1_COPY_USER_AREA_3 is set, then this area is raw copied to DDR
-      memory by BL2. Content is not used by the boot ROM, but an insecure copy is
-      made available for others to use. This can be used for stuff like MAC-addresses,
-      board ID, board-eco, etc.
-    offset: 0
-  prod_cust: true
+
+- accessor: true
+  area: 3
+  emu: true
+  name: OTP_TBBR_TNVCT
+  size: 32
+  desc: TODO
+  address: 0x260
+  fields: []
+
+
