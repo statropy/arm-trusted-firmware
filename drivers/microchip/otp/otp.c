@@ -219,6 +219,7 @@ static void otp_init(void)
 	otp_hw_read_bytes(OTP_FLAGS1_ADDR, 4, (uint8_t*)&flags1);
 	if (flags1 & BIT(OTP_OTP_FLAGS1_DISABLE_OTP_EMU_OFF)) {
 		NOTICE("OTP emulation disabled (by OTP)\n");
+		flags1 = 0;	/* Don't leak data */
 	} else {
 		if (otp_emu_init())
 			otp_flags |= OTP_FLAG_EMULATION;
@@ -300,6 +301,7 @@ int otp_commit_emulation(void)
 						break;
 				}
 			}
+			eb = ob = nb = 0; /* Don't leak */
 		}
 		otp_hw_power(false);
 	}
