@@ -105,12 +105,13 @@ static void otp_hw_reset(void)
 
 static void otp_hw_set_address(unsigned int offset)
 {
-	assert(offset < (OTP_MEM_SIZE*8));
+	assert(offset < OTP_MEM_SIZE);
+	offset *= 8;		/* HW Address is in bits */
 	mmio_write_32(OTP_OTP_ADDR_HI(reg_base), 0xff & (offset >> 8));
 	mmio_write_32(OTP_OTP_ADDR_LO(reg_base), 0xff & offset);
 }
 
-static int otp_hw_read_byte(uint8_t *dst, unsigned int offset)
+static int otp_hw_read_byte(unsigned int offset, uint8_t *dst)
 {
 	int rc;
 
@@ -124,20 +125,20 @@ static int otp_hw_read_byte(uint8_t *dst, unsigned int offset)
 			return -EACCES;
 		*dst = mmio_read_32(OTP_OTP_RD_DATA(reg_base));
 		if (*dst) {
-			VERBOSE("OTP read %02x @ %04x\n", *dst, offset / 8);
+			VERBOSE("OTP read %02x @ %04x\n", *dst, offset);
 		}
 	}
 	return rc;
 }
 
-static int otp_hw_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
+static int otp_hw_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 {
 	uint8_t data;
-	int i, rc = 0, len = nbits / 8;
+	int i, rc = 0;
 
 	otp_hw_power(true);
-	for (i = 0; i < len; i++, offset += 8) {
-		rc = otp_hw_read_byte(&data, offset);
+	for (i = 0; i < nbytes; i++) {
+		rc = otp_hw_read_byte(offset + i, &data);
 		if (rc < 0)
 			break;
 		*dst++ = data;
@@ -147,7 +148,7 @@ static int otp_hw_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbit
 	return rc;
 }
 
-static int otp_hw_write_byte(uint8_t data, unsigned int offset)
+static int otp_hw_write_byte(unsigned int offset, uint8_t data)
 {
 	int rc;
 
@@ -163,27 +164,27 @@ static int otp_hw_write_byte(uint8_t data, unsigned int offset)
 			return -EACCES;
 		if (pass & OTP_OTP_PASS_FAIL_OTP_FAIL(1))
 			return -EIO;
-		VERBOSE("OTP wrote %02x @ %04x\n", data, offset / 8);
+		VERBOSE("OTP wrote %02x @ %04x\n", data, offset);
 	}
 	return rc;
 }
 
-static int otp_hw_write_bits(const uint8_t *src, unsigned int offset, unsigned int nbits)
+static int otp_hw_write_bytes(unsigned int offset, unsigned int nbytes, const uint8_t *src)
 {
 	uint8_t data, newdata;
-	int i, rc = 0, len = nbits / 8;
+	int i, rc = 0;
 
 	otp_hw_power(true);
-	for (i = 0; i < len; i++, offset += 8) {
+	for (i = 0; i < nbytes; i++) {
 		/* Skip zero bytes */
 		if (src[i]) {
-			rc = otp_hw_read_byte(&data, offset);
+			rc = otp_hw_read_byte(offset + i, &data);
 			if (rc < 0)
 				break;
 			/* Will setting input data change cell? */
 			newdata = data | src[i];
 			if (newdata != data) {
-				rc = otp_hw_write_byte(newdata, offset);
+				rc = otp_hw_write_byte(offset + i, newdata);
 				if (rc < 0)
 					break;
 			}
@@ -215,7 +216,7 @@ static void otp_init(void)
 	/* Note: Now read the "flags1" element, to decide whether OTP
 	 * emulation has been disabled.
 	 */
-	otp_hw_read_bits((uint8_t*)&flags1, OTP_FLAGS1_ADDR * 8, 32);
+	otp_hw_read_bytes(OTP_FLAGS1_ADDR, 4, (uint8_t*)&flags1);
 	if (flags1 & BIT(OTP_OTP_FLAGS1_DISABLE_OTP_EMU_OFF)) {
 		NOTICE("OTP emulation disabled (by OTP)\n");
 	} else {
@@ -224,57 +225,53 @@ static void otp_init(void)
 	}
 }
 
-int otp_read_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
+int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 {
 	int rc;
 
-	assert(nbits > 0);
-	assert((nbits % 8) == 0);
-	assert((offset % 8) == 0);
-	assert((offset + nbits) < (OTP_MEM_SIZE*8));
+	assert(nbytes > 0);
+	assert((offset + nbytes) < OTP_MEM_SIZE);
 
 	/* Make sure we're initialized */
 	otp_init();
 
 	/* Read bitstream */
-	rc = otp_hw_read_bits(dst, offset, nbits);
+	rc = otp_hw_read_bytes(offset, nbytes, dst);
 
 	/* If we read data, possibly or in emulation data */
 	if (rc >= 0 && otp_flags & OTP_FLAG_EMULATION)
-		otp_emu_add_bits(dst, offset, nbits);
+		otp_emu_add_bytes(offset, nbytes, dst);
 
 	return rc;
 }
 
-int otp_read_uint32(uint32_t *dst, unsigned int offset)
+int otp_read_uint32(unsigned int offset, uint32_t *dst)
 {
-	return otp_read_bits((uint8_t *)dst, offset, 32);
+	return otp_read_bytes(offset, 4, (uint8_t *)dst);
 }
 
-int otp_write_bits(const uint8_t *dst, unsigned int offset, unsigned int nbits)
+int otp_write_bytes(unsigned int offset, unsigned int nbytes, const uint8_t *dst)
 {
-	assert(nbits > 0);
-	assert((nbits % 8) == 0);
-	assert((offset % 8) == 0);
-	assert((offset + nbits) < (OTP_MEM_SIZE*8));
+	assert(nbytes > 0);
+	assert((offset + nbytes) < OTP_MEM_SIZE);
 
 	/* Make sure we're initialized */
 	otp_init();
 
-	return otp_hw_write_bits(dst, offset, nbits);
+	return otp_hw_write_bytes(offset, nbytes, dst);
 }
 
-int otp_write_uint32(uint32_t w, unsigned int offset)
+int otp_write_uint32(unsigned int offset, uint32_t w)
 {
-	return otp_write_bits((const uint8_t *)&w, offset, 32);
+	return otp_write_bytes(offset, 4, (const uint8_t *)&w);
 }
 
 /* Check to see if all bits are clear */
-bool otp_all_zero(const uint8_t *p, size_t len)
+bool otp_all_zero(const uint8_t *p, size_t nbytes)
 {
 	int i;
 
-	for (i = 0; i < len; i++)
+	for (i = 0; i < nbytes; i++)
 		if (p[i] != 0)
 			return false;
 
@@ -289,16 +286,16 @@ int otp_commit_emulation(void)
 		otp_hw_power(true);
 		for (i = 0; i < OTP_MEM_SIZE; i++) {
 			uint8_t eb = 0, ob, nb;
-			otp_emu_add_bits(&eb, i * 8, 8);
+			otp_emu_add_bytes(i, 1, &eb);
 			if (eb) {
-				rc = otp_hw_read_byte(&ob, i * 8);
+				rc = otp_hw_read_byte(i, &ob);
 				if (rc != 0)
 					break;
 				/* Add emulation data */
 				nb = (eb | ob);
 				/* Update iff new data differs */
 				if (nb != ob) {
-					rc = otp_hw_write_byte(nb, i * 8);
+					rc = otp_hw_write_byte(i, nb);
 					if (rc != 0)
 						break;
 				}

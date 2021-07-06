@@ -41,7 +41,7 @@ static void handle_otp_data(bootstrap_req_t *req)
 
 	if (req->len > 0 && req->len < MAX_OTP_DATA &&
 	    bootstrap_RxDataCrc(req, ptr)) {
-		if (otp_write_bits(ptr, req->arg0 * 8, req->len * 8) == 0)
+		if (otp_write_bytes(req->arg0, req->len, ptr) == 0)
 			bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 		else
 			bootstrap_TxNack("OTP program failed");
@@ -64,7 +64,7 @@ static void handle_otp_random(bootstrap_req_t *req)
 			for (i = 0; i < div_round_up(datalen, sizeof(uint32_t)); i++)
 				data[i] = lan966x_trng_read();
 			/* Write to OTP */
-			if (otp_write_bits((uint8_t *)data, req->arg0 * 8, datalen * 8) == 0)
+			if (otp_write_bytes(req->arg0, datalen, (uint8_t *)data) == 0)
 				bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 			else
 				bootstrap_TxNack("OTP program random failed");

@@ -37,17 +37,14 @@ bool otp_emu_init(void)
 	return active;
 }
 
-void otp_emu_add_bits(uint8_t *dst, unsigned int offset, unsigned int nbits)
+void otp_emu_add_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 {
 	uint8_t *spi_src;
-	int i, len;
-
-	offset /= 8;
-	len = nbits / 8;
+	int i;
 
 	spi_src = (uint8_t*) (LAN996X_QSPI0_MMAP + OTP_SPI_OFFSET + offset);
 
 	/* Or in data from SPI */
-	for (i = 0; i < len; i++)
+	for (i = 0; i < nbytes; i++)
 		dst[i] |= spi_src[i];
 }

@@ -16,7 +16,7 @@ static const uint8_t lan966x_rotpk_header[] = {
 	0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20
 };
 
-#define LAN966X_ROTPK_HASH_LEN	(OTP_OTP_TBBR_ROTPK_LEN / 8)
+#define LAN966X_ROTPK_HASH_LEN	(OTP_OTP_TBBR_ROTPK_BITS / 8)
 #define LAN966X_ROTPK_HEADER	sizeof(lan966x_rotpk_header)
 
 static uint8_t rotpk_hash_der[LAN966X_ROTPK_HEADER + LAN966X_ROTPK_HASH_LEN];
