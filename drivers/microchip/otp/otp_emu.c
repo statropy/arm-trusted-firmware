@@ -15,6 +15,9 @@
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
 
+/* Restrict OTP emulation to 1Kb */
+#define OTP_EMU_MAX_DATA	1024
+
 #define OTP_SPI_OFFSET	0x1C0000 /* 1536k + 256k */
 
 bool otp_emu_init(void)
@@ -25,8 +28,8 @@ bool otp_emu_init(void)
 
 	/* CRC check of flash emulation data */
 	spi_src = (uint8_t*) (LAN996X_QSPI0_MMAP + OTP_SPI_OFFSET);
-	crc1 = Crc32c(0, spi_src, OTP_MEM_SIZE);
-	crc2 = *(uint32_t*)(spi_src + OTP_MEM_SIZE);
+	crc1 = Crc32c(0, spi_src, OTP_EMU_MAX_DATA);
+	crc2 = *(uint32_t*)(spi_src + OTP_EMU_MAX_DATA);
 	if (crc1 == crc2) {
 		INFO("OTP flash emulation active\n");
 		active = true;
@@ -37,14 +40,14 @@ bool otp_emu_init(void)
 	return active;
 }
 
-void otp_emu_add_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
+uint8_t otp_emu_get_byte(unsigned int offset)
 {
-	uint8_t *spi_src;
-	int i;
+	uint8_t *spi_src = (uint8_t*) (LAN996X_QSPI0_MMAP + OTP_SPI_OFFSET);
 
-	spi_src = (uint8_t*) (LAN996X_QSPI0_MMAP + OTP_SPI_OFFSET + offset);
+	/* Only have data for so much */
+	if (offset < OTP_EMU_MAX_DATA)
+		return spi_src[offset];
 
-	/* Or in data from SPI */
-	for (i = 0; i < nbytes; i++)
-		dst[i] |= spi_src[i];
+	/* Otherwise zero contribution */
+	return 0;
 }

@@ -240,8 +240,12 @@ int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 	rc = otp_hw_read_bytes(offset, nbytes, dst);
 
 	/* If we read data, possibly or in emulation data */
-	if (rc >= 0 && otp_flags & OTP_FLAG_EMULATION)
-		otp_emu_add_bytes(offset, nbytes, dst);
+	if (rc >= 0 && otp_flags & OTP_FLAG_EMULATION) {
+		int i;
+
+		for (i = 0; i < nbytes; i++)
+			dst[i] |= otp_emu_get_byte(offset + i);
+	}
 
 	return rc;
 }
@@ -287,7 +291,7 @@ int otp_commit_emulation(void)
 		otp_hw_power(true);
 		for (i = 0; i < OTP_MEM_SIZE; i++) {
 			uint8_t eb = 0, ob, nb;
-			otp_emu_add_bytes(i, 1, &eb);
+			eb = otp_emu_get_byte(i);
 			if (eb) {
 				rc = otp_hw_read_byte(i, &ob);
 				if (rc != 0)

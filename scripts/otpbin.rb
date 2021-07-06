@@ -5,7 +5,7 @@ require 'optparse'
 require 'digest/crc32'
 require 'pp'
 
-$bits = [ 0 ] * (8192)
+$bits = [ 0 ] * (1024)
 $data = nil
 
 def set_bits(elem, field)
@@ -28,7 +28,7 @@ end
 def find_elem(s, n)
     s.each do|g|
         if g["name"] == n
-            return Hash[ "offset" => g["address"] * 8, "width" => g["width"]]
+            return Hash[ "offset" => g["address"] * 8, "width" => g["size"] * 8]
         end
         g["fields"].each do|f|
             if f["name"] == n

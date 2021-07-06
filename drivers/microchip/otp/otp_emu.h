@@ -9,6 +9,6 @@
 #define OTP_EMU_H
 
 bool otp_emu_init(void);
-void otp_emu_add_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst);
+uint8_t otp_emu_get_byte(unsigned int offset);
 
 #endif	/* OTP_EMU_H */
