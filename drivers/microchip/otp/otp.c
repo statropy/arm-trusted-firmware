@@ -123,7 +123,7 @@ static int otp_hw_read_byte(unsigned int offset, uint8_t *dst)
 		uint32_t pass = mmio_read_32(OTP_OTP_PASS_FAIL(reg_base));
 		if (pass & OTP_OTP_PASS_FAIL_OTP_READ_PROHIBITED(1))
 			return -EACCES;
-		*dst = mmio_read_32(OTP_OTP_RD_DATA(reg_base));
+		*dst = (uint8_t) mmio_read_32(OTP_OTP_RD_DATA(reg_base));
 		if (*dst) {
 			VERBOSE("OTP read %02x @ %04x\n", *dst, offset);
 		}
