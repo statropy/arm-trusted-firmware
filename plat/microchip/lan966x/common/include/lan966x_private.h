@@ -43,7 +43,7 @@ typedef enum {
   BOOT_SOURCE_EMMC = 0,
   BOOT_SOURCE_SDMMC,
   BOOT_SOURCE_QSPI,
-  BOOT_SOURCE_INVALID
+  BOOT_SOURCE_NONE
 } boot_source_type;
 
 

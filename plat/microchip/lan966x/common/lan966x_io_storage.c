@@ -278,7 +278,7 @@ static const struct plat_io_policy boot_source_policies[] = {
 		&memmap_dev_handle,
 		(uintptr_t)&fip_qspi_block_spec,
 		check_memmap
-	},
+	}
 };
 
 static int check_fip(const uintptr_t spec)
@@ -364,13 +364,14 @@ void lan966x_io_setup(void)
 				     &memmap_dev_handle);
 		assert(result == 0);
 		break;
+	case BOOT_SOURCE_NONE:
+		INFO("Boot source NONE selected \n");
+		break;
 	default:
 		ERROR("Unknown boot source \n");
 		assert(false);
 		break;
 	}
-
-
 
 	/* Ignore improbable errors in release builds */
 	(void)result;

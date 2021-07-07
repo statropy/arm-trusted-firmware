@@ -75,8 +75,11 @@ void lan966x_sdmmc_init(void)
 	case BOOT_SOURCE_QSPI:
 		INFO("Initializing QSPI\n");
 		break;
+	case BOOT_SOURCE_NONE:
+		INFO("Boot source NONE selected\n");
+		break;
 	default:
-		ERROR("BL1: Currently not supported boot source\n");
+		ERROR("BL1: Not supported boot source: %d\n", bootSource);
 		assert(false);
 		break;
 	}

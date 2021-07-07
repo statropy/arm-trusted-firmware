@@ -393,7 +393,7 @@ void qspi_plat_configure(void)
 
 uint32_t lan966x_get_boot_source(void)
 {
-	boot_source_type bootSource = BOOT_SOURCE_INVALID;
+	boot_source_type bootSource;
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_BOOT_MMC:
@@ -406,8 +406,7 @@ uint32_t lan966x_get_boot_source(void)
 		bootSource = BOOT_SOURCE_SDMMC;
 		break;
 	default:
-		ERROR("Boot source not supported !\n");
-		assert(false);
+		bootSource = BOOT_SOURCE_NONE;
 		break;
 	}
 
