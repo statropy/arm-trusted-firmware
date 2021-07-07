@@ -141,9 +141,6 @@ void bl2_platform_setup(void)
 	/* Initialize DDR for loading BL32/BL33 */
 	lan966x_ddr_init();
 
-	/* TRNG */
-	lan966x_trng_init();
-
 #if defined(LAN966X_TZ)   /* N/A on LAN966X-A0 due to chip error */
 	/* Initialize the secure environment */
 	lan966x_tz_init();

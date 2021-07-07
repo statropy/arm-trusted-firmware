@@ -41,10 +41,10 @@ static void setup_tzaesb(uintptr_t tzaesb)
 		      TZAESBNS_TZAESB_MR_OPMOD(4) | /* CTR mode */
 		      TZAESBNS_TZAESB_MR_DUALBUFF(1) |
 		      TZAESBNS_TZAESB_MR_AAHB(1));
-	mmio_write_32(TZAESBNS_TZAESB_KEYWR0(tzaesb), 0x09cf4f3c);
-	mmio_write_32(TZAESBNS_TZAESB_KEYWR1(tzaesb), 0xabf71588);
-	mmio_write_32(TZAESBNS_TZAESB_KEYWR2(tzaesb), 0x28aed2a6);
-	mmio_write_32(TZAESBNS_TZAESB_KEYWR3(tzaesb), 0x2b7e1516);
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR0(tzaesb), lan966x_trng_read());
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR1(tzaesb), lan966x_trng_read());
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR2(tzaesb), lan966x_trng_read());
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR3(tzaesb), lan966x_trng_read());
 
 	/* IV REGS */
 	mmio_write_32(TZAESBNS_TZAESB_IVR0(tzaesb), 0xfcfdfeff);
