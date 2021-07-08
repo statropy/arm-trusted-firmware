@@ -393,22 +393,22 @@ void qspi_plat_configure(void)
 
 uint32_t lan966x_get_boot_source(void)
 {
-	boot_source_type bootSource;
+	boot_source_type boot_source;
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_BOOT_MMC:
-		bootSource = BOOT_SOURCE_EMMC;
+		boot_source = BOOT_SOURCE_EMMC;
 		break;
 	case LAN966X_STRAP_BOOT_QSPI :
-		bootSource = BOOT_SOURCE_QSPI;
+		boot_source = BOOT_SOURCE_QSPI;
 		break;
 	case LAN966X_STRAP_BOOT_SD:
-		bootSource = BOOT_SOURCE_SDMMC;
+		boot_source = BOOT_SOURCE_SDMMC;
 		break;
 	default:
-		bootSource = BOOT_SOURCE_NONE;
+		boot_source = BOOT_SOURCE_NONE;
 		break;
 	}
 
-	return bootSource;
+	return boot_source;
 }

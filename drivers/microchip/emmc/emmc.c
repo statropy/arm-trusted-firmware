@@ -140,8 +140,8 @@ static const unsigned int TAAC_TimeMant[16] =
 static void lan966x_clock_delay(unsigned int sd_clock_cycles)
 {
 	unsigned int usec;
-	usec =
-	    DIV_ROUND_UP(sd_clock_cycles * 1000000u, lan966x_params.clk_rate);
+	usec = DIV_ROUND_UP_2EVAL(sd_clock_cycles * 1000000u,
+				  lan966x_params.clk_rate);
 	udelay(usec);
 }
 
@@ -189,7 +189,7 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 		if (SD_clock_freq == mult_clock) {
 			clk_div = 0;
 		} else {
-			clk_div = DIV_ROUND_UP(mult_clock, SD_clock_freq) - 1;
+			clk_div = DIV_ROUND_UP_2EVAL(mult_clock, SD_clock_freq) - 1;
 		}
 		break;
 
@@ -354,8 +354,8 @@ static void lan966x_get_csd_register(void)
 
 static unsigned char lan966x_emmc_poll(unsigned int expected)
 {
-	unsigned int trials =
-	    DIV_ROUND_UP(EMMC_POLLING_TIMEOUT, EMMC_POLL_LOOP_DELAY);
+	unsigned int trials = DIV_ROUND_UP_2EVAL(EMMC_POLLING_TIMEOUT,
+						 EMMC_POLL_LOOP_DELAY);
 	uint16_t nistr = 0u;
 
 	eistr = 0u;

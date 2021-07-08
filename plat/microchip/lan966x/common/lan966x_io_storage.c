@@ -332,7 +332,7 @@ static int check_memmap(const uintptr_t spec)
 void lan966x_io_setup(void)
 {
 	int result;
-	boot_source_type bootSource;
+	boot_source_type boot_source;
 
 	lan966x_io_init();
 
@@ -342,9 +342,9 @@ void lan966x_io_setup(void)
 	result = io_dev_open(fip_dev_con, (uintptr_t)NULL, &fip_dev_handle);
 	assert(result == 0);
 
-	bootSource = lan966x_get_boot_source();
+	boot_source = lan966x_get_boot_source();
 
-	switch (bootSource) {
+	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
 
@@ -384,14 +384,14 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 			  uintptr_t *image_spec)
 {
 	int result;
-	uint32_t bootSource;
+	uint32_t boot_source;
 	const struct plat_io_policy *policy;
 
 	assert(image_id < ARRAY_SIZE(policies));
 
-	bootSource = lan966x_get_boot_source();
+	boot_source = lan966x_get_boot_source();
 	if (image_id == FIP_IMAGE_ID)
-		policy = &boot_source_policies[bootSource];
+		policy = &boot_source_policies[boot_source];
 	else
 		policy = &policies[image_id];
 

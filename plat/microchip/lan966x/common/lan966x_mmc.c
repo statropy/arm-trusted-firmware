@@ -60,9 +60,9 @@ static void plat_lan966x_config(void)
 void lan966x_sdmmc_init(void)
 {
 	/* The current boot source is provided by the strapping pin config */
-	boot_source_type bootSource = lan966x_get_boot_source();
+	boot_source_type boot_source = lan966x_get_boot_source();
 
-	switch (bootSource) {
+	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
 		INFO("Initializing eMMC\n");
 		break;
@@ -79,7 +79,7 @@ void lan966x_sdmmc_init(void)
 		INFO("Boot source NONE selected\n");
 		break;
 	default:
-		ERROR("BL1: Not supported boot source: %d\n", bootSource);
+		ERROR("BL1: Not supported boot source: %d\n", boot_source);
 		assert(false);
 		break;
 	}

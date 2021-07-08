@@ -30,10 +30,6 @@
 
 #define TIME_MSEC(x)	(x * 1000)	/* Converts arg from ms to microsec */
 
-#ifndef DIV_ROUND_UP
-#define DIV_ROUND_UP(x, y)	(((x) + (y) - 1) / (y))
-#endif
-
 #define MMC_HIGH_DENSITY	(3)
 #define MMC_NORM_DENSITY	(2)
 #define SD_CARD_SDHC_SDXC	(1)
