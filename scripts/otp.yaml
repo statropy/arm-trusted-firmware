@@ -139,77 +139,56 @@
 - name: JTAG_UUID
   area: 0
   size: 10
-  address: 32
+  address: 0x20
   desc: 'Contains the 10-byte JTAG UUID. '
   fields: []
   prod_ate: true
   init_hw: X
 
-- name: OTP_PCIE_FLAGS
-  area: 2
-  size: 4
+- name: TRIM
+  area: 0
+  size: 8
   emu: false
-  address: 0x2A
+  address: 0x30
   desc:
   fields:
-  - name: OTP_PCIE_FLAGS_REVISION_ID
-    width: 8
-    area: 2
-    emu: false
-    desc: TODO
+  - name: UVOV_TRIM0
+    width: 6
+    desc: UVOV 0 trim value
+    offset: 37
+  - name: UVOV_TRIM1
+    width: 6
+    desc: UVOV 1 trim value
+    offset: 31
+  - name: UVOV_TRIM2
+    width: 6
+    desc: UVOV 2 trim value
+    offset: 25
+  - name: UVOV_TRIM3
+    width: 6
+    desc: UVOV 3 trim value
+    offset: 19
+  - name: COM_BIAS_BG_TC_TRIM
+    width: 5
+    desc: Common for all units (bench characterization)
+    offset: 14
+  - name: COM_BIAS_BG_MAG_TRIM
+    width: 6
+    desc: Trim bits are determined in ATE trim sequence and vary from part to part
     offset: 8
-  - name: OTP_PCIE_FLAGS_DISABLE_REV_3
-    width: 1
-    desc: TODO
-    offset: 1
-  - name: OTP_PCIE_FLAGS_DISABLE_REV_2
-    width: 1
-    desc: TODO
+  - name: COM_RBIAS_TC_TRIM
+    width: 2
+    desc: Common for all units (bench characterization)
+    offset: 6
+  - name: COM_RBIAS_MAG_TRIM
+    width: 6
+    desc: Trim bits are determined in ATE trim sequence and vary from part to part
     offset: 0
-
-- name: OTP_PCIE_VENDOR_ID
-  area: 2
-  emu: false
-  size: 2
-  desc: TODO
-  address: 0x2E
-  fields: []
-- name: OTP_PCIE_VENDOR_SUB_ID
-  size: 2
-  area: 2
-  emu: false
-  desc: TODO
-  address: 0x30
-  fields: []
-
-- name: OTP_PCIE_SUBSYSTEM_ID
-  size: 2
-  area: 2
-  emu: false
-  desc: TODO
-  address: 0x32
-  fields: []
-
-- name: OTP_PCIE_SUBSYSTEM_VENDOR_ID
-  size: 2
-  area: 2
-  emu: false
-  desc: TODO
-  address: 0x34
-  fields: []
-
-- name: OTP_PCIE_CLASS_CODE
-  size: 4
-  area: 2
-  emu: false
-  desc: TODO
-  address: 0x36
-  fields: []
 
 
 - name: PROTECT_OTP_WRITE
   init_hw: X
-  area: 0
+  area: 1
   size: 4
   address: 64
   desc: Indicates which regions of OTP memory are write protected.
@@ -224,7 +203,7 @@
 
 - name: PROTECT_REGION_ADDR
   init_hw: X
-  area: 0
+  area: 2
   size: 32
   address: 68
   desc:
@@ -295,8 +274,71 @@
     offset: 0
   prod_cust: true
 
+- name: OTP_PCIE_FLAGS
+  area: 3
+  size: 4
+  emu: false
+  address: 0x64
+  desc:
+  fields:
+  - name: OTP_PCIE_FLAGS_REVISION_ID
+    width: 8
+    emu: false
+    desc: TODO
+    offset: 8
+  - name: OTP_PCIE_FLAGS_DISABLE_REV_3
+    width: 1
+    desc: TODO
+    offset: 1
+  - name: OTP_PCIE_FLAGS_DISABLE_REV_2
+    width: 1
+    desc: TODO
+    offset: 0
+
+- name: OTP_PCIE_CLASS_CODE
+  size: 4
+  area: 3
+  emu: false
+  desc: TODO
+  address: 0x68
+  fields: []
+
+- name: OTP_PCIE_VENDOR_ID
+  area: 3
+  emu: false
+  size: 2
+  desc: TODO
+  address: 0x6C
+  fields: []
+
+- name: OTP_PCIE_VENDOR_SUB_ID
+  area: 3
+  emu: false
+  size: 2
+  desc: TODO
+  address: 0x6E
+  fields: []
+
+- name: OTP_PCIE_SUBSYSTEM_ID
+  size: 2
+  area: 3
+  emu: false
+  desc: TODO
+  address: 0x70
+  fields: []
+
+- name: OTP_PCIE_SUBSYSTEM_VENDOR_ID
+  size: 2
+  area: 3
+  emu: false
+  desc: TODO
+  address: 0x72
+  fields: []
+
+
+
 - accessor: true
-  area: 1
+  area: 4
   emu: true
   name: OTP_TBBR_ROTPK
   size: 32
@@ -305,7 +347,7 @@
   fields: []
 
 - accessor: true
-  area: 1
+  area: 4
   emu: true
   name: OTP_TBBR_HUK
   size: 32
@@ -314,7 +356,7 @@
   fields: []
 
 - accessor: true
-  area: 1
+  area: 4
   emu: true
   name: OTP_TBBR_EK
   size: 32
@@ -323,7 +365,7 @@
   fields: []
 
 - accessor: true
-  area: 1
+  area: 4
   emu: true
   name: OTP_TBBR_SSK
   size: 32
@@ -332,7 +374,7 @@
   fields: []
 
 - accessor: true
-  area: 1
+  area: 4
   emu: true
   name: OTP_SJTAG_SSK
   size: 32
@@ -341,7 +383,7 @@
   fields: []
 
 - accessor: true
-  area: 1
+  area: 4
   emu: true
   name: OTP_FLAGS1
   size: 4
@@ -349,114 +391,38 @@
   desc:
   fields:
   - accessor: true
-    name: OTP_FLAGS1_ENABLE_TBBR
-    width: 1
-    desc: If set to one, all the OTP_TBBR_* fields will be configured and the system
-      will be setup for firmware authentication. This is a pre-request for firmware
-      encryption
-    offset: 6
-  - accessor: true
-    name: OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT
-    width: 1
-    desc: If set to 1, firmware is assumed to be encrypted in flash, and will be decrypted
-      on load.
-    offset: 5
-  - accessor: true
-    name: OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
-    width: 1
-    desc: If OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT is set, firmware is assumed to be
-      encrypted in flash, and will be decrypted on load. If   TP_FLAGS1_FIRMWARE_ENCRYPT_BSSK
-      is set the HW Unique binding key will be used, otherwise the shared secret (SSK)
-      will be used.
-    offset: 4
-  - accessor: true
     name: OTP_FLAGS1_ENABLE_DDR_ENCRYPT
     width: 1
     desc: If set to one, encryption of DDR memory will be enabled. This is required
       to achieve a fully secured system, but it as a performance penalty as it introduce
       a longer latency to the DDR memory. Attacks based on snooping/altering the DDR
       bus are complicated, and not all designs may require this level of protection.
-    offset: 3
-  - accessor: true
-    name: OTP_FLAGS1_ALLOW_CLEAR_TEXT
-    width: 1
-    desc: TODO
-    offset: 2
-  - accessor: true
-    name: OTP_FLAGS1_ALLOW_SSK_ENCRYPTED
-    width: 1
-    desc: TODO
-    offset: 1
-  - accessor: true
-    name: OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED
-    width: 1
-    desc: TODO
     offset: 0
   prod_cust: true
 
 - accessor: true
-  area: 1
+  area: 4
   emu: true
   name: OTP_STRAP_DISABLE_MASK
   size: 2
   address: 0x1A4
-  desc: TODO
+  desc: This is a mask of disabled strapping values. Default is 0, meaning all strap modes are allowed.
   fields: []
 
-- name: TRIM
-  area: 2
-  size: 8
-  emu: true
-  address: 0x200
-  desc:
-  fields:
-  - name: UVOV_TRIM0
-    width: 6
-    desc: UVOV 0 trim value
-    offset: 37
-  - name: UVOV_TRIM1
-    width: 6
-    desc: UVOV 1 trim value
-    offset: 31
-  - name: UVOV_TRIM2
-    width: 6
-    desc: UVOV 2 trim value
-    offset: 25
-  - name: UVOV_TRIM3
-    width: 6
-    desc: UVOV 3 trim value
-    offset: 19
-  - name: COM_BIAS_BG_TC_TRIM
-    width: 5
-    desc: Common for all units (bench characterization)
-    offset: 14
-  - name: COM_BIAS_BG_MAG_TRIM
-    width: 6
-    desc: Trim bits are determined in ATE trim sequence and vary from part to part
-    offset: 8
-  - name: COM_RBIAS_TC_TRIM
-    width: 2
-    desc: Common for all units (bench characterization)
-    offset: 6
-  - name: COM_RBIAS_MAG_TRIM
-    width: 6
-    desc: Trim bits are determined in ATE trim sequence and vary from part to part
-    offset: 0
-
 - accessor: true
-  area: 3
+  area: 5
   emu: true
   name: OTP_TBBR_NTNVCT
   size: 32
   desc: TODO
-  address: 0x240
+  address: 0x200
   fields: []
 
 - accessor: true
-  area: 3
+  area: 5
   emu: true
   name: OTP_TBBR_TNVCT
   size: 32
   desc: TODO
-  address: 0x260
+  address: 0x220
   fields: []

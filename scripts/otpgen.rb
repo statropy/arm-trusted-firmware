@@ -195,7 +195,7 @@ def cleanup()
     offset = 0
     $data.each do|g|
         g["address"] = cleanup_addr(g["address"])
-        raise "No size" if g["size"] == nil || g["size"] == 0
+        raise "No size (#{g["name"]})" if g["size"] == nil || g["size"] == 0
         if g["address"] != nil && g["address"] != 0
             if g["address"] < offset
                 raise "expected offset 0x%x for group %s, have 0x%x" % [
