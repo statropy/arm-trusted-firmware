@@ -63,46 +63,6 @@ static int otp_hw_execute(void)
 	return 0;
 }
 
-static int otp_hw_execute_status(void)
-{
-	int rc = otp_hw_execute();
-	if (rc == 0) {
-		uint32_t pass = mmio_read_32(OTP_OTP_PASS_FAIL(reg_base));
-		VERBOSE("OTP exec Status: %0x\n", pass);
-		assert(pass & (OTP_OTP_PASS_FAIL_OTP_PASS_M | OTP_OTP_PASS_FAIL_OTP_FAIL_M));
-		rc = (pass & OTP_OTP_PASS_FAIL_OTP_PASS(1)) ? 0 : -EFAULT;
-	}
-	return rc;
-}
-
-static void otp_hw_blankcheck(void)
-{
-	int rc;
-
-	otp_hw_power(true);
-	mmio_write_32(OTP_OTP_TEST_CMD(reg_base), OTP_OTP_TEST_CMD_OTP_BLANKCHECK(1));
-	mmio_write_32(OTP_OTP_CMD_GO(reg_base), OTP_OTP_CMD_GO_OTP_GO(1));
-	rc = otp_hw_execute_status();
-	if (rc == 0) {
-		INFO("OTP blank check: %s\n", rc ? "blank" : "non-blank");
-	}
-	otp_hw_power(false);
-}
-
-static void otp_hw_reset(void)
-{
-	int rc;
-
-	otp_hw_power(true);
-	mmio_write_32(OTP_OTP_FUNC_CMD(reg_base), OTP_OTP_FUNC_CMD_OTP_RESET(1));
-	mmio_write_32(OTP_OTP_CMD_GO(reg_base), OTP_OTP_CMD_GO_OTP_GO(1));
-	rc = otp_hw_execute();
-	if (rc == 0) {
-		INFO("OTP reset: done\n");
-	}
-	otp_hw_power(false);
-}
-
 static void otp_hw_set_address(unsigned int offset)
 {
 	assert(offset < OTP_MEM_SIZE);
@@ -195,34 +155,25 @@ static int otp_hw_write_bytes(unsigned int offset, unsigned int nbytes, const ui
 	return rc;
 }
 
-static void otp_hw_init(void)
+void otp_init(void)
 {
-	otp_hw_reset();
-	otp_hw_blankcheck();
-}
-
-static void otp_init(void)
-{
-	uint32_t flags1 = 0;	/* OTP may be empty/flags not set */
+	uint8_t rotpk[OTP_TBBR_ROTPK_SIZE];
 
 	if (otp_flags & OTP_FLAG_INITIALIZED)
 		return;
 
-	otp_hw_init();
-
-	/* HW now initialized */
 	otp_flags |= OTP_FLAG_INITIALIZED;
 
-	/* Note: Now read the "flags1" element, to decide whether OTP
+	/* Note: Now read the "ROTPK" element, to decide whether OTP
 	 * emulation has been disabled.
 	 */
-	otp_hw_read_bytes(OTP_FLAGS1_ADDR, 4, (uint8_t*)&flags1);
-	if (flags1 & BIT(OTP_OTP_FLAGS1_DISABLE_OTP_EMU_OFF)) {
-		NOTICE("OTP emulation disabled (by OTP)\n");
-		flags1 = 0;	/* Don't leak data */
-	} else {
+	otp_hw_read_bytes(OTP_TBBR_ROTPK_ADDR, sizeof(rotpk), rotpk);
+	if (otp_all_zero(rotpk, sizeof(rotpk))) {
 		if (otp_emu_init())
 			otp_flags |= OTP_FLAG_EMULATION;
+	} else {
+		NOTICE("OTP emulation disabled (by OTP)\n");
+		memset(rotpk, 0, sizeof(rotpk)); /* Don't leak data */
 	}
 }
 
@@ -234,7 +185,7 @@ int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 	assert((offset + nbytes) < OTP_MEM_SIZE);
 
 	/* Make sure we're initialized */
-	otp_init();
+	assert(otp_flags & OTP_FLAG_INITIALIZED);
 
 	/* Read bitstream */
 	rc = otp_hw_read_bytes(offset, nbytes, dst);

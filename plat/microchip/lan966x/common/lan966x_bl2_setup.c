@@ -6,9 +6,10 @@
 
 #include <assert.h>
 
-#include <drivers/generic_delay_timer.h>
-#include <lib/mmio.h>
 #include <common/bl_common.h>
+#include <drivers/generic_delay_timer.h>
+#include <drivers/microchip/otp.h>
+#include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
@@ -134,6 +135,9 @@ void bl2_platform_setup(void)
 {
 	/* IO */
 	lan966x_io_setup();
+
+	/* OTP */
+	otp_init();
 
 	/* Initialize DDR for loading BL32/BL33 */
 	lan966x_ddr_init();

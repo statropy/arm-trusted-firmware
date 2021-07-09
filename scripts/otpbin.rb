@@ -2,7 +2,6 @@
 
 require 'yaml'
 require 'optparse'
-require 'digest/crc32'
 require 'pp'
 
 $bits = [ 0 ] * (1024)
@@ -69,10 +68,7 @@ $data.each do |e|
     set_bits(e, f)
 end
 
-# output, with required CRC
+# output
 bitstream = $bits.pack("C*")
 bitstream = bitstream[$startoff, $maxlen]
 $options[:out].write(bitstream);
-# Data moved to FIP - has digest
-ck = Digest::CRC32c.checksum(bitstream)
-$options[:out].write([ck].pack("V"));

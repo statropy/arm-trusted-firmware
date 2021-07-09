@@ -164,7 +164,6 @@
 #define OTP_FLAGS1_SIZE                          4
 
 /* Fields in OTP_FLAGS1 */
-#define OTP_OTP_FLAGS1_DISABLE_OTP_EMU_OFF       7
 #define OTP_OTP_FLAGS1_ENABLE_TBBR_OFF           6
 #define OTP_OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT_OFF 5
 #define OTP_OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK_OFF 4
@@ -257,7 +256,6 @@ otp_accessor_group_read(otp_read_otp_tbbr_ek, OTP_TBBR_EK);
 otp_accessor_group_read(otp_read_otp_tbbr_ssk, OTP_TBBR_SSK);
 otp_accessor_group_read(otp_read_otp_sjtag_ssk, OTP_SJTAG_SSK);
 otp_accessor_group_read(otp_read_otp_flags1, OTP_FLAGS1);
-otp_accessor_read_bool(otp_read_otp_flags1_disable_otp_emu, OTP_FLAGS1, OTP_FLAGS1_DISABLE_OTP_EMU);
 otp_accessor_read_bool(otp_read_otp_flags1_enable_tbbr, OTP_FLAGS1, OTP_FLAGS1_ENABLE_TBBR);
 otp_accessor_read_bool(otp_read_otp_flags1_enable_firmware_encrypt, OTP_FLAGS1, OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT);
 otp_accessor_read_bool(otp_read_otp_flags1_firmware_encrypt_bssk, OTP_FLAGS1, OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK);

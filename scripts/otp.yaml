@@ -349,12 +349,6 @@
   desc:
   fields:
   - accessor: true
-    name: OTP_FLAGS1_DISABLE_OTP_EMU
-    width: 1
-    desc: By default, OTP emulation is enabled. Setting this bit will permanently
-      disable OTP emulation, and only values from the real OTP can be used.
-    offset: 7
-  - accessor: true
     name: OTP_FLAGS1_ENABLE_TBBR
     width: 1
     desc: If set to one, all the OTP_TBBR_* fields will be configured and the system
@@ -466,5 +460,3 @@
   desc: TODO
   address: 0x260
   fields: []
-
-
