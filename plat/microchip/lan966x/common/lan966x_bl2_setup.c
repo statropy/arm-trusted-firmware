@@ -146,3 +146,8 @@ void bl2_platform_setup(void)
 	lan966x_tz_init();
 #endif
 }
+
+int bl2_plat_handle_pre_image_load(unsigned int image_id)
+{
+	return lan966x_set_fip_addr(image_id, "fip");
+}
