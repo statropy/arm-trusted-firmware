@@ -50,7 +50,8 @@ static const io_block_dev_spec_t emmc_dev_spec = {
 	.block_size = MMC_BLOCK_SIZE,
 };
 
-static const io_block_spec_t fip_emmc_block_spec = {
+/* Set eMMC FIP default values, in case of a GPT they will be overwritten */
+static io_block_spec_t fip_emmc_block_spec = {
 	.offset = LAN966x_EMMC_FIP_ADDR,
 	.length = LAN966X_FIP_SIZE,
 };
@@ -60,6 +61,11 @@ static const io_block_spec_t fip_emmc_block_spec = {
 static const io_block_spec_t fip_qspi_block_spec = {
 	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
 	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
+};
+
+static const io_block_spec_t emmc_gpt_spec = {
+	.offset		= LAN966X_GPT_BASE,
+	.length		= LAN966X_GPT_SIZE,
 };
 
 static const io_uuid_spec_t bl2_uuid_spec = {
@@ -265,6 +271,12 @@ static const struct plat_io_policy policies[] = {
 		check_fip
 	},
 #endif /* TRUSTED_BOARD_BOOT */
+
+	[GPT_IMAGE_ID] = {
+		&emmc_dev_handle,
+		(uintptr_t)&emmc_gpt_spec,
+		check_emmc
+	},
 };
 
 /* Set io_policy structures for allowing boot from eMMC or QSPI */
@@ -402,4 +414,25 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 	*dev_handle = *(policy->dev_handle);
 
 	return result;
+}
+
+int lan966x_set_fip_addr(unsigned int image_id, const char *name)
+{
+	const partition_entry_t *entry;
+
+	if (fip_emmc_block_spec.length == 0) {
+		partition_init(GPT_IMAGE_ID);
+		entry = get_partition_entry(name);
+		if (entry == NULL) {
+			INFO("Could not find the %s partition!\n", name);
+			/* No GPT partition found, use default values */
+		} else {
+			INFO("Find the %s partition, fetch FIP configuration "
+							"data \n", name);
+			fip_emmc_block_spec.offset = entry->start;
+			fip_emmc_block_spec.length = entry->length;
+		}
+	}
+
+	return 0;
 }
