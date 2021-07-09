@@ -38,13 +38,13 @@
 #define PARTID_ADDR                              5
 #define PARTID_SIZE                              2
 
-/* SERIAL_NUMBER */
-#define SERIAL_NUMBER_ADDR                       7
-#define SERIAL_NUMBER_SIZE                       8
-
 /* TST_TRK */
-#define TST_TRK_ADDR                             15
+#define TST_TRK_ADDR                             7
 #define TST_TRK_SIZE                             1
+
+/* SERIAL_NUMBER */
+#define SERIAL_NUMBER_ADDR                       8
+#define SERIAL_NUMBER_SIZE                       8
 
 /* SECURE_JTAG */
 #define SECURE_JTAG_ADDR                         16
@@ -62,6 +62,36 @@
 /* JTAG_UUID */
 #define JTAG_UUID_ADDR                           32
 #define JTAG_UUID_SIZE                           10
+
+/* OTP_PCIE_FLAGS */
+#define OTP_PCIE_FLAGS_ADDR                      42
+#define OTP_PCIE_FLAGS_SIZE                      4
+
+/* Fields in OTP_PCIE_FLAGS */
+#define OTP_OTP_PCIE_FLAGS_REVISION_ID_OFF       8
+#define OTP_OTP_PCIE_FLAGS_REVISION_ID_BITS      8
+#define OTP_OTP_PCIE_FLAGS_DISABLE_REV_3_OFF     1
+#define OTP_OTP_PCIE_FLAGS_DISABLE_REV_2_OFF     0
+
+/* OTP_PCIE_VENDOR_ID */
+#define OTP_PCIE_VENDOR_ID_ADDR                  46
+#define OTP_PCIE_VENDOR_ID_SIZE                  2
+
+/* OTP_PCIE_VENDOR_SUB_ID */
+#define OTP_PCIE_VENDOR_SUB_ID_ADDR              48
+#define OTP_PCIE_VENDOR_SUB_ID_SIZE              2
+
+/* OTP_PCIE_SUBSYSTEM_ID */
+#define OTP_PCIE_SUBSYSTEM_ID_ADDR               50
+#define OTP_PCIE_SUBSYSTEM_ID_SIZE               2
+
+/* OTP_PCIE_SUBSYSTEM_VENDOR_ID */
+#define OTP_PCIE_SUBSYSTEM_VENDOR_ID_ADDR        52
+#define OTP_PCIE_SUBSYSTEM_VENDOR_ID_SIZE        2
+
+/* OTP_PCIE_CLASS_CODE */
+#define OTP_PCIE_CLASS_CODE_ADDR                 54
+#define OTP_PCIE_CLASS_CODE_SIZE                 4
 
 /* PROTECT_OTP_WRITE */
 #define PROTECT_OTP_WRITE_ADDR                   64
@@ -109,12 +139,46 @@
 #define OTP_PROTECT_REGION7_END_ADDR_OFF         0
 #define OTP_PROTECT_REGION7_END_ADDR_BITS        16
 
-/* DEF_MAC_ADDR_AND_LEN */
-#define DEF_MAC_ADDR_AND_LEN_ADDR                100
-#define DEF_MAC_ADDR_AND_LEN_SIZE                8
+/* OTP_TBBR_ROTPK */
+#define OTP_TBBR_ROTPK_ADDR                      256
+#define OTP_TBBR_ROTPK_SIZE                      32
+
+/* OTP_TBBR_HUK */
+#define OTP_TBBR_HUK_ADDR                        288
+#define OTP_TBBR_HUK_SIZE                        32
+
+/* OTP_TBBR_EK */
+#define OTP_TBBR_EK_ADDR                         320
+#define OTP_TBBR_EK_SIZE                         32
+
+/* OTP_TBBR_SSK */
+#define OTP_TBBR_SSK_ADDR                        352
+#define OTP_TBBR_SSK_SIZE                        32
+
+/* OTP_SJTAG_SSK */
+#define OTP_SJTAG_SSK_ADDR                       384
+#define OTP_SJTAG_SSK_SIZE                       32
+
+/* OTP_FLAGS1 */
+#define OTP_FLAGS1_ADDR                          416
+#define OTP_FLAGS1_SIZE                          4
+
+/* Fields in OTP_FLAGS1 */
+#define OTP_OTP_FLAGS1_DISABLE_OTP_EMU_OFF       7
+#define OTP_OTP_FLAGS1_ENABLE_TBBR_OFF           6
+#define OTP_OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT_OFF 5
+#define OTP_OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK_OFF 4
+#define OTP_OTP_FLAGS1_ENABLE_DDR_ENCRYPT_OFF    3
+#define OTP_OTP_FLAGS1_ALLOW_CLEAR_TEXT_OFF      2
+#define OTP_OTP_FLAGS1_ALLOW_SSK_ENCRYPTED_OFF   1
+#define OTP_OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED_OFF  0
+
+/* OTP_STRAP_DISABLE_MASK */
+#define OTP_STRAP_DISABLE_MASK_ADDR              420
+#define OTP_STRAP_DISABLE_MASK_SIZE              2
 
 /* TRIM */
-#define TRIM_ADDR                                108
+#define TRIM_ADDR                                512
 #define TRIM_SIZE                                8
 
 /* Fields in TRIM */
@@ -135,82 +199,13 @@
 #define OTP_COM_RBIAS_MAG_TRIM_OFF               0
 #define OTP_COM_RBIAS_MAG_TRIM_BITS              6
 
-/* OTP_PCIE */
-#define OTP_PCIE_ADDR                            116
-#define OTP_PCIE_SIZE                            13
+/* OTP_TBBR_NTNVCT */
+#define OTP_TBBR_NTNVCT_ADDR                     576
+#define OTP_TBBR_NTNVCT_SIZE                     32
 
-/* Fields in OTP_PCIE */
-#define OTP_OTP_PCIE_DISABLE_REV_3_OFF           97
-#define OTP_OTP_PCIE_DISABLE_REV_2_OFF           96
-#define OTP_OTP_PCIE_VENDOR_ID_OFF               80
-#define OTP_OTP_PCIE_VENDOR_ID_BITS              16
-#define OTP_OTP_PCIE_VENDOR_SUB_ID_OFF           64
-#define OTP_OTP_PCIE_VENDOR_SUB_ID_BITS          16
-#define OTP_OTP_PCIE_CLASS_CODE_OFF              40
-#define OTP_OTP_PCIE_CLASS_CODE_BITS             24
-#define OTP_OTP_PCIE_REVISION_ID_OFF             32
-#define OTP_OTP_PCIE_REVISION_ID_BITS            8
-#define OTP_OTP_PCIE_SUBSYSTEM_ID_OFF            16
-#define OTP_OTP_PCIE_SUBSYSTEM_ID_BITS           16
-#define OTP_OTP_PCIE_SUBSYSTEM_VENDOR_ID_OFF     0
-#define OTP_OTP_PCIE_SUBSYSTEM_VENDOR_ID_BITS    16
-
-/* OTP_FLAGS1 */
-#define OTP_FLAGS1_ADDR                          129
-#define OTP_FLAGS1_SIZE                          4
-
-/* Fields in OTP_FLAGS1 */
-#define OTP_OTP_FLAGS1_DISABLE_OTP_EMU_OFF       14
-#define OTP_OTP_FLAGS1_ENABLE_TBBR_OFF           13
-#define OTP_OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT_OFF 12
-#define OTP_OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK_OFF 11
-#define OTP_OTP_FLAGS1_ENABLE_DDR_ENCRYPT_OFF    10
-#define OTP_OTP_FLAGS1_SJTAG_FREEZE_OFF          9
-#define OTP_OTP_FLAGS1_QSPI_HEADER_DISABLE_OFF   8
-#define OTP_OTP_FLAGS1_EMMC_HEADER_DISABLE_OFF   7
-#define OTP_OTP_FLAGS1_COPY_USER_AREA_0_OFF      6
-#define OTP_OTP_FLAGS1_COPY_USER_AREA_1_OFF      5
-#define OTP_OTP_FLAGS1_COPY_USER_AREA_2_OFF      4
-#define OTP_OTP_FLAGS1_COPY_USER_AREA_3_OFF      3
-#define OTP_OTP_FLAGS1_ALLOW_CLEAR_TEXT_OFF      2
-#define OTP_OTP_FLAGS1_ALLOW_SSK_ENCRYPTED_OFF   1
-#define OTP_OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED_OFF  0
-
-/* OTP_STRAP_DISABLE_MASK */
-#define OTP_STRAP_DISABLE_MASK_ADDR              133
-#define OTP_STRAP_DISABLE_MASK_SIZE              2
-
-/* OTP_TBBR */
-#define OTP_TBBR_ADDR                            135
-#define OTP_TBBR_SIZE                            168
-
-/* Fields in OTP_TBBR */
-#define OTP_OTP_TBBR_ROTPK_OFF                   1088
-#define OTP_OTP_TBBR_ROTPK_BITS                  256
-#define OTP_OTP_TBBR_HUK_OFF                     832
-#define OTP_OTP_TBBR_HUK_BITS                    256
-#define OTP_OTP_TBBR_EK_OFF                      576
-#define OTP_OTP_TBBR_EK_BITS                     256
-#define OTP_OTP_TBBR_SSK_OFF                     320
-#define OTP_OTP_TBBR_SSK_BITS                    256
-#define OTP_OTP_TBBR_TNVCT_OFF                   256
-#define OTP_OTP_TBBR_TNVCT_BITS                  64
-#define OTP_OTP_TBBR_NTNVCT_OFF                  0
-#define OTP_OTP_TBBR_NTNVCT_BITS                 256
-
-/* OTP_USER */
-#define OTP_USER_ADDR                            303
-#define OTP_USER_SIZE                            352
-
-/* Fields in OTP_USER */
-#define OTP_OTP_USER_AREA_0_OFF                  2560
-#define OTP_OTP_USER_AREA_0_BITS                 256
-#define OTP_OTP_USER_AREA_1_OFF                  2048
-#define OTP_OTP_USER_AREA_1_BITS                 512
-#define OTP_OTP_USER_AREA_2_OFF                  1024
-#define OTP_OTP_USER_AREA_2_BITS                 1024
-#define OTP_OTP_USER_AREA_3_OFF                  0
-#define OTP_OTP_USER_AREA_3_BITS                 1024
+/* OTP_TBBR_TNVCT */
+#define OTP_TBBR_TNVCT_ADDR                      608
+#define OTP_TBBR_TNVCT_SIZE                      32
 
 
 /* OTP access functions */
@@ -256,32 +251,22 @@ otp_accessor_group_read(otp_read_partid, PARTID);
 otp_accessor_group_read(otp_read_serial_number, SERIAL_NUMBER);
 otp_accessor_read_bool(otp_read_jtag_disable, SECURE_JTAG, JTAG_DISABLE);
 otp_accessor_read_field(otp_read_jtag_mode, SECURE_JTAG, JTAG_MODE);
+otp_accessor_group_read(otp_read_otp_tbbr_rotpk, OTP_TBBR_ROTPK);
+otp_accessor_group_read(otp_read_otp_tbbr_huk, OTP_TBBR_HUK);
+otp_accessor_group_read(otp_read_otp_tbbr_ek, OTP_TBBR_EK);
+otp_accessor_group_read(otp_read_otp_tbbr_ssk, OTP_TBBR_SSK);
+otp_accessor_group_read(otp_read_otp_sjtag_ssk, OTP_SJTAG_SSK);
 otp_accessor_group_read(otp_read_otp_flags1, OTP_FLAGS1);
 otp_accessor_read_bool(otp_read_otp_flags1_disable_otp_emu, OTP_FLAGS1, OTP_FLAGS1_DISABLE_OTP_EMU);
 otp_accessor_read_bool(otp_read_otp_flags1_enable_tbbr, OTP_FLAGS1, OTP_FLAGS1_ENABLE_TBBR);
 otp_accessor_read_bool(otp_read_otp_flags1_enable_firmware_encrypt, OTP_FLAGS1, OTP_FLAGS1_ENABLE_FIRMWARE_ENCRYPT);
 otp_accessor_read_bool(otp_read_otp_flags1_firmware_encrypt_bssk, OTP_FLAGS1, OTP_FLAGS1_FIRMWARE_ENCRYPT_BSSK);
 otp_accessor_read_bool(otp_read_otp_flags1_enable_ddr_encrypt, OTP_FLAGS1, OTP_FLAGS1_ENABLE_DDR_ENCRYPT);
-otp_accessor_read_bool(otp_read_otp_flags1_sjtag_freeze, OTP_FLAGS1, OTP_FLAGS1_SJTAG_FREEZE);
-otp_accessor_read_bool(otp_read_otp_flags1_qspi_header_disable, OTP_FLAGS1, OTP_FLAGS1_QSPI_HEADER_DISABLE);
-otp_accessor_read_bool(otp_read_otp_flags1_emmc_header_disable, OTP_FLAGS1, OTP_FLAGS1_EMMC_HEADER_DISABLE);
-otp_accessor_read_bool(otp_read_otp_flags1_copy_user_area_0, OTP_FLAGS1, OTP_FLAGS1_COPY_USER_AREA_0);
-otp_accessor_read_bool(otp_read_otp_flags1_copy_user_area_1, OTP_FLAGS1, OTP_FLAGS1_COPY_USER_AREA_1);
-otp_accessor_read_bool(otp_read_otp_flags1_copy_user_area_2, OTP_FLAGS1, OTP_FLAGS1_COPY_USER_AREA_2);
-otp_accessor_read_bool(otp_read_otp_flags1_copy_user_area_3, OTP_FLAGS1, OTP_FLAGS1_COPY_USER_AREA_3);
 otp_accessor_read_bool(otp_read_otp_flags1_allow_clear_text, OTP_FLAGS1, OTP_FLAGS1_ALLOW_CLEAR_TEXT);
 otp_accessor_read_bool(otp_read_otp_flags1_allow_ssk_encrypted, OTP_FLAGS1, OTP_FLAGS1_ALLOW_SSK_ENCRYPTED);
 otp_accessor_read_bool(otp_read_otp_flags1_allow_bssk_encrypted, OTP_FLAGS1, OTP_FLAGS1_ALLOW_BSSK_ENCRYPTED);
 otp_accessor_group_read(otp_read_otp_strap_disable_mask, OTP_STRAP_DISABLE_MASK);
-otp_accessor_read_bytes(otp_read_otp_tbbr_rotpk, OTP_TBBR, OTP_TBBR_ROTPK);
-otp_accessor_read_bytes(otp_read_otp_tbbr_huk, OTP_TBBR, OTP_TBBR_HUK);
-otp_accessor_read_bytes(otp_read_otp_tbbr_ek, OTP_TBBR, OTP_TBBR_EK);
-otp_accessor_read_bytes(otp_read_otp_tbbr_ssk, OTP_TBBR, OTP_TBBR_SSK);
-otp_accessor_read_bytes(otp_read_otp_tbbr_tnvct, OTP_TBBR, OTP_TBBR_TNVCT);
-otp_accessor_read_bytes(otp_read_otp_tbbr_ntnvct, OTP_TBBR, OTP_TBBR_NTNVCT);
-otp_accessor_read_bytes(otp_read_otp_user_area_0, OTP_USER, OTP_USER_AREA_0);
-otp_accessor_read_bytes(otp_read_otp_user_area_1, OTP_USER, OTP_USER_AREA_1);
-otp_accessor_read_bytes(otp_read_otp_user_area_2, OTP_USER, OTP_USER_AREA_2);
-otp_accessor_read_bytes(otp_read_otp_user_area_3, OTP_USER, OTP_USER_AREA_3);
+otp_accessor_group_read(otp_read_otp_tbbr_ntnvct, OTP_TBBR_NTNVCT);
+otp_accessor_group_read(otp_read_otp_tbbr_tnvct, OTP_TBBR_TNVCT);
 
 #endif	/* PLAT_OTP_H */
