@@ -13,6 +13,10 @@
 
 #include "lan966x_def.h"
 
+#ifndef __ASSEMBLER__
+#include <lib/cassert.h>
+#endif
+
 /*
  * Generic platform constants
  */
@@ -34,44 +38,61 @@
 /* eMMC RPMB and eMMC User Data */
 #define MAX_IO_BLOCK_DEVICES		U(2)
 
-#define LAN966x_PRIMARY_CPU         0x0
+#define LAN966x_PRIMARY_CPU		0x0
 
 /*
- * BL1 specific defines.
+ * BL1 RO specific defines.
  */
-#define BL1_RO_BASE	LAN996X_BOOTROM_BASE
-#define BL1_RO_SIZE	LAN996X_BOOTROM_SIZE
-#define BL1_RO_LIMIT	(BL1_RO_BASE + BL1_RO_SIZE)
+#define BL1_RO_BASE		LAN996X_BOOTROM_BASE
+#define BL1_RO_SIZE		LAN996X_BOOTROM_SIZE
+#define BL1_RO_LIMIT		(BL1_RO_BASE + BL1_RO_SIZE)
 
 /*
- * Put BL1 RW at the top of the Secure SRAM. BL1_RW_BASE is calculated using
- * the current BL1 RW debug size plus a little space for growth.
+ * BL2
  */
-#define BL1_RW_BASE	(BL1_RW_LIMIT - BL1_RW_SIZE)
-#define BL1_RW_SIZE	UL(1024 * 32)
-#define BL1_RW_LIMIT	(LAN996X_SRAM_BASE + LAN996X_SRAM_SIZE)
+#define BL2_BASE		LAN996X_SRAM_BASE
+#define BL2_SIZE		UL(1024 * 94)
+#define BL2_LIMIT		(BL2_BASE + BL2_SIZE)
 
 /*
- * BL2 - Entire SRAM excl. BL1_RW, MMC
+ * MMC RW buffer
  */
-#define BL2_BASE	LAN996X_SRAM_BASE
-#define BL2_SIZE	(LAN996X_SRAM_SIZE - BL1_RW_SIZE - MMC_BUF_SIZE)
-#define BL2_LIMIT	(BL2_BASE + BL2_SIZE)
+#define MMC_BUF_BASE		BL2_LIMIT
+#define MMC_BUF_SIZE		UL(1024)
+#define MMC_BUF_LIMIT		(MMC_BUF_BASE + MMC_BUF_SIZE)
 
 /*
- * MMC RW buffer - 1K after BL2
+ * Buffer to hold the content of FW_CONFIG_ID
  */
-#define MMC_BUF_BASE	BL2_LIMIT
-#define MMC_BUF_SIZE	UL(1024)
-#define MMC_BUF_LIMIT	(MMC_BUF_BASE + MMC_BUF_SIZE)
+#define FW_CONFIG_BUF_BASE	MMC_BUF_LIMIT
+#define FW_CONFIG_BUF_SIZE	UL(512)
+#define FW_CONFIG_BUF_LIMIT	(FW_CONFIG_BUF_BASE + FW_CONFIG_BUF_SIZE)
+
+/*
+ * SRAM reserved are, not used
+ */
+#define SRAM_RESERVED_BASE	FW_CONFIG_BUF_LIMIT
+#define SRAM_RESERVED_SIZE	UL(512)
+#define SRAM_RESERVED_LIMIT	(SRAM_RESERVED_BASE + SRAM_RESERVED_SIZE)
+
+/*
+ * BL1 - Put BL1 RW at the top of the Secure SRAM.
+ */
+#define BL1_RW_BASE		SRAM_RESERVED_LIMIT
+#define BL1_RW_SIZE		UL(1024 * 32)
+#define BL1_RW_LIMIT		(BL1_RW_BASE + BL1_RW_SIZE)
+
+#ifndef __ASSEMBLER__
+CASSERT(BL1_RW_LIMIT == (LAN996X_SRAM_BASE + LAN996X_SRAM_SIZE),\
+	sram_memory_layout_inconsistent);
+#endif
 
 /*
  * BL32 - top of DDR
  */
-
-#define BL32_BASE	(BL32_LIMIT - BL32_SIZE)
-#define BL32_SIZE	UL(2 * 1024 * 1024)
-#define BL32_LIMIT	(LAN996X_DDR_BASE + LAN996X_DDR_SIZE)
+#define BL32_BASE		(BL32_LIMIT - BL32_SIZE)
+#define BL32_SIZE		UL(2 * 1024 * 1024)
+#define BL32_LIMIT		(LAN996X_DDR_BASE + LAN996X_DDR_SIZE)
 
 /*
  * BL33 - start of DDR
@@ -115,8 +136,8 @@
 
 #define MAX_MMAP_REGIONS		16
 
-#define CACHE_WRITEBACK_SHIFT           U(6)
-#define CACHE_WRITEBACK_GRANULE         (U(1) << CACHE_WRITEBACK_SHIFT)
+#define CACHE_WRITEBACK_SHIFT		U(6)
+#define CACHE_WRITEBACK_GRANULE		(U(1) << CACHE_WRITEBACK_SHIFT)
 
 /*
  * Physical and virtual address space limits for MMU in AARCH64 & AARCH32 modes
