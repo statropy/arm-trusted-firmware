@@ -10,7 +10,7 @@
 #include <drivers/mmc.h>
 #include <lib/mmio.h>
 
-#define SDCLOCK_400KHZ	375000u
+#define SDCLOCK_400KHZ	400000u
 #define SDCLOCK_10MHZ	10000000u
 #define SDCLOCK_25MHZ	25000000u
 #define SDCLOCK_50MHZ	50000000u
