@@ -334,7 +334,7 @@ static int check_memmap(const uintptr_t spec)
 	if (result == 0) {
 		result = io_open(memmap_dev_handle, spec, &local_image_handle);
 		if (result == 0) {
-			VERBOSE("Using Memmap\n");
+			VERBOSE("Using QSPI\n");
 			io_close(local_image_handle);
 		}
 	}
