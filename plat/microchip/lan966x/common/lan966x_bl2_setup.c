@@ -95,6 +95,9 @@ static void bl2_early_platform_setup(void)
 	/* Console */
 	lan966x_console_init();
 
+	/* Setup MMC */
+	lan966x_sdmmc_init();
+
 	/* Announce HW */
 	INFO("Running on platform build: 0x%08x\n",
 	     mmio_read_32(CPU_BUILDID(LAN966X_CPU_BASE)));
@@ -146,4 +149,9 @@ void bl2_platform_setup(void)
 	/* Initialize the secure environment */
 	lan966x_tz_init();
 #endif
+}
+
+int bl2_plat_handle_pre_image_load(unsigned int image_id)
+{
+	return lan966x_set_fip_addr(image_id, "fip");
 }

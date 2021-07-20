@@ -41,7 +41,9 @@ enum {
 
 typedef enum {
   BOOT_SOURCE_EMMC = 0,
-  BOOT_SOURCE_SDMMC
+  BOOT_SOURCE_SDMMC,
+  BOOT_SOURCE_QSPI,
+  BOOT_SOURCE_NONE
 } boot_source_type;
 
 
@@ -63,6 +65,8 @@ void plat_lan966x_gic_driver_init(void);
 void plat_lan966x_gic_init(void);
 
 uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
+uint32_t lan966x_get_boot_source(void);
+int lan966x_set_fip_addr(unsigned int image_id, const char *name);
 
 lan966x_boot_media_config_t *lan966x_boot_media_cfg_get(void);
 

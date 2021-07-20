@@ -56,6 +56,8 @@
 /* -------- SDMMC_HC1R : (SDMMC Offset: 0x28) Host Control 1 Register ------ */
 #define SDMMC_HC1R	0x28	/* uint8_t */
 #define   SDMMC_HC1R_DW (0x1u << 1)	/* Data Width */
+#define   SDMMC_HC1R_DW_1_BIT (0x0u << 1) /* 1-bit mode. */
+#define   SDMMC_HC1R_DW_4_BIT (0x1u << 1) /* 4-bit mode. */
 /* -------- SDMMC_PCR : (SDMMC Offset: 0x29) Power Control Register -------- */
 #define SDMMC_PCR	0x29	/* uint8_t */
 #define   SDMMC_PCR_SDBPWR (0x1u << 0)	/* SD Bus Power */
@@ -138,8 +140,8 @@ static const unsigned int TAAC_TimeMant[16] =
 static void lan966x_clock_delay(unsigned int sd_clock_cycles)
 {
 	unsigned int usec;
-	usec =
-	    DIV_ROUND_UP(sd_clock_cycles * 1000000u, lan966x_params.clk_rate);
+	usec = DIV_ROUND_UP_2EVAL(sd_clock_cycles * 1000000u,
+				  lan966x_params.clk_rate);
 	udelay(usec);
 }
 
@@ -187,7 +189,7 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 		if (SD_clock_freq == mult_clock) {
 			clk_div = 0;
 		} else {
-			clk_div = DIV_ROUND_UP(mult_clock, SD_clock_freq) - 1;
+			clk_div = DIV_ROUND_UP_2EVAL(mult_clock, SD_clock_freq) - 1;
 		}
 		break;
 
@@ -249,7 +251,7 @@ static int lan966x_host_init(void)
 	mmc_setbits_8(reg_base + SDMMC_PCR, SDMMC_PCR_SDBPWR);
 
 	/* Set host controller data bus width to 4 bit */
-	mmc_setbits_8(reg_base + SDMMC_HC1R, SDMMC_HC1R_DW);
+	mmc_setbits_8(reg_base + SDMMC_HC1R, SDMMC_HC1R_DW_4_BIT);
 
 	if (lan966x_set_clk_freq(SDCLOCK_400KHZ, SDMMC_CLK_CTRL_PROG_MODE)) {
 		return -1;
@@ -266,6 +268,9 @@ static void lan996x_mmc_initialize(void)
 
 	retVal = lan966x_host_init();
 	assert(retVal == 0);
+	
+	/* Prevent compiler warning in release build */
+	(void)retVal;
 }
 
 static void lan966x_get_cid_register(void)
@@ -349,8 +354,8 @@ static void lan966x_get_csd_register(void)
 
 static unsigned char lan966x_emmc_poll(unsigned int expected)
 {
-	unsigned int trials =
-	    DIV_ROUND_UP(EMMC_POLLING_TIMEOUT, EMMC_POLL_LOOP_DELAY);
+	unsigned int trials = DIV_ROUND_UP_2EVAL(EMMC_POLLING_TIMEOUT,
+						 EMMC_POLL_LOOP_DELAY);
 	uint16_t nistr = 0u;
 
 	eistr = 0u;
@@ -560,8 +565,10 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 		op = SDMMC_MMC_CMD16;
 		break;
 	case 17:
+		op = SDMMC_MMC_CMD17;
+		break;
 	case 18:
-		op = SDMMC_SD_CMD17;
+		op = SDMMC_MMC_CMD18;
 		break;
 	case 51:
 		op = SDMMC_SD_ACMD51;
@@ -653,6 +660,7 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 	case 12:
 	case 13:
 	case 17:
+	case 18:
 	case 55:
 		cmd->resp_data[0] = mmio_read_32(reg_base + SDMMC_RR0);
 		break;
@@ -832,8 +840,7 @@ size_t lan966x_read_single_block(int block_number,
 		       (SDMMC_NISTER_BRDRDY | SDMMC_NISTER_CMDC));
 
 	/* Call ATF read block function */
-	retSize =
-	    mmc_read_blocks(block_number, (uintptr_t) dest_buffer, block_size);
+	retSize = mmc_read_blocks(block_number, (uintptr_t) dest_buffer, block_size);
 	if (retSize == 0u) {
 		ERROR("Read of single block failed \n");
 		return 1;
@@ -878,4 +885,7 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 	/* Set bus clock to 10MHz (supported by all SD card type) */
 	retVal = lan966x_set_clk_freq(SDCLOCK_10MHZ, SDMMC_CLK_CTRL_PROG_MODE);
 	assert(retVal == 0);
+
+	/* Prevent compiler warning in release build */
+	(void)retVal;
 }

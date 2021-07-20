@@ -10,15 +10,18 @@
 #include <drivers/mmc.h>
 #include <lib/mmio.h>
 
+#define SDCLOCK_400KHZ	400000u
 #define SDCLOCK_10MHZ	10000000u
 #define SDCLOCK_25MHZ	25000000u
-#define SDCLOCK_400KHZ	375000u
 #define SDCLOCK_50MHZ	50000000u
 
 #define SDMMC_CLK_CTRL_DIV_MODE		0
 #define SDMMC_CLK_CTRL_PROG_MODE	1
 
-/* ToDo: For Sunrise FPGA emulation */
+/* Sunrise FPGA base clock settings
+ * On the real hardware this value will be calculated by the using the proper
+ * CPU clock and prescaler factor read out of the chip.
+ * */
 #define FPGA_SDMMC0_SRC_CLOCK		12000000
 #define FPGA_SDMMC0_MULTI_SRC_CLOCK	48000000
 
@@ -28,11 +31,7 @@
 #define EMMC_POLL_LOOP_DELAY	8u	/* 8µs */
 #define EMMC_POLLING_TIMEOUT	2000000u	/* 2sec */
 
-#define TIME_MSEC(x)	(x*1000)	/* Converts arg from ms to microsec */
-
-#ifndef DIV_ROUND_UP
-#define DIV_ROUND_UP(x, y)	(((x) + (y) - 1) / (y))
-#endif
+#define TIME_MSEC(x)	(x * 1000)	/* Converts arg from ms to microsec */
 
 #define MMC_HIGH_DENSITY	(3)
 #define MMC_NORM_DENSITY	(2)

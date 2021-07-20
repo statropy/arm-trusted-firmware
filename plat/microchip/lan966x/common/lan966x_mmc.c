@@ -59,9 +59,8 @@ static void plat_lan966x_config(void)
 
 void lan966x_sdmmc_init(void)
 {
-	/* ToDo: The setting of the boot source is hard coded here, later it
-	 * should be provided by the strap pin configuration */
-	boot_source_type boot_source = BOOT_SOURCE_EMMC;
+	/* The current boot source is provided by the strapping pin config */
+	boot_source_type boot_source = lan966x_get_boot_source();
 
 	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
@@ -73,8 +72,15 @@ void lan966x_sdmmc_init(void)
 		/* Not supported yet */
 		assert(false);
 		break;
+	case BOOT_SOURCE_QSPI:
+		INFO("Initializing QSPI\n");
+		break;
+	case BOOT_SOURCE_NONE:
+		INFO("Boot source NONE selected\n");
+		break;
 	default:
-		ERROR("BL1: Currently not supported boot source\n");
+		ERROR("BL1: Not supported boot source: %d\n", boot_source);
+		assert(false);
 		break;
 	}
 

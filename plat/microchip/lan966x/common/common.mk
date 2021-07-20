@@ -52,6 +52,8 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				common/desc_image_load.c			\
 				drivers/delay_timer/delay_timer.c		\
 				drivers/delay_timer/generic_delay_timer.c	\
+				drivers/mmc/mmc.c				\
+				drivers/microchip/emmc/emmc.c			\
 				drivers/microchip/otp/otp.c			\
 				drivers/microchip/otp/otp_emu.c			\
 				drivers/microchip/clock/lan966x_clock.c		\
@@ -66,8 +68,6 @@ BL1_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/io/io_fip.c					\
 				drivers/io/io_memmap.c					\
 				drivers/io/io_storage.c					\
-				drivers/mmc/mmc.c					\
-				drivers/microchip/emmc/emmc.c				\
 				plat/microchip/lan966x/common/lan966x_mmc.c		\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/${ARCH}/plat_bootstrap.S	\
@@ -75,9 +75,13 @@ BL1_SOURCES		+=	drivers/io/io_block.c					\
 				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c
 
-BL2_SOURCES		+=	drivers/io/io_fip.c				\
+BL2_SOURCES		+=	drivers/io/io_block.c				\
+				drivers/io/io_fip.c				\
 				drivers/io/io_memmap.c				\
 				drivers/io/io_storage.c				\
+				drivers/partition/gpt.c				\
+				drivers/partition/partition.c			\
+				plat/microchip/lan966x/common/lan966x_mmc.c		\
 				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
 				plat/microchip/lan966x/common/lan966x_image_load.c	\
