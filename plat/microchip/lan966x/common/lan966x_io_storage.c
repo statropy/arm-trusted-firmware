@@ -285,8 +285,8 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 
 	policy = &policies[image_id];
 	result = policy->check(policy->image_spec);
-        if (result != 0)
-                return result;
+	if (result != 0)
+		return result;
 
 	*image_spec = policy->image_spec;
 	*dev_handle = *(policy->dev_handle);
