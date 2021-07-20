@@ -66,24 +66,8 @@ static const io_uuid_spec_t bl33_uuid_spec = {
 	.uuid = UUID_NON_TRUSTED_FIRMWARE_BL33,
 };
 
-static const io_uuid_spec_t tb_fw_config_uuid_spec = {
-	.uuid = UUID_TB_FW_CONFIG,
-};
-
-static const io_uuid_spec_t hw_config_uuid_spec = {
-	.uuid = UUID_HW_CONFIG,
-};
-
-static const io_uuid_spec_t soc_fw_config_uuid_spec = {
-	.uuid = UUID_SOC_FW_CONFIG,
-};
-
-static const io_uuid_spec_t tos_fw_config_uuid_spec = {
-	.uuid = UUID_TOS_FW_CONFIG,
-};
-
-static const io_uuid_spec_t nt_fw_config_uuid_spec = {
-	.uuid = UUID_NT_FW_CONFIG,
+static const io_uuid_spec_t fw_config_uuid_spec = {
+	.uuid = UUID_FW_CONFIG,
 };
 
 #if TRUSTED_BOARD_BOOT
@@ -167,29 +151,9 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl33_uuid_spec,
 		check_fip
 	},
-	[TB_FW_CONFIG_ID] = {
+	[FW_CONFIG_ID] = {
 		&fip_dev_handle,
-		(uintptr_t)&tb_fw_config_uuid_spec,
-		check_fip
-	},
-	[HW_CONFIG_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&hw_config_uuid_spec,
-		check_fip
-	},
-	[SOC_FW_CONFIG_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&soc_fw_config_uuid_spec,
-		check_fip
-	},
-	[TOS_FW_CONFIG_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&tos_fw_config_uuid_spec,
-		check_fip
-	},
-	[NT_FW_CONFIG_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&nt_fw_config_uuid_spec,
+		(uintptr_t)&fw_config_uuid_spec,
 		check_fip
 	},
 #if TRUSTED_BOARD_BOOT
@@ -321,7 +285,8 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 
 	policy = &policies[image_id];
 	result = policy->check(policy->image_spec);
-	assert(result == 0);
+	if (result != 0)
+		return result;
 
 	*image_spec = policy->image_spec;
 	*dev_handle = *(policy->dev_handle);

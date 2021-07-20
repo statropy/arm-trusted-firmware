@@ -44,12 +44,19 @@ OptionParser.new do |opts|
     end
 end.order!
 
+def do_cmd(cmd)
+    system(cmd)
+    if !$?.success?
+        raise("\"#{cmd}\" failed.")
+    end
+end
+
 def install_sdk()
     brsdk_name = "mscc-brsdk-#{$option[:arch]}-#{$option[:sdk]}"
     brsdk_base = "/opt/mscc/#{brsdk_name}"
     if not File.exist? brsdk_base
         if File.exist? "/usr/local/bin/mscc-install-pkg"
-            system "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}-brsdk #{brsdk_name}"
+            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}-brsdk #{brsdk_name}"
         end
         raise "Unable to install SDK to #{brsdk_base}" unless File.exist? brsdk_base
     end
@@ -62,7 +69,7 @@ def install_toolchain(tc_vers)
     tc_path = "mscc-toolchain-bin-#{tc_vers}"
     bin = "/opt/mscc/" + tc_path + "/arm-cortex_a8-linux-gnueabihf/bin"
     if !File.directory?(bin)
-        system "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
+        do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
         raise "Unable to install toolchain to #{bin}" unless File.exist?(bin)
     end
     ENV["PATH"] = bin + ":" + ENV["PATH"]
@@ -86,10 +93,10 @@ args += "PLAT=#{$option[:platform]} ARCH=aarch32 AARCH32_SP=sp_min "
 if $option[:tbbr]
     args += "TRUSTED_BOARD_BOOT=1 GENERATE_COT=1 CREATE_KEYS=1 ROT_KEY=#{$option[:rot]} MBEDTLS_DIR=mbedtls "
     if !File.directory?("mbedtls")
-        system("git clone https://github.com/ARMmbed/mbedtls.git")
+        do_cmd("git clone https://github.com/ARMmbed/mbedtls.git")
     end
     # We're currently using this as a reference - needs to be in sync with TFA
-    system "git -C mbedtls checkout -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
+    do_cmd "git -C mbedtls checkout -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
 end
 
 if $option[:debug]
@@ -120,7 +127,7 @@ end
 cmd = "make #{args} #{targets}"
 cmd = "cov-build --dir #{$cov_dir} #{cmd}" if $option[:coverity]
 puts cmd
-system cmd
+do_cmd cmd
 
 img = build + "/" + $option[:platform] + ".img"
 if pdef[:bl2_at_el3]
@@ -132,18 +139,15 @@ else
 end
 FileUtils.cp(b, img)
 tsize = 80
-system("truncate --size=#{tsize}k #{img}")
+do_cmd("truncate --size=#{tsize}k #{img}")
 # Reserve UBoot env 2 * 256k
 tsize += 512
-system("truncate --size=#{tsize}k #{img}")
-system("cat #{build}/fip.bin >> #{img}")
-# OTP @ 1792k
-tsize = 1792
-system("truncate --size=#{tsize}k #{img}")
-system("cat bin/otp.bin >> #{img}")
-system("ls -l #{build}/*.bin #{build}/*.img")
+do_cmd("truncate --size=#{tsize}k #{img}")
+do_cmd("cat #{build}/fip.bin >> #{img}")
+# List binaries
+do_cmd("ls -l #{build}/*.bin #{build}/*.img")
 
 if $option[:coverity]
-    system("cov-analyze -dir #{$cov_dir} --jobs auto")
-    system("cov-commit-defects -dir #{$cov_dir} --stream #{$option[:coverity]} --config /opt/coverity/credentials.xml --auth-key-file /opt/coverity/reporter.key")
+    do_cmd("cov-analyze -dir #{$cov_dir} --jobs auto")
+    do_cmd("cov-commit-defects -dir #{$cov_dir} --stream #{$option[:coverity]} --config /opt/coverity/credentials.xml --auth-key-file /opt/coverity/reporter.key")
 end

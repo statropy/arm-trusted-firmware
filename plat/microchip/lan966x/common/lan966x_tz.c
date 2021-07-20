@@ -11,6 +11,7 @@
 
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
+#include "plat_otp.h"
 
 static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 {
@@ -41,10 +42,18 @@ static void setup_tzaesb(uintptr_t tzaesb)
 		      TZAESBNS_TZAESB_MR_OPMOD(4) | /* CTR mode */
 		      TZAESBNS_TZAESB_MR_DUALBUFF(1) |
 		      TZAESBNS_TZAESB_MR_AAHB(1));
+#ifdef __notdef__
 	mmio_write_32(TZAESBNS_TZAESB_KEYWR0(tzaesb), lan966x_trng_read());
 	mmio_write_32(TZAESBNS_TZAESB_KEYWR1(tzaesb), lan966x_trng_read());
 	mmio_write_32(TZAESBNS_TZAESB_KEYWR2(tzaesb), lan966x_trng_read());
 	mmio_write_32(TZAESBNS_TZAESB_KEYWR3(tzaesb), lan966x_trng_read());
+#else
+	INFO("TrustZone workaround - using *FIXED* key\n");
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR0(tzaesb), 0x09cf4f3c);
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR1(tzaesb), 0xabf71588);
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR2(tzaesb), 0x28aed2a6);
+	mmio_write_32(TZAESBNS_TZAESB_KEYWR3(tzaesb), 0x2b7e1516);
+#endif
 
 	/* IV REGS */
 	mmio_write_32(TZAESBNS_TZAESB_IVR0(tzaesb), 0xfcfdfeff);
@@ -112,26 +121,28 @@ static void setup_tzaes_asc(void)
 
 void lan966x_tz_init(void)
 {
-	INFO("Configuring TrustZone\n");
+	if (otp_read_otp_flags1_enable_ddr_encrypt()) {
+		INFO("Configuring TrustZone (with encrypted RAM)\n");
 
-	/*
-	 * Enable TZPM for NS transactions, Otherwise all are treated
-	 * as Secure transactions in CPU subsystem
-	 */
-	mmio_write_32(TZPM_TZPM_EN(LAN966X_TZPM_BASE),
-		      TZPM_TZPM_EN_TZPM_EN(1));
+		/*
+		 * Enable TZPM for NS transactions, Otherwise all are treated
+		 * as Secure transactions in CPU subsystem
+		 */
+		mmio_write_32(TZPM_TZPM_EN(LAN966X_TZPM_BASE),
+			      TZPM_TZPM_EN_TZPM_EN(1));
 
-	/* TZASC controller */
-	setup_tzaes_asc();
+		/* TZASC controller */
+		setup_tzaes_asc();
 
-	/* NS setup */
-	setup_tzaesb(LAN966X_TZAESBNS_BASE);
+		/* NS setup */
+		setup_tzaesb(LAN966X_TZAESBNS_BASE);
 
-	/* S setup */
-	setup_tzaesb(LAN966X_TZAESBS_BASE);
+		/* S setup */
+		setup_tzaesb(LAN966X_TZAESBS_BASE);
 
-	/* NS periph access */
-	setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
-
-	INFO("Initialized TrustZone Controller\n");
+		/* NS periph access */
+		setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
+	} else {
+		INFO("TrustZone not enabled.\n");
+	}
 }
