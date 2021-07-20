@@ -110,3 +110,11 @@ endif
 ifneq (${ENABLE_STACK_PROTECTOR},0)
 PLAT_BL_COMMON_SOURCES  +=      plat/microchip/lan966x/common/lan966x_stack_protector.c
 endif
+
+LAN966X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
+
+${LAN966X_FW_CONFIG}: bin/otp.bin
+	$(Q)cat $^ > $@
+
+# FW config
+$(eval $(call TOOL_ADD_PAYLOAD,bin/otp.bin,--fw-config,${LAN966X_FW_CONFIG}))

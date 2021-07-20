@@ -11,6 +11,7 @@
 
 #define OTP_MEM_SIZE	8192
 
+void otp_init(void);
 int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst);
 int otp_write_bytes(unsigned int offset, unsigned int nbytes, const uint8_t *src);
 int otp_read_uint32(unsigned int offset, uint32_t *dst);

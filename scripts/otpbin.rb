@@ -2,11 +2,12 @@
 
 require 'yaml'
 require 'optparse'
-require 'digest/crc32'
 require 'pp'
 
 $bits = [ 0 ] * (1024)
 $data = nil
+$startoff = 256
+$maxlen   = 512
 
 def set_bits(elem, field)
     if elem["file"]
@@ -18,7 +19,11 @@ def set_bits(elem, field)
     if (field["offset"] % 8) != 0
         raise "Non-byte offset not supported: #{elem["field"]} field offset #{field["offset"]}"
     end
-    $bits[field["offset"] / 8, elem["data"].size] = elem["data"]
+    off = field["offset"] / 8
+    $bits[off, elem["data"].size] = elem["data"]
+    if (off < $startoff || off > ($startoff + $maxlen))
+        raise "#{field["name"]}: Only data from #{$startoff} and #{$maxlen} fwd supported"
+    end
 end
 
 def process_yaml(fn)
@@ -28,11 +33,11 @@ end
 def find_elem(s, n)
     s.each do|g|
         if g["name"] == n
-            return Hash[ "offset" => g["address"] * 8, "width" => g["size"] * 8]
+            return Hash[ "name" => n,"offset" => g["address"] * 8, "width" => g["size"] * 8]
         end
         g["fields"].each do|f|
             if f["name"] == n
-                return Hash[ "offset" => g["address"] * 8 + f["offset"], "width" => f["width"]]
+                return Hash[ "name" => n, "offset" => g["address"] * 8 + f["offset"], "width" => f["width"]]
             end
         end
     end
@@ -63,8 +68,7 @@ $data.each do |e|
     set_bits(e, f)
 end
 
-# output, with required CRC
+# output
 bitstream = $bits.pack("C*")
+bitstream = bitstream[$startoff, $maxlen]
 $options[:out].write(bitstream);
-ck = Digest::CRC32c.checksum(bitstream)
-$options[:out].write([ck].pack("V"));

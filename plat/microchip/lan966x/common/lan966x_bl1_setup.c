@@ -10,6 +10,7 @@
 #include <bl1/bl1.h>
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
+#include <drivers/microchip/otp.h>
 #include <lib/fconf/fconf.h>
 #include <lib/utils.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
@@ -96,6 +97,9 @@ void bl1_platform_setup(void)
 
 	/* IO */
 	lan966x_io_setup();
+
+	/* OTP */
+	otp_init();
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_SAMBA_FC0:
