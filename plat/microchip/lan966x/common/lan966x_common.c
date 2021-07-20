@@ -32,11 +32,6 @@ static console_t lan966x_console;
 static lan966x_boot_media_config_t lan966x_conf;
 bool conf_read, conf_valid;
 
-static struct {
-	bool	read;
-	uint8_t value;
-} strap_data;
-
 #define LAN996X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
 		LAN996X_QSPI0_MMAP,					\
@@ -333,11 +328,6 @@ uint8_t lan966x_get_strapping(void)
 	uint32_t status;
 	uint8_t strapping;
 
-	if (strap_data.read) {
-		INFO("VCORE_CFG = %d (cached)\n", strap_data.value);
-		return strap_data.value;
-	}
-
 	status = mmio_read_32(CPU_GENERAL_STAT(LAN966X_CPU_BASE));
 	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
 
@@ -367,17 +357,14 @@ uint8_t lan966x_get_strapping(void)
 
 	INFO("VCORE_CFG = %d\n", strapping);
 
-	/* Cache value */
-	strap_data.read = true;
-	strap_data.value = strapping;
-
 	return strapping;
 }
 
 void lan966x_set_strapping(uint8_t value)
 {
-	strap_data.read = true;
-	strap_data.value = value;
+#if defined(DEBUG)
+	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), 0x10000 | value);
+#endif
 }
 
 void qspi_plat_configure(void)

@@ -106,14 +106,9 @@ static void bl2_early_platform_setup(void)
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
 	struct meminfo *mem_layout = (struct meminfo *)arg1;
-	uint32_t override_strapping = arg2;
 
 	/* Scribble away memory layout early */
 	bl2_tzram_layout = *mem_layout;
-
-	/* Check if strappings are forwarded */
-	if ((override_strapping >> 16) == 0xBEEF)
-		lan966x_set_strapping((uint8_t)override_strapping);
 
 	/* Common setup */
 	bl2_early_platform_setup();
