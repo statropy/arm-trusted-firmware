@@ -18,7 +18,10 @@
 #define SDMMC_CLK_CTRL_DIV_MODE		0
 #define SDMMC_CLK_CTRL_PROG_MODE	1
 
-/* ToDo: For Sunrise FPGA emulation */
+/* Sunrise FPGA base clock settings
+ * On the real hardware this value will be calculated by the using the proper
+ * CPU clock and prescaler factor read out of the chip.
+ * */
 #define FPGA_SDMMC0_SRC_CLOCK		12000000
 #define FPGA_SDMMC0_MULTI_SRC_CLOCK	48000000
 
