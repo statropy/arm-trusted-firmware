@@ -105,10 +105,12 @@ static void bl2_early_platform_setup(void)
 
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
-	struct meminfo *mem_layout = (struct meminfo *)arg1;
+	/* Save memory layout */
+	bl2_tzram_layout = *(struct meminfo *) arg1;
 
-	/* Scribble away memory layout early */
-	bl2_tzram_layout = *mem_layout;
+	/* Check if fw_config is forwarded */
+	if (arg2 > BL1_RW_BASE && arg2 < BL1_RW_LIMIT)
+		memcpy(&lan966x_fw_config, (void *) arg2, sizeof(lan966x_fw_config));
 
 	/* Common setup */
 	bl2_early_platform_setup();

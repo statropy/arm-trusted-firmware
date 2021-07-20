@@ -55,7 +55,6 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/mmc/mmc.c				\
 				drivers/microchip/emmc/emmc.c			\
 				drivers/microchip/otp/otp.c			\
-				drivers/microchip/otp/otp_emu.c			\
 				drivers/microchip/clock/lan966x_clock.c		\
 				plat/microchip/lan966x/common/lan966x_trng.c	\
 				drivers/microchip/tz_matrix/tz_matrix.c		\
@@ -113,7 +112,7 @@ endif
 
 LAN966X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
 
-${LAN966X_FW_CONFIG}: bin/otp.bin
+${LAN966X_FW_CONFIG}: bin/otp.bin bin/fw_param.bin
 	$(Q)cat $^ > $@
 
 # FW config

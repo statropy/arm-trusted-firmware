@@ -32,6 +32,9 @@ static console_t lan966x_console;
 static lan966x_boot_media_config_t lan966x_conf;
 bool conf_read, conf_valid;
 
+/* fw_config */
+lan966x_fw_config_t lan966x_fw_config;
+
 #define LAN996X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
 		LAN996X_QSPI0_MMAP,					\
