@@ -13,8 +13,10 @@
 
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
-#include "otp_emu.h"
 #include "plat_otp.h"
+
+/* Restrict OTP emulation */
+#define OTP_EMU_START_OFF	256
 
 enum {
 	OTP_FLAG_INITIALIZED = BIT(0),
@@ -169,12 +171,24 @@ void otp_init(void)
 	 */
 	otp_hw_read_bytes(OTP_TBBR_ROTPK_ADDR, sizeof(rotpk), rotpk);
 	if (otp_all_zero(rotpk, sizeof(rotpk))) {
-		if (otp_emu_init())
-			otp_flags |= OTP_FLAG_EMULATION;
+		otp_flags |= OTP_FLAG_EMULATION;
 	} else {
 		NOTICE("OTP emulation disabled (by OTP)\n");
 		memset(rotpk, 0, sizeof(rotpk)); /* Don't leak data */
 	}
+}
+
+static uint8_t otp_emu_get_byte(unsigned int offset)
+{
+	/* Only have data for so much */
+	if (offset >= OTP_EMU_START_OFF) {
+		offset -= OTP_EMU_START_OFF;
+		if (offset < OTP_EMU_MAX_DATA)
+			return lan966x_fw_config.otp_emu_data[offset];
+	}
+
+	/* Otherwise zero contribution */
+	return 0;
 }
 
 int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)

@@ -20,6 +20,16 @@ typedef struct {
 	uint32_t	crc;
 } lan966x_boot_media_config_t;
 
+#define OTP_EMU_MAX_DATA	512
+#define FW_CONFIG_MAX_PARAM	32
+
+typedef struct {
+	uint8_t otp_emu_data[OTP_EMU_MAX_DATA];
+	uint32_t config[FW_CONFIG_MAX_PARAM];
+} lan966x_fw_config_t;
+
+extern lan966x_fw_config_t lan966x_fw_config;
+
 enum {
 	LAN966X_STRAP_BOOT_MMC = 0,
 	LAN966X_STRAP_BOOT_QSPI,

@@ -10,6 +10,7 @@
 #include <bl1/bl1.h>
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
+#include <drivers/io/io_storage.h>
 #include <drivers/microchip/otp.h>
 #include <lib/fconf/fconf.h>
 #include <lib/utils.h>
@@ -91,6 +92,43 @@ void bl1_plat_arch_setup(void)
 #endif /* __aarch64__ */
 }
 
+/*
+ * Note: The FW_CONFIG is read *wo* authentication, as the OTP
+ * emulation data may contain the actual (emulated) rotpk. This is
+ * only called when a *hw* ROTPK has *not* been deployed.
+ */
+static int bl1_load_fw_config(unsigned int image_id)
+{
+	uintptr_t dev_handle, image_handle, image_spec = 0;
+	size_t bytes_read;
+	int result;
+
+	result = plat_get_image_source(image_id, &dev_handle, &image_spec);
+	if (result != 0) {
+		WARN("Failed to obtain reference to image id=%u (%i)\n",
+			image_id, result);
+		return result;
+	}
+
+	result = io_open(dev_handle, image_spec, &image_handle);
+	if (result != 0) {
+		WARN("Failed to access image id=%u (%i)\n", image_id, result);
+		return result;
+	}
+
+	result = io_read(image_handle, (uintptr_t)&lan966x_fw_config,
+			 sizeof(lan966x_fw_config), &bytes_read);
+	if (result != 0)
+		WARN("Failed to read data (%i)\n", result);
+
+	io_close(image_handle);
+
+	/* This is fwd to BL2 */
+	flush_dcache_range((uintptr_t)&lan966x_fw_config, sizeof(lan966x_fw_config));
+
+	return result;
+}
+
 void bl1_platform_setup(void)
 {
 	INFO("BL1 platform setup start\n");
@@ -100,6 +138,9 @@ void bl1_platform_setup(void)
 
 	/* OTP */
 	otp_init();
+
+	/* FW_CONFIG */
+	bl1_load_fw_config(FW_CONFIG_ID);
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_SAMBA_FC0:
@@ -154,9 +195,7 @@ int bl1_plat_handle_post_image_load(unsigned int image_id)
 	 */
 	bl1_calc_bl2_mem_layout(&bl1_tzram_layout, &bl2_tzram_layout);
 	ep_info->args.arg1 = (uintptr_t)&bl2_tzram_layout;
-	ep_info->args.arg2 = 0xBEEF0000 | lan966x_get_strapping();
+	ep_info->args.arg2 = (uintptr_t) &lan966x_fw_config;
 
-	VERBOSE("BL1: BL2 memory layout address = %p\n",
-		(void *)&bl2_tzram_layout);
 	return 0;
 }
