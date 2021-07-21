@@ -55,7 +55,7 @@
  * BL2 - Entire SRAM excl. BL1_RW, MMC
  */
 #define BL2_BASE		LAN996X_SRAM_BASE
-#define BL2_SIZE		(1024 * 108)
+#define BL2_SIZE		(1024 * 94)
 #define BL2_LIMIT		(BL2_BASE + BL2_SIZE)
 
 /*

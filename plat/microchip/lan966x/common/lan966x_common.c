@@ -22,6 +22,8 @@
 #include "lan966x_private.h"
 #include "plat_otp.h"
 
+CASSERT((BL1_RW_SIZE + BL2_SIZE + MMC_BUF_SIZE) <= LAN996X_SRAM_SIZE, assert_sram_depletion);
+
 /* Boot media config blob, little endian */
 #define CONFIG_HEADER_SIGNATURE1	0x5048434d	// MCHP
 #define CONFIG_HEADER_SIGNATURE2	0x58363639	// 966X
