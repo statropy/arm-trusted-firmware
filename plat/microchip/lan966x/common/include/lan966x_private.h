@@ -9,17 +9,6 @@
 
 #include <stdint.h>
 
-typedef struct {
-	uint32_t	signature1;
-	uint32_t	signature2;
-	uint32_t	qspi0_dlybs;
-	uint8_t		console;
-	uint8_t		max_log_level;
-	uint8_t		res1[2];
-	uint32_t	res2[11];
-	uint32_t	crc;
-} lan966x_boot_media_config_t;
-
 #define OTP_EMU_MAX_DATA	512
 #define FW_CONFIG_MAX_PARAM	32
 
@@ -77,7 +66,5 @@ void plat_lan966x_gic_init(void);
 uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 uint32_t lan966x_get_boot_source(void);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
-
-lan966x_boot_media_config_t *lan966x_boot_media_cfg_get(void);
 
 #endif /* LAN966X_PRIVATE_H */

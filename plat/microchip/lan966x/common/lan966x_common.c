@@ -24,15 +24,7 @@
 
 CASSERT((BL1_RW_SIZE + BL2_SIZE + MMC_BUF_SIZE) <= LAN996X_SRAM_SIZE, assert_sram_depletion);
 
-/* Boot media config blob, little endian */
-#define CONFIG_HEADER_SIGNATURE1	0x5048434d	// MCHP
-#define CONFIG_HEADER_SIGNATURE2	0x58363639	// 966X
-#define CONFIG_SPACE_SPI_OFFSET		0
-
 static console_t lan966x_console;
-
-static lan966x_boot_media_config_t lan966x_conf;
-bool conf_read, conf_valid;
 
 /* fw_config */
 lan966x_fw_config_t lan966x_fw_config;
@@ -102,62 +94,6 @@ const mmap_region_t plat_arm_mmap[] = {
 const mmap_region_t *plat_arm_get_mmap(void)
 {
 	return plat_arm_mmap;
-}
-
-static bool lan966x_boot_media_cfg_parse(uint8_t *src, lan966x_boot_media_config_t *out)
-{
-	lan966x_boot_media_config_t *in = (lan966x_boot_media_config_t *)src;
-
-	if (in->signature1 == CONFIG_HEADER_SIGNATURE1 &&
-	    in->signature2 == CONFIG_HEADER_SIGNATURE2) {
-		uint32_t crc = Crc32c(0, src, sizeof(lan966x_boot_media_config_t) - 4);
-		if (crc == in->crc) {
-			memcpy(out, in, sizeof(lan966x_boot_media_config_t));
-			return true;
-		}
-	}
-
-	return false;
-}
-
-static bool lan966x_boot_media_cfg(lan966x_boot_media_config_t *out)
-{
-	bool ret = false;
-
-	switch (lan966x_get_strapping()) {
-	case LAN966X_STRAP_BOOT_MMC: /* XXX */
-	case LAN966X_STRAP_BOOT_EMMC_CONT: /* XXX */
-	case LAN966X_STRAP_BOOT_SD:  /* XXX */
-		INFO("Fix me, emulating reading configuration\n");
-		memset(out, 0xff, sizeof(*out));
-		out->signature1 = CONFIG_HEADER_SIGNATURE1;
-		out->signature2 = CONFIG_HEADER_SIGNATURE2;
-		out->console = 0;
-		out->max_log_level = LOG_LEVEL_VERBOSE;
-		ret = true;
-		break;
-
-	case LAN966X_STRAP_BOOT_QSPI_CONT:
-	case LAN966X_STRAP_BOOT_QSPI:
-		ret = lan966x_boot_media_cfg_parse((void*)LAN996X_QSPI0_MMAP +
-						   CONFIG_SPACE_SPI_OFFSET, out);
-		break;
-
-	default:
-		break;
-	}
-
-	return ret;
-}
-
-lan966x_boot_media_config_t *lan966x_boot_media_cfg_get(void)
-{
-	if (!conf_read) {
-		conf_read = true;
-		conf_valid = lan966x_boot_media_cfg(&lan966x_conf);
-	}
-
-	return conf_valid ? &lan966x_conf : NULL;
 }
 
 #if defined(LAN966X_ASIC)
@@ -370,17 +306,6 @@ void lan966x_set_strapping(uint8_t value)
 #if defined(DEBUG)
 	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), 0x10000 | value);
 #endif
-}
-
-void qspi_plat_configure(void)
-{
-	lan966x_boot_media_config_t *cfg;
-
-	cfg = lan966x_boot_media_cfg_get();
-	if (cfg) {
-		INFO("Speed up QSPI, dlybs = %d\n", cfg->qspi0_dlybs);
-		qspi_set_dly(cfg->qspi0_dlybs);
-	}
 }
 
 uint32_t lan966x_get_boot_source(void)
