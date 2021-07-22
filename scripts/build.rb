@@ -15,7 +15,8 @@ $option = { :platform	=> "lan966x_sr",
              :loglevel	=> 40,
              :tbbr	=> false,
              :debug	=> true,
-             :rot	=> "keys/rotprivk_rsa.pem",
+             :key_alg	=> 'ecdsa',
+             :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
              :sdk	=> "2021.02-483",
              :norimg	=> true,
@@ -30,6 +31,9 @@ OptionParser.new do |opts|
     opts.version = 0.1
     opts.on("-p", "--platform <platform>", "Build for given platform") do |p|
         $option[:platform] = p
+    end
+    opts.on("-a", "--key-alg <algo>", "Set key algorithm (rsa|ecdsa)") do |a|
+        $option[:key_alg] = a
     end
     opts.on("-r", "--root-of-trust <keyfile>", "Set ROT key file") do |k|
         $option[:rot] = k
@@ -115,7 +119,8 @@ args += "PLAT=#{$option[:platform]} ARCH=aarch32 AARCH32_SP=sp_min "
 args += "BL2_VARIANT=#{$option[:bl2variant].upcase} " if $option[:bl2variant]
 
 if $option[:tbbr]
-    args += "TRUSTED_BOARD_BOOT=1 GENERATE_COT=1 CREATE_KEYS=1 ROT_KEY=#{$option[:rot]} MBEDTLS_DIR=mbedtls "
+    args += "TRUSTED_BOARD_BOOT=1 GENERATE_COT=1 CREATE_KEYS=1 MBEDTLS_DIR=mbedtls "
+    args += "KEY_ALG=#{$option[:key_alg]} ROT_KEY=#{$option[:rot]} "
     if !File.directory?("mbedtls")
         do_cmd("git clone https://github.com/ARMmbed/mbedtls.git")
     end

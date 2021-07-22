@@ -301,6 +301,7 @@ uint8_t lan966x_get_strapping(void)
 void lan966x_set_strapping(uint8_t value)
 {
 #if defined(DEBUG)
+	VERBOSE("OVERRIDE strapping = 0x%08x\n", value);
 	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), 0x10000 | value);
 #endif
 }

@@ -150,13 +150,6 @@ void bl2_platform_setup(void)
 	/* SJTAG: Freeze mode and configuration */
 	lan966x_sjtag_configure();
 
-#if !defined(LAN966X_ASIC)
-	/* On ASIC, we don't get fw_config forwarded, so read in
-	 * ourselves.
-	 */
-	lan966x_load_fw_config(FW_CONFIG_ID);
-#endif
-
 	/* Initialize DDR for loading BL32/BL33 */
 	lan966x_ddr_init();
 
