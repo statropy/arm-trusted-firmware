@@ -116,4 +116,4 @@ ${LAN966X_FW_CONFIG}: bin/otp.bin bin/fw_param.bin
 	$(Q)cat $^ > $@
 
 # FW config
-$(eval $(call TOOL_ADD_PAYLOAD,bin/otp.bin,--fw-config,${LAN966X_FW_CONFIG}))
+$(eval $(call TOOL_ADD_PAYLOAD,${LAN966X_FW_CONFIG},--fw-config,${LAN966X_FW_CONFIG}))
