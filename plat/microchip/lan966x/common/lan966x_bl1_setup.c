@@ -11,7 +11,6 @@
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/microchip/otp.h>
-#include <lib/fconf/fconf.h>
 #include <lib/utils.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>

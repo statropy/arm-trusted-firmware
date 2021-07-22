@@ -16,6 +16,7 @@
 #include <drivers/microchip/vcore_gpio.h>
 #include <drivers/microchip/sha.h>
 #include <lib/mmio.h>
+#include <plat/common/platform.h>
 #include <platform_def.h>
 
 #include <plat/common/platform.h>
@@ -386,7 +387,7 @@ int lan966x_load_fw_config(unsigned int image_id)
 	flush_dcache_range((uintptr_t)&lan966x_fw_config, sizeof(lan966x_fw_config));
 #endif
 
-	return 0;
+	return result;
 }
 
 static int fw_config_read_bytes(unsigned int offset,
