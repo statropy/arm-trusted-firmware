@@ -31,6 +31,8 @@ static void init(void)
 	pkcl_init();
 }
 
+//#define PKCL_HW
+#if defined(PKCL_HW)
 static int lan966x_get_pk_alg(unsigned char **p,
 			 const unsigned char *end,
 			 mbedtls_pk_type_t *pk_alg,
@@ -83,8 +85,8 @@ static int lan966x_use_ecparams(const mbedtls_asn1_buf *params, mbedtls_ecp_grou
 }
 
 static int lan966x_get_ecpubkey(unsigned char **p,
-				 const unsigned char *end,
-				 mbedtls_ecp_keypair *key)
+				const unsigned char *end,
+				mbedtls_ecp_keypair *key)
 {
 	int ret;
 
@@ -100,6 +102,14 @@ static int lan966x_get_ecpubkey(unsigned char **p,
 	return ret;
 }
 
+/*
+ * Note: This is partially copied from mbedtls_pk_parse_subpubkey() in
+ * order to just extract the curve group and key material, not
+ * initialize a full context - which pulls is *all* of the mbedtls
+ * software ECDSA implementation (which we are not going to use). The
+ * previous functions are needed since they are static members in
+ * mbedtls.
+ */
 static int lan966x_pk_parse_subpubkey(unsigned char **p,
 				      const unsigned char *end,
 				      mbedtls_ecp_keypair *kp)
@@ -138,6 +148,7 @@ static int lan966x_pk_parse_subpubkey(unsigned char **p,
 
 	return ret;
 }
+#endif
 
 /*
  * Verify a signature.
@@ -159,8 +170,11 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	unsigned char hash[MBEDTLS_MD_MAX_SIZE];
 	void *sig_opts = NULL;
 	const mbedtls_md_info_t *md_info;
-	//mbedtls_pk_context _pk = { 0 };
+#if defined(PKCL_HW)
 	mbedtls_ecp_keypair kp;
+#else
+	mbedtls_pk_context _pk = { 0 };
+#endif
 
 	/* Signature verification success */
 	INFO("%s: Called dlen = %d, siglen = %d, sig_alg_len = %d, pk_len = %d\n",
@@ -185,9 +199,12 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 
 	p = (unsigned char *)pk_ptr;
 	end = (unsigned char *)(p + pk_len);
+#if defined(PKCL_HW)
 	mbedtls_ecp_keypair_init(&kp);
 	rc = lan966x_pk_parse_subpubkey(&p, end, &kp);
-	//rc = mbedtls_pk_parse_subpubkey(&p, end, &_pk);
+#else
+	rc = mbedtls_pk_parse_subpubkey(&p, end, &_pk);
+#endif
 	if (rc != 0) {
 		rc = CRYPTO_ERR_SIGNATURE;
 		goto end2;
@@ -222,12 +239,31 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 		goto end1;
 	}
 
+#if defined(PKCL_HW)
 	rc = pkcl_ecdsa_verify_signature(pk_alg, &kp, md_alg, hash,
 					 mbedtls_md_get_size(md_info),
 					 signature.p, signature.len);
+#else
+	rc = mbedtls_pk_verify_ext(pk_alg, sig_opts, &_pk, md_alg, hash,
+				   mbedtls_md_get_size(md_info),
+				   signature.p, signature.len);
+#endif
+
+	if (rc != 0) {
+		rc = CRYPTO_ERR_SIGNATURE;
+		goto end1;
+	}
+
+	/* Signature verification success */
+	rc = CRYPTO_SUCCESS;
 
 end1:
+#if defined(PKCL_HW)
 	mbedtls_ecp_keypair_free(&kp);
+#else
+	mbedtls_pk_free(&_pk);
+#endif
+
 end2:
 	mbedtls_free(sig_opts);
 
