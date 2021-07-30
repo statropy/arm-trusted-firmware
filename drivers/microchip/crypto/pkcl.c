@@ -49,29 +49,33 @@ void pkcl_init(void)
 
 static void cpy_mpi(u2 offset, const mbedtls_mpi *mpi)
 {
-	memcpy(NEARTOFAR(offset), mpi->p, mbedtls_mpi_size(mpi));
+	memcpy(NEARTOFAR(offset), &mpi->p[0], mbedtls_mpi_size(mpi));
 }
 
-/*static*/ void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
-					mbedtls_ecp_keypair *pubkey,
-					const unsigned char *hash, size_t hash_len,
-					const unsigned char *sig, size_t sig_len)
+static void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
+				    mbedtls_ecp_keypair *pubkey,
+				    const mbedtls_mpi *r, const mbedtls_mpi *s,
+				    const unsigned char *hash, size_t hash_len)
 {
 	u2 u2ModuloPSize = pubkey->grp.pbits / 8;
 	u2 u2OrderSize   = pubkey->grp.nbits / 8;
-	void *pStart, *pEnd;
+	nu1 beg, end;
 
 	CPKCL(u2Option) = 0;
 
 	/* Zero out parameter memory */
-	pStart = NEARTOFAR(BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize));
-	pEnd   = NEARTOFAR(BASE_ECDSAV_WORKSPACE(u2ModuloPSize,u2OrderSize));
-	memset(pStart, 0, pEnd - pStart);
+	beg = BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize);
+	end = BASE_ECDSAV_WORKSPACE(u2ModuloPSize,u2OrderSize);
+	memset(NEARTOFAR(beg), 0, end - beg);
 
 	/* Copies the signature into appropriate memory area */
 	// Take care of the input signature format (???)
-	memcpy(NEARTOFAR(BASE_ECDSAV_SIGNATURE(u2ModuloPSize,u2OrderSize)),
-	       sig, sig_len);
+	/* Copy R, S with 4 bytes zero spacing */
+	beg = BASE_ECDSAV_SIGNATURE(u2ModuloPSize,u2OrderSize);
+	cpy_mpi(beg, r);
+	beg += u2OrderSize + 4;
+	cpy_mpi(beg, s);
+
 	/* Hash (byteorder?) */
 	memcpy(NEARTOFAR(BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize)),
 	       hash, hash_len);
@@ -119,13 +123,13 @@ static void cpy_mpi(u2 offset, const mbedtls_mpi *mpi)
 
 int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 				mbedtls_ecp_keypair *pubkey,
+				const mbedtls_mpi *r, const mbedtls_mpi *s,
 				mbedtls_md_type_t md_alg,
-				const unsigned char *hash, size_t hash_len,
-				const unsigned char *sig, size_t sig_len)
+				const unsigned char *hash, size_t hash_len)
 {
+	int ret;
 	CPKCL_PARAM CPKCLParam;
 	PCPKCL_PARAM pvCPKCLParam = &CPKCLParam;
-	int ret;
 
 	/* Only ECDSA signature */
 	if (type != MBEDTLS_PK_ECDSA) {
@@ -139,8 +143,11 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 	}
 
 	pkcl_ecdsa_verify_setup(pvCPKCLParam, pubkey,
-				hash, hash_len, sig, sig_len);
+				r, s,
+				hash, hash_len);
 
+//#define PKCL_HW
+#if defined(PKCL_HW)
 	vCPKCL_Process(ZpEcDsaVerifyFast, pvCPKCLParam);
 
 	switch (CPKCL(u2Status)) {
@@ -156,6 +163,14 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 		ret = CRYPTO_ERR_SIGNATURE;
 		break;
 	}
+#else
+	ret = mbedtls_ecdsa_verify(&pubkey->grp,
+				   hash, hash_len,
+				   &pubkey->Q,
+				   r, s);
+	INFO("MBEDTLS verify: %d\n", ret);
+	ret = ret ? CRYPTO_ERR_SIGNATURE: CRYPTO_SUCCESS;
+#endif
 
 	return ret;
 }

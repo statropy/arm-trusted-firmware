@@ -31,8 +31,6 @@ static void init(void)
 	pkcl_init();
 }
 
-//#define PKCL_HW
-#if defined(PKCL_HW)
 static int lan966x_get_pk_alg(unsigned char **p,
 			 const unsigned char *end,
 			 mbedtls_pk_type_t *pk_alg,
@@ -148,7 +146,33 @@ static int lan966x_pk_parse_subpubkey(unsigned char **p,
 
 	return ret;
 }
-#endif
+
+static int lan966x_ecdsa_read_signature(const unsigned char *sig,
+					size_t slen,
+					mbedtls_mpi *r, mbedtls_mpi *s)
+{
+	int ret;
+	unsigned char *p = (unsigned char *) sig;
+	const unsigned char *end = sig + slen;
+	size_t len;
+
+	mbedtls_mpi_init( r );
+	mbedtls_mpi_init( s );
+
+	if( ( ret = mbedtls_asn1_get_tag( &p, end, &len,
+					  MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) ) != 0 )
+		return ret += MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+
+	if( p + len != end )
+		return ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA +
+			MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
+
+	if( ( ret = mbedtls_asn1_get_mpi( &p, end, r ) ) != 0 ||
+	    ( ret = mbedtls_asn1_get_mpi( &p, end, s ) ) != 0 )
+		ret += MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+
+	return ret;
+}
 
 /*
  * Verify a signature.
@@ -170,11 +194,8 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	unsigned char hash[MBEDTLS_MD_MAX_SIZE];
 	void *sig_opts = NULL;
 	const mbedtls_md_info_t *md_info;
-#if defined(PKCL_HW)
 	mbedtls_ecp_keypair kp;
-#else
-	mbedtls_pk_context _pk = { 0 };
-#endif
+	mbedtls_mpi r, s;
 
 	/* Signature verification success */
 	INFO("%s: Called dlen = %d, siglen = %d, sig_alg_len = %d, pk_len = %d\n",
@@ -195,16 +216,16 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 		return CRYPTO_ERR_SIGNATURE;
 	}
 
-	INFO("verify: pk_alg %d, md_alg %d\n", pk_alg, md_alg);
+	/* General case: no options */
+	if (sig_opts != NULL) {
+		rc = CRYPTO_ERR_SIGNATURE;
+		goto end2;
+	}
 
 	p = (unsigned char *)pk_ptr;
 	end = (unsigned char *)(p + pk_len);
-#if defined(PKCL_HW)
 	mbedtls_ecp_keypair_init(&kp);
 	rc = lan966x_pk_parse_subpubkey(&p, end, &kp);
-#else
-	rc = mbedtls_pk_parse_subpubkey(&p, end, &_pk);
-#endif
 	if (rc != 0) {
 		rc = CRYPTO_ERR_SIGNATURE;
 		goto end2;
@@ -233,36 +254,16 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 		goto end1;
 	}
 
-	/* General case: no options */
-	if (sig_opts != NULL) {
+	if (lan966x_ecdsa_read_signature(signature.p, signature.len, &r, &s) == 0)
+		rc = pkcl_ecdsa_verify_signature(pk_alg, &kp, &r, &s,
+						 md_alg, hash, mbedtls_md_get_size(md_info));
+	else
 		rc = CRYPTO_ERR_SIGNATURE;
-		goto end1;
-	}
 
-#if defined(PKCL_HW)
-	rc = pkcl_ecdsa_verify_signature(pk_alg, &kp, md_alg, hash,
-					 mbedtls_md_get_size(md_info),
-					 signature.p, signature.len);
-#else
-	rc = mbedtls_pk_verify_ext(pk_alg, sig_opts, &_pk, md_alg, hash,
-				   mbedtls_md_get_size(md_info),
-				   signature.p, signature.len);
-#endif
-
-	if (rc != 0) {
-		rc = CRYPTO_ERR_SIGNATURE;
-		goto end1;
-	}
-
-	/* Signature verification success */
-	rc = CRYPTO_SUCCESS;
-
+	mbedtls_mpi_free( &r );
+	mbedtls_mpi_free( &s );
 end1:
-#if defined(PKCL_HW)
 	mbedtls_ecp_keypair_free(&kp);
-#else
-	mbedtls_pk_free(&_pk);
-#endif
 
 end2:
 	mbedtls_free(sig_opts);

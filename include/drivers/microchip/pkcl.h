@@ -13,8 +13,8 @@ void pkcl_init(void);
 
 int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 				mbedtls_ecp_keypair *pubkey,
+				const mbedtls_mpi *r,  const mbedtls_mpi *s,
 				mbedtls_md_type_t md_alg,
-				const unsigned char *hash, size_t hash_len,
-				const unsigned char *sig, size_t sig_len);
+				const unsigned char *hash, size_t hash_len);
 
 #endif  /* MICROCHIP_PKCL */
