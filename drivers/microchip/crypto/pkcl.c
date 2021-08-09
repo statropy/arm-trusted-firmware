@@ -8,6 +8,8 @@
 #include <common/debug.h>
 #include <drivers/auth/crypto_mod.h>
 #include <mbedtls/ecdsa.h>
+#include <mbedtls/bignum.h>
+#include <mbedtls/error.h>
 
 #include "inc/CryptoLib_Headers_pb.h"
 #include "inc/CryptoLib_JumpTable_pb.h"
@@ -52,10 +54,35 @@ static void cpy_mpi(u2 offset, const mbedtls_mpi *mpi)
 	memcpy(NEARTOFAR(offset), &mpi->p[0], mbedtls_mpi_size(mpi));
 }
 
-static void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
+/*
+ * Derive a suitable integer for group grp from a buffer of length len
+ * SEC1 4.1.3 step 5 aka SEC1 4.1.4 step 3
+ */
+static int derive_mpi(const mbedtls_ecp_group *grp, mbedtls_mpi *x,
+		      const unsigned char *buf, size_t blen)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t n_size = (grp->nbits + 7) / 8;
+    size_t use_size = blen > n_size ? n_size : blen;
+
+    mbedtls_mpi_init(x);
+
+    MBEDTLS_MPI_CHK(mbedtls_mpi_read_binary(x, buf, use_size));
+    if (use_size * 8 > grp->nbits)
+	    MBEDTLS_MPI_CHK(mbedtls_mpi_shift_r(x, use_size * 8 - grp->nbits));
+
+    /* While at it, reduce modulo N */
+    if (mbedtls_mpi_cmp_mpi(x, &grp->N) >= 0)
+	    MBEDTLS_MPI_CHK(mbedtls_mpi_sub_mpi(x, x, &grp->N));
+
+cleanup:
+    return (ret);
+}
+
+ void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
 				    mbedtls_ecp_keypair *pubkey,
 				    const mbedtls_mpi *r, const mbedtls_mpi *s,
-				    const unsigned char *hash, size_t hash_len)
+				    const mbedtls_mpi *h)
 {
 	u2 u2ModuloPSize = pubkey->grp.pbits / 8;
 	u2 u2OrderSize   = pubkey->grp.nbits / 8;
@@ -77,8 +104,8 @@ static void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
 	cpy_mpi(beg, s);
 
 	/* Hash (byteorder?) */
-	memcpy(NEARTOFAR(BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize)),
-	       hash, hash_len);
+	beg = BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize);
+	cpy_mpi(beg, h);
 
 	/* Mapping of mbedtls to PKCL:
 	  +--------+-----+------+---------------+
@@ -130,6 +157,7 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 	int ret;
 	CPKCL_PARAM CPKCLParam;
 	PCPKCL_PARAM pvCPKCLParam = &CPKCLParam;
+	mbedtls_mpi h;
 
 	/* Only ECDSA signature */
 	if (type != MBEDTLS_PK_ECDSA) {
@@ -142,9 +170,12 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 		return CRYPTO_ERR_SIGNATURE;
 	}
 
-	pkcl_ecdsa_verify_setup(pvCPKCLParam, pubkey,
-				r, s,
-				hash, hash_len);
+	if (derive_mpi(&pubkey->grp, &h, hash, hash_len)) {
+		NOTICE("verify: Unable to derive hash MPI\n");
+		return CRYPTO_ERR_SIGNATURE;
+	}
+
+	pkcl_ecdsa_verify_setup(pvCPKCLParam, pubkey, r, s, &h);
 
 //#define PKCL_HW
 #if defined(PKCL_HW)
