@@ -389,10 +389,10 @@ int lan966x_set_fip_addr(unsigned int image_id, const char *name)
 		partition_init(GPT_IMAGE_ID);
 		entry = get_partition_entry(name);
 		if (entry == NULL) {
-			INFO("Could not find the %s partition!\n", name);
+			INFO("Could not find the '%s' partition!\n", name);
 			/* No GPT partition found, use default values */
 		} else {
-			INFO("Find the %s partition, fetch FIP configuration "
+			INFO("Find the '%s' partition, fetch FIP configuration "
 							"data \n", name);
 			fip_emmc_block_spec.offset = entry->start;
 			fip_emmc_block_spec.length = entry->length;

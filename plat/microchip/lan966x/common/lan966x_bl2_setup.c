@@ -139,6 +139,9 @@ void bl2_platform_setup(void)
 	/* OTP */
 	otp_init();
 
+	/* FW_CONFIG */
+	plat_lan966x_config();
+
 	/* Initialize DDR for loading BL32/BL33 */
 	lan966x_ddr_init();
 

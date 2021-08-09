@@ -63,6 +63,7 @@
 #define SD_STATUS_CURRENT_STATE_PRG		(0x7u << SD_STATUS_CURRENT_STATE_pos)
 #define SD_STATUS_CURRENT_STATE_DIS		(0x8u << SD_STATUS_CURRENT_STATE_pos)
 
+#define MMC_CARD_POWER_UP_STATUS	(0x1u << 31)
 #define MMC_CARD_ACCESS_MODE_pos	29
 #define MMC_CARD_ACCESS_MODE_msk	(0x3u << MMC_CARD_ACCESS_MODE_pos)
 #define MMC_CARD_ACCESS_MODE_BYTE	(0x0u << MMC_CARD_ACCESS_MODE_pos)
@@ -189,6 +190,7 @@ typedef struct _card {
 	unsigned char card_product_sn[4];
 	unsigned char card_capacity;
 	unsigned int card_taac_ns;
+	unsigned int card_trans_speed;
 	unsigned int card_nsac;
 	unsigned char card_r2w_factor;
 	unsigned char card_max_rd_blk_len;
@@ -238,4 +240,4 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 size_t lan966x_read_single_block(int block_number,
 				 uintptr_t dest_buffer, size_t block_size);
 
-#endif				/* EMMC_H */
+#endif	/* EMMC_H */

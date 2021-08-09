@@ -12,6 +12,8 @@
 #include <drivers/mmc.h>
 #include <lib/mmio.h>
 
+#include "lan966x_private.h"
+
 /* -------- SDMMC_BSR : (SDMMC Offset: 0x04) Block Size Register ---------- */
 #define SDMMC_BSR	0x04	/* uint16_t */
 #define   SDMMC_BSR_BLKSIZE_Pos 0
@@ -56,8 +58,9 @@
 /* -------- SDMMC_HC1R : (SDMMC Offset: 0x28) Host Control 1 Register ------ */
 #define SDMMC_HC1R	0x28	/* uint8_t */
 #define   SDMMC_HC1R_DW (0x1u << 1)	/* Data Width */
-#define   SDMMC_HC1R_DW_1_BIT (0x0u << 1) /* 1-bit mode. */
-#define   SDMMC_HC1R_DW_4_BIT (0x1u << 1) /* 4-bit mode. */
+#define   SDMMC_HC1R_DW_1_BIT (0x0u << 1)	/* 1-bit mode. */
+#define   SDMMC_HC1R_DW_4_BIT (0x1u << 1)	/* 4-bit mode. */
+#define   SDMMC_HC1R_EXTDW (0x1u << 5)	/* Extended Data Width */
 /* -------- SDMMC_PCR : (SDMMC Offset: 0x29) Power Control Register -------- */
 #define SDMMC_PCR	0x29	/* uint8_t */
 #define   SDMMC_PCR_SDBPWR (0x1u << 0)	/* SD Bus Power */
@@ -118,6 +121,8 @@
 #define   SDMMC_CA0R_TEOCLKU (0x1u << 7)	/* (SDMMC_CA0R) Timeout Clock Unit */
 #define   SDMMC_CA0R_BASECLKF_Pos 8
 #define   SDMMC_CA0R_BASECLKF_Msk (0xffu << SDMMC_CA0R_BASECLKF_Pos)	/* Base Clock Frequency */
+#define   SDMMC_CA0R_ED8SUP (0x1u << 18)	/* 8-Bit Support for Embedded Device */
+#define   SDMMC_CA0R_HSSUP (0x1u << 21)	/* High Speed Support */
 /* -------- SDMMC_MC1R : (SDMMC Offset: 0x204) e.MMC Control 1 Register ---- */
 #define SDMMC_MC1R	0x204	/* uint8_t */
 #define   SDMMC_MC1R_CMDTYP_Pos 0
@@ -132,10 +137,14 @@ static uint16_t eistr = 0u;	/* Holds the error interrupt status */
 static bool resetDone = false;
 static lan966x_mmc_params_t lan966x_params;
 
+static const unsigned int TRAN_SpeedExp[8] =
+	{ 100000, 1000000, 10000000, 100000000, 0, 0, 0, 0 };
+static const unsigned int TRAN_SpeedMant[16] =
+	{ 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80 };
 static const unsigned int TAAC_TimeExp[8] =
-    { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000 };
+	{ 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000 };
 static const unsigned int TAAC_TimeMant[16] =
-    { 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80 };
+	{ 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80 };
 
 static void lan966x_clock_delay(unsigned int sd_clock_cycles)
 {
@@ -251,7 +260,7 @@ static int lan966x_host_init(void)
 	mmc_setbits_8(reg_base + SDMMC_PCR, SDMMC_PCR_SDBPWR);
 
 	/* Set host controller data bus width to 4 bit */
-	mmc_setbits_8(reg_base + SDMMC_HC1R, SDMMC_HC1R_DW_4_BIT);
+	mmc_setbits_8(reg_base + SDMMC_HC1R, SDMMC_HC1R_DW_1_BIT);
 
 	if (lan966x_set_clk_freq(SDCLOCK_400KHZ, SDMMC_CLK_CTRL_PROG_MODE)) {
 		return -1;
@@ -268,7 +277,7 @@ static void lan996x_mmc_initialize(void)
 
 	retVal = lan966x_host_init();
 	assert(retVal == 0);
-	
+
 	/* Prevent compiler warning in release build */
 	(void)retVal;
 }
@@ -323,6 +332,10 @@ static void lan966x_get_csd_register(void)
 		e = get_CSD_field(p_resp, 112, 3);
 		m = get_CSD_field(p_resp, 115, 4);
 		p_card.card_taac_ns = TAAC_TimeExp[e] * TAAC_TimeMant[m] / 10;
+
+		e = get_CSD_field(p_resp, 96, 3);
+		m = get_CSD_field(p_resp, 99, 4);
+		p_card.card_trans_speed = TRAN_SpeedExp[e] * TRAN_SpeedMant[m] / 10;
 
 		p_card.card_nsac = get_CSD_field(p_resp, 104, 8);
 		p_card.card_r2w_factor = get_CSD_field(p_resp, 26, 3);
@@ -411,7 +424,7 @@ static void lan966x_set_data_timeout(unsigned int trans_type)
 	if (p_card.card_type == MMC_CARD
 	    || (p_card.card_type == SD_CARD
 		&& p_card.card_capacity == SD_CARD_SDSC)) {
-		/* Set base clock frequency in Mhz */
+		/* Set base clock frequency in MHz */
 		clock_frequency =
 		    (mmio_read_32(reg_base + SDMMC_CA0R) &
 		     SDMMC_CA0R_BASECLKF_Msk) >> SDMMC_CA0R_BASECLKF_Pos;
@@ -474,9 +487,8 @@ static void lan966x_set_data_timeout(unsigned int trans_type)
 		timeout_freq_fact = 1u;
 	}
 
-	timeout_freq =
-	    (mmio_read_32(reg_base + SDMMC_CA0R) & SDMMC_CA0R_TEOCLKF_Msk) *
-	    timeout_freq_fact;
+	timeout_freq = (mmio_read_32(reg_base + SDMMC_CA0R) &
+			SDMMC_CA0R_TEOCLKF_Msk) * timeout_freq_fact;
 	timeout_cyc = timeout_val * timeout_freq;
 
 	/* timeout_val will be re-used for the data timeout counter */
@@ -640,14 +652,19 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 		break;
 	case 1:
 		cmd->resp_data[0] = mmio_read_32(reg_base + SDMMC_RR0);
-		p_card.card_type = MMC_CARD;
-		if ((cmd->resp_data[0] & MMC_CARD_ACCESS_MODE_msk) ==
-		    MMC_CARD_ACCESS_MODE_SECTOR) {
-			p_card.card_capacity = MMC_HIGH_DENSITY;
-			// VERBOSE("HIGH DENSITY MMC \n");
-		} else {
-			p_card.card_capacity = MMC_NORM_DENSITY;
-			// VERBOSE("NORMAL DENSITIY MMC \n");
+
+		if((cmd->resp_data[0] & MMC_CARD_POWER_UP_STATUS) ==
+						MMC_CARD_POWER_UP_STATUS) {
+			p_card.card_type = MMC_CARD;
+
+			if ((cmd->resp_data[0] & MMC_CARD_ACCESS_MODE_msk) ==
+			    MMC_CARD_ACCESS_MODE_SECTOR) {
+				p_card.card_capacity = MMC_HIGH_DENSITY;
+				// VERBOSE("HIGH DENSITY MMC \n");
+			} else {
+				p_card.card_capacity = MMC_NORM_DENSITY;
+				// VERBOSE("NORMAL DENSITIY MMC \n");
+			}
 		}
 		break;
 	case 2:
@@ -724,10 +741,10 @@ static int lan966x_recover_error(unsigned int error_int_status)
 
 			if ((sd_status & SD_STATUS_CURRENT_STATE_msk) !=
 			    STATUS_CURRENT_STATE(MMC_STATE_TRAN)) {
-				//ERROR("Unrecoverable error : SDMMC_Error_Status = %d\n ",SDMMC_error);
+				ERROR("Unrecoverable error : SDMMC_Error_Status = %d\n ",sd_status);
 				return 1;
 			} else {
-				//ERROR("Unrecoverable error : SDMMC_Error_Status = %d\n ",SDMMC_error);
+				ERROR("Unrecoverable error : SDMMC_Error_Status = %d\n ",sd_status);
 				return 1;
 			}
 		}
@@ -743,7 +760,62 @@ static int lan966x_recover_error(unsigned int error_int_status)
 
 static int lan996x_mmc_set_ios(unsigned int clk, unsigned int width)
 {
+	uint8_t busWidth = 0u;
+	uint32_t clock = 0u;
+
 	VERBOSE("EMMC: ATF CB set_ios() \n");
+
+	switch (width) {
+	case 0:
+		busWidth = SDMMC_HC1R_DW_1_BIT;
+		break;
+	case 1:
+		busWidth = SDMMC_HC1R_DW_4_BIT;
+		break;
+	case 2:
+		/* Check if hardware supports 8-bit bus width capabilities */
+		if ((mmio_read_32(reg_base + SDMMC_CA0R) &
+		     SDMMC_CA0R_ED8SUP) == SDMMC_CA0R_ED8SUP) {
+			busWidth = SDMMC_HC1R_EXTDW;
+		}
+		break;
+	default:
+		ERROR("Unsupported emmc bus width of %d \n", width);
+		assert(false);
+		break;
+	}
+
+	INFO("EMMC: Set mmc bus_width to: %d\n", width);
+	mmc_setbits_8(reg_base + SDMMC_HC1R, busWidth);
+
+	/* Speed grades of 25 MHz and 50 MHz are only supported by card spec version >= v4.0 */
+	if (p_card.card_phy_spec_rev ==  MMC_CARD_PHY_SPEC_4_X) {
+		if (clk >= SDCLOCK_50MHZ) {
+			/* Check high speed support of host controller */
+			if ((mmio_read_32(reg_base + SDMMC_CA0R) & SDMMC_CA0R_HSSUP) == SDMMC_CA0R_HSSUP) {
+				clock = SDCLOCK_50MHZ;
+			} else {
+				/* High speed is not supported, set default value of 25 MHz */
+				clock = SDCLOCK_25MHZ;
+			}
+		} else if (clk <= SDCLOCK_25MHZ) {
+			clock = clk;
+		} else {
+			clock = SDCLOCK_25MHZ;
+		}
+	} else {
+		INFO("Device specification of %d found. Set speed grade to 10 MHz \n",
+		     p_card.card_phy_spec_rev);
+
+		/* Set fall back speed grade of 10 MHz. This value was taken
+		 * from the sama-rom code -> "supported by all SD card type" */
+		clock = SDCLOCK_10MHZ;
+	}
+
+	INFO("EMMC: Set mmc clk_freq to: %d\n", clock);
+	if (lan966x_set_clk_freq(clock, SDMMC_CLK_CTRL_PROG_MODE)) {
+		return -1;
+	}
 
 	return 0;
 }
@@ -755,6 +827,10 @@ static int lan996x_mmc_prepare(int lba, uintptr_t buf, size_t size)
 	return 0;
 }
 
+/*
+ * This function is called from the mmc_fill_device_info() callback ->read
+ * and provides the data for the mmc_ext_csd structure.
+ */
 static int lan996x_mmc_read(int lba, uintptr_t buf, size_t size)
 {
 	unsigned int i;
@@ -879,13 +955,12 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 	memcpy(&lan966x_params, params, sizeof(lan966x_mmc_params_t));
 	lan966x_params.mmc_dev_type = info->mmc_dev_type;
 	reg_base = lan966x_params.reg_base;
-	mmc_init(&lan996x_ops, params->clk_rate, params->bus_width,
-		 params->flags, info);
 
-	/* Set bus clock to 10MHz (supported by all SD card type) */
-	retVal = lan966x_set_clk_freq(SDCLOCK_10MHZ, SDMMC_CLK_CTRL_PROG_MODE);
-	assert(retVal == 0);
+	/* Initial setup of host and device with 400 kHz clock and 4-bit bus */
+	retVal = mmc_init(&lan996x_ops, params->clk_rate, params->bus_width,
+			  params->flags, info);
 
-	/* Prevent compiler warning in release build */
-	(void)retVal;
+	if (retVal != 0) {
+		ERROR("MMC initialization phase with default parameters failed!\n");
+	}
 }

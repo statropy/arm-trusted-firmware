@@ -36,7 +36,7 @@ static void plat_lan966x_pinConfig(void)
 #endif
 }
 
-static void plat_lan966x_config(void)
+void plat_lan966x_config(void)
 {
 	struct mmc_device_info info;
 	lan966x_mmc_params_t params;
@@ -47,10 +47,12 @@ static void plat_lan966x_config(void)
 	params.reg_base = LAN966X_SDMMC_BASE;
 	params.desc_base = LAN996X_SRAM_BASE;
 	params.desc_size = LAN996X_SRAM_SIZE;
-	params.clk_rate = 24 * 1000 * 1000;
-	params.bus_width = MMC_BUS_WIDTH_4;
 
-	info.mmc_dev_type = MMC_IS_EMMC;
+	params.clk_rate = lan966x_get_fw_config_data(LAN966X_CONF_CLK_RATE);
+	params.bus_width = lan966x_get_fw_config_data(LAN966X_CONF_BUS_WIDTH);
+	params.flags = lan966x_get_fw_config_data(LAN966X_CONF_FLAGS);
+
+	info.mmc_dev_type = MMC_IS_EMMC; // valid for eMMC and QSPI mode
 	info.max_bus_freq = 48 * 1000 * 1000;
 	info.block_size = MMC_BLOCK_SIZE;
 
@@ -59,31 +61,6 @@ static void plat_lan966x_config(void)
 
 void lan966x_sdmmc_init(void)
 {
-	/* The current boot source is provided by the strapping pin config */
-	boot_source_type boot_source = lan966x_get_boot_source();
-
-	switch (boot_source) {
-	case BOOT_SOURCE_EMMC:
-		INFO("Initializing eMMC\n");
-		break;
-
-	case BOOT_SOURCE_SDMMC:
-		INFO("Initializing SDMMC\n");
-		/* Not supported yet */
-		assert(false);
-		break;
-	case BOOT_SOURCE_QSPI:
-		INFO("Initializing QSPI\n");
-		break;
-	case BOOT_SOURCE_NONE:
-		INFO("Boot source NONE selected\n");
-		break;
-	default:
-		ERROR("BL1: Not supported boot source: %d\n", boot_source);
-		assert(false);
-		break;
-	}
-
 	/* Configure pins for eMMC device */
 	plat_lan966x_pinConfig();
 

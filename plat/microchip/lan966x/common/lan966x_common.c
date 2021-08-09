@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <common/debug.h>
 #include <drivers/console.h>
+#include <drivers/io/io_storage.h>
+#include <drivers/microchip/emmc.h>
 #include <drivers/microchip/flexcom_uart.h>
 #include <drivers/microchip/lan966x_clock.h>
 #include <drivers/microchip/qspi.h>
@@ -15,6 +17,7 @@
 #include <lib/mmio.h>
 #include <platform_def.h>
 
+#include <plat/common/platform.h>
 #include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
 
@@ -26,8 +29,11 @@ CASSERT((BL1_RW_SIZE + BL2_SIZE + MMC_BUF_SIZE) <= LAN996X_SRAM_SIZE, assert_sra
 
 static console_t lan966x_console;
 
-/* fw_config */
-lan966x_fw_config_t lan966x_fw_config;
+/* Define global fw_config and set default startup values */
+lan966x_fw_config_t lan966x_fw_config = {
+	 .config[LAN966X_CONF_CLK_RATE] = SDCLOCK_400KHZ,
+	 .config[LAN966X_CONF_BUS_WIDTH] = MMC_BUS_WIDTH_1
+};
 
 #define LAN996X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
@@ -253,10 +259,10 @@ void lan966x_timer_init(void)
 {
 	uintptr_t syscnt = LAN966X_CPU_SYSCNT_BASE;
 
-	mmio_write_32(CPU_SYSCNT_CNTCVL(syscnt), 0); /* Low */
-	mmio_write_32(CPU_SYSCNT_CNTCVU(syscnt), 0); /* High */
+	mmio_write_32(CPU_SYSCNT_CNTCVL(syscnt), 0);	/* Low */
+	mmio_write_32(CPU_SYSCNT_CNTCVU(syscnt), 0);	/* High */
 	mmio_write_32(CPU_SYSCNT_CNTCR(syscnt),
-		      CPU_SYSCNT_CNTCR_CNTCR_EN(1)); /*Enable */
+		      CPU_SYSCNT_CNTCR_CNTCR_EN(1));	/*Enable */
 }
 
 unsigned int plat_get_syscnt_freq2(void)
@@ -316,7 +322,7 @@ uint32_t lan966x_get_boot_source(void)
 	case LAN966X_STRAP_BOOT_MMC:
 		boot_source = BOOT_SOURCE_EMMC;
 		break;
-	case LAN966X_STRAP_BOOT_QSPI :
+	case LAN966X_STRAP_BOOT_QSPI:
 		boot_source = BOOT_SOURCE_QSPI;
 		break;
 	case LAN966X_STRAP_BOOT_SD:
@@ -328,4 +334,17 @@ uint32_t lan966x_get_boot_source(void)
 	}
 
 	return boot_source;
+}
+
+int lan966x_get_fw_config_data(lan966x_fw_cfg_data id)
+{
+	int value = -1;
+
+	if (id >= 0 && id < LAN966X_CONF_NUM_OF_ITEMS) {
+		value = lan966x_fw_config.config[id];
+	} else {
+		ERROR("Illegal access id to fw_config structure\n");
+	}
+
+	return value;
 }
