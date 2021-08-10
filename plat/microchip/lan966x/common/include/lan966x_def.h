@@ -83,6 +83,13 @@
 /* ToDo: Check defines */
 #define FACTORY_CLK     UL(30000000)    /* Factory CLK used on sunrise board */
 
+/* Sunrise FPGA base clock settings
+ * On the real hardware this value will be calculated by the using the proper
+ * CPU clock and prescaler factor read out of the chip.
+ * */
+#define FPGA_SDMMC0_SRC_CLOCK		UL(12000000)
+#define FPGA_SDMMC0_MULTI_SRC_CLOCK	UL(48000000)
+
 /*
  * Timer
  */

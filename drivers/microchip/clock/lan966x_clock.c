@@ -44,12 +44,12 @@ int lan966x_clk_set_rate(unsigned int clock, unsigned long rate)
 	val = mmio_read_32(CPU_GCK_CFG(base, clock));
 
 	/* Select CPU_CLK as source always */
-        val &= ~CPU_GCK_CFG_GCK_SRC_SEL_M;
-        val |= CPU_GCK_CFG_GCK_SRC_SEL(0);
+	val &= ~CPU_GCK_CFG_GCK_SRC_SEL_M;
+	val |= CPU_GCK_CFG_GCK_SRC_SEL(0);
 
 	/* Set Prescaler */
-        div = PARENT_RATE / rate;
-        val &= ~CPU_GCK_CFG_GCK_PRESCALER_M;
+	div = PARENT_RATE / rate;
+	val &= ~CPU_GCK_CFG_GCK_PRESCALER_M;
 	val |= CPU_GCK_CFG_GCK_PRESCALER(div - 1);
 	mmio_write_32(CPU_GCK_CFG(base, clock), val);
 
@@ -59,12 +59,36 @@ int lan966x_clk_set_rate(unsigned int clock, unsigned long rate)
 unsigned long lan966x_clk_get_rate(unsigned int clock)
 {
 	assert(clock < LAN966X_MAX_CLOCK);
-        uint32_t div, val;
+	uint32_t div, val;
 
 	val = mmio_read_32(CPU_GCK_CFG(base, clock));
 
-        div = CPU_GCK_CFG_GCK_PRESCALER_X(val);
-        div += 1;
+	div = CPU_GCK_CFG_GCK_PRESCALER_X(val);
+	div += 1;
 
-        return PARENT_RATE / div;
+	return PARENT_RATE / div;
+}
+
+unsigned int lan966x_clk_get_baseclk_freq(void)
+{
+	uint32_t clock;
+
+#if defined(LAN966X_ASIC)
+	clock = lan966x_clk_get_rate(LAN966X_CLK_ID_EMMC);
+#else
+	clock = FPGA_SDMMC0_SRC_CLOCK;
+#endif
+	return clock;
+}
+
+unsigned int lan966x_clk_get_multclk_freq(void)
+{
+	uint32_t clock;
+
+#if defined(LAN966X_ASIC)
+	clock = lan966x_clk_get_rate(LAN966X_CLK_ID_EMMC);
+#else
+	clock = FPGA_SDMMC0_MULTI_SRC_CLOCK;
+#endif
+	return clock;
 }

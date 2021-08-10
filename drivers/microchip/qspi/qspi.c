@@ -372,9 +372,9 @@ void qspi_init(uintptr_t base, size_t len)
 	}
 
 #if defined(LAN966X_ASIC)
-	lan966x_clk_disable(LAN966X_CLK_QSPI0);
-	lan966x_clk_set_rate(LAN966X_CLK_QSPI0, 20000000);
-	lan966x_clk_enable(LAN966X_CLK_QSPI0);
+	lan966x_clk_disable(LAN966X_CLK_ID_QSPI0);
+	lan966x_clk_set_rate(LAN966X_CLK_ID_QSPI0, 20000000);
+	lan966x_clk_enable(LAN966X_CLK_ID_QSPI0);
 #endif
 
 	/* Do actual QSPI init */

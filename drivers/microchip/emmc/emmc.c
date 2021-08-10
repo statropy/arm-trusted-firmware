@@ -9,6 +9,7 @@
 
 #include <drivers/delay_timer.h>
 #include <drivers/microchip/emmc.h>
+#include <drivers/microchip/lan966x_clock.h>
 #include <drivers/mmc.h>
 #include <lib/mmio.h>
 
@@ -178,7 +179,7 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 	switch (sd_src_clk) {
 	case SDMMC_CLK_CTRL_DIV_MODE:
 		/* Switch to divided clock mode, only for SR FPGA */
-		base_clock = FPGA_SDMMC0_SRC_CLOCK;
+		base_clock = lan966x_clk_get_baseclk_freq();
 		new_ccr &= ~SDMMC_CCR_CLKGSEL;
 
 		if (SD_clock_freq == base_clock) {
@@ -192,7 +193,7 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 
 	case SDMMC_CLK_CTRL_PROG_MODE:
 		/* Switch to programmable clock mode, only for SR FPGA */
-		mult_clock = FPGA_SDMMC0_MULTI_SRC_CLOCK;
+		mult_clock = lan966x_clk_get_multclk_freq();
 		new_ccr |= SDMMC_CCR_CLKGSEL;
 
 		if (SD_clock_freq == mult_clock) {
@@ -221,7 +222,7 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 	/* Wait for internal clock to be stable */
 	timeout = 0x100000;
 	while (((mmio_read_16(reg_base + SDMMC_CCR) & SDMMC_CCR_INTCLKS) == 0)
-	       && --timeout > 0) ;
+	       && (--timeout > 0)) ;
 	if (!timeout) {
 		return 1;
 	}
@@ -243,8 +244,14 @@ static int lan966x_host_init(void)
 	lan966x_params.clk_rate = 0u;
 
 	/* Set default values */
-	p_card.card_type = SD_CARD;
-	p_card.card_capacity = SD_CARD_SDSC;
+	p_card.card_type = MMC_CARD;
+	p_card.card_capacity = MMC_NORM_DENSITY;
+
+#if defined(LAN966X_ASIC)
+	lan966x_clk_disable(LAN966X_CLK_ID_EMMC);
+	lan966x_clk_set_rate(LAN966X_CLK_ID_EMMC, LAN966X_CLK_FREQ_SDMMC);
+	lan966x_clk_enable(LAN966X_CLK_ID_EMMC);
+#endif
 
 	/* Reset Data and CMD line */
 	mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTALL);

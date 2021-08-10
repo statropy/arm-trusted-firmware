@@ -102,45 +102,6 @@ const mmap_region_t *plat_arm_get_mmap(void)
 	return plat_arm_mmap;
 }
 
-#if defined(LAN966X_ASIC)
-static uintptr_t lan966x_get_conf_console(void)
-{
-	uintptr_t base = 0;
-	lan966x_boot_media_config_t *cfg;
-
-	cfg = lan966x_boot_media_cfg_get();
-	if (cfg) {
-		switch (cfg->console) {
-		case 0:
-			base = LAN966X_FLEXCOM_0_BASE;
-			break;
-		case 1:
-			base = LAN966X_FLEXCOM_1_BASE;
-			break;
-		case 2:
-			base = LAN966X_FLEXCOM_2_BASE;
-			break;
-		case 3:
-			base = LAN966X_FLEXCOM_3_BASE;
-			break;
-		case 4:
-			base = LAN966X_FLEXCOM_4_BASE;
-			break;
-		default:
-			/* Unsupported value, ignore */
-			break;
-		}
-
-		if ((cfg->max_log_level % 10U) == 0U &&
-		    cfg->max_log_level <= LOG_LEVEL_VERBOSE)
-			tf_log_set_max_level(cfg->max_log_level);
-
-	}
-
-	return base;
-}
-#endif
-
 void lan966x_console_init(void)
 {
 	uintptr_t base;
@@ -152,9 +113,7 @@ void lan966x_console_init(void)
 
 	/* See if boot media config defines a console */
 #if defined(LAN966X_ASIC)
-	base = lan966x_get_conf_console();
-	if (!base)
-		base = LAN966X_FLEXCOM_3_BASE;
+	base = LAN966X_FLEXCOM_3_BASE;
 #else
 	base = LAN966X_FLEXCOM_0_BASE;
 #endif
@@ -210,9 +169,9 @@ void lan966x_console_init(void)
 	}
 
 #if defined(LAN966X_ASIC)
-	lan966x_clk_disable(LAN966X_CLK_FC3);
-	lan966x_clk_set_rate(LAN966X_CLK_FC3, 30000000); /* 30MHz */
-	lan966x_clk_enable(LAN966X_CLK_FC3);
+	lan966x_clk_disable(LAN966X_CLK_ID_FC3);
+	lan966x_clk_set_rate(LAN966X_CLK_ID_FC3, LAN966X_CLK_FREQ_FLEXCOM); /* 30MHz */
+	lan966x_clk_enable(LAN966X_CLK_ID_FC3);
 #endif
 
 	if (base) {
