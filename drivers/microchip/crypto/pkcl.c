@@ -79,10 +79,10 @@ cleanup:
     return (ret);
 }
 
- void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
-				    mbedtls_ecp_keypair *pubkey,
-				    const mbedtls_mpi *r, const mbedtls_mpi *s,
-				    const mbedtls_mpi *h)
+void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
+			     mbedtls_ecp_keypair *pubkey,
+			     const mbedtls_mpi *r, const mbedtls_mpi *s,
+			     const mbedtls_mpi *h)
 {
 	u2 u2ModuloPSize = pubkey->grp.pbits / 8;
 	u2 u2OrderSize   = pubkey->grp.nbits / 8;
@@ -108,19 +108,19 @@ cleanup:
 	cpy_mpi(beg, h);
 
 	/* Mapping of mbedtls to PKCL:
-	  +--------+-----+------+---------------+
-	  |Element | Set | Used | Meaming/name  |
-	  +--------+-----+------+---------------+
-	  | grp.P  | Yes | Yes  | ECDSAV_MODULO |
-	  +--------+-----+------+---------------+
-	  | grp.A  | Nil | Yes  | ECDSAV_A (?)  |
-	  +--------+-----+------+---------------+
-	  | grp.B  | Yes | No   |               |
-	  +--------+-----+------+---------------+
-	  | grp.N  | Yes | Yes  | ECDSAV_ORDER  |
-	  +--------+-----+------+---------------+
-	  | grp.G  | Yes | Yes  | Generator Pt  |
-	  +--------+-----+------+---------------+
+	  +--------+-----+------+---------------+---------------+
+	  |Element | Set | Used | Meaning/name  | Demo name     |
+	  +--------+-----+------+---------------+---------------+
+	  | grp.P  | Yes | Yes  | ECDSAV_MODULO | au1ModuloP    |
+	  +--------+-----+------+---------------+---------------+
+	  | grp.A  | Nil | Yes  | ECDSAV_A      | au1ACurve     |
+	  +--------+-----+------+---------------+---------------+
+	  | grp.B  | Yes | No   |               | au1BCurve     |
+	  +--------+-----+------+---------------+---------------+
+	  | grp.N  | Yes | Yes  | ECDSAV_ORDER  | au1OrderPoint |
+	  +--------+-----+------+---------------+---------------+
+	  | grp.G  | Yes | Yes  | Generator Pt  | au1PtA_X/Y/Z  |
+	  +--------+-----+------+---------------+---------------+
 	*/
 
 	/* Copy in parameters */

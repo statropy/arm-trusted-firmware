@@ -23,6 +23,30 @@
 
 #define LIB_NAME		"SAMA5 crypto core"
 
+#define BYTES_TO_T_UINT_4( a, b, c, d )                       \
+    ( (mbedtls_mpi_uint) (a) <<  0 ) |                        \
+    ( (mbedtls_mpi_uint) (b) <<  8 ) |                        \
+    ( (mbedtls_mpi_uint) (c) << 16 ) |                        \
+    ( (mbedtls_mpi_uint) (d) << 24 )
+
+#define BYTES_TO_T_UINT_8( a, b, c, d, e, f, g, h ) \
+    BYTES_TO_T_UINT_4( a, b, c, d ),                \
+    BYTES_TO_T_UINT_4( e, f, g, h )
+
+static const mbedtls_mpi_uint default_a[] = {
+	BYTES_TO_T_UINT_8( 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff),
+	BYTES_TO_T_UINT_8( 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00),
+	BYTES_TO_T_UINT_8( 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+	BYTES_TO_T_UINT_8( 0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff),
+};
+
+static inline void ecp_mpi_load( mbedtls_mpi *X, const mbedtls_mpi_uint *p, size_t len )
+{
+	X->s = 1;
+	X->n = len / sizeof( mbedtls_mpi_uint );
+	X->p = (mbedtls_mpi_uint *) p;
+}
+
 static void init(void)
 {
 
@@ -78,6 +102,9 @@ static int lan966x_use_ecparams(const mbedtls_asn1_buf *params, mbedtls_ecp_grou
 
 	if ((ret = mbedtls_ecp_group_load(grp, grp_id)) != 0)
 		return ret;
+
+	if( grp->A.p == NULL )
+		ecp_mpi_load( &grp->A, default_a, sizeof(default_a));
 
 	return 0;
 }
