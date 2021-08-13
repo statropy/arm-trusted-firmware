@@ -12,7 +12,7 @@ platforms = {
 
 $option = { :platform	=> "lan966x_sr",
              :loglevel	=> 40,
-             :tbbr	=> true,
+             :tbbr	=> false,
              :debug	=> true,
              :rot	=> "keys/rotprivk_rsa.pem",
              :arch	=> "arm",
