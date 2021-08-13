@@ -49,7 +49,7 @@ void pkcl_init(void)
 	}
 }
 
-static void cpy_mpi(u2 offset, const mbedtls_mpi *mpi)
+static void cpy_mpi(uint16_t offset, const mbedtls_mpi *mpi)
 {
 	memcpy(NEARTOFAR(offset), &mpi->p[0], mbedtls_mpi_size(mpi));
 }
