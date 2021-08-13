@@ -105,4 +105,6 @@ int  lan966x_sjtag_write_response(const lan966x_key32_t *k);
 void lan966x_crypto_tests(void);
 #endif
 
-#endif	/* LAN966X_PRIVATE_H */
+void lan966x_crypto_ecdsa_tests(void);
+
+#endif /* LAN966X_PRIVATE_H */

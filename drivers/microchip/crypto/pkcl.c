@@ -37,6 +37,24 @@
 #define BASE_ECDSAV_A(a,b)              (nu1) (BASE_ECDSAV_PUBLIC_KEY_Z(a,b) + a + 4)
 #define BASE_ECDSAV_WORKSPACE(a,b)      (nu1) (BASE_ECDSAV_A(a,b) + a + 4)
 
+static void dump_mem(uint8_t *p, size_t len)
+{
+	while (len) {
+		int n = (len < 16 ? len : 16);
+		INFO("%p: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+		     p,
+		     p[0 + 0], p[1 + 0], p[2 + 0], p[3 + 0], p[4 + 0], p[5 + 0], p[6 + 0], p[7 + 0],
+		     p[0 + 8], p[1 + 8], p[2 + 8], p[3 + 8], p[4 + 8], p[5 + 8], p[6 + 8], p[7 + 8]);
+		p += n;
+		len -= n;
+	}
+}
+
+void dump_pkcl_ram(uint16_t beg, uint16_t end)
+{
+	dump_mem(NEARTOFAR(beg), end - beg);
+}
+
 void pkcl_init(void)
 {
 	CPKCL_PARAM CPKCLParam;
@@ -47,6 +65,20 @@ void pkcl_init(void)
 	if (CPKCL(u2Status) == CPKCL_OK) {
 		INFO("CPKCL V: 0x%08lx\n", CPKCL_SelfTest(u4Version));
 	}
+#define ListOffset(n,o) INFO("Offset of %s = 0x%03x\n", n, o)
+	ListOffset("BASE_ECDSAV_MODULO", BASE_ECDSAV_MODULO(32,32));
+	ListOffset("BASE_ECDSAV_CNS", BASE_ECDSAV_CNS(32,32));
+	ListOffset("BASE_ECDSAV_ORDER", BASE_ECDSAV_ORDER(32,32));
+	ListOffset("BASE_ECDSAV_SIGNATURE", BASE_ECDSAV_SIGNATURE(32,32));
+	ListOffset("BASE_ECDSAV_HASH", BASE_ECDSAV_HASH(32,32));
+	ListOffset("BASE_ECDSAV_POINT_A_X", BASE_ECDSAV_POINT_A_X(32,32));
+	ListOffset("BASE_ECDSAV_POINT_A_Y", BASE_ECDSAV_POINT_A_Y(32,32));
+	ListOffset("BASE_ECDSAV_POINT_A_Z", BASE_ECDSAV_POINT_A_Z(32,32));
+	ListOffset("BASE_ECDSAV_PUBLIC_KEY_X", BASE_ECDSAV_PUBLIC_KEY_X(32,32));
+	ListOffset("BASE_ECDSAV_PUBLIC_KEY_Y", BASE_ECDSAV_PUBLIC_KEY_Y(32,32));
+	ListOffset("BASE_ECDSAV_PUBLIC_KEY_Z", BASE_ECDSAV_PUBLIC_KEY_Z(32,32));
+	ListOffset("BASE_ECDSAV_A", BASE_ECDSAV_A(32,32));
+	ListOffset("BASE_ECDSAV_WORKSPACE", BASE_ECDSAV_WORKSPACE(32,32));
 }
 
 static void cpy_mpi(uint16_t offset, const mbedtls_mpi *mpi)
@@ -86,7 +118,7 @@ void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
 {
 	u2 u2ModuloPSize = pubkey->grp.pbits / 8;
 	u2 u2OrderSize   = pubkey->grp.nbits / 8;
-	nu1 beg, end;
+	uint16_t beg, end;
 
 	CPKCL(u2Option) = 0;
 
@@ -146,12 +178,14 @@ void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
 	CPKCL_ZpEcDsaVerify(nu1ABase)             = BASE_ECDSAV_A(u2ModuloPSize,u2OrderSize);
 	CPKCL_ZpEcDsaVerify(nu1Workspace)         = BASE_ECDSAV_WORKSPACE(u2ModuloPSize,u2OrderSize);
 	CPKCL_ZpEcDsaVerify(nu1HashBase)          = BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize);
+
+	dump_pkcl_ram(BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize),
+		      BASE_ECDSAV_WORKSPACE(u2ModuloPSize,u2OrderSize));
 }
 
 int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 				mbedtls_ecp_keypair *pubkey,
 				const mbedtls_mpi *r, const mbedtls_mpi *s,
-				mbedtls_md_type_t md_alg,
 				const unsigned char *hash, size_t hash_len)
 {
 	int ret;
@@ -177,7 +211,7 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 
 	pkcl_ecdsa_verify_setup(pvCPKCLParam, pubkey, r, s, &h);
 
-//#define PKCL_HW
+#define PKCL_HW
 #if defined(PKCL_HW)
 	vCPKCL_Process(ZpEcDsaVerifyFast, pvCPKCLParam);
 
@@ -204,4 +238,111 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 #endif
 
 	return ret;
+}
+
+//- Function -----------------------------------------
+// MyMemCpy()
+//
+// Copies a buffer from EEPROM to RAM, while changing the endianness
+//
+// Input parameters :
+//   nu1Dest - nu1 - Input
+//        Pointer the destination
+//   nu1Src - const u1 __farflash * - Input
+//        Pointer the source
+//   u2Length - u2 - Input
+//        Length of the buffer to be copied
+//
+// Output values :
+//   none
+//- Remarks ------------------------------------------
+// Should also work from RAM to RAM !
+//----------------------------------------------------
+static void MyMemCpy(uint8_t *pu1Dest,const uint8_t *pu1Src,u2 u2Length)
+     {
+
+     u2  u2Cpt;
+     pu1 pu1PtrDest;
+
+     u2Cpt      = 0;
+     pu1PtrDest = pu1Dest;
+     while (u2Cpt < u2Length)
+          {
+          *(pu1PtrDest++) = pu1Src[u2Length - u2Cpt - 1];
+          u2Cpt++;
+          }
+
+     }
+
+int DemoVerify(int modp_size,
+	       int order_size,
+	       const uint8_t *pfu1ModuloP,
+	       const uint8_t *pfu1APointX,
+	       const uint8_t *pfu1APointY,
+	       const uint8_t *pfu1APointZ,
+	       const uint8_t *pfu1ACurve,
+	       const uint8_t *pfu1APointOrder,
+	       const uint8_t *pfu1HashValue,
+	       const uint8_t *pfu1PublicKeyX,
+	       const uint8_t *pfu1PublicKeyY,
+	       const uint8_t *pfu1PublicKeyZ,
+	       const uint8_t *sig_r,
+	       const uint8_t *sig_s)
+{
+     CPKCL_PARAM CPKCLParam;
+     PCPKCL_PARAM pvCPKCLParam = &CPKCLParam;
+     // Init
+     pu1 pu1Tmp;
+     u2 u2NbBytesToPadd;
+     u2 u2ModuloPSize = modp_size;
+     u2 u2OrderSize   = order_size;
+
+     // Padds the end of SHA1 result with 0 !!!
+     pu1Tmp = (pu1)(NEARTOFAR(BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize))) + 20;
+     for(u2NbBytesToPadd = u2OrderSize - 16; u2NbBytesToPadd > 0; u2NbBytesToPadd--)
+          {
+          *pu1Tmp++ = 0;
+          }
+
+
+     // Copies the signature into appropriate memory area
+     // Take care of the input signature format
+     pu1Tmp = (pu1)(NEARTOFAR(BASE_ECDSAV_SIGNATURE(u2ModuloPSize,u2OrderSize)));
+     MyMemCpy(pu1Tmp,sig_r,u2OrderSize + 4);
+     MyMemCpy(pu1Tmp + u2OrderSize + 4,sig_s,u2OrderSize + 4);
+
+     // Let's copy parameters for ECDSA signature verification in memory areas
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize)))       ,pfu1ModuloP       ,u2ModuloPSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_POINT_A_X(u2ModuloPSize,u2OrderSize)))    ,pfu1APointX       ,u2ModuloPSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_POINT_A_Y(u2ModuloPSize,u2OrderSize)))    ,pfu1APointY       ,u2ModuloPSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_POINT_A_Z(u2ModuloPSize,u2OrderSize)))    ,pfu1APointZ       ,u2ModuloPSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_A(u2ModuloPSize,u2OrderSize)))            ,pfu1ACurve        ,u2ModuloPSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_ORDER(u2ModuloPSize,u2OrderSize)))        ,pfu1APointOrder   ,u2OrderSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_PUBLIC_KEY_X(u2ModuloPSize,u2OrderSize))) ,pfu1PublicKeyX    ,u2ModuloPSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_PUBLIC_KEY_Y(u2ModuloPSize,u2OrderSize))) ,pfu1PublicKeyY    ,u2ModuloPSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_PUBLIC_KEY_Z(u2ModuloPSize,u2OrderSize))) ,pfu1PublicKeyZ    ,u2ModuloPSize + 4);
+     MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize))) 	    ,pfu1HashValue     ,u2ModuloPSize + 4);
+
+     // Ask for a Verify generation
+     CPKCL_ZpEcDsaVerify(nu1ModBase)               = BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(nu1CnsBase)               = BASE_ECDSAV_CNS(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(nu1PointABase)            = BASE_ECDSAV_POINT_A(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(nu1PointPublicKeyGen)     = BASE_ECDSAV_PUBLIC_KEY(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(nu1PointSignature)        = BASE_ECDSAV_SIGNATURE(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(nu1OrderPointBase)        = BASE_ECDSAV_ORDER(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(nu1ABase)                 = BASE_ECDSAV_A(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(nu1Workspace)             = BASE_ECDSAV_WORKSPACE(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(nu1HashBase)              = BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize);
+     CPKCL_ZpEcDsaVerify(u2ModLength)              = u2ModuloPSize;
+     CPKCL_ZpEcDsaVerify(u2ScalarLength)           = u2OrderSize;
+
+     dump_pkcl_ram(BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize),
+		   BASE_ECDSAV_WORKSPACE(u2ModuloPSize,u2OrderSize));
+
+     // Verify the signature
+     vCPKCL_Process(ZpEcDsaVerifyFast, pvCPKCLParam);
+
+     INFO("ZpEcDsaVerifyFast: ret %0x\n", CPKCL(u2Status));
+
+     return CPKCL(u2Status) == CPKCL_OK ? 0 : -1;
 }

@@ -283,7 +283,7 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 
 	if (lan966x_ecdsa_read_signature(signature.p, signature.len, &r, &s) == 0)
 		rc = pkcl_ecdsa_verify_signature(pk_alg, &kp, &r, &s,
-						 md_alg, hash, mbedtls_md_get_size(md_info));
+						 hash, mbedtls_md_get_size(md_info));
 	else
 		rc = CRYPTO_ERR_SIGNATURE;
 

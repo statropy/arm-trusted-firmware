@@ -29,6 +29,7 @@ ifeq (${LAN966X_CRYPTO_TEST},yes)
 $(eval $(call add_define,LAN966X_AES_TESTS))
 BL2_SOURCES	+= plat/microchip/lan966x/common/lan966x_crypto_tests.c
 endif
+BL2_SOURCES	+= plat/microchip/lan966x/common/lan966x_ecdsa_tests.c
 
 # Include the selected chain of trust sources.
 ifeq (${COT},tbbr)
