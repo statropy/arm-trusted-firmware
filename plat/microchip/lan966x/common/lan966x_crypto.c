@@ -201,6 +201,25 @@ static int lan966x_ecdsa_read_signature(const unsigned char *sig,
 	return ret;
 }
 
+static const int sha_get_type(int algo)
+{
+	switch (algo) {
+	case MBEDTLS_MD_SHA1:
+		return SHA_MR_ALGO_SHA1;
+	case MBEDTLS_MD_SHA224:
+		return SHA_MR_ALGO_SHA224;
+	case MBEDTLS_MD_SHA256:
+		return SHA_MR_ALGO_SHA256;
+	case MBEDTLS_MD_SHA384:
+		return SHA_MR_ALGO_SHA384;
+	case MBEDTLS_MD_SHA512:
+		return SHA_MR_ALGO_SHA512;
+	default:
+		break;
+	}
+	return -1;
+}
+
 /*
  * Verify a signature.
  *
@@ -275,7 +294,7 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 		rc = CRYPTO_ERR_SIGNATURE;
 		goto end1;
 	}
-	rc = sha_calc(md_info->type, data_ptr, data_len, hash);
+	rc = sha_calc(sha_get_type(md_info->type), data_ptr, data_len, hash);
 	if (rc != 0) {
 		rc = CRYPTO_ERR_SIGNATURE;
 		goto end1;

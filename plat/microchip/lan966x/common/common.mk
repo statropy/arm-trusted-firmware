@@ -50,6 +50,7 @@ endif
 
 PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/${PLAT_VARIANT}/include	\
 			-Iplat/microchip/lan966x/common/include			\
+			-Idrivers/microchip/crypto/inc/				\
 			-Iinclude/drivers/microchip
 
 LAN966X_CONSOLE_SOURCES	:=	\

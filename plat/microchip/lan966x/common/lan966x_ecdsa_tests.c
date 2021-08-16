@@ -154,20 +154,104 @@ void lan966x_crypto_ecdsa_mbedtls(void)
 				    hash, sizeof(hash));
 }
 
+//- Function -----------------------------------------
+// u2InitECCParamsECDSAGeneration()
+//
+// Initialises an ECC_Struct structure for ECDSA signature
+// generation
+//
+// Input parameters :
+//   pECC_Structure - ECC_Struct - Input
+//        pECC_Structure that contains pointers to
+//        curve data in EEPROM or in RAM
+//   bRandomKeys - bool - Input
+//        flag that indicates if public and private
+//        keys are to be genrated from random
+//        When bRandomKeys is set to false, the
+//        function uses keys in curve.h
+//
+// Output values :
+//  none
+//- Remarks ------------------------------------------
+// Data pointed by pECC_Structure is in MSB mode with
+// 4 "0" bytes padding on the MSB side
+// Plesae refer to "curve.h"
+//----------------------------------------------------
+static inline
+void vInitECCParamsECDSAGeneration(ECC_Struct *pECC_Structure)
+{
+	memset(pECC_Structure, 0, sizeof(*pECC_Structure));
+
+	pECC_Structure->u2ModuloPSize    = sizeof(au1ModuloP) - 4;
+	pECC_Structure->u2OrderSize      = sizeof(au1OrderPoint) - 4;
+
+	pECC_Structure->pfu1ModuloP      = (pfu1) au1ModuloP;
+	pECC_Structure->pfu1ACurve       = (pfu1) au1ACurve;
+	pECC_Structure->pfu1APointX      = (pfu1) au1PtA_X;
+	pECC_Structure->pfu1APointY      = (pfu1) au1PtA_Y;
+	pECC_Structure->pfu1APointZ      = (pfu1) au1PtA_Z;
+	pECC_Structure->pfu1APointOrder  = (pfu1) au1OrderPoint;
+	pECC_Structure->pfu1HashValue    = (pfu1) au1HashValue;
+
+	pECC_Structure->pfu1PrivateKey   = (pfu1) au1PrivateKey;
+}
+
+//- Function -----------------------------------------
+// u2InitECCParamsECDSAGeneration()
+//
+// Initialises an ECC_Struct struture for ECDSA signature
+// verification
+//
+// Input parameters :
+//   pECC_Structure - ECC_Struct - Input
+//        pECC_Structure that conatains pointers to
+//        curve data in EEPROM or in RAM
+//   bRandomKeys - bool - Input
+//        flag that indicates if public key
+//        has been generated from random
+//        When bRandomKeys is set to False, the
+//        function use keys in curve.h
+//
+// Output values :
+//  none
+//- Remarks ------------------------------------------
+// Data pointed by pECC_Structure is in MSB mode with
+// 4 "0" bytes padding on the MSB side
+// Plesae refer to "curve.h"
+//----------------------------------------------------
+static inline
+void vInitECCParamsECDSAVerification(ECC_Struct *pECC_Structure)
+{
+	pECC_Structure->u2ModuloPSize    = sizeof(au1ModuloP) - 4;
+	pECC_Structure->u2OrderSize      = sizeof(au1OrderPoint) - 4;
+
+	pECC_Structure->pfu1ModuloP      = (pfu1) au1ModuloP;
+	pECC_Structure->pfu1ACurve       = (pfu1) au1ACurve;
+	pECC_Structure->pfu1APointX      = (pfu1) au1PtA_X;
+	pECC_Structure->pfu1APointY      = (pfu1) au1PtA_Y;
+	pECC_Structure->pfu1APointZ      = (pfu1) au1PtA_Z;
+	pECC_Structure->pfu1APointOrder  = (pfu1) au1OrderPoint;
+	pECC_Structure->pfu1HashValue    = (pfu1) au1HashValue;
+
+	pECC_Structure->pfu1PublicKeyX   = (pfu1) au1PtKeyGen_X;
+	pECC_Structure->pfu1PublicKeyY   = (pfu1) au1PtKeyGen_Y;
+	pECC_Structure->pfu1PublicKeyZ   = (pfu1) au1PtKeyGen_Z;
+}
+
 void lan966x_crypto_ecdsa_tests(void)
 {
-	DemoVerify(sizeof(au1ModuloP) - 4,
-		   sizeof(au1OrderPoint) - 4,
-		   au1ModuloP,
-		   au1PtA_X,
-		   au1PtA_Y,
-		   au1PtA_Z,
-		   au1ACurve,
-		   au1OrderPoint,
-		   au1HashValue,
-		   au1PtKeyGen_X,
-		   au1PtKeyGen_Y,
-		   au1PtKeyGen_Z,
+	ECC_Struct ecc;
+	uint8_t sig[256];
+
+	vInitECCParamsECDSAGeneration(&ecc);
+
+	DemoGenerate(&ecc,
+		     &au1ScalarNumber[0],
+		     sig);
+
+	vInitECCParamsECDSAVerification(&ecc);
+
+	DemoVerify(&ecc,
 		   au1TrueResult_R,
 		   au1TrueResult_S);
 }

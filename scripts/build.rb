@@ -13,7 +13,7 @@ platforms = {
 
 $option = { :platform	=> "lan966x_sr",
              :loglevel	=> 40,
-             :tbbr	=> false,
+             :tbbr	=> true,
              :debug	=> true,
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",

@@ -12,7 +12,6 @@ LAN966X_CRYPTO_TEST	:=	no
 AUTH_SOURCES	:=	drivers/auth/auth_mod.c				\
 			drivers/auth/crypto_mod.c			\
 			drivers/microchip/crypto/aes.c			\
-			drivers/microchip/crypto/sha.c			\
 			drivers/microchip/crypto/pkcl.c			\
 			drivers/auth/img_parser_mod.c
 
