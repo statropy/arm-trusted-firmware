@@ -222,6 +222,8 @@ void vInitECCParamsECDSAGeneration(ECC_Struct *pECC_Structure)
 static inline
 void vInitECCParamsECDSAVerification(ECC_Struct *pECC_Structure)
 {
+	memset(pECC_Structure, 0, sizeof(*pECC_Structure));
+
 	pECC_Structure->u2ModuloPSize    = sizeof(au1ModuloP) - 4;
 	pECC_Structure->u2OrderSize      = sizeof(au1OrderPoint) - 4;
 

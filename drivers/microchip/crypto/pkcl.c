@@ -335,6 +335,7 @@ int DemoGenerate(ECC_Struct *a,
 
      // ECC signature
      // Asks for a Signature generation
+     memset(pvCPKCLParam, 0, sizeof(*pvCPKCLParam));
      CPKCL_ZpEcDsaGenerate(nu1ModBase)        = BASE_ECDSA_MODULO(u2ModuloPSize,u2OrderSize);
      CPKCL_ZpEcDsaGenerate(nu1CnsBase)        = BASE_ECDSA_CNS(u2ModuloPSize,u2OrderSize);
      CPKCL_ZpEcDsaGenerate(nu1PointABase)     = BASE_ECDSA_POINT_A(u2ModuloPSize,u2OrderSize);
@@ -417,6 +418,7 @@ int DemoVerify(ECC_Struct *a,
      MyMemCpy((pu1)(NEARTOFAR(BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize))) 	    ,a->pfu1HashValue     ,u2ModuloPSize + 4);
 
      // Ask for a Verify generation
+     memset(pvCPKCLParam, 0, sizeof(*pvCPKCLParam));
      CPKCL_ZpEcDsaVerify(nu1ModBase)               = BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize);
      CPKCL_ZpEcDsaVerify(nu1CnsBase)               = BASE_ECDSAV_CNS(u2ModuloPSize,u2OrderSize);
      CPKCL_ZpEcDsaVerify(nu1PointABase)            = BASE_ECDSAV_POINT_A(u2ModuloPSize,u2OrderSize);
@@ -429,7 +431,7 @@ int DemoVerify(ECC_Struct *a,
      CPKCL_ZpEcDsaVerify(u2ModLength)              = u2ModuloPSize;
      CPKCL_ZpEcDsaVerify(u2ScalarLength)           = u2OrderSize;
 
-     INFO("PKCL ZpEcDsaVerifyFast,:\n");
+     INFO("PKCL ZpEcDsaVerifyFast:\n");
      dump_mem16((uint16_t*)&CPKCLParam, sizeof(CPKCLParam) / 2);
      INFO("PKCL RAM:\n");
      dump_pkcl_ram(BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize),
