@@ -68,6 +68,9 @@ void bl1_early_platform_setup(void)
 	/* Enable arch timer */
 	generic_delay_timer_init();
 
+	/* PCIe - may never return */
+	lan966x_pcie_init();
+
 	/* Setup MMC */
 	lan966x_sdmmc_init();
 

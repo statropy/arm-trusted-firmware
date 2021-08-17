@@ -279,63 +279,148 @@
   size: 4
   emu: false
   address: 0x64
-  desc:
+  desc: PCIe link control
   fields:
-  - name: OTP_PCIE_FLAGS_REVISION_ID
-    width: 8
-    emu: false
-    desc: TODO
-    offset: 8
-  - name: OTP_PCIE_FLAGS_DISABLE_REV_3
-    width: 1
-    desc: TODO
-    offset: 1
-  - name: OTP_PCIE_FLAGS_DISABLE_REV_2
-    width: 1
-    desc: TODO
+  - name: OTP_PCIE_FLAGS_MAX_LINK_SPEED
+    accessor: true
+    width: 3
+    desc: Sets maximum supported link speed
+      - 1 = 2.5 GT/s
+      - 2 = 5.0 GT/s
+      Any higher value will automatically be downgraded to 5.0 GT/s
     offset: 0
 
-- name: OTP_PCIE_CLASS_CODE
+- name: OTP_PCIE_DEV
+  accessor: true
   size: 4
   area: 3
   emu: false
-  desc: TODO
+  desc: Sets the PCIe basic device information.  See
+    https://pcisig.com/sites/default/files/files/PCI_Code-ID_r_1_11__v24_Jan_2019.pdf
+    for details on the fields.
   address: 0x68
-  fields: []
+  fields:
+  - name: OTP_PCIE_DEV_BASE_CLASS_CODE
+    width: 8
+    offset: 24
+    emu: false
+    desc: Sets the device class.
+  - name: OTP_PCIE_DEV_SUB_CLASS_CODE
+    width: 8
+    offset: 16
+    emu: false
+    desc: Sets the device subclass.
+  - name: OTP_PCIE_DEV_PROG_IF
+    width: 8
+    offset: 8
+    emu: false
+    desc: Sets the device programming interface.
+  - name: OTP_PCIE_DEV_REVISION_ID
+    width: 8
+    offset: 0
+    emu: false
+    desc: Sets the revision number of the PCIe implementation
 
-- name: OTP_PCIE_VENDOR_ID
+- name: OTP_PCIE_ID
   area: 3
   emu: false
-  size: 2
-  desc: TODO
+  size: 8
+  desc: Sets the PCIe device ID
   address: 0x6C
-  fields: []
+  fields:
+  - name: OTP_PCIE_DEVICE_ID
+    accessor: true
+    width: 16
+    offset: 0
+    emu: false
+    desc: Sets the PCIe device ID
+  - name: OTP_PCIE_VENDOR_ID
+    accessor: true
+    width: 16
+    offset: 16
+    emu: false
+    desc: Sets the PCIe vendor ID
+  - name: OTP_PCIE_SUBSYS_DEVICE_ID
+    accessor: true
+    width: 16
+    offset: 32
+    emu: false
+    desc: Sets the PCIe subsystem device ID
+  - name: OTP_PCIE_SUBSYS_VENDOR_ID
+    accessor: true
+    width: 16
+    offset: 48
+    emu: false
+    desc: Sets the PCIe subsystem vendor ID
 
-- name: OTP_PCIE_VENDOR_SUB_ID
+- name: OTP_PCIE_BARS
   area: 3
   emu: false
-  size: 2
-  desc: TODO
-  address: 0x6E
-  fields: []
-
-- name: OTP_PCIE_SUBSYSTEM_ID
-  size: 2
-  area: 3
-  emu: false
-  desc: TODO
-  address: 0x70
-  fields: []
-
-- name: OTP_PCIE_SUBSYSTEM_VENDOR_ID
-  size: 2
-  area: 3
-  emu: false
-  desc: TODO
-  address: 0x72
-  fields: []
-
-
+  size: 40
+  desc: Sets the PCIe BAR address information.  A value of all zeros or all ones
+    will disable the BAR.
+  address: 0x74
+  fields:
+  - accessor: true
+    name: OTP_PCIE_BAR0_START
+    width: 32
+    emu: false
+    desc: Start address of BAR 0
+    offset: 0
+  - accessor: true
+    name: OTP_PCIE_BAR1_START
+    width: 32
+    emu: false
+    desc: Start address of BAR 1
+    offset: 32
+  - accessor: true
+    name: OTP_PCIE_BAR2_START
+    width: 32
+    emu: false
+    desc: Start address of BAR 2
+    offset: 64
+  - accessor: true
+    name: OTP_PCIE_BAR3_START
+    width: 32
+    emu: false
+    desc: Start address of BAR 3
+    offset: 96
+  - accessor: true
+    name: OTP_PCIE_BAR4_START
+    width: 32
+    emu: false
+    desc: Start address of BAR 4
+    offset: 128
+  - accessor: true
+    name: OTP_PCIE_BAR0_SIZE
+    width: 32
+    emu: false
+    desc: Size of BAR 0
+    offset: 160
+  - accessor: true
+    name: OTP_PCIE_BAR1_SIZE
+    width: 32
+    emu: false
+    desc: Size of BAR 1
+    offset: 192
+  - accessor: true
+    name: OTP_PCIE_BAR2_SIZE
+    width: 32
+    emu: false
+    desc: Size of BAR 2
+    offset: 224
+  - accessor: true
+    name: OTP_PCIE_BAR3_SIZE
+    width: 32
+    emu: false
+    desc: Size of BAR 3
+    offset: 256
+  - accessor: true
+    name: OTP_PCIE_BAR4_SIZE
+    width: 32
+    emu: false
+    desc: Size of BAR 4
+    offset: 288
 
 - accessor: true
   area: 4

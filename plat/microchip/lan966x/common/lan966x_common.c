@@ -94,6 +94,67 @@ const mmap_region_t plat_arm_mmap[] = {
 };
 #endif
 
+union otp_value {
+	uint8_t start[4];
+	uint16_t v16;
+	uint32_t v32;
+};
+
+#define ENABLE_PCIE_BAR(B, ADDR, MASK)													\
+	INFO("Enable PCIe BAR[%d]: offset: 0x%08x, mask: 0x%x\n", B, ADDR, MASK);							\
+	mmio_clrsetbits_32(PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B(LAN966X_PCIE_DBI_BASE),						\
+			   PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_REGION_EN_M |		\
+			   PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_MATCH_MODE_M |	\
+			   PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_BAR_NUM_M,		\
+			   PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_REGION_EN_M |		\
+			   PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_MATCH_MODE_M |	\
+			   PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_BAR_NUM(B));		\
+	mmio_write_32(PCIE_DBI_IATU_LWR_TARGET_ADDR_OFF_INBOUND_ ## B(LAN966X_PCIE_DBI_BASE), ADDR);					\
+	mmio_write_32(PCIE_DBI_BAR ## B ##_MASK_REG(LAN966X_PCIE_DBI_BASE), MASK);
+
+#define DISABLE_PCIE_BAR(B)							\
+	INFO("Disable PCIe BAR[%d]\n", B);					\
+	mmio_write_32(PCIE_DBI_BAR ## B ##_MASK_REG(LAN966X_PCIE_DBI_BASE), 0);
+
+#define CONFIG_PCIE_BAR(B, ADDR, SIZE)											\
+	ret = otp_read_otp_pcie_bar ## B ## _start(otp.start, OTP_OTP_PCIE_BAR ## B ## _START_BITS/4);			\
+	if (ret == 0) {													\
+		ret = otp_read_otp_pcie_bar ## B ## _size(otp2.start, OTP_OTP_PCIE_BAR ## B ## _SIZE_BITS/4);		\
+		if (ret == 0) {												\
+			INFO("OTP BAR[%d]: offset: 0x%08x, size: %u\n", B, otp.v32, otp2.v32);				\
+			if (otp.v32 != 0) {										\
+				if (otp2.v32 != 0) {									\
+					ENABLE_PCIE_BAR(B, otp.v32, otp2.v32 - 1);					\
+				} else {										\
+					DISABLE_PCIE_BAR(B);								\
+				}											\
+			} else {											\
+				ENABLE_PCIE_BAR(B, ADDR, SIZE - 1);							\
+			}												\
+		} else {												\
+			ENABLE_PCIE_BAR(B, ADDR, SIZE - 1);								\
+		}													\
+	} else {													\
+		ENABLE_PCIE_BAR(B, ADDR, SIZE - 1);									\
+	}
+
+#define CONFIG_PCIE_ID(_type, _otp, _def, _dbireg, _dbifield)						\
+	ret = otp_read_otp_pcie_ ## _type ## _id(otp.start, OTP_OTP_PCIE_ ## _otp ## _ID_BITS/8);	\
+	if (ret == 0) {											\
+		if (otp.v16 != 0) {									\
+		} else {										\
+			INFO("Empty OTP PCIe " #_type " id\n");						\
+			otp.v16 = _def;									\
+		}											\
+	} else {											\
+		ERROR("Could not read OTP PCIe " #_type " id\n");					\
+		otp.v16 = _def;										\
+	}												\
+	INFO("Set PCIe " #_type " id: 0x%04x\n", otp.v16);						\
+	mmio_clrsetbits_32(PCIE_DBI_ ## _dbireg ## _VENDOR_ID_REG(LAN966X_PCIE_DBI_BASE),		\
+			   PCIE_DBI_ ## _dbireg ## _ ## _dbifield ## _ID_M,				\
+			   PCIE_DBI_ ## _dbireg ## _ ## _dbifield ## _ID(otp.v16));
+
 /*******************************************************************************
  * Returns ARM platform specific memory map regions.
  ******************************************************************************/
@@ -306,4 +367,93 @@ int lan966x_get_fw_config_data(lan966x_fw_cfg_data id)
 	}
 
 	return value;
+}
+
+void lan966x_pcie_init(void)
+{
+	union otp_value otp;
+	union otp_value otp2;
+	int ret;
+
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_PCIE_ENDPOINT:
+#ifdef _LAN966X_REGS_A0_H_
+	case LAN966X_STRAP_BOOT_QSPI:
+#endif
+		/* The NIC card is strapped to QSPI boot because the A0
+		 * bootrom does not handle the PCIe boot case correctly
+		 */
+		INFO("PCIe endpoint mode\n");
+		break;
+	default:
+		return;
+	}
+	otp_init();
+	/* Stop PCIe Link Training and enable writing */
+	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(LAN966X_PCIE_CFG_BASE),
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(0) |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(0));
+	mmio_clrsetbits_32(PCIE_DBI_MISC_CONTROL_1_OFF(LAN966X_PCIE_DBI_BASE),
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN_M,
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN(1));
+	/* Set class and revision id */
+	ret = otp_read_otp_pcie_dev(otp.start, OTP_PCIE_DEV_SIZE);
+	if (ret == 0) {
+		if (otp.v32 == 0) {
+			INFO("Set default PCIe device class info\n");
+			otp.v32 = 0x02000000;
+		}
+	} else {
+		ERROR("Could not read OTP PCIe device class info\n");
+		otp.v32 = 0x02000000;
+	}
+	INFO("Set PCIe device class/subclass/progif/revid: 0x%08x\n", otp.v32);
+	mmio_write_32(PCIE_DBI_CLASS_CODE_REVISION_ID(LAN966X_PCIE_DBI_BASE), otp.v32);
+
+	/* Set Device and Vendor IDs */
+	CONFIG_PCIE_ID(device, DEVICE, 0x9660, DEVICE_ID, VENDOR_ID_REG_PCI_TYPE0_DEVICE);
+	CONFIG_PCIE_ID(vendor, VENDOR, 0x1055, DEVICE_ID, VENDOR_ID_REG_PCI_TYPE0_VENDOR);
+	CONFIG_PCIE_ID(subsys_device, SUBSYS_DEVICE, 0x9660, SUBSYSTEM_ID_SUBSYSTEM, VENDOR_ID_REG_SUBSYS_DEV);
+	CONFIG_PCIE_ID(subsys_vendor, SUBSYS_VENDOR, 0x1055, SUBSYSTEM_ID_SUBSYSTEM, VENDOR_ID_REG_SUBSYS_VENDOR);
+
+	/* Configure Base Address Registers to map to local address space */
+	CONFIG_PCIE_BAR(0, 0xe2000000, 0x2000000);	/* CSR: 32MB*/
+	CONFIG_PCIE_BAR(1, 0xe2000000, 0x1000000);	/* CPU peripherals: 16MB */
+	CONFIG_PCIE_BAR(2, 0x40000000, 0x800000);	/* QSPI1: 8MB */
+	CONFIG_PCIE_BAR(3, 0x48000000, 0x800000);	/* PI: 8 MB */
+	CONFIG_PCIE_BAR(4, 0x100000, 0x20000);		/* SRAM: 128KB */
+
+	/* Configure Maximum Link Speed */
+	ret = otp_read_otp_pcie_flags_max_link_speed();
+	if (ret == 0) {
+		ret = 2;
+	}
+	mmio_clrsetbits_32(PCIE_DBI_LINK_CAPABILITIES_REG(LAN966X_PCIE_DBI_BASE),
+			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED_M,
+			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED(ret));
+	INFO("Set PCIe max link speed: %d\n", ret);
+
+	/* Start PCIe Link Training and disable writing */
+	mmio_clrsetbits_32(PCIE_DBI_MISC_CONTROL_1_OFF(LAN966X_PCIE_DBI_BASE),
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN_M,
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN(0));
+	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(LAN966X_PCIE_CFG_BASE),
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(1) |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
+
+	/* Read protect region 4 of the OTP (keys) */
+	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), BIT(4), BIT(4));
+	ret = mmio_read_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE));
+	INFO("OTP Read Protected regions: 0x%x\n", ret);
+
+	/* Go to sleep */
+	asm volatile (
+		"sleep_loop:"
+		"    wfi ;"
+		"    b sleep_loop;"
+	);
 }

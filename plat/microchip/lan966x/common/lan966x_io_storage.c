@@ -320,6 +320,7 @@ void lan966x_io_setup(void)
 
 	boot_source = lan966x_get_boot_source();
 
+	INFO("Before selecting bootsource\n");
 	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
