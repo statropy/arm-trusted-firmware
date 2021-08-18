@@ -50,11 +50,8 @@ static const io_block_dev_spec_t emmc_dev_spec = {
 	.block_size = MMC_BLOCK_SIZE,
 };
 
-/* Set eMMC FIP default values, in case of a GPT they will be overwritten */
-static io_block_spec_t fip_emmc_block_spec = {
-	.offset = LAN966x_EMMC_FIP_ADDR,
-	.length = LAN966X_FIP_SIZE,
-};
+/* Data will be fetched from the GPT */
+static io_block_spec_t fip_emmc_block_spec;
 
 /* 80k BL2/SPL + 2 * 256 U-Boot Env */
 #define FLASH_FIP_OFFSET	(1024 * (80 + 2 * 256))
@@ -64,8 +61,8 @@ static const io_block_spec_t fip_qspi_block_spec = {
 };
 
 static const io_block_spec_t emmc_gpt_spec = {
-	.offset		= LAN966X_GPT_BASE,
-	.length		= LAN966X_GPT_SIZE,
+	.offset	= LAN966X_GPT_BASE,
+	.length	= LAN966X_GPT_SIZE,
 };
 
 static const io_uuid_spec_t bl2_uuid_spec = {
@@ -330,6 +327,8 @@ void lan966x_io_setup(void)
 		result = io_dev_open(emmc_dev_con, (uintptr_t)&emmc_dev_spec,
 				     &emmc_dev_handle);
 		assert(result == 0);
+
+		lan966x_set_fip_addr(GPT_IMAGE_ID, FW_PARTITION_NAME);
 		break;
 	case BOOT_SOURCE_QSPI:
 
@@ -386,17 +385,24 @@ int lan966x_set_fip_addr(unsigned int image_id, const char *name)
 	const partition_entry_t *entry;
 
 	if (fip_emmc_block_spec.length == 0) {
-		partition_init(GPT_IMAGE_ID);
+		partition_init(image_id);
 		entry = get_partition_entry(name);
 		if (entry == NULL) {
-			INFO("Could not find the %s partition!\n", name);
-			/* No GPT partition found, use default values */
+			INFO("Could not find the '%s' partition! Seek for "
+							"fallback partition !\n",
+							name);
+			entry = get_partition_entry(FW_BACKUP_PARTITION_NAME);
+			if (entry == NULL) {
+				ERROR("No valid partition found !\n");
+				panic();
+			}
 		} else {
-			INFO("Find the %s partition, fetch FIP configuration "
-							"data \n", name);
-			fip_emmc_block_spec.offset = entry->start;
-			fip_emmc_block_spec.length = entry->length;
+			INFO("Find the '%s' partition, fetch FIP configuration "
+							"data\n", name);
 		}
+
+		fip_emmc_block_spec.offset = entry->start;
+		fip_emmc_block_spec.length = entry->length;
 	}
 
 	return 0;

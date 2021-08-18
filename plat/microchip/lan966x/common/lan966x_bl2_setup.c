@@ -139,9 +139,6 @@ void bl2_platform_setup(void)
 	/* OTP */
 	otp_init();
 
-	/* FW_CONFIG */
-	plat_lan966x_config();
-
 	/* Initialize DDR for loading BL32/BL33 */
 	lan966x_ddr_init();
 
@@ -149,9 +146,4 @@ void bl2_platform_setup(void)
 	/* Initialize the secure environment */
 	lan966x_tz_init();
 #endif
-}
-
-int bl2_plat_handle_pre_image_load(unsigned int image_id)
-{
-	return lan966x_set_fip_addr(image_id, "fip");
 }

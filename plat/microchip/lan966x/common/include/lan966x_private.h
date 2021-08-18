@@ -47,6 +47,8 @@ typedef enum {
 
 #define OTP_EMU_MAX_DATA	384
 #define FW_CONFIG_MAX_PARAM	32
+#define FW_PARTITION_NAME		"fip"
+#define FW_BACKUP_PARTITION_NAME	"fip.bak"
 
 typedef struct {
 	uint8_t otp_emu_data[OTP_EMU_MAX_DATA];
@@ -76,8 +78,8 @@ enum {
 
 typedef enum {
 	BOOT_SOURCE_EMMC = 0,
-	BOOT_SOURCE_SDMMC,
 	BOOT_SOURCE_QSPI,
+	BOOT_SOURCE_SDMMC,
 	BOOT_SOURCE_NONE
 } boot_source_type;
 

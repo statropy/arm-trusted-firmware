@@ -139,9 +139,6 @@ void bl1_platform_setup(void)
 	/* OTP */
 	otp_init();
 
-	/* FW_CONFIG */
-	bl1_load_fw_config(FW_CONFIG_ID);
-
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_SAMBA_FC0:
 	case LAN966X_STRAP_SAMBA_FC2:
@@ -149,6 +146,10 @@ void bl1_platform_setup(void)
 	case LAN966X_STRAP_SAMBA_FC4:
 	case LAN966X_STRAP_SAMBA_USB:
 		lan966x_bootstrap_monitor();
+		break;
+	case LAN966X_STRAP_BOOT_MMC:
+	case LAN966X_STRAP_BOOT_SD:
+		bl1_load_fw_config(FW_CONFIG_ID);
 		break;
 	}
 

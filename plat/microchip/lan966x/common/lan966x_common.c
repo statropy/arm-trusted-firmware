@@ -32,7 +32,7 @@ static console_t lan966x_console;
 /* Define global fw_config and set default startup values */
 lan966x_fw_config_t lan966x_fw_config = {
 	 .config[LAN966X_CONF_CLK_RATE] = SDCLOCK_400KHZ,
-	 .config[LAN966X_CONF_BUS_WIDTH] = MMC_BUS_WIDTH_1
+	 .config[LAN966X_CONF_BUS_WIDTH] = MMC_BUS_WIDTH_1,
 };
 
 #define LAN996X_MAP_QSPI0						\
