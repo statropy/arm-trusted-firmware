@@ -61,6 +61,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/common/${ARCH}/crash_console_helpers.S	\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_crc32.c		\
+				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_common.c
 
 BL1_SOURCES		+=	drivers/io/io_block.c					\

@@ -21,6 +21,9 @@
 #include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
 
+/* Temporary using mbedtls */
+#include <mbedtls/md.h>
+
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
 #include "plat_otp.h"
@@ -306,4 +309,58 @@ int lan966x_get_fw_config_data(lan966x_fw_cfg_data id)
 	}
 
 	return value;
+}
+
+/*
+ * Calculate a hash
+ *
+ * output points to the computed hash
+ */
+static int hash_salt_sha256(const void *in, size_t in_len,
+			    const void *salt, size_t salt_len,
+			    void *output)
+{
+	const mbedtls_md_info_t *md_info;
+	mbedtls_md_context_t ctx;
+	int ret;
+
+	md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+	if (md_info == NULL)
+		return -1;
+
+	mbedtls_md_init( &ctx );
+
+	ret = mbedtls_md_setup(&ctx, md_info, 0);
+	if (ret == 0)
+		ret = mbedtls_md_update(&ctx, in, in_len);
+
+	if (ret == 0)
+		ret = mbedtls_md_update(&ctx, salt, salt_len);
+
+	if (ret == 0)
+		ret = mbedtls_md_finish(&ctx, output);
+
+	mbedtls_md_free(&ctx);
+
+	if (ret == 0)
+		return mbedtls_md_get_size(md_info);
+
+
+	return -1;
+}
+
+int lan966x_derive_key(const void *in, size_t in_len,
+		       const void *salt, size_t salt_len,
+		       void *out, size_t out_len)
+{
+	unsigned char sum[MBEDTLS_MD_MAX_SIZE];
+	int md_len;
+
+	md_len = hash_salt_sha256(in, in_len, salt, salt_len, sum);
+	if (md_len > 0) {
+		md_len = MIN(md_len, (int) out_len);
+		memcpy(out, sum, md_len);
+	}
+
+	return md_len;
 }

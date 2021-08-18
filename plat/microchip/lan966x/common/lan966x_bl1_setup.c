@@ -139,6 +139,9 @@ void bl1_platform_setup(void)
 	/* OTP */
 	otp_init();
 
+	/* SJTAG */
+	lan966x_sjtag_configure();
+
 	/* FW_CONFIG */
 	bl1_load_fw_config(FW_CONFIG_ID);
 

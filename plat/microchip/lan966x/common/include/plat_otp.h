@@ -244,6 +244,7 @@ otp_accessor_group_read(otp_read_partid, PARTID);
 otp_accessor_group_read(otp_read_serial_number, SERIAL_NUMBER);
 otp_accessor_read_bool(otp_read_jtag_disable, SECURE_JTAG, JTAG_DISABLE);
 otp_accessor_read_field(otp_read_jtag_mode, SECURE_JTAG, JTAG_MODE);
+otp_accessor_group_read(otp_read_jtag_uuid, JTAG_UUID);
 otp_accessor_group_read(otp_read_otp_tbbr_rotpk, OTP_TBBR_ROTPK);
 otp_accessor_group_read(otp_read_otp_tbbr_huk, OTP_TBBR_HUK);
 otp_accessor_group_read(otp_read_otp_tbbr_ek, OTP_TBBR_EK);
