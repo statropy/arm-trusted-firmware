@@ -7,7 +7,6 @@
 #include <common/debug.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
-#include <drivers/delay_timer.h> /* XXX - debug */
 
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
@@ -48,7 +47,7 @@ void lan966x_sjtag_configure(void)
 		}
 
 		/* Read SSK */
-		otp_read_otp_sjtag_ssk((uint8_t*) sjtag_ssk, sizeof(sjtag_ssk));
+		otp_read_otp_sjtag_ssk((uint8_t *) sjtag_ssk, sizeof(sjtag_ssk));
 
 		/* Generate digest with nonce and ssk, write it */
 		i = lan966x_derive_key(sjtag_nonce, sizeof(sjtag_nonce),
@@ -59,7 +58,7 @@ void lan966x_sjtag_configure(void)
 			mmio_write_32(SJTAG_DEVICE_DIGEST(LAN966X_SJTAG_BASE, i), sjtag_ssk[i]);
 
 		/* Write UUID */
-		otp_read_jtag_uuid((uint8_t*) sjtag_uuid, sizeof(sjtag_uuid));
+		otp_read_jtag_uuid((uint8_t *) sjtag_uuid, sizeof(sjtag_uuid));
 		for (i = 0; i < SJTAG_NREGS_UUID; i++)
 			mmio_write_32(SJTAG_UUID(LAN966X_SJTAG_BASE, i), sjtag_uuid[i]);
 	}
