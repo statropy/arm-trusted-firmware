@@ -56,6 +56,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/microchip/emmc/emmc.c			\
 				drivers/microchip/otp/otp.c			\
 				drivers/microchip/clock/lan966x_clock.c		\
+				drivers/microchip/crypto/lan966x_sha.c		\
 				plat/microchip/lan966x/common/lan966x_trng.c	\
 				drivers/microchip/tz_matrix/tz_matrix.c		\
 				plat/common/${ARCH}/crash_console_helpers.S	\
