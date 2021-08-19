@@ -65,9 +65,9 @@ void sha_init(void)
 	mmio_write_32(SHA_SHA_CR(base), SHA_SHA_CR_SWRST(1));
 }
 
-#define MAX_WAIT_LOOP 10000
 static uint32_t sha_wait_flag(uint32_t mask)
 {
+	const int MAX_WAIT_LOOP = 10000;
 	int tmo;
 	uint32_t s;
 
@@ -75,8 +75,6 @@ static uint32_t sha_wait_flag(uint32_t mask)
 		s = mmio_read_32(SHA_SHA_ISR(base));
 		if (mask & s)
 			break;
-		/* Hummmm */
-		//udelay(1);
 	}
 
 	assert(tmo > 0);
