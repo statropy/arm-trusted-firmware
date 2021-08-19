@@ -37,8 +37,7 @@ void lan966x_sjtag_configure(void)
 		int i;
 
 		/* Secure mode, initialize challenge registers */
-		INFO("Secure JTAG configured, mode = %d, ctl = %08x\n",
-		     mode, mmio_read_32(SJTAG_CTL(LAN966X_SJTAG_BASE)));
+		INFO("SJTAG: Secure mode %d\n", mode);
 
 		/* Generate nonce */
 		for (i = 0; i < SJTAG_NREGS_KEY; i++) {
@@ -50,10 +49,8 @@ void lan966x_sjtag_configure(void)
 		otp_read_otp_sjtag_ssk((uint8_t *) sjtag_ssk, sizeof(sjtag_ssk));
 
 		/* Generate digest with nonce and ssk, write it */
-		i = lan966x_derive_key(sjtag_nonce, sizeof(sjtag_nonce),
-				       sjtag_ssk, sizeof(sjtag_ssk),
-				       sjtag_ssk, sizeof(sjtag_ssk));
-		assert(i == sizeof(sjtag_ssk));
+		i = lan966x_derive_key(sjtag_nonce, sjtag_ssk, sjtag_ssk);
+		assert(i == 0);
 		for (i = 0; i < SJTAG_NREGS_KEY; i++)
 			mmio_write_32(SJTAG_DEVICE_DIGEST(LAN966X_SJTAG_BASE, i), sjtag_ssk[i]);
 
@@ -61,12 +58,16 @@ void lan966x_sjtag_configure(void)
 		otp_read_jtag_uuid((uint8_t *) sjtag_uuid, sizeof(sjtag_uuid));
 		for (i = 0; i < SJTAG_NREGS_UUID; i++)
 			mmio_write_32(SJTAG_UUID(LAN966X_SJTAG_BASE, i), sjtag_uuid[i]);
+
+		/* Don't leak data */
+		memset(sjtag_nonce, 0, sizeof(sjtag_nonce));
+		memset(sjtag_ssk,   0, sizeof(sjtag_ssk));
 	}
 #endif
 
 #if defined(IMAGE_BL2)
 	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
-		INFO("SJTAG: Freezing registers to prevent tampering\n");
+		INFO("SJTAG: Freeze mode enabled\n");
 		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE), SJTAG_CTL_SJTAG_FREEZE(1));
 	}
 #endif

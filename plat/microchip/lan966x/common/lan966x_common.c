@@ -14,15 +14,13 @@
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/tz_matrix.h>
 #include <drivers/microchip/vcore_gpio.h>
+#include <drivers/microchip/sha.h>
 #include <lib/mmio.h>
 #include <platform_def.h>
 
 #include <plat/common/platform.h>
 #include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
-
-/* Temporary using mbedtls */
-#include <mbedtls/md.h>
 
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
@@ -312,55 +310,21 @@ int lan966x_get_fw_config_data(lan966x_fw_cfg_data id)
 }
 
 /*
- * Calculate a hash
- *
- * output points to the computed hash
+ * Derive a 32 byte key with a 32 byte salt, output a 32 byte key
  */
-static int hash_salt_sha256(const void *in, size_t in_len,
-			    const void *salt, size_t salt_len,
-			    void *output)
+int lan966x_derive_key(const void *in, const void *salt, void *out)
 {
-	const mbedtls_md_info_t *md_info;
-	mbedtls_md_context_t ctx;
+	uint8_t buf[LAN966X_DERIVE_KEY_LEN * 2];
 	int ret;
 
-	md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-	if (md_info == NULL)
-		return -1;
+	/* Use one contiguous buffer for now */
+	memcpy(buf, in, LAN966X_DERIVE_KEY_LEN);
+	memcpy(buf + LAN966X_DERIVE_KEY_LEN, salt, LAN966X_DERIVE_KEY_LEN);
 
-	mbedtls_md_init( &ctx );
+	ret = sha_calc(SHA_MR_ALGO_SHA256, buf, sizeof(buf), out);
 
-	ret = mbedtls_md_setup(&ctx, md_info, 0);
-	if (ret == 0)
-		ret = mbedtls_md_update(&ctx, in, in_len);
+	/* Don't leak */
+	memset(buf, 0, sizeof(buf));
 
-	if (ret == 0)
-		ret = mbedtls_md_update(&ctx, salt, salt_len);
-
-	if (ret == 0)
-		ret = mbedtls_md_finish(&ctx, output);
-
-	mbedtls_md_free(&ctx);
-
-	if (ret == 0)
-		return mbedtls_md_get_size(md_info);
-
-
-	return -1;
-}
-
-int lan966x_derive_key(const void *in, size_t in_len,
-		       const void *salt, size_t salt_len,
-		       void *out, size_t out_len)
-{
-	unsigned char sum[MBEDTLS_MD_MAX_SIZE];
-	int md_len;
-
-	md_len = hash_salt_sha256(in, in_len, salt, salt_len, sum);
-	if (md_len > 0) {
-		md_len = MIN(md_len, (int) out_len);
-		memcpy(out, sum, md_len);
-	}
-
-	return md_len;
+	return ret;
 }

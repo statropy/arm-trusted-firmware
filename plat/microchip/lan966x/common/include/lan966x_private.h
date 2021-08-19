@@ -104,9 +104,8 @@ uint32_t lan966x_get_boot_source(void);
 int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
 
-int lan966x_derive_key(const void *in, size_t in_len,
-		       const void *salt, size_t salt_len,
-		       void *out, size_t out_len);
+#define LAN966X_DERIVE_KEY_LEN	32
+int lan966x_derive_key(const void *in, const void *salt, void *out);
 
 void lan966x_sjtag_configure(void);
 
