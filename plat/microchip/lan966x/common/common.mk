@@ -69,6 +69,8 @@ BL1_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/io/io_fip.c					\
 				drivers/io/io_memmap.c					\
 				drivers/io/io_storage.c					\
+				drivers/partition/gpt.c					\
+				drivers/partition/partition.c				\
 				plat/microchip/lan966x/common/lan966x_mmc.c		\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/${ARCH}/plat_bootstrap.S	\

@@ -52,7 +52,7 @@ void plat_lan966x_config(void)
 	params.bus_width = lan966x_get_fw_config_data(LAN966X_CONF_BUS_WIDTH);
 	params.flags = lan966x_get_fw_config_data(LAN966X_CONF_FLAGS);
 
-	info.mmc_dev_type = MMC_IS_EMMC; // valid for eMMC and QSPI mode
+	info.mmc_dev_type = MMC_IS_EMMC;
 	info.max_bus_freq = 48 * 1000 * 1000;
 	info.block_size = MMC_BLOCK_SIZE;
 
@@ -67,6 +67,12 @@ void lan966x_sdmmc_init(void)
 	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
 		INFO("Initializing eMMC\n");
+
+		/* Configure pins for eMMC device */
+		plat_lan966x_pinConfig();
+
+		/* Initialize ATF MMC framework */
+		plat_lan966x_config();
 		break;
 	case BOOT_SOURCE_SDMMC:
 		INFO("Initializing SDMMC\n");
@@ -84,10 +90,4 @@ void lan966x_sdmmc_init(void)
 		assert(false);
 		break;
 	}
-
-	/* Configure pins for eMMC device */
-	plat_lan966x_pinConfig();
-
-	/* Initialize ATF MMC framework */
-	plat_lan966x_config();
 }
