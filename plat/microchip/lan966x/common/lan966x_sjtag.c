@@ -18,7 +18,6 @@
 #define LAN966X_SJTAG_CLOSED	3
 
 #define SJTAG_NREGS_KEY		8
-#define SJTAG_NREGS_UUID	3
 
 void lan966x_sjtag_configure(void)
 {
@@ -33,7 +32,6 @@ void lan966x_sjtag_configure(void)
 	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
 		uint32_t sjtag_nonce[SJTAG_NREGS_KEY];
 		uint32_t sjtag_ssk[SJTAG_NREGS_KEY];
-		uint32_t sjtag_uuid[SJTAG_NREGS_UUID];
 		int i;
 
 		/* Secure mode, initialize challenge registers */
@@ -54,10 +52,8 @@ void lan966x_sjtag_configure(void)
 		for (i = 0; i < SJTAG_NREGS_KEY; i++)
 			mmio_write_32(SJTAG_DEVICE_DIGEST(LAN966X_SJTAG_BASE, i), sjtag_ssk[i]);
 
-		/* Write UUID */
-		otp_read_jtag_uuid((uint8_t *) sjtag_uuid, sizeof(sjtag_uuid));
-		for (i = 0; i < SJTAG_NREGS_UUID; i++)
-			mmio_write_32(SJTAG_UUID(LAN966X_SJTAG_BASE, i), sjtag_uuid[i]);
+		/* Now enable */
+		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE), SJTAG_CTL_SJTAG_EN(1));
 
 		/* Don't leak data */
 		memset(sjtag_nonce, 0, sizeof(sjtag_nonce));
