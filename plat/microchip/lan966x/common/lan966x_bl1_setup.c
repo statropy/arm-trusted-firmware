@@ -68,6 +68,9 @@ void bl1_early_platform_setup(void)
 	/* Enable arch timer */
 	generic_delay_timer_init();
 
+	/* OTP */
+	otp_init();
+
 	/* PCIe - may never return */
 	lan966x_pcie_init();
 
@@ -138,9 +141,6 @@ void bl1_platform_setup(void)
 
 	/* IO */
 	lan966x_io_setup();
-
-	/* OTP */
-	otp_init();
 
 	/* FW_CONFIG */
 	bl1_load_fw_config(FW_CONFIG_ID);

@@ -171,28 +171,6 @@
 #define OTP_PCIE_BARS_ADDR                       116
 #define OTP_PCIE_BARS_SIZE                       40
 
-/* Fields in OTP_PCIE_BARS */
-#define OTP_OTP_PCIE_BAR0_START_OFF              0
-#define OTP_OTP_PCIE_BAR0_START_BITS             32
-#define OTP_OTP_PCIE_BAR1_START_OFF              32
-#define OTP_OTP_PCIE_BAR1_START_BITS             32
-#define OTP_OTP_PCIE_BAR2_START_OFF              64
-#define OTP_OTP_PCIE_BAR2_START_BITS             32
-#define OTP_OTP_PCIE_BAR3_START_OFF              96
-#define OTP_OTP_PCIE_BAR3_START_BITS             32
-#define OTP_OTP_PCIE_BAR4_START_OFF              128
-#define OTP_OTP_PCIE_BAR4_START_BITS             32
-#define OTP_OTP_PCIE_BAR0_SIZE_OFF               160
-#define OTP_OTP_PCIE_BAR0_SIZE_BITS              32
-#define OTP_OTP_PCIE_BAR1_SIZE_OFF               192
-#define OTP_OTP_PCIE_BAR1_SIZE_BITS              32
-#define OTP_OTP_PCIE_BAR2_SIZE_OFF               224
-#define OTP_OTP_PCIE_BAR2_SIZE_BITS              32
-#define OTP_OTP_PCIE_BAR3_SIZE_OFF               256
-#define OTP_OTP_PCIE_BAR3_SIZE_BITS              32
-#define OTP_OTP_PCIE_BAR4_SIZE_OFF               288
-#define OTP_OTP_PCIE_BAR4_SIZE_BITS              32
-
 /* OTP_TBBR_ROTPK */
 #define OTP_TBBR_ROTPK_ADDR                      256
 #define OTP_TBBR_ROTPK_SIZE                      32
@@ -282,16 +260,7 @@ otp_accessor_read_bytes(otp_read_otp_pcie_device_id, OTP_PCIE_ID, OTP_PCIE_DEVIC
 otp_accessor_read_bytes(otp_read_otp_pcie_vendor_id, OTP_PCIE_ID, OTP_PCIE_VENDOR_ID);
 otp_accessor_read_bytes(otp_read_otp_pcie_subsys_device_id, OTP_PCIE_ID, OTP_PCIE_SUBSYS_DEVICE_ID);
 otp_accessor_read_bytes(otp_read_otp_pcie_subsys_vendor_id, OTP_PCIE_ID, OTP_PCIE_SUBSYS_VENDOR_ID);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar0_start, OTP_PCIE_BARS, OTP_PCIE_BAR0_START);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar1_start, OTP_PCIE_BARS, OTP_PCIE_BAR1_START);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar2_start, OTP_PCIE_BARS, OTP_PCIE_BAR2_START);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar3_start, OTP_PCIE_BARS, OTP_PCIE_BAR3_START);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar4_start, OTP_PCIE_BARS, OTP_PCIE_BAR4_START);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar0_size, OTP_PCIE_BARS, OTP_PCIE_BAR0_SIZE);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar1_size, OTP_PCIE_BARS, OTP_PCIE_BAR1_SIZE);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar2_size, OTP_PCIE_BARS, OTP_PCIE_BAR2_SIZE);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar3_size, OTP_PCIE_BARS, OTP_PCIE_BAR3_SIZE);
-otp_accessor_read_bytes(otp_read_otp_pcie_bar4_size, OTP_PCIE_BARS, OTP_PCIE_BAR4_SIZE);
+otp_accessor_group_read(otp_read_otp_pcie_bars, OTP_PCIE_BARS);
 otp_accessor_group_read(otp_read_otp_tbbr_rotpk, OTP_TBBR_ROTPK);
 otp_accessor_group_read(otp_read_otp_tbbr_huk, OTP_TBBR_HUK);
 otp_accessor_group_read(otp_read_otp_tbbr_ek, OTP_TBBR_EK);
