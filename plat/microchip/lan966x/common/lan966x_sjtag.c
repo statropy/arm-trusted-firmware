@@ -27,7 +27,7 @@ void lan966x_sjtag_configure(void)
 	w = mmio_read_32(SJTAG_CTL(LAN966X_SJTAG_BASE));
 	mode = SJTAG_CTL_SJTAG_MODE_X(w);
 
-#if defined(IMAGE_BL1) || defined(BL2_AT_EL3)
+#if defined(IMAGE_BL1) || BL2_AT_EL3
 	/* Initial configuration */
 	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
 		uint32_t sjtag_nonce[SJTAG_NREGS_KEY];
@@ -61,12 +61,12 @@ void lan966x_sjtag_configure(void)
 	}
 #endif
 
-#if defined(IMAGE_BL2)
 	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
+#if defined(IMAGE_BL2)
 		INFO("SJTAG: Freeze mode enabled\n");
 		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE), SJTAG_CTL_SJTAG_FREEZE(1));
-	}
 #endif
+	}
 }
 
 int lan966x_sjtag_read_challenge(uint8_t *p)
