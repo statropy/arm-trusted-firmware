@@ -109,6 +109,9 @@ int lan966x_set_fip_addr(unsigned int image_id, const char *name);
 #define LAN966X_DERIVE_KEY_LEN	32
 int lan966x_derive_key(const void *in, const void *salt, void *out);
 
+#define LAN966X_SJTAG_KEY_LEN	32
 void lan966x_sjtag_configure(void);
+int  lan966x_sjtag_read_challenge(uint8_t *p);
+int  lan966x_sjtag_write_response(uint8_t *p);
 
 #endif	/* LAN966X_PRIVATE_H */

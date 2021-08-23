@@ -16,6 +16,8 @@ CMD_OTPD = 'P'
 CMD_OTPR = 'R'
 CMD_OTPC = 'M'
 CMD_CONT = 'C'
+CMD_SJTAG_RD = 'Q'
+CMD_SJTAG_WR = 'A'
 CMD_ACK  = 'a'
 CMD_NACK = 'n'
 
@@ -163,6 +165,16 @@ OptionParser.new do |opts|
 
     opts.on("-m", "--otp-commit", "Program OTP with current emulation data") do
         rsp = do_cmd(fmt_req(CMD_OTPC))
+    end
+
+    opts.on("-R", "--sjtag-read-challenge", "Read SJTAG challenge (NONCE)") do
+        rsp = do_cmd(fmt_req(CMD_SJTAG_RD))
+    end
+
+    opts.on("-Q", "--sjtag-write-response <data>", "Send SJTAG challenge response") do |data|
+        resp = [data].pack('H*')
+        raise "SJTAG response must be 32 bytes" unless resp.length == 32
+        rsp = do_cmd(fmt_req(CMD_SJTAG_WR, 0, resp))
     end
 
     opts.on("-x", "--examples", "Show protocol example encodings") do

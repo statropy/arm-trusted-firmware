@@ -68,3 +68,40 @@ void lan966x_sjtag_configure(void)
 	}
 #endif
 }
+
+int lan966x_sjtag_read_challenge(uint8_t *p)
+{
+	int i;
+
+	if (!(mmio_read_32(SJTAG_CTL(LAN966X_SJTAG_BASE)) & SJTAG_CTL_SJTAG_EN(1)))
+		return -1;
+
+	for (i = 0; i < SJTAG_NREGS_KEY; i++) {
+		uint32_t w = mmio_read_32(SJTAG_NONCE(LAN966X_SJTAG_BASE, i));
+		*p++ = (uint8_t) w; w >>= 8;
+		*p++ = (uint8_t) w; w >>= 8;
+		*p++ = (uint8_t) w; w >>= 8;
+		*p++ = (uint8_t) w;
+	}
+
+	return 0;
+}
+
+int lan966x_sjtag_write_response(uint8_t *p)
+{
+	int i;
+
+	if (!(mmio_read_32(SJTAG_CTL(LAN966X_SJTAG_BASE)) & SJTAG_CTL_SJTAG_EN(1)))
+		return -1;
+
+	for (i = 0; i < SJTAG_NREGS_KEY; i++) {
+		uint32_t w =
+			p[0] +
+			(p[1] >> 8) +
+			(p[2] >> 16) +
+			(p[3] >> 24);
+		mmio_write_32(SJTAG_HOST_DIGEST(LAN966X_SJTAG_BASE, i), w);
+	}
+
+	return 0;
+}

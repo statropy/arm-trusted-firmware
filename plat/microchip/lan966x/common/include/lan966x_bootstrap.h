@@ -27,6 +27,10 @@
 #define BOOTSTRAP_OTPC         'M'
 // Continue boot
 #define BOOTSTRAP_CONT         'C'
+// SJTAG Read Challenge
+#define BOOTSTRAP_SJTAG_RD     'Q'
+// SJTAG Write Resonse
+#define BOOTSTRAP_SJTAG_WR     'A'
 // ACK
 #define BOOTSTRAP_ACK          'a'
 // NACK
