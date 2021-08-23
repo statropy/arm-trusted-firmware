@@ -95,9 +95,6 @@ static void bl2_early_platform_setup(void)
 	/* Console */
 	lan966x_console_init();
 
-	/* OTP */
-	otp_init();
-
 #if defined(BL2_AT_EL3)
 	/* PCIe - may never return */
 	lan966x_pcie_init();
@@ -143,6 +140,9 @@ void bl2_platform_setup(void)
 {
 	/* IO */
 	lan966x_io_setup();
+
+	/* OTP */
+	otp_emu_init();
 
 	/* FW_CONFIG */
 	plat_lan966x_config();

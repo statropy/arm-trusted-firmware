@@ -19,8 +19,7 @@
 #define OTP_EMU_START_OFF	256
 
 enum {
-	OTP_FLAG_INITIALIZED = BIT(0),
-	OTP_FLAG_EMULATION   = BIT(1),
+	OTP_FLAG_EMULATION   = BIT(0),
 };
 
 static uint32_t otp_flags;
@@ -157,14 +156,9 @@ static int otp_hw_write_bytes(unsigned int offset, unsigned int nbytes, const ui
 	return rc;
 }
 
-void otp_init(void)
+void otp_emu_init(void)
 {
 	uint8_t rotpk[OTP_TBBR_ROTPK_SIZE];
-
-	if (otp_flags & OTP_FLAG_INITIALIZED)
-		return;
-
-	otp_flags |= OTP_FLAG_INITIALIZED;
 
 	/* Note: Now read the "ROTPK" element, to decide whether OTP
 	 * emulation has been disabled.
@@ -198,9 +192,6 @@ int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 	assert(nbytes > 0);
 	assert((offset + nbytes) < OTP_MEM_SIZE);
 
-	/* Make sure we're initialized */
-	assert(otp_flags & OTP_FLAG_INITIALIZED);
-
 	/* Read bitstream */
 	rc = otp_hw_read_bytes(offset, nbytes, dst);
 
@@ -226,7 +217,7 @@ int otp_write_bytes(unsigned int offset, unsigned int nbytes, const uint8_t *dst
 	assert((offset + nbytes) < OTP_MEM_SIZE);
 
 	/* Make sure we're initialized */
-	otp_init();
+	otp_emu_init();
 
 	return otp_hw_write_bytes(offset, nbytes, dst);
 }
