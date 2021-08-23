@@ -44,7 +44,7 @@
 #define BL1_RO_LIMIT		(BL1_RO_BASE + BL1_RO_SIZE)
 
 #if defined(LAN966X_ASIC)
-/* ASIC runs without BL1, so free up that memory */
+/* A0 ASIC runs without BL1, so free up that memory */
 #define BL1_RW_SIZE		0
 #else
 /*

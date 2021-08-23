@@ -141,7 +141,7 @@ void bl2_platform_setup(void)
 	/* OTP */
 	otp_init();
 
-	/* SJTAG */
+	/* SJTAG: Freeze mode and configuration */
 	lan966x_sjtag_configure();
 
 	/* Initialize DDR for loading BL32/BL33 */

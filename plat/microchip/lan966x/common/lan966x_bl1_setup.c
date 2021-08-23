@@ -139,7 +139,7 @@ void bl1_platform_setup(void)
 	/* OTP */
 	otp_init();
 
-	/* SJTAG */
+	/* SJTAG: Configure challenge, no freeze */
 	lan966x_sjtag_configure();
 
 	switch (lan966x_get_strapping()) {
