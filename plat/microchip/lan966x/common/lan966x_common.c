@@ -312,16 +312,18 @@ int lan966x_get_fw_config_data(lan966x_fw_cfg_data id)
 /*
  * Derive a 32 byte key with a 32 byte salt, output a 32 byte key
  */
-int lan966x_derive_key(const void *in, const void *salt, void *out)
+int lan966x_derive_key(const lan966x_key32_t *in,
+		       const lan966x_key32_t *salt,
+		       lan966x_key32_t *out)
 {
-	uint8_t buf[LAN966X_DERIVE_KEY_LEN * 2];
+	uint8_t buf[LAN966X_KEY32_LEN * 2];
 	int ret;
 
 	/* Use one contiguous buffer for now */
-	memcpy(buf, in, LAN966X_DERIVE_KEY_LEN);
-	memcpy(buf + LAN966X_DERIVE_KEY_LEN, salt, LAN966X_DERIVE_KEY_LEN);
+	memcpy(buf, in->b, LAN966X_KEY32_LEN);
+	memcpy(buf + LAN966X_KEY32_LEN, salt->b, LAN966X_KEY32_LEN);
 
-	ret = sha_calc(SHA_MR_ALGO_SHA256, buf, sizeof(buf), out);
+	ret = sha_calc(SHA_MR_ALGO_SHA256, buf, sizeof(buf), out->b);
 
 	/* Don't leak */
 	memset(buf, 0, sizeof(buf));

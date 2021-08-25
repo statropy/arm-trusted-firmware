@@ -109,20 +109,20 @@ static void handle_exec(const bootstrap_req_t *req)
 
 static void handle_sjtag_rd(bootstrap_req_t *req)
 {
-	uint8_t buf[LAN966X_SJTAG_KEY_LEN];
+	lan966x_key32_t k;
 
-	if (lan966x_sjtag_read_challenge(buf) == 0)
-		bootstrap_TxAckData(buf, sizeof(buf));
+	if (lan966x_sjtag_read_challenge(&k) == 0)
+		bootstrap_TxAckData(k.b, sizeof(k.b));
 	else
 		bootstrap_TxNack("SJTAG read challenge failed");
 }
 
 static void handle_sjtag_wr(bootstrap_req_t *req)
 {
-	uint8_t buf[LAN966X_SJTAG_KEY_LEN];
+	lan966x_key32_t k;
 
-	if (req->len == sizeof(buf) && bootstrap_RxDataCrc(req, buf)) {
-		if (lan966x_sjtag_write_response(buf) == 0)
+	if (req->len == sizeof(k.b) && bootstrap_RxDataCrc(req, k.b)) {
+		if (lan966x_sjtag_write_response(&k) == 0)
 			bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 		else
 			bootstrap_TxNack("SJTAG unlock failed");

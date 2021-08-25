@@ -17,7 +17,7 @@
 #define LAN966X_SJTAG_MODE2	2
 #define LAN966X_SJTAG_CLOSED	3
 
-#define SJTAG_NREGS_KEY		8
+#define SJTAG_NREGS_KEY		(LAN966X_KEY32_LEN / 4)
 
 void lan966x_sjtag_configure(void)
 {
@@ -30,8 +30,7 @@ void lan966x_sjtag_configure(void)
 #if defined(IMAGE_BL1) || BL2_AT_EL3
 	/* Initial configuration */
 	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
-		uint32_t sjtag_nonce[SJTAG_NREGS_KEY];
-		uint32_t sjtag_ssk[SJTAG_NREGS_KEY];
+		lan966x_key32_t sjtag_nonce, sjtag_ssk;
 		int i;
 
 		/* Secure mode, initialize challenge registers */
@@ -39,37 +38,37 @@ void lan966x_sjtag_configure(void)
 
 		/* Generate nonce */
 		for (i = 0; i < SJTAG_NREGS_KEY; i++) {
-			sjtag_nonce[i] = lan966x_trng_read();
-			mmio_write_32(SJTAG_NONCE(LAN966X_SJTAG_BASE, i), sjtag_nonce[i]);
+			sjtag_nonce.w[i] = lan966x_trng_read();
+			mmio_write_32(SJTAG_NONCE(LAN966X_SJTAG_BASE, i), sjtag_nonce.w[i]);
 		}
 
 		/* Read SSK */
-		otp_read_otp_sjtag_ssk((uint8_t *) sjtag_ssk, sizeof(sjtag_ssk));
+		otp_read_otp_sjtag_ssk(sjtag_ssk.b, sizeof(sjtag_ssk.b));
 
 		/* Generate digest with nonce and ssk, write it */
-		i = lan966x_derive_key(sjtag_nonce, sjtag_ssk, sjtag_ssk);
+		i = lan966x_derive_key(&sjtag_nonce, &sjtag_ssk, &sjtag_ssk);
 		assert(i == 0);
 		for (i = 0; i < SJTAG_NREGS_KEY; i++)
-			mmio_write_32(SJTAG_DEVICE_DIGEST(LAN966X_SJTAG_BASE, i), sjtag_ssk[i]);
+			mmio_write_32(SJTAG_DEVICE_DIGEST(LAN966X_SJTAG_BASE, i), sjtag_ssk.w[i]);
 
 		/* Now enable */
 		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE), SJTAG_CTL_SJTAG_EN(1));
 
 		/* Don't leak data */
-		memset(sjtag_nonce, 0, sizeof(sjtag_nonce));
-		memset(sjtag_ssk,   0, sizeof(sjtag_ssk));
+		memset(&sjtag_nonce, 0, sizeof(sjtag_nonce));
+		memset(&sjtag_ssk,   0, sizeof(sjtag_ssk));
 	}
 #endif
 
-	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
 #if defined(IMAGE_BL2)
+	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
 		INFO("SJTAG: Freeze mode enabled\n");
 		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE), SJTAG_CTL_SJTAG_FREEZE(1));
-#endif
 	}
+#endif
 }
 
-int lan966x_sjtag_read_challenge(uint8_t *p)
+int lan966x_sjtag_read_challenge(lan966x_key32_t *k)
 {
 	int i;
 
@@ -78,30 +77,32 @@ int lan966x_sjtag_read_challenge(uint8_t *p)
 
 	for (i = 0; i < SJTAG_NREGS_KEY; i++) {
 		uint32_t w = mmio_read_32(SJTAG_NONCE(LAN966X_SJTAG_BASE, i));
-		*p++ = (uint8_t) w; w >>= 8;
-		*p++ = (uint8_t) w; w >>= 8;
-		*p++ = (uint8_t) w; w >>= 8;
-		*p++ = (uint8_t) w;
+		k->w[i] = w;
 	}
 
 	return 0;
 }
 
-int lan966x_sjtag_write_response(uint8_t *p)
+int lan966x_sjtag_write_response(const lan966x_key32_t *k)
 {
+	uint32_t diff = 0;
 	int i;
 
 	if (!(mmio_read_32(SJTAG_CTL(LAN966X_SJTAG_BASE)) & SJTAG_CTL_SJTAG_EN(1)))
 		return -1;
 
 	for (i = 0; i < SJTAG_NREGS_KEY; i++) {
-		uint32_t w =
-			p[0] +
-			(p[1] >> 8) +
-			(p[2] >> 16) +
-			(p[3] >> 24);
-		mmio_write_32(SJTAG_HOST_DIGEST(LAN966X_SJTAG_BASE, i), w);
+		uint32_t w = mmio_read_32(SJTAG_DEVICE_DIGEST(LAN966X_SJTAG_BASE, i));
+		diff |= (k->w[i] ^ w);
 	}
 
-	return 0;
+	if (diff == 0) {
+		mmio_clrsetbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE),
+				   SJTAG_CTL_SJTAG_MODE_M,
+				   SJTAG_CTL_SJTAG_MODE(LAN966X_SJTAG_OPEN));
+		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE),
+				SJTAG_CTL_SJTAG_CPU_EN(1) | SJTAG_CTL_SJTAG_TST_EN(1));
+	}
+
+	return diff;
 }

@@ -106,12 +106,19 @@ uint32_t lan966x_get_boot_source(void);
 int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
 
-#define LAN966X_DERIVE_KEY_LEN	32
-int lan966x_derive_key(const void *in, const void *salt, void *out);
+#define LAN966X_KEY32_LEN	32
 
-#define LAN966X_SJTAG_KEY_LEN	32
+typedef struct {
+	union {
+		uint8_t b[LAN966X_KEY32_LEN];
+		uint8_t w[LAN966X_KEY32_LEN / 4];
+	};
+} lan966x_key32_t;
+
+int lan966x_derive_key(const lan966x_key32_t *in, const lan966x_key32_t *salt, lan966x_key32_t *out);
+
 void lan966x_sjtag_configure(void);
-int  lan966x_sjtag_read_challenge(uint8_t *p);
-int  lan966x_sjtag_write_response(uint8_t *p);
+int  lan966x_sjtag_read_challenge(lan966x_key32_t *k);
+int  lan966x_sjtag_write_response(const lan966x_key32_t *k);
 
 #endif	/* LAN966X_PRIVATE_H */

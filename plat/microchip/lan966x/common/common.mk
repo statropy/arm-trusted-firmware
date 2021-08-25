@@ -62,7 +62,6 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/common/${ARCH}/crash_console_helpers.S	\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_crc32.c		\
-				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_common.c
 
 BL1_SOURCES		+=	drivers/io/io_block.c					\
@@ -73,6 +72,7 @@ BL1_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/partition/partition.c				\
 				plat/microchip/lan966x/common/lan966x_mmc.c		\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
+				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/${ARCH}/plat_bootstrap.S	\
 				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
@@ -90,7 +90,8 @@ BL2_SOURCES		+=	drivers/io/io_block.c				\
 				plat/microchip/lan966x/common/lan966x_image_load.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c		\
 				plat/microchip/lan966x/common/lan966x_tz.c		\
-				plat/microchip/lan966x/common/lan966x_io_storage.c
+				plat/microchip/lan966x/common/lan966x_io_storage.c	\
+				plat/microchip/lan966x/common/lan966x_sjtag.c
 
 CONSOLE_BASE			:=	LAN966X_FLEXCOM_0_BASE
 
