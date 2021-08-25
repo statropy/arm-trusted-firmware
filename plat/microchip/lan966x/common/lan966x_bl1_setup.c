@@ -68,6 +68,9 @@ void bl1_early_platform_setup(void)
 	/* Enable arch timer */
 	generic_delay_timer_init();
 
+	/* PCIe - may never return */
+	lan966x_pcie_init();
+
 	/* Setup MMC */
 	lan966x_sdmmc_init();
 
@@ -137,7 +140,7 @@ void bl1_platform_setup(void)
 	lan966x_io_setup();
 
 	/* OTP */
-	otp_init();
+	otp_emu_init();
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_SAMBA_FC0:
