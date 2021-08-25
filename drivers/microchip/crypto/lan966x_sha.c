@@ -132,9 +132,9 @@ static int sha_process(int hash_type, const void *input, size_t len,
 	fifo = ((hash_type == SHA_MR_ALGO_SHA384) |
 		(hash_type == SHA_MR_ALGO_SHA512)) ? 32 : 16;
 
-	if (nwords == 0)
+	if (nwords == 0) {
 		sha_start_process();
-	else
+	} else {
 		for (i = 0; i < nwords; ) {
 			/* Up to 16/32 words at a time */
 			for (j = 0; j < fifo && i < nwords; j++, i++) {
@@ -144,6 +144,7 @@ static int sha_process(int hash_type, const void *input, size_t len,
 			}
 			sha_start_process();
 		}
+	}
 
 	/* Wait until checked */
 	if (in_hash) {
