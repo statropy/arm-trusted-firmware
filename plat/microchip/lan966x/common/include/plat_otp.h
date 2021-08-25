@@ -136,30 +136,40 @@
 #define OTP_PCIE_FLAGS_SIZE                      4
 
 /* Fields in OTP_PCIE_FLAGS */
-#define OTP_OTP_PCIE_FLAGS_REVISION_ID_OFF       8
-#define OTP_OTP_PCIE_FLAGS_REVISION_ID_BITS      8
-#define OTP_OTP_PCIE_FLAGS_DISABLE_REV_3_OFF     1
-#define OTP_OTP_PCIE_FLAGS_DISABLE_REV_2_OFF     0
+#define OTP_OTP_PCIE_FLAGS_MAX_LINK_SPEED_OFF    0
+#define OTP_OTP_PCIE_FLAGS_MAX_LINK_SPEED_BITS   3
 
-/* OTP_PCIE_CLASS_CODE */
-#define OTP_PCIE_CLASS_CODE_ADDR                 104
-#define OTP_PCIE_CLASS_CODE_SIZE                 4
+/* OTP_PCIE_DEV */
+#define OTP_PCIE_DEV_ADDR                        104
+#define OTP_PCIE_DEV_SIZE                        4
 
-/* OTP_PCIE_VENDOR_ID */
-#define OTP_PCIE_VENDOR_ID_ADDR                  108
-#define OTP_PCIE_VENDOR_ID_SIZE                  2
+/* Fields in OTP_PCIE_DEV */
+#define OTP_OTP_PCIE_DEV_BASE_CLASS_CODE_OFF     24
+#define OTP_OTP_PCIE_DEV_BASE_CLASS_CODE_BITS    8
+#define OTP_OTP_PCIE_DEV_SUB_CLASS_CODE_OFF      16
+#define OTP_OTP_PCIE_DEV_SUB_CLASS_CODE_BITS     8
+#define OTP_OTP_PCIE_DEV_PROG_IF_OFF             8
+#define OTP_OTP_PCIE_DEV_PROG_IF_BITS            8
+#define OTP_OTP_PCIE_DEV_REVISION_ID_OFF         0
+#define OTP_OTP_PCIE_DEV_REVISION_ID_BITS        8
 
-/* OTP_PCIE_VENDOR_SUB_ID */
-#define OTP_PCIE_VENDOR_SUB_ID_ADDR              110
-#define OTP_PCIE_VENDOR_SUB_ID_SIZE              2
+/* OTP_PCIE_ID */
+#define OTP_PCIE_ID_ADDR                         108
+#define OTP_PCIE_ID_SIZE                         8
 
-/* OTP_PCIE_SUBSYSTEM_ID */
-#define OTP_PCIE_SUBSYSTEM_ID_ADDR               112
-#define OTP_PCIE_SUBSYSTEM_ID_SIZE               2
+/* Fields in OTP_PCIE_ID */
+#define OTP_OTP_PCIE_DEVICE_ID_OFF               0
+#define OTP_OTP_PCIE_DEVICE_ID_BITS              16
+#define OTP_OTP_PCIE_VENDOR_ID_OFF               16
+#define OTP_OTP_PCIE_VENDOR_ID_BITS              16
+#define OTP_OTP_PCIE_SUBSYS_DEVICE_ID_OFF        32
+#define OTP_OTP_PCIE_SUBSYS_DEVICE_ID_BITS       16
+#define OTP_OTP_PCIE_SUBSYS_VENDOR_ID_OFF        48
+#define OTP_OTP_PCIE_SUBSYS_VENDOR_ID_BITS       16
 
-/* OTP_PCIE_SUBSYSTEM_VENDOR_ID */
-#define OTP_PCIE_SUBSYSTEM_VENDOR_ID_ADDR        114
-#define OTP_PCIE_SUBSYSTEM_VENDOR_ID_SIZE        2
+/* OTP_PCIE_BARS */
+#define OTP_PCIE_BARS_ADDR                       116
+#define OTP_PCIE_BARS_SIZE                       40
 
 /* OTP_TBBR_ROTPK */
 #define OTP_TBBR_ROTPK_ADDR                      256
@@ -245,6 +255,13 @@ otp_accessor_group_read(otp_read_serial_number, SERIAL_NUMBER);
 otp_accessor_read_bool(otp_read_jtag_disable, SECURE_JTAG, JTAG_DISABLE);
 otp_accessor_read_field(otp_read_jtag_mode, SECURE_JTAG, JTAG_MODE);
 otp_accessor_group_read(otp_read_jtag_uuid, JTAG_UUID);
+otp_accessor_read_field(otp_read_otp_pcie_flags_max_link_speed, OTP_PCIE_FLAGS, OTP_PCIE_FLAGS_MAX_LINK_SPEED);
+otp_accessor_group_read(otp_read_otp_pcie_dev, OTP_PCIE_DEV);
+otp_accessor_read_bytes(otp_read_otp_pcie_device_id, OTP_PCIE_ID, OTP_PCIE_DEVICE_ID);
+otp_accessor_read_bytes(otp_read_otp_pcie_vendor_id, OTP_PCIE_ID, OTP_PCIE_VENDOR_ID);
+otp_accessor_read_bytes(otp_read_otp_pcie_subsys_device_id, OTP_PCIE_ID, OTP_PCIE_SUBSYS_DEVICE_ID);
+otp_accessor_read_bytes(otp_read_otp_pcie_subsys_vendor_id, OTP_PCIE_ID, OTP_PCIE_SUBSYS_VENDOR_ID);
+otp_accessor_group_read(otp_read_otp_pcie_bars, OTP_PCIE_BARS);
 otp_accessor_group_read(otp_read_otp_tbbr_rotpk, OTP_TBBR_ROTPK);
 otp_accessor_group_read(otp_read_otp_tbbr_huk, OTP_TBBR_HUK);
 otp_accessor_group_read(otp_read_otp_tbbr_ek, OTP_TBBR_EK);

@@ -95,6 +95,11 @@ static void bl2_early_platform_setup(void)
 	/* Console */
 	lan966x_console_init();
 
+#if defined(BL2_AT_EL3)
+	/* PCIe - may never return */
+	lan966x_pcie_init();
+#endif
+
 	/* Setup MMC */
 	lan966x_sdmmc_init();
 
@@ -139,7 +144,7 @@ void bl2_platform_setup(void)
 	lan966x_io_setup();
 
 	/* OTP */
-	otp_init();
+	otp_emu_init();
 
 	/* SJTAG: Freeze mode and configuration */
 	lan966x_sjtag_configure();
