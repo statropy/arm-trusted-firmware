@@ -136,7 +136,8 @@
   prod_probe: true
 
 
-- name: JTAG_UUID
+- accessor: true
+  name: JTAG_UUID
   area: 0
   size: 10
   address: 0x20

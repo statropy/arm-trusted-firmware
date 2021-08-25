@@ -107,6 +107,29 @@ static void handle_exec(const bootstrap_req_t *req)
 	bootstrap_TxNack("Nothing to execute");
 }
 
+static void handle_sjtag_rd(bootstrap_req_t *req)
+{
+	lan966x_key32_t k;
+
+	if (lan966x_sjtag_read_challenge(&k) == 0)
+		bootstrap_TxAckData(k.b, sizeof(k.b));
+	else
+		bootstrap_TxNack("SJTAG read challenge failed");
+}
+
+static void handle_sjtag_wr(bootstrap_req_t *req)
+{
+	lan966x_key32_t k;
+
+	if (req->len == sizeof(k.b) && bootstrap_RxDataCrc(req, k.b)) {
+		if (lan966x_sjtag_write_response(&k) == 0)
+			bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
+		else
+			bootstrap_TxNack("SJTAG unlock failed");
+	} else
+		bootstrap_TxNack("SJTAG rx data failed or illegal data size");
+}
+
 static void handle_send_data(const bootstrap_req_t *req)
 {
 	uint32_t length = req->arg0;
@@ -177,6 +200,10 @@ void lan966x_bootstrap_monitor(void)
 			handle_auth(&req);
 		else if (is_cmd(&req, BOOTSTRAP_EXEC))
 			handle_exec(&req);
+		else if (is_cmd(&req, BOOTSTRAP_SJTAG_RD))
+			handle_sjtag_rd(&req);
+		else if (is_cmd(&req, BOOTSTRAP_SJTAG_WR))
+			handle_sjtag_wr(&req);
 		else
 			bootstrap_TxNack("Unknown command");
 	}

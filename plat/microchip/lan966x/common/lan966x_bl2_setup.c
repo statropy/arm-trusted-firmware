@@ -108,6 +108,7 @@ static void bl2_early_platform_setup(void)
 	     mmio_read_32(CPU_BUILDID(LAN966X_CPU_BASE)));
 }
 
+#if defined(BL1_RW_BASE)
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
 	/* Save memory layout */
@@ -120,6 +121,7 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 	/* Common setup */
 	bl2_early_platform_setup();
 }
+#endif
 
 void bl2_el3_early_platform_setup(u_register_t arg1, u_register_t arg2,
 				  u_register_t arg3, u_register_t arg4)
@@ -143,6 +145,9 @@ void bl2_platform_setup(void)
 
 	/* OTP */
 	otp_emu_init();
+
+	/* SJTAG: Freeze mode and configuration */
+	lan966x_sjtag_configure();
 
 	/* Initialize DDR for loading BL32/BL33 */
 	lan966x_ddr_init();

@@ -14,6 +14,7 @@
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/tz_matrix.h>
 #include <drivers/microchip/vcore_gpio.h>
+#include <drivers/microchip/sha.h>
 #include <lib/mmio.h>
 #include <platform_def.h>
 
@@ -389,6 +390,28 @@ int lan966x_get_fw_config_data(lan966x_fw_cfg_data id)
 	}
 
 	return value;
+}
+
+/*
+ * Derive a 32 byte key with a 32 byte salt, output a 32 byte key
+ */
+int lan966x_derive_key(const lan966x_key32_t *in,
+		       const lan966x_key32_t *salt,
+		       lan966x_key32_t *out)
+{
+	uint8_t buf[LAN966X_KEY32_LEN * 2];
+	int ret;
+
+	/* Use one contiguous buffer for now */
+	memcpy(buf, in->b, LAN966X_KEY32_LEN);
+	memcpy(buf + LAN966X_KEY32_LEN, salt->b, LAN966X_KEY32_LEN);
+
+	ret = sha_calc(SHA_MR_ALGO_SHA256, buf, sizeof(buf), out->b);
+
+	/* Don't leak */
+	memset(buf, 0, sizeof(buf));
+
+	return ret;
 }
 
 static void lan966x_config_pcie_id(lan966x_pcie_id id, uint32_t defvalue, const char *name)

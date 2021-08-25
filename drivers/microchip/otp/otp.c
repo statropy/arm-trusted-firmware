@@ -67,7 +67,6 @@ static int otp_hw_execute(void)
 static void otp_hw_set_address(unsigned int offset)
 {
 	assert(offset < OTP_MEM_SIZE);
-	offset *= 8;		/* HW Address is in bits */
 	mmio_write_32(OTP_OTP_ADDR_HI(reg_base), 0xff & (offset >> 8));
 	mmio_write_32(OTP_OTP_ADDR_LO(reg_base), 0xff & offset);
 }

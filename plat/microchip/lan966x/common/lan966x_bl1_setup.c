@@ -142,6 +142,9 @@ void bl1_platform_setup(void)
 	/* OTP */
 	otp_emu_init();
 
+	/* SJTAG: Configure challenge, no freeze */
+	lan966x_sjtag_configure();
+
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_SAMBA_FC0:
 	case LAN966X_STRAP_SAMBA_FC2:

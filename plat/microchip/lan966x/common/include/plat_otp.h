@@ -254,6 +254,7 @@ otp_accessor_group_read(otp_read_partid, PARTID);
 otp_accessor_group_read(otp_read_serial_number, SERIAL_NUMBER);
 otp_accessor_read_bool(otp_read_jtag_disable, SECURE_JTAG, JTAG_DISABLE);
 otp_accessor_read_field(otp_read_jtag_mode, SECURE_JTAG, JTAG_MODE);
+otp_accessor_group_read(otp_read_jtag_uuid, JTAG_UUID);
 otp_accessor_read_field(otp_read_otp_pcie_flags_max_link_speed, OTP_PCIE_FLAGS, OTP_PCIE_FLAGS_MAX_LINK_SPEED);
 otp_accessor_group_read(otp_read_otp_pcie_dev, OTP_PCIE_DEV);
 otp_accessor_read_bytes(otp_read_otp_pcie_device_id, OTP_PCIE_ID, OTP_PCIE_DEVICE_ID);
