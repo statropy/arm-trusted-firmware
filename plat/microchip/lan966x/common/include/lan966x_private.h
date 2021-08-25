@@ -9,6 +9,14 @@
 
 #include <stdint.h>
 
+#define LAN966X_KEY32_LEN	32
+typedef struct {
+	union {
+		uint8_t b[LAN966X_KEY32_LEN];
+		uint8_t w[LAN966X_KEY32_LEN / 4];
+	};
+} lan966x_key32_t;
+
 typedef enum {
 	LAN966X_CONF_CLK_RATE = 0,
 	LAN966X_CONF_BUS_WIDTH,
@@ -105,15 +113,6 @@ uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 uint32_t lan966x_get_boot_source(void);
 int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
-
-#define LAN966X_KEY32_LEN	32
-
-typedef struct {
-	union {
-		uint8_t b[LAN966X_KEY32_LEN];
-		uint8_t w[LAN966X_KEY32_LEN / 4];
-	};
-} lan966x_key32_t;
 
 int lan966x_derive_key(const lan966x_key32_t *in, const lan966x_key32_t *salt, lan966x_key32_t *out);
 
