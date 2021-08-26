@@ -14,13 +14,17 @@ properties([
 node('coverity') {
 
     stage("SCM Checkout") {
-       git url: 'https://bitbucket.microchip.com/scm/unge/sw-arm-trusted-firmware.git'
+        checkout([
+            $class: 'GitSCM',
+            branches: scm.branches,
+            doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+            submoduleCfg: [],
+            userRemoteConfigs: scm.userRemoteConfigs
+        ])
     }
 
     stage("Compile and analysis") {
         catchError {
-            sh "pwd"
-            sh "ls -l"
             sh "rm -fr build"
             sh "ruby ./scripts/build.rb --platform lan966x_sr"
             sh "ruby ./scripts/build.rb --platform lan966x_evb"
