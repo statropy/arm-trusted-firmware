@@ -19,6 +19,8 @@ node('coverity') {
 
     stage("Compile and analysis") {
         catchError {
+            sh "pwd"
+            sh "ls -l"
             sh "rm -fr build"
             sh "ruby ./scripts/build.rb --platform lan966x_sr"
             sh "ruby ./scripts/build.rb --platform lan966x_evb"
