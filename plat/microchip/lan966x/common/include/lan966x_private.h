@@ -20,7 +20,7 @@ typedef struct {
 typedef enum {
 	LAN966X_FW_CONF_MMC_CLK_RATE	= 0,	// mmc clock frequency	- word access
 	LAN966X_FW_CONF_MMC_BUS_WIDTH	= 4,	// mmc bus width	- byte access
-	LAN966X_FW_CONF_QSPI_CLK 	= 5,	// qspi clock frequency	- word access
+	LAN966X_FW_CONF_QSPI_CLK 	= 5,	// qspi clock frequency	- byte access
 	LAN966X_FW_CONF_NUM_OF_ITEMS
 } lan966x_fw_cfg_data;
 
