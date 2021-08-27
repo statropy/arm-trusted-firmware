@@ -35,8 +35,18 @@ ifneq (${TRUSTED_BOARD_BOOT},0)
 
 endif
 
-PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/${PLAT}/include	\
-			-Iplat/microchip/lan966x/common/include		\
+# Default chip variant = platform
+ifeq (${PLAT_VARIANT},)
+PLAT_VARIANT			:=	${PLAT}
+endif
+
+ifneq (${BL2_VARIANT},)
+BL2_CFLAGS		+=	-DLAN966X_BL2_VARIANT_${BL2_VARIANT}
+BL2_ASFLAGS		+=	-DLAN966X_BL2_VARIANT_${BL2_VARIANT}
+endif
+
+PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/${PLAT_VARIANT}/include	\
+			-Iplat/microchip/lan966x/common/include			\
 			-Iinclude/drivers/microchip
 
 LAN966X_CONSOLE_SOURCES	+=	\
@@ -94,7 +104,8 @@ BL2_SOURCES		+=	drivers/io/io_block.c				\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_sjtag.c
 
-CONSOLE_BASE			:=	LAN966X_FLEXCOM_0_BASE
+# No console by default
+CONSOLE_BASE			?=	0
 
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
@@ -102,7 +113,7 @@ ENABLE_AMU			:=	1
 # We have TRNG
 TRNG_SUPPORT			:=	1
 
-# Disable stack protector by default
+# Enable stack protection
 ENABLE_STACK_PROTECTOR	 	:= strong
 
 # Process flags

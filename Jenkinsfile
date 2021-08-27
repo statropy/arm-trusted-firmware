@@ -11,7 +11,7 @@ properties([
         [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '20']],
         ])
 
-node('coverity') {
+node('blademaster') {
 
     stage("SCM Checkout") {
         checkout([
@@ -23,11 +23,17 @@ node('coverity') {
         ])
     }
 
-    stage("Compile and analysis") {
-        catchError {
-            sh "rm -fr build"
-            sh "ruby ./scripts/build.rb --platform lan966x_sr"
-            sh "ruby ./scripts/build.rb --platform lan966x_evb"
+    try {
+        stage("Build") {
+            sh "ruby ./scripts/platform_build.rb"
+        }
+    } catch (error) {
+        throw error
+    } finally {
+        stage("Archiving results") {
+                archive '*.bin'
+                archive '*.gpt'
+                archive '*.img'
         }
     }
 }

@@ -50,7 +50,6 @@ static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 						MT_DEVICE | MT_RW | MT_SECURE)
 #endif
 
-
 /*******************************************************************************
  * Perform the very early platform specific architectural setup here. At the
  * moment this is only initializes the mmu in a quick and dirty way.

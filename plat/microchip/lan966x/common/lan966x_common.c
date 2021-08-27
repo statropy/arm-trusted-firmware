@@ -114,19 +114,12 @@ const mmap_region_t *plat_arm_get_mmap(void)
 
 void lan966x_console_init(void)
 {
-	uintptr_t base;
+	uintptr_t base = CONSOLE_BASE; /* CONSOLE_BASE is default fallback */
 
 	/* NB: Needed as OTP emulation need qspi */
 	lan966x_io_init();
 
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
-
-	/* See if boot media config defines a console */
-#if defined(LAN966X_ASIC)
-	base = LAN966X_FLEXCOM_3_BASE;
-#else
-	base = LAN966X_FLEXCOM_0_BASE;
-#endif
 
 #if defined(IMAGE_BL1)
 	/* Override if strappings say so */
@@ -146,10 +139,6 @@ void lan966x_console_init(void)
 	default:
 		break;
 	}
-#else
-	/* If no console, use compile-time value (for BL2/BL3x) */
-	if (!base)
-		base = CONSOLE_BASE;
 #endif
 
 	switch (base) {
@@ -174,7 +163,10 @@ void lan966x_console_init(void)
 		vcore_gpio_set_alt(58, 1);
 		break;
 	default:
-		assert(base == 0);
+		if (base != 0) {
+			ERROR("Invalid console: %lx\n", base);
+			panic();
+		}
 		break;
 	}
 

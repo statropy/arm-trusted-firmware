@@ -230,7 +230,6 @@
 #define RZQ                240 // termination resistance
 #define PRE_DEF_PAT       0xAA // value returned during mpr pre-defined pattern readout
 #define STOP_ON_ERROR        1 // If set to 1, the model will halt on command sequence/major errors
-#define DEBUG                1 // Turn on Debug messages
 #define BUS_DELAY            0 // delay in nanoseconds
 #define RANDOM_OUT_DELAY     0 // If set to 1, the model will put a random amount of delay on DQ/DQS during reads
 #define RANDOM_SEED      31913 //seed value for random generator.

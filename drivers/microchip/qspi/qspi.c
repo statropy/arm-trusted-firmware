@@ -361,9 +361,8 @@ int qspi_set_dly(uint32_t dly)
 
 void qspi_init(uintptr_t base, size_t len)
 {
-	int ret;
-
 	reg_base = base;
+	int ret;
 
 	/* Already initialized? */
 	if (qspi_init_done) {
@@ -379,7 +378,10 @@ void qspi_init(uintptr_t base, size_t len)
 
 	/* Do actual QSPI init */
 	ret = qspi_init_controller();
-	assert(ret == 0);
+	if (ret != 0) {
+		ERROR("QSPI init error: %d", ret);
+		panic();
+	}
 
 	qspi_init_done = true;
 

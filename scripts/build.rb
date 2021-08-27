@@ -8,6 +8,7 @@ require 'pp'
 platforms = {
     "lan966x_sr"	=> Hash[ :uboot =>  "u-boot-lan966x_sr_atf.bin",  :bl2_at_el3 => false ],
     "lan966x_evb"	=> Hash[ :uboot =>  "u-boot-lan966x_evb_atf.bin", :bl2_at_el3 => true  ],
+    "lan966x_b0"	=> Hash[ :uboot =>  "u-boot-lan966x_evb_atf.bin", :bl2_at_el3 => false ],
 }
 
 $option = { :platform	=> "lan966x_sr",
@@ -17,6 +18,8 @@ $option = { :platform	=> "lan966x_sr",
              :rot	=> "keys/rotprivk_rsa.pem",
              :arch	=> "arm",
              :sdk	=> "2021.02-483",
+             :norimg	=> true,
+             :gptimg	=> false,
           }
 
 args = ""
@@ -33,8 +36,17 @@ OptionParser.new do |opts|
     opts.on("-t", "--[no-]tbbr", "Enable/disable TBBR") do |v|
         $option[:tbbr] = v
     end
+    opts.on("-x", "--variant X", "BL2 variant (noop)") do |v|
+        $option[:bl2variant] = v
+    end
     opts.on("-d", "--[no-]debug", "Enable/disable DEBUG") do |v|
-        $option[:tbbr] = v
+        $option[:debug] = v
+    end
+    opts.on("-g", "--[no-]norimg", "Create a NOR image file with the FIP") do |v|
+        $option[:norimg] = v
+    end
+    opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP") do |v|
+        $option[:gptimg] = v
     end
     opts.on("-c", "--clean", "Do a 'make clean' instead of normal build") do |v|
         $option[:clean] = true
@@ -49,6 +61,14 @@ def do_cmd(cmd)
     if !$?.success?
         raise("\"#{cmd}\" failed.")
     end
+end
+
+def do_cmdret(cmd)
+    ret = `#{cmd}`
+    if !$?.success?
+        raise("\"#{cmd}\" failed.")
+    end
+    ret
 end
 
 def install_sdk()
@@ -72,8 +92,7 @@ def install_toolchain(tc_vers)
         do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
         raise "Unable to install toolchain to #{bin}" unless File.exist?(bin)
     end
-    ENV["PATH"] = bin + ":" + ENV["PATH"]
-    ENV["CROSS_COMPILE"] = "arm-linux-"
+    ENV["CROSS_COMPILE"] = "#{bin}/arm-linux-"
     puts "Using toolchain #{tc_vers} at #{bin}"
 end
 
@@ -89,6 +108,7 @@ uboot = bootloaders + "/" + pdef[:uboot]
 args += "BL33=#{uboot} "
 
 args += "PLAT=#{$option[:platform]} ARCH=aarch32 AARCH32_SP=sp_min "
+args += "BL2_VARIANT=#{$option[:bl2variant].upcase} " if $option[:bl2variant]
 
 if $option[:tbbr]
     args += "TRUSTED_BOARD_BOOT=1 GENERATE_COT=1 CREATE_KEYS=1 ROT_KEY=#{$option[:rot]} MBEDTLS_DIR=mbedtls "
@@ -137,17 +157,40 @@ else
     # BL2 is in FIP
     b = "/dev/null"
 end
-FileUtils.cp(b, img)
-tsize = 80
-do_cmd("truncate --size=#{tsize}k #{img}")
-# Reserve UBoot env 2 * 256k
-tsize += 512
-do_cmd("truncate --size=#{tsize}k #{img}")
-do_cmd("cat #{build}/fip.bin >> #{img}")
-# List binaries
-do_cmd("ls -l #{build}/*.bin #{build}/*.img")
+
+exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
+
+if $option[:norimg]
+    FileUtils.cp(b, img)
+    tsize = 80
+    do_cmd("truncate --size=#{tsize}k #{img}")
+    # Reserve UBoot env 2 * 256k
+    tsize += 512
+    do_cmd("truncate --size=#{tsize}k #{img}")
+    do_cmd("cat #{build}/fip.bin >> #{img}")
+    # List binaries
+    do_cmd("ls -l #{build}/*.bin #{build}/*.img")
+end
+
+if $option[:gptimg]
+    gptfile = "#{build}/fip.gpt"
+    FileUtils.rm_f(gptfile)
+    do_cmd("fakeroot dd if=/dev/zero of=#{gptfile} bs=512 count=4200")
+    do_cmd("parted -s #{gptfile} mktable gpt")
+    do_cmd("parted -s #{gptfile} mkpart fip 64s 2111s")
+    do_cmd("parted -s #{gptfile} mkpart fip.bk 2112s 4159s")
+    fipdev = do_cmdret("sudo losetup --find").chomp
+    do_cmd("sudo losetup -P #{fipdev} #{gptfile}")
+    begin
+        do_cmd("sudo dd if=#{build}/fip.bin of=#{fipdev}p1")
+    ensure
+        do_cmd("sudo losetup -d #{fipdev}")
+    end
+    do_cmd("fdisk -l #{gptfile}")
+end
 
 if $option[:coverity]
     do_cmd("cov-analyze -dir #{$cov_dir} --jobs auto")
     do_cmd("cov-commit-defects -dir #{$cov_dir} --stream #{$option[:coverity]} --config /opt/coverity/credentials.xml --auth-key-file /opt/coverity/reporter.key")
 end
+#  vim: set ts=8 sw=4 sts=4 tw=120 et cc=120 ft=ruby :
