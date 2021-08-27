@@ -48,9 +48,10 @@ void plat_lan966x_config(void)
 	params.desc_base = LAN996X_SRAM_BASE;
 	params.desc_size = LAN996X_SRAM_SIZE;
 
-	params.clk_rate = lan966x_get_fw_config_data(LAN966X_CONF_CLK_RATE);
-	params.bus_width = lan966x_get_fw_config_data(LAN966X_CONF_BUS_WIDTH);
-	params.flags = lan966x_get_fw_config_data(LAN966X_CONF_FLAGS);
+	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_CLK_RATE,
+				      (uint32_t *)&params.clk_rate);
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_BUS_WIDTH,
+				     (uint8_t *)&params.bus_width);
 
 	info.mmc_dev_type = MMC_IS_EMMC;
 	info.max_bus_freq = 48 * 1000 * 1000;

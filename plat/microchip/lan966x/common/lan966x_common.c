@@ -30,10 +30,19 @@ CASSERT((BL1_RW_SIZE + BL2_SIZE + MMC_BUF_SIZE) <= LAN996X_SRAM_SIZE, assert_sra
 
 static console_t lan966x_console;
 
-/* Define global fw_config and set default startup values */
+#define FW_CONFIG_INIT_8(offset, value) \
+	.config[offset] = (uint8_t) value
+
+#define FW_CONFIG_INIT_32(offset, value) \
+	.config[offset + 0] = (uint8_t) value, \
+	.config[offset + 1] = (uint8_t) (value >> 8), \
+	.config[offset + 2] = (uint8_t) (value >> 16), \
+	.config[offset + 3] = (uint8_t) (value >> 24)
+
+/* Define global fw_config, set default MMC settings */
 lan966x_fw_config_t lan966x_fw_config = {
-	 .config[LAN966X_CONF_CLK_RATE] = SDCLOCK_400KHZ,
-	 .config[LAN966X_CONF_BUS_WIDTH] = MMC_BUS_WIDTH_1,
+	FW_CONFIG_INIT_32(LAN966X_FW_CONF_CLK_RATE, SDCLOCK_400KHZ),
+	FW_CONFIG_INIT_8(LAN966X_FW_CONF_BUS_WIDTH, MMC_BUS_WIDTH_1),
 };
 
 #define LAN996X_MAP_QSPI0						\
@@ -296,17 +305,44 @@ uint32_t lan966x_get_boot_source(void)
 	return boot_source;
 }
 
-int lan966x_get_fw_config_data(lan966x_fw_cfg_data id)
+static int fw_config_read_bytes(unsigned int offset,
+				unsigned int num_bytes,
+				uint8_t *dst)
 {
-	int value = -1;
+	int ret_val = -1;
+	int cnt;
+	uint8_t data;
 
-	if (id >= 0 && id < LAN966X_CONF_NUM_OF_ITEMS) {
-		value = lan966x_fw_config.config[id];
+	assert(num_bytes > 0);
+	assert((offset + num_bytes) < (sizeof(lan966x_fw_config.config)));
+
+	if (offset < LAN966X_FW_CONF_NUM_OF_ITEMS) {
+		for (cnt = 0; cnt < num_bytes; cnt++) {
+			data = lan966x_fw_config.config[offset + cnt];
+			*dst++ = data;
+		}
+
+		ret_val = 0;
 	} else {
-		ERROR("Illegal access id to fw_config structure\n");
+		ERROR("Illegal offset access to fw_config structure\n");
 	}
 
-	return value;
+	return ret_val;
+}
+
+int lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst)
+{
+	return fw_config_read_bytes(offset, 1, (uint8_t *)dst);
+}
+
+int lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst)
+{
+	return fw_config_read_bytes(offset, 2, (uint8_t *)dst);
+}
+
+int lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst)
+{
+	return fw_config_read_bytes(offset, 4, (uint8_t *)dst);
 }
 
 /*

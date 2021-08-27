@@ -18,49 +18,20 @@ typedef struct {
 } lan966x_key32_t;
 
 typedef enum {
-	LAN966X_CONF_CLK_RATE = 0,
-	LAN966X_CONF_BUS_WIDTH,
-	LAN966X_CONF_FLAGS,
-	LAN966X_CONF_RESERVED_3,
-	LAN966X_CONF_RESERVED_4,
-	LAN966X_CONF_RESERVED_5,
-	LAN966X_CONF_RESERVED_6,
-	LAN966X_CONF_RESERVED_7,
-	LAN966X_CONF_RESERVED_8,
-	LAN966X_CONF_RESERVED_9,
-	LAN966X_CONF_RESERVED_10,
-	LAN966X_CONF_RESERVED_11,
-	LAN966X_CONF_RESERVED_12,
-	LAN966X_CONF_RESERVED_13,
-	LAN966X_CONF_RESERVED_14,
-	LAN966X_CONF_RESERVED_15,
-	LAN966X_CONF_RESERVED_16,
-	LAN966X_CONF_RESERVED_17,
-	LAN966X_CONF_RESERVED_18,
-	LAN966X_CONF_RESERVED_19,
-	LAN966X_CONF_RESERVED_20,
-	LAN966X_CONF_RESERVED_21,
-	LAN966X_CONF_RESERVED_22,
-	LAN966X_CONF_RESERVED_23,
-	LAN966X_CONF_RESERVED_24,
-	LAN966X_CONF_RESERVED_25,
-	LAN966X_CONF_RESERVED_26,
-	LAN966X_CONF_RESERVED_27,
-	LAN966X_CONF_RESERVED_28,
-	LAN966X_CONF_RESERVED_29,
-	LAN966X_CONF_RESERVED_30,
-	LAN966X_CONF_RESERVED_31,
-	LAN966X_CONF_NUM_OF_ITEMS
+	LAN966X_FW_CONF_CLK_RATE= 0,	// mmc clock frequency	- word access
+	LAN966X_FW_CONF_BUS_WIDTH = 4,	// mmc bus width	- byte access
+	LAN966X_FW_CONF_NUM_OF_ITEMS
 } lan966x_fw_cfg_data;
 
 #define OTP_EMU_MAX_DATA	384
-#define FW_CONFIG_MAX_PARAM	32
+#define FW_CONFIG_MAX_DATA	128
+
 #define FW_PARTITION_NAME		"fip"
 #define FW_BACKUP_PARTITION_NAME	"fip.bak"
 
 typedef struct {
 	uint8_t otp_emu_data[OTP_EMU_MAX_DATA];
-	uint32_t config[FW_CONFIG_MAX_PARAM];
+	uint8_t config[FW_CONFIG_MAX_DATA];
 } lan966x_fw_config_t;
 
 extern lan966x_fw_config_t lan966x_fw_config;
@@ -112,7 +83,9 @@ void plat_lan966x_config(void);
 
 uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 uint32_t lan966x_get_boot_source(void);
-int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
+int lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst);
+int lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst);
+int lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
 
 int lan966x_derive_key(const lan966x_key32_t *in, const lan966x_key32_t *salt, lan966x_key32_t *out);
