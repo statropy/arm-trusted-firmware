@@ -10,7 +10,6 @@
 #include <bl1/bl1.h>
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
-#include <drivers/io/io_storage.h>
 #include <drivers/microchip/otp.h>
 #include <lib/fconf/fconf.h>
 #include <lib/utils.h>
@@ -71,9 +70,6 @@ void bl1_early_platform_setup(void)
 	/* PCIe - may never return */
 	lan966x_pcie_init();
 
-	/* Setup MMC */
-	lan966x_sdmmc_init();
-
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;
 	bl1_tzram_layout.total_size = LAN996X_SRAM_SIZE;
@@ -95,49 +91,28 @@ void bl1_plat_arch_setup(void)
 #endif /* __aarch64__ */
 }
 
-/*
- * Note: The FW_CONFIG is read *wo* authentication, as the OTP
- * emulation data may contain the actual (emulated) rotpk. This is
- * only called when a *hw* ROTPK has *not* been deployed.
- */
-static int bl1_load_fw_config(unsigned int image_id)
+static bool lan966x_bootable_source(void)
 {
-	uintptr_t dev_handle, image_handle, image_spec = 0;
-	size_t bytes_read;
-	int result;
-
-	result = plat_get_image_source(image_id, &dev_handle, &image_spec);
-	if (result != 0) {
-		WARN("Failed to obtain reference to image id=%u (%i)\n",
-			image_id, result);
-		return result;
+	switch (lan966x_get_boot_source()) {
+	case BOOT_SOURCE_QSPI:
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		return true;
 	}
 
-	result = io_open(dev_handle, image_spec, &image_handle);
-	if (result != 0) {
-		WARN("Failed to access image id=%u (%i)\n", image_id, result);
-		return result;
-	}
-
-	result = io_read(image_handle, (uintptr_t)&lan966x_fw_config,
-			 sizeof(lan966x_fw_config), &bytes_read);
-	if (result != 0)
-		WARN("Failed to read data (%i)\n", result);
-
-	io_close(image_handle);
-
-	/* This is fwd to BL2 */
-	flush_dcache_range((uintptr_t)&lan966x_fw_config, sizeof(lan966x_fw_config));
-
-	return result;
+	return false;
 }
 
 void bl1_platform_setup(void)
 {
-	INFO("BL1 platform setup start\n");
-
 	/* IO */
 	lan966x_io_setup();
+
+	/* Prepare fw_config from applicable boot source */
+	if (lan966x_bootable_source()) {
+		lan966x_load_fw_config(FW_CONFIG_ID);
+		lan966x_fwconfig_apply();
+	}
 
 	/* OTP */
 	otp_emu_init();
@@ -145,6 +120,7 @@ void bl1_platform_setup(void)
 	/* SJTAG: Configure challenge, no freeze */
 	lan966x_sjtag_configure();
 
+	/* Strapped for boot monitor? */
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_SAMBA_FC0:
 	case LAN966X_STRAP_SAMBA_FC2:
@@ -153,13 +129,7 @@ void bl1_platform_setup(void)
 	case LAN966X_STRAP_SAMBA_USB:
 		lan966x_bootstrap_monitor();
 		break;
-	case LAN966X_STRAP_BOOT_MMC:
-	case LAN966X_STRAP_BOOT_SD:
-		bl1_load_fw_config(FW_CONFIG_ID);
-		break;
 	}
-
-	INFO("BL1 platform setup done\n");
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)

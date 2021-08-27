@@ -247,11 +247,9 @@ static int lan966x_host_init(void)
 	p_card.card_type = MMC_CARD;
 	p_card.card_capacity = MMC_NORM_DENSITY;
 
-#if defined(LAN966X_ASIC)
-	lan966x_clk_disable(LAN966X_CLK_ID_EMMC);
-	lan966x_clk_set_rate(LAN966X_CLK_ID_EMMC, LAN966X_CLK_FREQ_SDMMC);
-	lan966x_clk_enable(LAN966X_CLK_ID_EMMC);
-#endif
+	lan966x_clk_disable(LAN966X_CLK_ID_SDMMC0);
+	lan966x_clk_set_rate(LAN966X_CLK_ID_SDMMC0, LAN966X_CLK_FREQ_SDMMC);
+	lan966x_clk_enable(LAN966X_CLK_ID_SDMMC0);
 
 	/* Reset Data and CMD line */
 	mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTALL);

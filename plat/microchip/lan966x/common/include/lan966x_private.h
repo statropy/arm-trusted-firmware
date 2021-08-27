@@ -18,8 +18,9 @@ typedef struct {
 } lan966x_key32_t;
 
 typedef enum {
-	LAN966X_FW_CONF_CLK_RATE= 0,	// mmc clock frequency	- word access
-	LAN966X_FW_CONF_BUS_WIDTH = 4,	// mmc bus width	- byte access
+	LAN966X_FW_CONF_MMC_CLK_RATE	= 0,	// mmc clock frequency	- word access
+	LAN966X_FW_CONF_MMC_BUS_WIDTH	= 4,	// mmc bus width	- byte access
+	LAN966X_FW_CONF_QSPI_CLK 	= 5,	// qspi clock frequency	- word access
 	LAN966X_FW_CONF_NUM_OF_ITEMS
 } lan966x_fw_cfg_data;
 
@@ -68,21 +69,24 @@ void lan966x_set_strapping(uint8_t value);
 void lan966x_bootstrap_monitor(void);
 void lan966x_console_init(void);
 void lan966x_timer_init(void);
-void lan966x_io_init(void);
+void lan966x_io_bootsource_init(void);
 void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
-void lan966x_sdmmc_init(void);
+void lan966x_sdmmc_init(boot_source_type boot_source);
 void lan966x_pcie_init(void);
 
 uint32_t lan966x_trng_read(void);
 
 void plat_lan966x_gic_driver_init(void);
 void plat_lan966x_gic_init(void);
-void plat_lan966x_config(void);
+void lan966x_mmc_plat_config(void);
 
 uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 uint32_t lan966x_get_boot_source(void);
+int lan966x_load_fw_config(unsigned int image_id);
+void lan966x_fwconfig_apply(void);
+int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
 int lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst);
 int lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst);
 int lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst);

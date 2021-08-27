@@ -83,7 +83,7 @@ static void bl2_early_platform_setup(void)
 		/* nop */;
 #endif
 
-#if defined(BL2_AT_EL3)
+#if BL2_AT_EL3
 	/* BL1 was not there */
 	lan966x_timer_init();
 #endif
@@ -93,9 +93,6 @@ static void bl2_early_platform_setup(void)
 
 	/* Console */
 	lan966x_console_init();
-
-	/* Setup MMC */
-	lan966x_sdmmc_init();
 
 	/* Announce HW */
 	INFO("Running on platform build: 0x%08x\n",
@@ -108,9 +105,11 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 	/* Save memory layout */
 	bl2_tzram_layout = *(struct meminfo *) arg1;
 
+#if defined(BL1_RW_BASE) && defined(BL1_RW_LIMIT)
 	/* Check if fw_config is forwarded */
 	if (arg2 > BL1_RW_BASE && arg2 < BL1_RW_LIMIT)
 		memcpy(&lan966x_fw_config, (void *) arg2, sizeof(lan966x_fw_config));
+#endif
 
 	/* Common setup */
 	bl2_early_platform_setup();
@@ -136,6 +135,13 @@ void bl2_platform_setup(void)
 {
 	/* IO */
 	lan966x_io_setup();
+
+#if BL2_AT_EL3
+	/* No BL1 to forward fw_config, load it ourselves */
+	lan966x_load_fw_config(FW_CONFIG_ID);
+	/* Apply fw_config */
+	lan966x_fwconfig_apply();
+#endif
 
 	/* OTP */
 	otp_emu_init();

@@ -36,10 +36,12 @@ static void plat_lan966x_pinConfig(void)
 #endif
 }
 
-void plat_lan966x_config(void)
+void lan966x_mmc_plat_config(void)
 {
 	struct mmc_device_info info;
 	lan966x_mmc_params_t params;
+	uint32_t clk_rate;
+	uint8_t bus_width;
 
 	memset(&params, 0, sizeof(lan966x_mmc_params_t));
 	memset(&info, 0, sizeof(struct mmc_device_info));
@@ -48,10 +50,10 @@ void plat_lan966x_config(void)
 	params.desc_base = LAN996X_SRAM_BASE;
 	params.desc_size = LAN996X_SRAM_SIZE;
 
-	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_CLK_RATE,
-				      (uint32_t *)&params.clk_rate);
-	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_BUS_WIDTH,
-				     (uint8_t *)&params.bus_width);
+	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_MMC_CLK_RATE, &clk_rate);
+	params.clk_rate = clk_rate;
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_MMC_BUS_WIDTH, &bus_width);
+	params.bus_width = bus_width;
 
 	info.mmc_dev_type = MMC_IS_EMMC;
 	info.max_bus_freq = 48 * 1000 * 1000;
@@ -60,35 +62,28 @@ void plat_lan966x_config(void)
 	lan966x_mmc_init(&params, &info);
 }
 
-void lan966x_sdmmc_init(void)
+/* This is only called for
+ *  - BOOT_SOURCE_EMMC
+ *  - BOOT_SOURCE_SDMMC
+ */
+void lan966x_sdmmc_init(boot_source_type boot_source)
 {
-	/* The current boot source is provided by the strapping pin config */
-	boot_source_type boot_source = lan966x_get_boot_source();
-
 	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
-		INFO("Initializing eMMC\n");
+		VERBOSE("Initializing eMMC\n");
 
 		/* Configure pins for eMMC device */
 		plat_lan966x_pinConfig();
 
 		/* Initialize ATF MMC framework */
-		plat_lan966x_config();
+		lan966x_mmc_plat_config();
 		break;
 	case BOOT_SOURCE_SDMMC:
-		INFO("Initializing SDMMC\n");
+		VERBOSE("Initializing SDMMC\n");
 		/* Not supported yet */
 		assert(false);
 		break;
-	case BOOT_SOURCE_QSPI:
-		INFO("Initializing QSPI\n");
-		break;
-	case BOOT_SOURCE_NONE:
-		INFO("Boot source NONE selected\n");
-		break;
 	default:
-		ERROR("BL1: Not supported boot source: %d\n", boot_source);
-		assert(false);
 		break;
 	}
 }

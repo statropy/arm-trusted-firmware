@@ -31,7 +31,7 @@
 #include <lib/mmio.h>
 #include <drivers/microchip/tz_matrix.h>
 
-static uintptr_t reg_base;
+static uintptr_t reg_base = LAN966X_HMATRIX2_BASE;
 
 static void matrix_write(unsigned int offset,
 			 const uint32_t value)
@@ -71,9 +71,4 @@ void matrix_configure_srtop(unsigned int slave,
 			    uint32_t srtop_setting)
 {
 	matrix_write(MATRIX_SRTSR(slave), srtop_setting);
-}
-
-void matrix_init(uintptr_t base)
-{
-	reg_base = base;
 }

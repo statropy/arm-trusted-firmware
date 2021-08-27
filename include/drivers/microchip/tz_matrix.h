@@ -124,6 +124,4 @@ void matrix_configure_slave_security(unsigned int slave,
 void matrix_configure_srtop(unsigned int slave,
 			    uint32_t srtop_setting);
 
-void matrix_init(uintptr_t base);
-
 #endif /* #ifndef TZ_MATRIX_H */

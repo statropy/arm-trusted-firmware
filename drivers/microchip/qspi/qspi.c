@@ -13,6 +13,8 @@
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/lan966x_clock.h>
 
+#include "lan966x_private.h"
+
 static uintptr_t reg_base;
 static bool qspi_init_done;
 
@@ -193,12 +195,6 @@ static bool qspi_init_done;
 #define QSPI_FAST_READ			 0xb
 #define QSPI_WRITE			 0x2
 
-#pragma weak qspi_plat_configure
-void qspi_plat_configure(void)
-{
-	/* Empty default */
-}
-
 static bool qspi_wait_flag(const uintptr_t reg,
 			   const uint32_t flag,
 			   const uint32_t value,
@@ -344,25 +340,12 @@ static int qspi_change_ifr(uint32_t ifr)
 	return 0;
 }
 
-int qspi_set_dly(uint32_t dly)
+void qspi_init(uintptr_t base)
 {
-	uint32_t scr;
-
-	/* Update the Serial Clock Register */
-	scr = mmio_read_32(reg_base + QSPI_SCR);
-	scr &= ~QSPI_SCR_DLYBS_MASK;
-	scr |= QSPI_SCR_DLYBS(dly);
-
-	/* Set DLYBS */
-	mmio_write_32(reg_base + QSPI_SCR, scr);
-
-	return 0;
-}
-
-void qspi_init(uintptr_t base, size_t len)
-{
-	reg_base = base;
 	int ret;
+	uint8_t clk = 0;
+
+	reg_base = base;
 
 	/* Already initialized? */
 	if (qspi_init_done) {
@@ -370,11 +353,14 @@ void qspi_init(uintptr_t base, size_t len)
 		return;		/* Already initialized */
 	}
 
-#if defined(LAN966X_ASIC)
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk);
+	/* Clamp to [5MHz ; 100MHz] */
+	clk = MAX(clk, (uint8_t) 5);
+	clk = MIN(clk, (uint8_t) 100);
+	VERBOSE("QSPI: Using clock %u Mhz\n", clk);
 	lan966x_clk_disable(LAN966X_CLK_ID_QSPI0);
-	lan966x_clk_set_rate(LAN966X_CLK_ID_QSPI0, 20000000);
+	lan966x_clk_set_rate(LAN966X_CLK_ID_QSPI0, clk * 1000 * 1000);
 	lan966x_clk_enable(LAN966X_CLK_ID_QSPI0);
-#endif
 
 	/* Do actual QSPI init */
 	ret = qspi_init_controller();
@@ -400,6 +386,15 @@ void qspi_init(uintptr_t base, size_t len)
 	qspi_change_ifr(QSPI_IFR_INSTEN | QSPI_IFR_ADDREN |
 			QSPI_IFR_DATAEN | QSPI_IFR_ADDRL_24BIT |
 			QSPI_IFR_TFRTYP | QSPI_IFR_NBDUM(8));
+}
 
-	qspi_plat_configure();
+void qspi_reinit(void)
+{
+	/* If not enabled - don't do anything */
+	if (!qspi_init_done)
+		return;
+
+	/* Force initialize again */
+	qspi_init_done = false;
+	qspi_init(reg_base);
 }

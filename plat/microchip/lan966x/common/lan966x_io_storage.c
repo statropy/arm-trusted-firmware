@@ -307,7 +307,7 @@ void lan966x_io_setup(void)
 	int result;
 	boot_source_type boot_source;
 
-	lan966x_io_init();
+	lan966x_io_bootsource_init();
 
 	result = register_io_dev_fip(&fip_dev_con);
 	assert(result == 0);
@@ -320,7 +320,6 @@ void lan966x_io_setup(void)
 	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
-
 		result = register_io_dev_block(&emmc_dev_con);
 		assert(result == 0);
 
@@ -330,8 +329,8 @@ void lan966x_io_setup(void)
 
 		lan966x_set_fip_addr(GPT_IMAGE_ID, FW_PARTITION_NAME);
 		break;
-	case BOOT_SOURCE_QSPI:
 
+	case BOOT_SOURCE_QSPI:
 		result = register_io_dev_memmap(&memmap_dev_con);
 		assert(result == 0);
 
@@ -339,12 +338,14 @@ void lan966x_io_setup(void)
 				     &memmap_dev_handle);
 		assert(result == 0);
 		break;
+
 	case BOOT_SOURCE_NONE:
-		INFO("Boot source NONE selected \n");
+		NOTICE("Boot source NONE selected\n");
 		break;
+
 	default:
 		ERROR("Unknown boot source \n");
-		assert(false);
+		panic();
 		break;
 	}
 

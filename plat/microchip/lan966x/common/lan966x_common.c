@@ -30,19 +30,20 @@ CASSERT((BL1_RW_SIZE + BL2_SIZE + MMC_BUF_SIZE) <= LAN996X_SRAM_SIZE, assert_sra
 
 static console_t lan966x_console;
 
-#define FW_CONFIG_INIT_8(offset, value) \
-	.config[offset] = (uint8_t) value
+#define FW_CONFIG_INIT_8(offset, value)		\
+	.config[offset] = (uint8_t) (value)
 
-#define FW_CONFIG_INIT_32(offset, value) \
-	.config[offset + 0] = (uint8_t) value, \
-	.config[offset + 1] = (uint8_t) (value >> 8), \
-	.config[offset + 2] = (uint8_t) (value >> 16), \
-	.config[offset + 3] = (uint8_t) (value >> 24)
+#define FW_CONFIG_INIT_32(offset, value)				\
+	.config[offset + 0] = (uint8_t) (value),			\
+	.config[offset + 1] = (uint8_t) ((value) >> 8),			\
+	.config[offset + 2] = (uint8_t) ((value) >> 16),		\
+	.config[offset + 3] = (uint8_t) ((value) >> 24)
 
 /* Define global fw_config, set default MMC settings */
 lan966x_fw_config_t lan966x_fw_config = {
-	FW_CONFIG_INIT_32(LAN966X_FW_CONF_CLK_RATE, SDCLOCK_400KHZ),
-	FW_CONFIG_INIT_8(LAN966X_FW_CONF_BUS_WIDTH, MMC_BUS_WIDTH_1),
+	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, SDCLOCK_400KHZ),
+	FW_CONFIG_INIT_8(LAN966X_FW_CONF_MMC_BUS_WIDTH, MMC_BUS_WIDTH_1),
+	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 8), /* 8Mhz */
 };
 
 #define LAN996X_MAP_QSPI0						\
@@ -114,10 +115,8 @@ const mmap_region_t *plat_arm_get_mmap(void)
 
 void lan966x_console_init(void)
 {
+	unsigned int clk_id = LAN966X_MAX_CLOCK;
 	uintptr_t base = CONSOLE_BASE; /* CONSOLE_BASE is default fallback */
-
-	/* NB: Needed as OTP emulation need qspi */
-	lan966x_io_init();
 
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
@@ -145,22 +144,27 @@ void lan966x_console_init(void)
 	case LAN966X_FLEXCOM_0_BASE:
 		vcore_gpio_set_alt(25, 1);
 		vcore_gpio_set_alt(26, 1);
+		clk_id = LAN966X_CLK_ID_FLEXCOM0;
 		break;
 	case LAN966X_FLEXCOM_1_BASE:
 		vcore_gpio_set_alt(47, 1);
 		vcore_gpio_set_alt(48, 1);
+		clk_id = LAN966X_CLK_ID_FLEXCOM1;
 		break;
 	case LAN966X_FLEXCOM_2_BASE:
 		vcore_gpio_set_alt(44, 1);
 		vcore_gpio_set_alt(45, 1);
+		clk_id = LAN966X_CLK_ID_FLEXCOM2;
 		break;
 	case LAN966X_FLEXCOM_3_BASE:
 		vcore_gpio_set_alt(52, 1);
 		vcore_gpio_set_alt(53, 1);
+		clk_id = LAN966X_CLK_ID_FLEXCOM3;
 		break;
 	case LAN966X_FLEXCOM_4_BASE:
 		vcore_gpio_set_alt(57, 1);
 		vcore_gpio_set_alt(58, 1);
+		clk_id = LAN966X_CLK_ID_FLEXCOM4;
 		break;
 	default:
 		if (base != 0) {
@@ -170,13 +174,14 @@ void lan966x_console_init(void)
 		break;
 	}
 
-#if defined(LAN966X_ASIC)
-	lan966x_clk_disable(LAN966X_CLK_ID_FC3);
-	lan966x_clk_set_rate(LAN966X_CLK_ID_FC3, LAN966X_CLK_FREQ_FLEXCOM); /* 30MHz */
-	lan966x_clk_enable(LAN966X_CLK_ID_FC3);
-#endif
-
 	if (base) {
+		/* Configure clock on UART */
+		if (clk_id < LAN966X_MAX_CLOCK) {
+			lan966x_clk_disable(clk_id);
+			lan966x_clk_set_rate(clk_id, LAN966X_CLK_FREQ_FLEXCOM); /* 30MHz */
+			lan966x_clk_enable(clk_id);
+		}
+
 		/* Initialize the console to provide early debug support */
 		console_flexcom_register(&lan966x_console,
 					 base + FLEXCOM_UART_OFFSET,
@@ -184,36 +189,44 @@ void lan966x_console_init(void)
 		console_set_scope(&lan966x_console,
 				  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
 	}
-
-	lan966x_io_init();
 }
 
-void lan966x_io_init(void)
+void lan966x_io_bootsource_init(void)
 {
-	/* We own SPI */
-	mmio_setbits_32(CPU_GENERAL_CTRL(LAN966X_CPU_BASE),
-			CPU_GENERAL_CTRL_IF_SI_OWNER_M);
+	boot_source_type boot_source = lan966x_get_boot_source();
 
-	/* Enable memmap access */
-	qspi_init(LAN966X_QSPI_0_BASE, QSPI_SIZE);
+	switch (boot_source) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		/* Setup MMC */
+		lan966x_sdmmc_init(boot_source);
+		break;
 
-	/* Register TZ MATRIX driver */
-	matrix_init(LAN966X_HMATRIX2_BASE);
+	case BOOT_SOURCE_QSPI:
+		/* We own SPI */
+		mmio_setbits_32(CPU_GENERAL_CTRL(LAN966X_CPU_BASE),
+				CPU_GENERAL_CTRL_IF_SI_OWNER_M);
 
-	/* Ensure we have ample reach on QSPI mmap area */
-	/* 16M should be more than adequate - EVB/SVB have 2M */
-	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
-			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
-			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
+		/* Enable memmap access */
+		qspi_init(LAN966X_QSPI_0_BASE);
+
+		/* Ensure we have ample reach on QSPI mmap area */
+		/* 16M should be more than adequate - EVB/SVB have 2M */
+		matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
+				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
 
 #if defined(LAN966X_TZ)
-	/* Enable QSPI0 for NS access */
-	matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
-					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
-					MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
-					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
-					MATRIX_LANSECH_NS(0));
+		/* Enable QSPI0 for NS access */
+		matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
+						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
+						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
+						MATRIX_LANSECH_NS(0));
 #endif
+	default:
+		break;
+	}
 }
 
 void lan966x_timer_init(void)
@@ -258,12 +271,12 @@ uint8_t lan966x_get_strapping(void)
 	 */
 	status = mmio_read_32(CPU_GPR(LAN966X_CPU_BASE, 0));
 	if (status & ~CPU_GENERAL_STAT_VCORE_CFG_M) {
-		NOTICE("OVERRIDE CPU_GENERAL_STAT = 0x%08x\n", status);
+		VERBOSE("OVERRIDE CPU_GENERAL_STAT = 0x%08x\n", status);
 		strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
 	}
 #endif
 
-	INFO("VCORE_CFG = %d\n", strapping);
+	VERBOSE("VCORE_CFG = %d\n", strapping);
 
 	return strapping;
 }
@@ -295,6 +308,61 @@ uint32_t lan966x_get_boot_source(void)
 	}
 
 	return boot_source;
+}
+
+void lan966x_fwconfig_apply(void)
+{
+	/* Update storage drivers with new values from fw_config */
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_QSPI:
+		qspi_reinit();
+		break;
+	case LAN966X_STRAP_BOOT_MMC:
+	case LAN966X_STRAP_BOOT_SD:
+		lan966x_mmc_plat_config();
+		break;
+	default:
+		break;
+	}
+}
+
+/*
+ * Note: The FW_CONFIG is read *wo* authentication, as the OTP
+ * emulation data may contain the actual (emulated) rotpk. This is
+ * only called when a *hw* ROTPK has *not* been deployed.
+ */
+int lan966x_load_fw_config(unsigned int image_id)
+{
+	uintptr_t dev_handle, image_handle, image_spec = 0;
+	size_t bytes_read;
+	int result;
+
+	result = plat_get_image_source(image_id, &dev_handle, &image_spec);
+	if (result != 0) {
+		WARN("Failed to obtain reference to image id=%u (%i)\n",
+		     image_id, result);
+		return result;
+	}
+
+	result = io_open(dev_handle, image_spec, &image_handle);
+	if (result != 0) {
+		WARN("Failed to access image id=%u (%i)\n", image_id, result);
+		return result;
+	}
+
+	result = io_read(image_handle, (uintptr_t)&lan966x_fw_config,
+			 sizeof(lan966x_fw_config), &bytes_read);
+	if (result != 0)
+		WARN("Failed to read data (%i)\n", result);
+
+	io_close(image_handle);
+
+#ifdef IMAGE_BL1
+	/* This is fwd to BL2 */
+	flush_dcache_range((uintptr_t)&lan966x_fw_config, sizeof(lan966x_fw_config));
+#endif
+
+	return 0;
 }
 
 static int fw_config_read_bytes(unsigned int offset,
