@@ -187,7 +187,7 @@ if $option[:gptimg]
     ensure
         FileUtils.rm_f(bkupgpt)
     end
-    do_cmd("fdisk -l #{gptfile}")
+    do_cmd("gdisk -l #{gptfile}")
 end
 
 if $option[:coverity]
