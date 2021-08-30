@@ -174,17 +174,18 @@ end
 
 if $option[:gptimg]
     gptfile = "#{build}/fip.gpt"
+    bkupgpt = "#{build}/backup.gpt"
     FileUtils.rm_f(gptfile)
-    do_cmd("fakeroot dd if=/dev/zero of=#{gptfile} bs=512 count=4200")
-    do_cmd("parted -s #{gptfile} mktable gpt")
-    do_cmd("parted -s #{gptfile} mkpart fip 64s 2111s")
-    do_cmd("parted -s #{gptfile} mkpart fip.bk 2112s 4159s")
-    fipdev = do_cmdret("sudo losetup --find").chomp
-    do_cmd("sudo losetup -P #{fipdev} #{gptfile}")
     begin
-        do_cmd("sudo dd if=#{build}/fip.bin of=#{fipdev}p1")
+        do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=6178")
+        do_cmd("parted -s #{gptfile} mktable gpt")
+        do_cmd("parted -s #{gptfile} mkpart fip 2048s 4095s")           # Align partitions to multipla of 1024
+        do_cmd("parted -s #{gptfile} mkpart fip.bak 4096s 6143s")
+        do_cmd("dd if=#{gptfile} of=#{bkupgpt} skip=6145 bs=512")       # Copy backup partition table
+        do_cmd("dd if=#{build}/fip.bin of=#{gptfile} seek=2048 bs=512") # Insert fip in first partition
+        do_cmd("dd if=#{bkupgpt} of=#{gptfile} seek=6145 bs=512")       # Restore backup partition table
     ensure
-        do_cmd("sudo losetup -d #{fipdev}")
+        FileUtils.rm_f(bkupgpt)
     end
     do_cmd("fdisk -l #{gptfile}")
 end
