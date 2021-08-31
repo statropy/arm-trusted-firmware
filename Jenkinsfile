@@ -35,6 +35,7 @@ node('blademaster') {
                 archive '*.bin'
                 archive '*.gpt'
                 archive '*.img'
+                archive '*.dump'
         }
     }
 }

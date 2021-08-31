@@ -36,7 +36,7 @@ def banner(artifacts, cmd)
 end
 
 def cleanup(do_exit = false)
-  files = Dir.glob('*.bin') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt')
+  files = Dir.glob('*.bin') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt') + Dir.glob('*.dump')
   FileUtils.rm_f(files, verbose: true)
   FileUtils.rm_rf('build', verbose: true)
   exit(0) if do_exit
@@ -65,16 +65,20 @@ build_envirs.each do |be|
         nor_filename = "#{be}-#{bt}-#{bv}-#{ba}.img"
         fip_filename = "#{be}-#{bt}-#{bv}-#{ba}.fip"
         gpt_filename = "#{be}-#{bt}-#{bv}-#{ba}.gpt"
+        bl1_dump_filename =  "#{be}-#{bt}-#{bv}-#{ba}-bl1.dump"
+        bl2_dump_filename =  "#{be}-#{bt}-#{bv}-#{ba}-bl2.dump"
         cargs = "#{build_type_args[bt]} --gptimg --norimg #{build_auth_args[ba]} -p #{be} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
         cmd_clean = 'ruby scripts/build.rb distclean'
-        banner([fip_filename, gpt_filename, bl1_filename, nor_filename], cmd)
+        banner([fip_filename, gpt_filename, bl1_filename, nor_filename, bl1_dump_filename, bl2_dump_filename], cmd)
         system(cmd_clean)
         system(cmd)
         get_arti("build/#{be}/#{bt}/fip.bin", fip_filename)
         get_arti("build/#{be}/#{bt}/fip.gpt", gpt_filename)
         get_arti("build/#{be}/#{bt}/bl1.bin", bl1_filename)
         get_arti("build/#{be}/#{bt}/#{be}.img", nor_filename)
+        get_arti("build/#{be}/#{bt}/bl1/bl1.dump", bl1_dump_filename)
+        get_arti("build/#{be}/#{bt}/bl2/bl2.dump", bl2_dump_filename)
       end
     end
   end
