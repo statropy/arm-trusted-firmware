@@ -52,7 +52,7 @@
  * the current BL1 RW debug size plus a little space for growth.
  */
 #define BL1_RW_BASE		(BL1_RW_LIMIT - BL1_RW_SIZE)
-#define BL1_RW_SIZE		UL(1024 * 32)
+#define BL1_RW_SIZE		UL(1024 * 40)
 #define BL1_RW_LIMIT		(LAN996X_SRAM_BASE + LAN996X_SRAM_SIZE)
 #endif
 
@@ -112,9 +112,9 @@
 #define MAX_IO_HANDLES			4
 
 #if defined(IMAGE_BL1)
-#define MAX_XLAT_TABLES			4
+#define MAX_XLAT_TABLES			3
 #else
-#define MAX_XLAT_TABLES			6
+#define MAX_XLAT_TABLES			5
 #endif
 
 #define MAX_MMAP_REGIONS		16
