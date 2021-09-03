@@ -30,6 +30,7 @@
 CASSERT((BL1_RW_SIZE + BL2_SIZE) <= LAN996X_SRAM_SIZE, assert_sram_depletion);
 
 static console_t lan966x_console;
+shared_memory_desc_t shared_memory_desc;
 
 #define FW_CONFIG_INIT_8(offset, value)		\
 	.config[offset] = (uint8_t) (value)

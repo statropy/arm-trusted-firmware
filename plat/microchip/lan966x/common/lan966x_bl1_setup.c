@@ -177,7 +177,11 @@ int bl1_plat_handle_post_image_load(unsigned int image_id)
 	 */
 	bl1_calc_bl2_mem_layout(&bl1_tzram_layout, &bl2_tzram_layout);
 	ep_info->args.arg1 = (uintptr_t)&bl2_tzram_layout;
-	ep_info->args.arg2 = (uintptr_t) &lan966x_fw_config;
+
+	/* Shared memory info in arg2 */
+	shared_memory_desc.fw_config = &lan966x_fw_config;
+	flush_dcache_range((uintptr_t) &shared_memory_desc, sizeof(shared_memory_desc));
+	ep_info->args.arg2 = (uintptr_t) &shared_memory_desc;
 
 	return 0;
 }
