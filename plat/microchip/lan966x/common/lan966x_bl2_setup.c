@@ -65,7 +65,7 @@ static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 void bl2_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
-#if TRUSTED_BOARD_BOOT
+#if TRUSTED_BOARD_BOOT && !BL2_AT_EL3
 		MAP_SHARED_HEAP,
 #endif
 		MAP_BL2_TOTAL,
