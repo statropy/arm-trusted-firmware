@@ -26,7 +26,7 @@
 #include "lan966x_private.h"
 #include "plat_otp.h"
 
-CASSERT((BL1_RW_SIZE + BL2_SIZE + MMC_BUF_SIZE) <= LAN996X_SRAM_SIZE, assert_sram_depletion);
+CASSERT((BL1_RW_SIZE + BL2_SIZE) <= LAN996X_SRAM_SIZE, assert_sram_depletion);
 
 static console_t lan966x_console;
 

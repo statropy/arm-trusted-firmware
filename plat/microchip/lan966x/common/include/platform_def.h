@@ -60,15 +60,8 @@
  * BL2 - Entire SRAM excl. BL1_RW, MMC
  */
 #define BL2_BASE		LAN996X_SRAM_BASE
-#define BL2_SIZE       		(LAN996X_SRAM_SIZE - BL1_RW_SIZE - MMC_BUF_SIZE)
+#define BL2_SIZE       		(LAN996X_SRAM_SIZE - BL1_RW_SIZE)
 #define BL2_LIMIT		(BL2_BASE + BL2_SIZE)
-
-/*
- * MMC RW buffer - 4K after BL2 (must be page aligned)
- */
-#define MMC_BUF_BASE		BL2_LIMIT
-#define MMC_BUF_SIZE		UL(4 * 1024)
-#define MMC_BUF_LIMIT		(MMC_BUF_BASE + MMC_BUF_SIZE)
 
 /*
  * BL32 - top of DDR
