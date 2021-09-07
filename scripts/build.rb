@@ -20,6 +20,7 @@ $option = { :platform	=> "lan966x_sr",
              :sdk	=> "2021.02-483",
              :norimg	=> true,
              :gptimg	=> false,
+             :ramusage	=> true,
           }
 
 args = ""
@@ -54,6 +55,9 @@ OptionParser.new do |opts|
     opts.on("-C", "--coverity stream", "Enable coverity scan") do |cov|
         $option[:coverity] = cov
     end
+    opts.on("-R", "--[no-]ramusage", "Report RAM usage") do |v|
+        $option[:ramusage] = v
+    end
 end.order!
 
 def do_cmd(cmd)
@@ -87,13 +91,13 @@ def install_toolchain(tc_vers)
     tc_folder = tc_vers
     tc_folder = "#{tc_vers}-toolchain" if not tc_vers.include? "toolchain"
     tc_path = "mscc-toolchain-bin-#{tc_vers}"
-    bin = "/opt/mscc/" + tc_path + "/arm-cortex_a8-linux-gnueabihf/bin"
-    if !File.directory?(bin)
+    $bin = "/opt/mscc/" + tc_path + "/arm-cortex_a8-linux-gnueabihf/bin"
+    if !File.directory?($bin)
         do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
-        raise "Unable to install toolchain to #{bin}" unless File.exist?(bin)
+        raise "Unable to install toolchain to #{$bin}" unless File.exist?($bin)
     end
-    ENV["CROSS_COMPILE"] = "#{bin}/arm-linux-"
-    puts "Using toolchain #{tc_vers} at #{bin}"
+    ENV["CROSS_COMPILE"] = "#{$bin}/arm-linux-"
+    puts "Using toolchain #{tc_vers} at #{$bin}"
 end
 
 pdef = platforms[$option[:platform]]
@@ -194,4 +198,41 @@ if $option[:coverity]
     do_cmd("cov-analyze -dir #{$cov_dir} --jobs auto")
     do_cmd("cov-commit-defects -dir #{$cov_dir} --stream #{$option[:coverity]} --config /opt/coverity/credentials.xml --auth-key-file /opt/coverity/reporter.key")
 end
+
+if $option[:ramusage]
+    usage = {}
+    ["bl1", "bl2"].each do |s|
+        elf = "#{build}/#{s}/#{s}.elf"
+        if File.exist? elf
+            o = `#{$bin}/arm-linux-size #{elf}`
+            raise "Unable to read size of #{elf} - $?" unless $?.success?
+            b1 = o.split("\n")[1]
+            d = b1.match(/(\d+)[ \t]+(\d+)[ \t]+(\d+)[ \t]+(\d+)/);
+            d = d[1, 5]
+            d = d.map { |d| d.to_i }
+            usage[s] = d
+        end
+    end
+    raise "No RAM usage report, no ELF data" if usage.length == 0
+    raise "No bl1 data" if !usage['bl1'] && !pdef[:bl2_at_el3]
+    raise "No bl2 data" if !usage['bl2']
+    if pdef[:bl2_at_el3]
+        d2 = usage['bl2']
+        sram = d2[0] + d2[1] + d2[2]
+        printf "BL2: %dK - %d bytes spare. Code %d, data %d, bss %d\n",
+               sram / 1024, (128 * 1024) - sram, d2[0], d2[1], d2[2]
+    else
+        d1 = usage['bl1']
+        d2 = usage['bl2']
+        bl1 = d1[1] + d1[2]
+        bl2 = d2[0] + d2[1] + d2[2]
+        sram = bl1 + bl2
+        rom = d1[0]
+        printf "BL1: Code %d, data %d, bss %d\n", d1[0], d1[1], d1[2]
+        printf "BL2: Code %d, data %d, bss %d\n", d2[0], d2[1], d2[2]
+        printf "ROM: %dK - %d bytes spare\n", rom / 1024, (80 * 1024) - rom
+        printf "SRAM: %dK - %d bytes spare\n", sram / 1024, (128 * 1024) - sram
+    end
+end
+
 #  vim: set ts=8 sw=4 sts=4 tw=120 et cc=120 ft=ruby :

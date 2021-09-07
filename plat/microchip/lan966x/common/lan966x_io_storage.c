@@ -38,11 +38,19 @@ static uintptr_t fip_dev_handle;
 static uintptr_t emmc_dev_handle;
 static uintptr_t memmap_dev_handle;
 
+#if defined(IMAGE_BL2)
+uint8_t mmc_buf[MMC_BUF_SIZE];
+#endif
+
 static const io_block_dev_spec_t emmc_dev_spec = {
 	.buffer = {
-		   .offset = MMC_BUF_BASE,
-		   .length = MMC_BLOCK_SIZE,
-		   },
+#if defined(IMAGE_BL1)
+		.offset = (uintptr_t) BL1_MMC_BUF_BASE,
+#elif defined(IMAGE_BL2)
+		.offset = (uintptr_t) mmc_buf,
+#endif
+		.length = MMC_BUF_SIZE,
+	},
 	.ops = {
 		.read = mmc_read_blocks,
 		.write = NULL,
