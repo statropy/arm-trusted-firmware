@@ -58,10 +58,16 @@ lan966x_fw_config_t lan966x_fw_config = {
 		LAN996X_DEV_SIZE,					\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
-#define LAN966X_MAP_DDR						\
+#define LAN966X_MAP_BL32					\
 	MAP_REGION_FLAT(					\
-		LAN996X_DDR_BASE,				\
-		LAN996X_DDR_SIZE,				\
+		BL32_BASE,					\
+		BL32_SIZE,					\
+		MT_MEMORY | MT_RW | MT_SECURE)
+
+#define LAN966X_MAP_NS_MEM					\
+	MAP_REGION_FLAT(					\
+		PLAT_LAN966X_NS_IMAGE_BASE,			\
+		PLAT_LAN966X_NS_IMAGE_SIZE,			\
 		MT_MEMORY | MT_RW | MT_NS)
 
 #ifdef IMAGE_BL1
@@ -75,7 +81,8 @@ const mmap_region_t plat_arm_mmap[] = {
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_AXI,
-	LAN966X_MAP_DDR,
+	LAN966X_MAP_BL32,
+	LAN966X_MAP_NS_MEM,
 	{0}
 };
 #endif
@@ -83,7 +90,7 @@ const mmap_region_t plat_arm_mmap[] = {
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_AXI,
-	LAN966X_MAP_DDR,
+	LAN966X_MAP_BL32,
 	{0}
 };
 #endif

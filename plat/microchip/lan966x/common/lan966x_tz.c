@@ -35,8 +35,14 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0);
 }
 
-static void setup_tzaesb(uintptr_t tzaesb, uint32_t *keys)
+static void setup_tzaesb(uintptr_t tzaesb)
 {
+	uint32_t keys[4];
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(keys); i++)
+		keys[i] = lan966x_trng_read();
+
 	/* KEY REGS */
 	mmio_write_32(TZAESBNS_TZAESB_MR(tzaesb),
 		      TZAESBNS_TZAESB_MR_OPMOD(4) | /* CTR mode */
@@ -52,6 +58,9 @@ static void setup_tzaesb(uintptr_t tzaesb, uint32_t *keys)
 	mmio_write_32(TZAESBNS_TZAESB_IVR1(tzaesb), 0xf8f9fafb);
 	mmio_write_32(TZAESBNS_TZAESB_IVR2(tzaesb), 0xf4f5f6f7);
 	mmio_write_32(TZAESBNS_TZAESB_IVR3(tzaesb), 0xf0f1f2f3);
+
+	/* Don't leak keys */
+	memset(keys, 0, sizeof(keys));
 }
 
 static void tzaes_asc_region_enable(uintptr_t tzaes_asc,
@@ -113,14 +122,8 @@ static void setup_tzaes_asc(void)
 
 void lan966x_tz_init(void)
 {
-	uint32_t keys[4];
-	int i;
-
 	if (otp_read_otp_flags1_enable_ddr_encrypt()) {
 		INFO("Configuring TrustZone (with encrypted RAM)\n");
-
-		for (i = 0; i < ARRAY_SIZE(keys); i++)
-			keys[i] = lan966x_trng_read();
 
 		/*
 		 * Enable TZPM for NS transactions, Otherwise all are treated
@@ -133,14 +136,10 @@ void lan966x_tz_init(void)
 		setup_tzaes_asc();
 
 		/* NS setup */
-		setup_tzaesb(LAN966X_TZAESBNS_BASE, keys);
+		setup_tzaesb(LAN966X_TZAESBNS_BASE);
 
 		/* S setup */
-		setup_tzaesb(LAN966X_TZAESBS_BASE, keys);
-
-		/* Don't leak keys */
-		for (i = 0; i < ARRAY_SIZE(keys); i++)
-			keys[i] = 0;
+		setup_tzaesb(LAN966X_TZAESBS_BASE);
 
 		/* NS periph access */
 		setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
