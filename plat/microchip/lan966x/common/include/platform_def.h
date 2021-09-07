@@ -64,6 +64,13 @@
 #define BL2_LIMIT		(BL2_BASE + BL2_SIZE)
 
 /*
+ * MMC buffer for BL1 is at top of BL2 memory. BL2 allocates its own
+ * buffer area.
+ */
+#define MMC_BUF_SIZE		512
+#define BL1_MMC_BUF_BASE	(BL2_LIMIT - MMC_BUF_SIZE)
+
+/*
  * BL32 - top of DDR
  */
 #define BL32_BASE		(BL32_LIMIT - BL32_SIZE)

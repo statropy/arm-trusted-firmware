@@ -38,7 +38,6 @@ static uintptr_t fip_dev_handle;
 static uintptr_t emmc_dev_handle;
 static uintptr_t memmap_dev_handle;
 
-#define MMC_BUF_SIZE	512
 #if defined(IMAGE_BL2)
 uint8_t mmc_buf[MMC_BUF_SIZE];
 #endif
@@ -46,7 +45,7 @@ uint8_t mmc_buf[MMC_BUF_SIZE];
 static const io_block_dev_spec_t emmc_dev_spec = {
 	.buffer = {
 #if defined(IMAGE_BL1)
-		.offset = (uintptr_t) (BL2_LIMIT - MMC_BUF_SIZE),
+		.offset = (uintptr_t) BL1_MMC_BUF_BASE,
 #elif defined(IMAGE_BL2)
 		.offset = (uintptr_t) mmc_buf,
 #endif
