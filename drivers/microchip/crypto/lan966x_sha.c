@@ -31,22 +31,11 @@ static const hash_info_t hashes[] = {
 	[SHA_MR_ALGO_SHA224] = { 28 },
 };
 
-static const hash_info_t *sha_get_info(int algo)
+static const hash_info_t *sha_get_info(lan966x_sha_type_t algo)
 {
-	switch (algo) {
-	case SHA_MR_ALGO_SHA1:
-		return &hashes[SHA_MR_ALGO_SHA1];
-	case SHA_MR_ALGO_SHA224:
-		return &hashes[SHA_MR_ALGO_SHA224];
-	case SHA_MR_ALGO_SHA256:
-		return &hashes[SHA_MR_ALGO_SHA256];
-	case SHA_MR_ALGO_SHA384:
-		return &hashes[SHA_MR_ALGO_SHA384];
-	case SHA_MR_ALGO_SHA512:
-		return &hashes[SHA_MR_ALGO_SHA512];
-	default:
-		break;
-	}
+	if (algo < ARRAY_SIZE(hashes))
+               return &hashes[algo];
+
 	return NULL;
 }
 
@@ -91,7 +80,7 @@ static void sha_start_process(void)
 	(void) sha_wait_flag(SHA_SHA_ISR_DATRDY_ISR_M);
 }
 
-static int sha_process(int hash_type, const void *input, size_t len,
+static int sha_process(lan966x_sha_type_t hash_type, const void *input, size_t len,
 		       const void *in_hash, const void *out_hash, size_t hash_len)
 {
 	int i, j, nwords, fifo;
@@ -165,7 +154,7 @@ static int sha_process(int hash_type, const void *input, size_t len,
 	return 0;
 }
 
-int sha_verify(int hash_type, const void *input, size_t len, const void *hash, size_t hash_len)
+int sha_verify(lan966x_sha_type_t hash_type, const void *input, size_t len, const void *hash, size_t hash_len)
 {
 	const hash_info_t *hinfo = sha_get_info(hash_type);
 
@@ -175,7 +164,7 @@ int sha_verify(int hash_type, const void *input, size_t len, const void *hash, s
 	return -1;
 }
 
-int sha_calc(int hash_type, const void *input, size_t len, void *hash)
+int sha_calc(lan966x_sha_type_t hash_type, const void *input, size_t len, void *hash)
 {
 	const hash_info_t *hinfo = sha_get_info(hash_type);
 

@@ -201,9 +201,9 @@ static int lan966x_ecdsa_read_signature(const unsigned char *sig,
 	return ret;
 }
 
-static const int sha_get_type(int algo)
+static inline lan966x_sha_type_t lan966x_shatype(const mbedtls_md_info_t *md_info)
 {
-	switch (algo) {
+	switch (md_info->type) {
 	case MBEDTLS_MD_SHA1:
 		return SHA_MR_ALGO_SHA1;
 	case MBEDTLS_MD_SHA224:
@@ -294,7 +294,7 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 		rc = CRYPTO_ERR_SIGNATURE;
 		goto end1;
 	}
-	rc = sha_calc(sha_get_type(md_info->type), data_ptr, data_len, hash);
+	rc = sha_calc(lan966x_shatype(md_info), data_ptr, data_len, hash);
 	if (rc != 0) {
 		rc = CRYPTO_ERR_SIGNATURE;
 		goto end1;
@@ -374,7 +374,7 @@ static int verify_hash(void *data_ptr, unsigned int data_len,
 	hash = p;
 
 	/* Calculate & check the hash of the data */
-	rc = sha_verify(md_info->type, data_ptr, data_len,
+	rc = sha_verify(lan966x_shatype(md_info), data_ptr, data_len,
 			hash, len);
 
 	return rc;
@@ -425,7 +425,7 @@ static int calc_hash(unsigned int alg, void *data_ptr,
 		return CRYPTO_ERR_HASH;
 	}
 
-	return sha_calc(md_info->type, data_ptr, data_len, output);
+	return sha_calc(lan966x_shatype(md_info), data_ptr, data_len, output);
 }
 #endif
 
