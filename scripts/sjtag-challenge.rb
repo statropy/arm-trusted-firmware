@@ -1,0 +1,39 @@
+#!/bin/env ruby
+
+require 'optparse'
+require 'digest'
+require 'pp'
+
+$options = { }
+OptionParser.new do |opts|
+    opts.banner = "Usage: sjtag-challenge.rb [options] <hex-words>"
+    opts.version = 0.1
+    opts.on("-i", "--input <file>", "Read challenge data from file") do |f|
+        $options[:input] = f;
+    end
+    opts.on("-k", "--key <file>", "Read shared key data from file (mandatory)") do |f|
+        $options[:key] = File.binread(f);
+        raise "Key data must be 32 bytes" unless $options[:key].length == 32
+    end
+end.order!
+
+raise "Missing key option, use --key <file>" if $options[:key].nil?
+
+data = nil
+if $options[:input]
+    data = File.binread($options[:input])
+else
+    data = ARGV.map(&:hex).pack("V*")
+end
+
+raise "No challenge data provided" unless data
+raise "Must have 32 bytes of data" unless data.length == 32
+raise "Must have 32 bytes key data" unless $options[:key].length == 32
+
+data += $options[:key]
+
+#pp data.unpack("V*").map{|i| "0x" + i.to_s(16)}
+
+#puts Digest::SHA256.hexdigest(data)
+response = Digest::SHA256.digest(data).unpack("V*").map{|i| "0x" + i.to_s(16)}.join(" ")
+puts "Response: #{response}"
