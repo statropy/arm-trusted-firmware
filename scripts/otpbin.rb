@@ -7,7 +7,7 @@ require 'pp'
 $bits = [ 0 ] * (1024)
 $data = nil
 $startoff = 256
-$maxlen   = 512
+$maxlen   = 384
 
 def set_bits(elem, field)
     if elem["file"]
