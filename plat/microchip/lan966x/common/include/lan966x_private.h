@@ -12,8 +12,8 @@
 #define LAN966X_KEY32_LEN	32
 typedef struct {
 	union {
-		uint8_t b[LAN966X_KEY32_LEN];
-		uint8_t w[LAN966X_KEY32_LEN / 4];
+		uint8_t  b[LAN966X_KEY32_LEN];
+		uint32_t w[LAN966X_KEY32_LEN / 4];
 	};
 } lan966x_key32_t;
 
