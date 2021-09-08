@@ -30,10 +30,9 @@ raise "No challenge data provided" unless data
 raise "Must have 32 bytes of data" unless data.length == 32
 raise "Must have 32 bytes key data" unless $options[:key].length == 32
 
+# Pre-shared SJTAG key is appended to data
 data += $options[:key]
 
-#pp data.unpack("V*").map{|i| "0x" + i.to_s(16)}
-
-#puts Digest::SHA256.hexdigest(data)
-response = Digest::SHA256.digest(data).unpack("V*").map{|i| "0x" + i.to_s(16)}.join(" ")
+# The challenge response is a SHA256 hash of (challenge + sjtag-key)
+response = Digest::SHA256.digest(data).unpack("V*").map{|i| i.to_s(16)}.join(" ")
 puts "Response: #{response}"
