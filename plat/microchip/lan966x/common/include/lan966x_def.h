@@ -9,24 +9,37 @@
 
 #include "lan966x_targets.h"
 
+#define SIZE_K(n)               ((n) * UL(1024))
+#define SIZE_M(n)               (SIZE_K(n) * UL(1024))
+#define SIZE_G(n)               (SIZE_M(n) * UL(1024))
+
 /* LAN966X defines */
 #define LAN996X_BOOTROM_BASE	UL(0x00000000)
-#define LAN996X_BOOTROM_SIZE	UL(1024 * 64)
+#define LAN996X_BOOTROM_SIZE	SIZE_K(80)
 #define LAN996X_SRAM_BASE	UL(0x00100000)
-#define LAN996X_SRAM_SIZE	UL(1024 * 128)
+#define LAN996X_SRAM_SIZE	SIZE_K(128)
 #define LAN996X_QSPI0_MMAP	UL(0x20000000)
-#define LAN996X_QSPI0_RANGE	UL(16 * 1024 * 1024)
+#define LAN996X_QSPI0_RANGE	SIZE_M(16)
 #define LAN996X_DDR_BASE	UL(0x60000000)
-#define LAN996X_DDR_SIZE	UL(1 * 1024 * 1024 * 1024)
+#define LAN996X_DDR_SIZE	SIZE_G(1)
 
 #define LAN966x_EMMC_FIP_ADDR	UL(0x00090000)
-#define LAN966X_FIP_SIZE	UL(1472 * 1024)
+#define LAN966X_FIP_SIZE	SIZE_K(1472)
 
 #define LAN966X_GPT_BASE	UL(0x00000000)
-#define LAN966X_GPT_SIZE	UL(32 * 1024)
+#define LAN966X_GPT_SIZE	SIZE_K(32)
 
-#define LAN996X_DEV_BASE	UL(0xE0000000)
-#define LAN996X_DEV_SIZE	UL(0x10000000)
+/*
+ * Was:
+ * LAN996X_DEV_BASE	UL(0xE0000000)
+ * LAN996X_DEV_SIZE	UL(0x10000000)
+ *
+ * - But changed to below in order to reduce page table SRAM usage.
+ *   It actually includes (part of the) DDR VA range but is not
+ *   de-referenced (the DDR part).
+ */
+#define LAN996X_DEV_BASE	UL(0xC0000000)
+#define LAN996X_DEV_SIZE	SIZE_G(1)
 
 /*
  * GIC-400
