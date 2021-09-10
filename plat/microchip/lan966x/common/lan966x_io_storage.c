@@ -146,6 +146,7 @@ static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 static int check_fip(const uintptr_t spec);
 static int check_emmc(const uintptr_t spec);
 static int check_memmap(const uintptr_t spec);
+static int check_error(const uintptr_t spec);
 
 static const struct plat_io_policy policies[] = {
 	[FIP_IMAGE_ID] = {
@@ -259,7 +260,9 @@ static const struct plat_io_policy boot_source_policies[] = {
 		&memmap_dev_handle,
 		(uintptr_t)&fip_qspi_block_spec,
 		check_memmap
-	}
+	},
+	[BOOT_SOURCE_SDMMC] = { 0, 0, check_error },
+	[BOOT_SOURCE_NONE] = { 0, 0, check_error },
 };
 
 static int check_fip(const uintptr_t spec)
@@ -308,6 +311,11 @@ static int check_memmap(const uintptr_t spec)
 		}
 	}
 	return result;
+}
+
+static int check_error(const uintptr_t spec)
+{
+	return -1;
 }
 
 void lan966x_io_setup(void)
