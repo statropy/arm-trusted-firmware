@@ -129,8 +129,9 @@ endif
 
 LAN966X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
 
-${LAN966X_FW_CONFIG}: bin/otp.bin bin/fw_param.bin
-	$(Q)cat $^ > $@
+${LAN966X_FW_CONFIG}: bin/fw_param.bin scripts/otp_data.yaml
+	$(Q)./scripts/otpbin.rb -y scripts/otp_data.yaml -o $@
+	$(Q)cat bin/fw_param.bin >> $@
 
 # FW config
 $(eval $(call TOOL_ADD_PAYLOAD,${LAN966X_FW_CONFIG},--fw-config,${LAN966X_FW_CONFIG}))
