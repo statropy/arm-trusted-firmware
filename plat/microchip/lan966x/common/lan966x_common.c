@@ -70,10 +70,17 @@ lan966x_fw_config_t lan966x_fw_config = {
 		PLAT_LAN966X_NS_IMAGE_SIZE,			\
 		MT_MEMORY | MT_RW | MT_NS)
 
+#define LAN966X_MAP_USB						\
+	MAP_REGION_FLAT(					\
+		LAN996X_USB_BASE,				\
+		LAN996X_USB_SIZE,				\
+		MT_DEVICE | MT_RW | MT_SECURE)
+
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_AXI,
+	LAN966X_MAP_USB,
 	{0}
 };
 #endif
@@ -83,6 +90,7 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_NS_MEM,
+	LAN966X_MAP_USB,
 	{0}
 };
 #endif
@@ -91,9 +99,39 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_AXI,
 	LAN966X_MAP_BL32,
+	LAN966X_MAP_USB,
 	{0}
 };
 #endif
+
+enum lan966x_flexcom_id {
+	FLEXCOM0 = 0,
+	FLEXCOM1,
+	FLEXCOM2,
+	FLEXCOM3,
+	FLEXCOM4,
+};
+
+static struct lan966x_flexcom_args {
+	uintptr_t base;
+	unsigned int clk_id;
+	int rx_gpio;
+	int tx_gpio;
+} lan966x_flexcom_map[] = {
+	[FLEXCOM0] = {
+		LAN966X_FLEXCOM_0_BASE, LAN966X_CLK_ID_FLEXCOM0, 25, 26
+	},
+	[FLEXCOM1] = { 0 },
+	[FLEXCOM2] = {
+		LAN966X_FLEXCOM_2_BASE, LAN966X_CLK_ID_FLEXCOM2, 44, 45
+	},
+	[FLEXCOM3] = {
+		LAN966X_FLEXCOM_3_BASE, LAN966X_CLK_ID_FLEXCOM3, 52, 53
+	},
+	[FLEXCOM4] = {
+		LAN966X_FLEXCOM_4_BASE, LAN966X_CLK_ID_FLEXCOM4, 57, 58
+	},
+};
 
 /*******************************************************************************
  * Returns ARM platform specific memory map regions.
@@ -103,81 +141,84 @@ const mmap_region_t *plat_arm_get_mmap(void)
 	return plat_arm_mmap;
 }
 
+static void lan966x_flexcom_init(int idx)
+{
+	struct lan966x_flexcom_args *fc;
+
+	if (idx < 0)
+		return;
+
+	fc = &lan966x_flexcom_map[idx];
+
+	if (fc->base == 0)
+		return;
+
+	/* GPIOs for RX and TX */
+	vcore_gpio_set_alt(fc->rx_gpio, 1);
+	vcore_gpio_set_alt(fc->tx_gpio, 1);
+
+	/* Configure clock on UART */
+	lan966x_clk_disable(fc->clk_id);
+	lan966x_clk_set_rate(fc->clk_id, LAN966X_CLK_FREQ_FLEXCOM); /* 30MHz */
+	lan966x_clk_enable(fc->clk_id);
+
+	/* Initialize the console to provide early debug support */
+	console_flexcom_register(&lan966x_console,
+				 fc->base + FLEXCOM_UART_OFFSET,
+				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
+	console_set_scope(&lan966x_console,
+			  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
+}
+
 void lan966x_console_init(void)
 {
-	unsigned int clk_id = LAN966X_MAX_CLOCK;
-	uintptr_t base = CONSOLE_BASE; /* CONSOLE_BASE is default fallback */
+	uintptr_t flexbase = CONSOLE_BASE; /* CONSOLE_BASE is default fallback */
 
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
-#if defined(IMAGE_BL1)
-	/* Override if strappings say so */
-	switch (lan966x_get_strapping()) {
-	case LAN966X_STRAP_SAMBA_FC0:
-		base = LAN966X_FLEXCOM_0_BASE;
-		break;
-	case LAN966X_STRAP_SAMBA_FC2:
-		base = LAN966X_FLEXCOM_2_BASE;
-		break;
-	case LAN966X_STRAP_SAMBA_FC3:
-		base = LAN966X_FLEXCOM_3_BASE;
-		break;
-	case LAN966X_STRAP_SAMBA_FC4:
-		base = LAN966X_FLEXCOM_4_BASE;
-		break;
-	default:
-		break;
-	}
-#endif
-
-	switch (base) {
-	case LAN966X_FLEXCOM_0_BASE:
-		vcore_gpio_set_alt(25, 1);
-		vcore_gpio_set_alt(26, 1);
-		clk_id = LAN966X_CLK_ID_FLEXCOM0;
-		break;
-	case LAN966X_FLEXCOM_1_BASE:
-		vcore_gpio_set_alt(47, 1);
-		vcore_gpio_set_alt(48, 1);
-		clk_id = LAN966X_CLK_ID_FLEXCOM1;
-		break;
-	case LAN966X_FLEXCOM_2_BASE:
-		vcore_gpio_set_alt(44, 1);
-		vcore_gpio_set_alt(45, 1);
-		clk_id = LAN966X_CLK_ID_FLEXCOM2;
-		break;
-	case LAN966X_FLEXCOM_3_BASE:
-		vcore_gpio_set_alt(52, 1);
-		vcore_gpio_set_alt(53, 1);
-		clk_id = LAN966X_CLK_ID_FLEXCOM3;
-		break;
-	case LAN966X_FLEXCOM_4_BASE:
-		vcore_gpio_set_alt(57, 1);
-		vcore_gpio_set_alt(58, 1);
-		clk_id = LAN966X_CLK_ID_FLEXCOM4;
-		break;
-	default:
-		if (base != 0) {
-			ERROR("Invalid console: %lx\n", base);
-			panic();
+	if (flexbase) {
+		switch (flexbase) {
+		case LAN966X_FLEXCOM_0_BASE:
+			lan966x_flexcom_init(FLEXCOM0);
+			break;
+		case LAN966X_FLEXCOM_2_BASE:
+			lan966x_flexcom_init(FLEXCOM2);
+			break;
+		case LAN966X_FLEXCOM_3_BASE:
+			lan966x_flexcom_init(FLEXCOM3);
+			break;
+		case LAN966X_FLEXCOM_4_BASE:
+			lan966x_flexcom_init(FLEXCOM4);
+			break;
+		default:
+			/* No default console */
+			break;
 		}
-		break;
-	}
-
-	if (base) {
-		/* Configure clock on UART */
-		if (clk_id < LAN966X_MAX_CLOCK) {
-			lan966x_clk_disable(clk_id);
-			lan966x_clk_set_rate(clk_id, LAN966X_CLK_FREQ_FLEXCOM); /* 30MHz */
-			lan966x_clk_enable(clk_id);
+	} else {
+		/* Override if strappings say so */
+		switch (lan966x_get_strapping()) {
+		case LAN966X_STRAP_SAMBA_FC0:
+			lan966x_flexcom_init(FLEXCOM0);
+			break;
+		case LAN966X_STRAP_SAMBA_FC2:
+			lan966x_flexcom_init(FLEXCOM2);
+			break;
+		case LAN966X_STRAP_SAMBA_FC3:
+			lan966x_flexcom_init(FLEXCOM3);
+			break;
+		case LAN966X_STRAP_SAMBA_FC4:
+			lan966x_flexcom_init(FLEXCOM4);
+			break;
+		case LAN966X_STRAP_SAMBA_USB:
+#ifdef LAN966X_USE_USB
+			lan966x_usb_init();
+			lan966x_usb_register_console();
+#endif /* LAN966X_USE_USB */
+			break;
+		default:
+			/* No console */
+			break;
 		}
-
-		/* Initialize the console to provide early debug support */
-		console_flexcom_register(&lan966x_console,
-					 base + FLEXCOM_UART_OFFSET,
-					 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
-		console_set_scope(&lan966x_console,
-				  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
 	}
 }
 

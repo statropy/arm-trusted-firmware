@@ -75,6 +75,8 @@ void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 void lan966x_sdmmc_init(boot_source_type boot_source);
 void lan966x_pcie_init(void);
+void lan966x_usb_init(void);
+void lan966x_usb_register_console(void);
 
 uint32_t lan966x_trng_read(void);
 

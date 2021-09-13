@@ -41,6 +41,9 @@
 #define LAN996X_DEV_BASE	UL(0xC0000000)
 #define LAN996X_DEV_SIZE	SIZE_G(1)
 
+#define LAN996X_USB_BASE	UL(0x00200000)
+#define LAN996X_USB_SIZE	UL(0x00200000) /* Really 256k, but increased for MMU */
+
 /*
  * GIC-400
  */

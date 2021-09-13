@@ -55,6 +55,11 @@ LAN966X_CONSOLE_SOURCES	+=	\
 				drivers/microchip/flexcom_uart/flexcom_console.S \
 				drivers/gpio/gpio.c
 
+ifneq (${LAN966X_USE_USB},)
+$(eval $(call add_define,LAN966X_USE_USB))
+LAN966X_CONSOLE_SOURCES	+=	drivers/microchip/usb/usb.c
+endif
+
 PLAT_BL_COMMON_SOURCES	+=	\
 				lib/cpus/aarch32/cortex_a7.S			\
 				${XLAT_TABLES_LIB_SRCS}				\
