@@ -406,17 +406,12 @@ static void lan966x_usb_wait_txrdy(struct cdc *cdc)
 
 static bool lan966x_usb_wait_rxrdy(struct cdc *cdc)
 {
-	uint32_t timeout = 100;
-
-	VERBOSE("lan966x: %s - start waiting: %u\n", __func__, timeout);
+	VERBOSE("lan966x: %s - start waiting\n", __func__);
 	/* Wait for RXRDY indication */
 	while ((mmio_read_32(UDPHS0_UDPHS_EPTSTA0(cdc->base)) &
 		UDPHS0_UDPHS_EPTSTA0_RXRDY_TXKL_EPTSTA0_M) !=
 	       UDPHS0_UDPHS_EPTSTA0_RXRDY_TXKL_EPTSTA0_M)
-		if (--timeout == 0) {
-			VERBOSE("lan966x: %s: timeout\n", __func__);
-			break;
-		}
+		;
 	/* Clear RXRDY indication */
 	mmio_write_32(UDPHS0_UDPHS_EPTCLRSTA0(cdc->base),
 		      UDPHS0_UDPHS_EPTCLRSTA0_RXRDY_TXKL_EPTCLRSTA0(1));
@@ -539,8 +534,6 @@ static void lan966x_cdc_enumerate(struct cdc *cdc)
 				cdc, device_descriptor,
 				MIN((uint16_t)sizeof(device_descriptor),
 				    setup_data->request.w_length));
-			/* Waiting for Status stage */
-			lan966x_usb_wait_rxrdy(cdc);
 		} else if (setup_data->request.w_value ==
 			   (USB_GEN_DESC_CONFIGURATION << 8)) {
 			if (mmio_read_32(UDPHS0_UDPHS_INTSTA(cdc->base)) &
@@ -551,8 +544,6 @@ static void lan966x_cdc_enumerate(struct cdc *cdc)
 					cdc, usb_device_config,
 					MIN((uint16_t)sizeof(usb_device_config),
 					    setup_data->request.w_length));
-				/* Waiting for Status stage */
-				lan966x_usb_wait_rxrdy(cdc);
 			} else {
 				usb_other_speed_config[1] =
 					USB_GEN_DESC_CONFIGURATION;
@@ -561,8 +552,6 @@ static void lan966x_cdc_enumerate(struct cdc *cdc)
 					MIN((uint16_t)sizeof(
 						    usb_other_speed_config),
 					    setup_data->request.w_length));
-				/* Waiting for Status stage */
-				lan966x_usb_wait_rxrdy(cdc);
 			}
 		} else {
 			lan966x_usb_send_ctrlstall(cdc);
