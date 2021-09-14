@@ -109,41 +109,33 @@ static void setup_tzaes_asc(void)
 	uintptr_t tzaes_asc = LAN966X_AESB_ASC_BASE;
 
 	/*
-	 * Configure two regions of TZAESBASC with DDR address ranges
+	 * Configure ONE region of TZAESBASC with BL32 (S) address ranges
 	 */
 	tzaes_asc_region_enable(tzaes_asc, 0, false,
 				BL32_BASE,
 				BL32_LIMIT);
-
-	tzaes_asc_region_enable(tzaes_asc, 1, true,
-				PLAT_LAN966X_NS_IMAGE_BASE,
-				PLAT_LAN966X_NS_IMAGE_LIMIT);
 }
 
 void lan966x_tz_init(void)
 {
-	if (otp_read_otp_flags1_enable_ddr_encrypt()) {
-		INFO("Configuring TrustZone (with encrypted RAM)\n");
+	INFO("Configuring TrustZone (with encrypted RAM)\n");
 
-		/*
-		 * Enable TZPM for NS transactions, Otherwise all are treated
-		 * as Secure transactions in CPU subsystem
-		 */
-		mmio_write_32(TZPM_TZPM_EN(LAN966X_TZPM_BASE),
-			      TZPM_TZPM_EN_TZPM_EN(1));
+	/*
+	 * Enable TZPM for NS transactions, Otherwise all are treated
+	 * as Secure transactions in CPU subsystem
+	 */
+	mmio_write_32(TZPM_TZPM_EN(LAN966X_TZPM_BASE),
+		      TZPM_TZPM_EN_TZPM_EN(1));
 
-		/* TZASC controller */
-		setup_tzaes_asc();
+	/* TZASC controller */
+	setup_tzaes_asc();
 
-		/* NS setup */
-		setup_tzaesb(LAN966X_TZAESBNS_BASE);
+	/* NS setup */
+	setup_tzaesb(LAN966X_TZAESBNS_BASE);
 
-		/* S setup */
-		setup_tzaesb(LAN966X_TZAESBS_BASE);
+	/* S setup */
+	setup_tzaesb(LAN966X_TZAESBS_BASE);
 
-		/* NS periph access */
-		setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
-	} else {
-		INFO("TrustZone not enabled.\n");
-	}
+	/* NS periph access */
+	setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
 }

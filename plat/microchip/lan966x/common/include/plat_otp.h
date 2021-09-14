@@ -191,13 +191,6 @@
 #define OTP_SJTAG_SSK_ADDR                       384
 #define OTP_SJTAG_SSK_SIZE                       32
 
-/* OTP_FLAGS1 */
-#define OTP_FLAGS1_ADDR                          416
-#define OTP_FLAGS1_SIZE                          4
-
-/* Fields in OTP_FLAGS1 */
-#define OTP_OTP_FLAGS1_ENABLE_DDR_ENCRYPT_OFF    0
-
 /* OTP_STRAP_DISABLE_MASK */
 #define OTP_STRAP_DISABLE_MASK_ADDR              420
 #define OTP_STRAP_DISABLE_MASK_SIZE              2
@@ -267,8 +260,6 @@ otp_accessor_group_read(otp_read_otp_tbbr_huk, OTP_TBBR_HUK);
 otp_accessor_group_read(otp_read_otp_tbbr_ek, OTP_TBBR_EK);
 otp_accessor_group_read(otp_read_otp_tbbr_ssk, OTP_TBBR_SSK);
 otp_accessor_group_read(otp_read_otp_sjtag_ssk, OTP_SJTAG_SSK);
-otp_accessor_group_read(otp_read_otp_flags1, OTP_FLAGS1);
-otp_accessor_read_bool(otp_read_otp_flags1_enable_ddr_encrypt, OTP_FLAGS1, OTP_FLAGS1_ENABLE_DDR_ENCRYPT);
 otp_accessor_group_read(otp_read_otp_strap_disable_mask, OTP_STRAP_DISABLE_MASK);
 otp_accessor_group_read(otp_read_otp_tbbr_ntnvct, OTP_TBBR_NTNVCT);
 otp_accessor_group_read(otp_read_otp_tbbr_tnvct, OTP_TBBR_TNVCT);

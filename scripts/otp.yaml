@@ -416,23 +416,14 @@
   address: 0x180
   fields: []
 
-- accessor: true
-  area: 4
-  emu: true
-  name: OTP_FLAGS1
-  size: 4
-  address: 0x1A0
-  desc:
-  fields:
-  - accessor: true
-    name: OTP_FLAGS1_ENABLE_DDR_ENCRYPT
-    width: 1
-    desc: If set to one, encryption of DDR memory will be enabled. This is required
-      to achieve a fully secured system, but it as a performance penalty as it introduce
-      a longer latency to the DDR memory. Attacks based on snooping/altering the DDR
-      bus are complicated, and not all designs may require this level of protection.
-    offset: 0
-  prod_cust: true
+#- accessor: true
+#  area: 4
+#  emu: true
+#  name: OTP_FLAGS1
+#  size: 4
+#  address: 0x1A0
+#  desc:
+#  prod_cust: true
 
 - accessor: true
   area: 4
