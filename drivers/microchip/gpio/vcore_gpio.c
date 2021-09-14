@@ -163,6 +163,9 @@ static int vcore_gpio_get_pull(int gpio)
 
 void vcore_gpio_init(uintptr_t base)
 {
-	reg_base = base;
-	gpio_init(&vcore_gpio_ops);
+	/* Check if GPIO is already initialized */
+	if (reg_base != base) {
+		reg_base = base;
+		gpio_init(&vcore_gpio_ops);
+	}
 }

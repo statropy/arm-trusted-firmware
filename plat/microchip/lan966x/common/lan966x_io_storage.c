@@ -18,7 +18,6 @@
 #include <drivers/io/io_memmap.h>
 #include <drivers/io/io_storage.h>
 #include <drivers/mmc.h>
-#include <drivers/microchip/emmc.h>
 #include <drivers/partition/partition.h>
 #include <lib/mmio.h>
 #include <tools_share/firmware_image_package.h>
@@ -32,17 +31,17 @@ struct plat_io_policy {
 };
 
 static const io_dev_connector_t *fip_dev_con;
-static const io_dev_connector_t *emmc_dev_con;
+static const io_dev_connector_t *mmc_dev_con;
 static const io_dev_connector_t *memmap_dev_con;
 static uintptr_t fip_dev_handle;
-static uintptr_t emmc_dev_handle;
+static uintptr_t mmc_dev_handle;
 static uintptr_t memmap_dev_handle;
 
 #if defined(IMAGE_BL2)
-uint8_t mmc_buf[MMC_BUF_SIZE];
+static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
 #endif
 
-static const io_block_dev_spec_t emmc_dev_spec = {
+static const io_block_dev_spec_t mmc_dev_spec = {
 	.buffer = {
 #if defined(IMAGE_BL1)
 		.offset = (uintptr_t) BL1_MMC_BUF_BASE,
@@ -59,7 +58,7 @@ static const io_block_dev_spec_t emmc_dev_spec = {
 };
 
 /* Data will be fetched from the GPT */
-static io_block_spec_t fip_emmc_block_spec;
+static io_block_spec_t fip_mmc_block_spec;
 
 /* 80k BL2/SPL + 2 * 256 U-Boot Env */
 #define FLASH_FIP_OFFSET	(1024 * (80 + 2 * 256))
@@ -68,7 +67,7 @@ static const io_block_spec_t fip_qspi_block_spec = {
 	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 };
 
-static const io_block_spec_t emmc_gpt_spec = {
+static const io_block_spec_t mmc_gpt_spec = {
 	.offset	= LAN966X_GPT_BASE,
 	.length	= LAN966X_GPT_SIZE,
 };
@@ -144,15 +143,15 @@ static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 #endif /* TRUSTED_BOARD_BOOT */
 
 static int check_fip(const uintptr_t spec);
-static int check_emmc(const uintptr_t spec);
+static int check_mmc(const uintptr_t spec);
 static int check_memmap(const uintptr_t spec);
 static int check_error(const uintptr_t spec);
 
 static const struct plat_io_policy policies[] = {
 	[FIP_IMAGE_ID] = {
-		&emmc_dev_handle,
-		(uintptr_t)&fip_emmc_block_spec,
-		check_emmc
+		&mmc_dev_handle,
+		(uintptr_t)&fip_mmc_block_spec,
+		check_mmc
 	},
 	[BL2_IMAGE_ID] = {
 		&fip_dev_handle,
@@ -243,26 +242,30 @@ static const struct plat_io_policy policies[] = {
 #endif /* TRUSTED_BOARD_BOOT */
 
 	[GPT_IMAGE_ID] = {
-		&emmc_dev_handle,
-		(uintptr_t)&emmc_gpt_spec,
-		check_emmc
+		&mmc_dev_handle,
+		(uintptr_t)&mmc_gpt_spec,
+		check_mmc
 	},
 };
 
-/* Set io_policy structures for allowing boot from eMMC or QSPI */
+/* Set io_policy structures for allowing boot from MMC or QSPI */
 static const struct plat_io_policy boot_source_policies[] = {
 	[BOOT_SOURCE_EMMC] = {
-		&emmc_dev_handle,
-		(uintptr_t)&fip_emmc_block_spec,
-		check_emmc
+		&mmc_dev_handle,
+		(uintptr_t)&fip_mmc_block_spec,
+		check_mmc
 	},
 	[BOOT_SOURCE_QSPI] = {
 		&memmap_dev_handle,
 		(uintptr_t)&fip_qspi_block_spec,
 		check_memmap
 	},
-	[BOOT_SOURCE_SDMMC] = { 0, 0, check_error },
-	[BOOT_SOURCE_NONE] = { 0, 0, check_error },
+	[BOOT_SOURCE_SDMMC] = {
+		&mmc_dev_handle,
+		(uintptr_t)&fip_mmc_block_spec,
+		check_mmc
+	},
+	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
 
 static int check_fip(const uintptr_t spec)
@@ -282,16 +285,16 @@ static int check_fip(const uintptr_t spec)
 	return result;
 }
 
-static int check_emmc(const uintptr_t spec)
+static int check_mmc(const uintptr_t spec)
 {
 	int result;
 	uintptr_t local_image_handle;
 
-	result = io_dev_init(emmc_dev_handle, (uintptr_t) NULL);
+	result = io_dev_init(mmc_dev_handle, (uintptr_t) NULL);
 	if (result == 0) {
-		result = io_open(emmc_dev_handle, spec, &local_image_handle);
+		result = io_open(mmc_dev_handle, spec, &local_image_handle);
 		if (result == 0)
-			VERBOSE("Using eMMC\n");
+			VERBOSE("Using eMMC/SDMMC\n");
 			io_close(local_image_handle);
 	}
 	return result;
@@ -336,11 +339,11 @@ void lan966x_io_setup(void)
 	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
-		result = register_io_dev_block(&emmc_dev_con);
+		result = register_io_dev_block(&mmc_dev_con);
 		assert(result == 0);
 
-		result = io_dev_open(emmc_dev_con, (uintptr_t)&emmc_dev_spec,
-				     &emmc_dev_handle);
+		result = io_dev_open(mmc_dev_con, (uintptr_t)&mmc_dev_spec,
+				     &mmc_dev_handle);
 		assert(result == 0);
 
 		lan966x_set_fip_addr(GPT_IMAGE_ID, FW_PARTITION_NAME);
@@ -401,7 +404,7 @@ int lan966x_set_fip_addr(unsigned int image_id, const char *name)
 {
 	const partition_entry_t *entry;
 
-	if (fip_emmc_block_spec.length == 0) {
+	if (fip_mmc_block_spec.length == 0) {
 		partition_init(image_id);
 		entry = get_partition_entry(name);
 		if (entry == NULL) {
@@ -418,8 +421,8 @@ int lan966x_set_fip_addr(unsigned int image_id, const char *name)
 							"data\n", name);
 		}
 
-		fip_emmc_block_spec.offset = entry->start;
-		fip_emmc_block_spec.length = entry->length;
+		fip_mmc_block_spec.offset = entry->start;
+		fip_mmc_block_spec.length = entry->length;
 	}
 
 	return 0;

@@ -41,7 +41,7 @@ static console_t lan966x_console;
 
 /* Define global fw_config, set default MMC settings */
 lan966x_fw_config_t lan966x_fw_config = {
-	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, SDCLOCK_400KHZ),
+	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, MMC_INIT_SPEED),
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_MMC_BUS_WIDTH, MMC_BUS_WIDTH_1),
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 8), /* 8Mhz */
 };
@@ -343,14 +343,16 @@ uint32_t lan966x_get_boot_source(void)
 
 void lan966x_fwconfig_apply(void)
 {
+	boot_source_type boot_source = lan966x_get_boot_source();
+
 	/* Update storage drivers with new values from fw_config */
-	switch (lan966x_get_strapping()) {
-	case LAN966X_STRAP_BOOT_QSPI:
+	switch (boot_source) {
+	case BOOT_SOURCE_QSPI:
 		qspi_reinit();
 		break;
-	case LAN966X_STRAP_BOOT_MMC:
-	case LAN966X_STRAP_BOOT_SD:
-		lan966x_mmc_plat_config();
+	case BOOT_SOURCE_SDMMC:
+	case BOOT_SOURCE_EMMC:
+		lan966x_mmc_plat_config(boot_source);
 		break;
 	default:
 		break;

@@ -10,16 +10,17 @@
 #include <drivers/mmc.h>
 #include <lib/mmio.h>
 
-#define SDCLOCK_400KHZ	400000u
-#define SDCLOCK_10MHZ	10000000u
-#define SDCLOCK_25MHZ	25000000u
-#define SDCLOCK_50MHZ	50000000u
+#define MMC_INIT_SPEED		400000u
+#define SD_NORM_SPEED		25000000u
+#define SD_HIGH_SPEED		50000000u
+#define EMMC_NORM_SPEED		26000000u
+#define EMMC_HIGH_SPEED		52000000u
 
 #define SDMMC_CLK_CTRL_DIV_MODE		0
 #define SDMMC_CLK_CTRL_PROG_MODE	1
 
 #define ALL_FLAGS	(0xFFFFu)
-#define SD_STATUS_ERROR_MASK		0xFFF90008
+#define SD_CARD_SUPP_VOLT		0x00FF8000
 
 #define EMMC_POLL_LOOP_DELAY	8u	/* 8µs */
 #define EMMC_POLLING_TIMEOUT	2000000u	/* 2sec */
@@ -44,52 +45,22 @@
 #define MMC_CARD_PHY_SPEC_4_X	(4)
 #define MMC_CARD_PHY_SPEC_OLD	(5)
 
-#define SD_STATUS_CURRENT_STATE_pos		9
-#define SD_STATUS_CURRENT_STATE_msk		(0xFu << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_IDLE		(0x0u << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_READY		(0x1u << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_IDENT		(0x2u << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_STBY		(0x3u << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_TRAN		(0x4u << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_DATA		(0x5u << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_RCV		(0x6u << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_PRG		(0x7u << SD_STATUS_CURRENT_STATE_pos)
-#define SD_STATUS_CURRENT_STATE_DIS		(0x8u << SD_STATUS_CURRENT_STATE_pos)
-
 #define MMC_CARD_POWER_UP_STATUS	(0x1u << 31)
 #define MMC_CARD_ACCESS_MODE_pos	29
 #define MMC_CARD_ACCESS_MODE_msk	(0x3u << MMC_CARD_ACCESS_MODE_pos)
 #define MMC_CARD_ACCESS_MODE_BYTE	(0x0u << MMC_CARD_ACCESS_MODE_pos)
 #define MMC_CARD_ACCESS_MODE_SECTOR	(0x2u << MMC_CARD_ACCESS_MODE_pos)
 
-#define SD_STATUS_ERROR_MASK              0xFFF90008
-#define SD_CARD_STATUS_SUCCESS(s)         (0 == ((s) & SD_STATUS_ERROR_MASK))
+#define SD_STATUS_ERROR_MASK		0xFFF90008
+#define SD_CARD_STATUS_SUCCESS(s)	(0 == ((s) & SD_STATUS_ERROR_MASK))
+#define SD_STATUS_CURRENT_STATE		(0xFu << 9)
+#define SD_CARD_CCS_STATUS		(0x1u << 30)	// HCS (Host Capacity Support)
+#define SD_CARD_HCS_HIGH		(0x1u << 30)	// High capacity support by host
+#define SD_CARD_HCS_STANDARD		(0x0u << 30)	// Standard capacity support by host
 
 /****************************************************************************************/
 /*      SD Card Commands Definitions                                                    */
 /****************************************************************************************/
-
-#if 0
-#define SDMMC_CR_CMDIDX_Pos         8
-#define SDMMC_CR_CMDIDX_Msk         (0x3Fu << SDMMC_CR_CMDIDX_Pos)
-#define SDMMC_CR_CMDIDX(value)      ((SDMMC_CR_CMDIDX_Msk & ((value) << SDMMC_CR_CMDIDX_Pos)))
-#define SDMMC_CR_CMDTYP_Pos          6
-#define SDMMC_CR_CMDTYP_Msk          (0x3u << SDMMC_CR_CMDTYP_Pos)
-#define     SDMMC_CR_CMDTYP_NORMAL   (0x0u << SDMMC_CR_CMDTYP_Pos)
-#define     SDMMC_CR_CMDTYP_SUSPEND  (0x1u << SDMMC_CR_CMDTYP_Pos)
-#define     SDMMC_CR_CMDTYP_RESUME   (0x2u << SDMMC_CR_CMDTYP_Pos)
-#define     SDMMC_CR_CMDTYP_ABORT    (0x3u << SDMMC_CR_CMDTYP_Pos)
-#define SDMMC_CR_DPSEL      (0x1u << 5)
-#define SDMMC_CR_CMDICEN       (0x1u << 4)
-#define SDMMC_CR_CMDCCEN         (0x1u << 3)
-#define SDMMC_CR_RESPTYP_Pos     6
-#define SDMMC_CR_RESPTYP_Msk     (0x3u << SDMMC_CR_RESPTYP_Pos)
-#define     SDMMC_CR_RESPTYP_NORESP (0x0u << SDMMC_CR_RESPTYP_Pos)
-#define     SDMMC_CR_RESPTYP_RL136 (0x1u << SDMMC_CR_RESPTYP_Pos)
-#define     SDMMC_CR_RESPTYP_RL48  (0x2u << SDMMC_CR_RESPTYP_Pos)
-#define     SDMMC_CR_RESPTYP_RL48BUSY (0x3u << SDMMC_CR_RESPTYP_Pos)
-#endif
-
 #define SDMMC_CMD0		(SDMMC_CR_CMDIDX(0) | SDMMC_CR_CMDTYP_NORMAL | SDMMC_CR_RESPTYP_NORESP | ((SDMMC_MC1R_CMDTYP_NORMAL | SDMMC_MC1R_OPD) << 16))
 #define SDMMC_SD_CMD0		(SDMMC_CR_CMDIDX(0) | SDMMC_CR_CMDTYP_NORMAL | SDMMC_CR_RESPTYP_NORESP)
 #define SDMMC_MMC_CMD0		(SDMMC_CR_CMDIDX(0) | SDMMC_CR_CMDTYP_NORMAL | SDMMC_CR_RESPTYP_NORESP | ((SDMMC_MC1R_CMDTYP_NORMAL | SDMMC_MC1R_OPD) << 16))
@@ -176,14 +147,8 @@ typedef struct lan966x_mmc_params {
 
 typedef struct _card {
 	unsigned char card_type;
-	unsigned char card_manufacturer_id;
-	unsigned char card_application_id;
-	unsigned char card_product_name[6];
-	unsigned char card_product_revision;
-	unsigned char card_product_sn[4];
 	unsigned char card_capacity;
 	unsigned int card_taac_ns;
-	unsigned int card_trans_speed;
 	unsigned int card_nsac;
 	unsigned char card_r2w_factor;
 	unsigned char card_max_rd_blk_len;
@@ -229,8 +194,5 @@ static inline void mmc_setbits_8(uintptr_t addr, uint8_t set)
 
 void lan966x_mmc_init(lan966x_mmc_params_t * params,
 		      struct mmc_device_info *info);
-
-size_t lan966x_read_single_block(int block_number,
-				 uintptr_t dest_buffer, size_t block_size);
 
 #endif	/* EMMC_H */
