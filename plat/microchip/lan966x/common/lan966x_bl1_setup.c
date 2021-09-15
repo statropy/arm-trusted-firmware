@@ -122,11 +122,14 @@ void bl1_platform_setup(void)
 
 	/* Strapped for boot monitor? */
 	switch (lan966x_get_strapping()) {
-	case LAN966X_STRAP_SAMBA_FC0:
-	case LAN966X_STRAP_SAMBA_FC2:
-	case LAN966X_STRAP_SAMBA_FC3:
-	case LAN966X_STRAP_SAMBA_FC4:
-	case LAN966X_STRAP_SAMBA_USB:
+	case LAN966X_STRAP_BOOT_MMC_TFAMON_FC:
+	case LAN966X_STRAP_BOOT_QSPI_TFAMON_FC:
+	case LAN966X_STRAP_BOOT_SD_TFAMON_FC:
+	case LAN966X_STRAP_TFAMON_FC0:
+	case LAN966X_STRAP_TFAMON_FC2:
+	case LAN966X_STRAP_TFAMON_FC3:
+	case LAN966X_STRAP_TFAMON_FC4:
+	case LAN966X_STRAP_TFAMON_USB:
 		lan966x_bootstrap_monitor();
 		break;
 	}

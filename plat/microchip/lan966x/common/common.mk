@@ -109,9 +109,6 @@ BL2_SOURCES		+=	drivers/io/io_block.c				\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_sjtag.c
 
-# No console by default
-CONSOLE_BASE			?=	0
-
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
 
@@ -120,9 +117,6 @@ TRNG_SUPPORT			:=	1
 
 # Enable stack protection
 ENABLE_STACK_PROTECTOR	 	:= strong
-
-# Process flags
-$(eval $(call add_define,CONSOLE_BASE))
 
 ifneq (${BL2_AT_EL3}, 0)
     override BL1_SOURCES =

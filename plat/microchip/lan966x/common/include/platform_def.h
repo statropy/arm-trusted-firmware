@@ -86,6 +86,13 @@
 #define PLAT_LAN966X_NS_IMAGE_LIMIT	BL32_BASE
 
 /*
+ * Default FlexCom console
+ */
+#ifndef FC_DEFAULT
+#define FC_DEFAULT		FLEXCOM3
+#endif
+
+/*
  * Size of cacheable stacks
  */
 #if defined(IMAGE_BL1)

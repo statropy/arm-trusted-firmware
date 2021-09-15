@@ -172,53 +172,38 @@ static void lan966x_flexcom_init(int idx)
 
 void lan966x_console_init(void)
 {
-	uintptr_t flexbase = CONSOLE_BASE; /* CONSOLE_BASE is default fallback */
-
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
-	if (flexbase) {
-		switch (flexbase) {
-		case LAN966X_FLEXCOM_0_BASE:
-			lan966x_flexcom_init(FLEXCOM0);
-			break;
-		case LAN966X_FLEXCOM_2_BASE:
-			lan966x_flexcom_init(FLEXCOM2);
-			break;
-		case LAN966X_FLEXCOM_3_BASE:
-			lan966x_flexcom_init(FLEXCOM3);
-			break;
-		case LAN966X_FLEXCOM_4_BASE:
-			lan966x_flexcom_init(FLEXCOM4);
-			break;
-		default:
-			/* No default console */
-			break;
-		}
-	} else {
-		/* Override if strappings say so */
-		switch (lan966x_get_strapping()) {
-		case LAN966X_STRAP_SAMBA_FC0:
-			lan966x_flexcom_init(FLEXCOM0);
-			break;
-		case LAN966X_STRAP_SAMBA_FC2:
-			lan966x_flexcom_init(FLEXCOM2);
-			break;
-		case LAN966X_STRAP_SAMBA_FC3:
-			lan966x_flexcom_init(FLEXCOM3);
-			break;
-		case LAN966X_STRAP_SAMBA_FC4:
-			lan966x_flexcom_init(FLEXCOM4);
-			break;
-		case LAN966X_STRAP_SAMBA_USB:
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_MMC_FC:
+	case LAN966X_STRAP_BOOT_QSPI_FC:
+	case LAN966X_STRAP_BOOT_SD_FC:
+	case LAN966X_STRAP_BOOT_MMC_TFAMON_FC:
+	case LAN966X_STRAP_BOOT_QSPI_TFAMON_FC:
+	case LAN966X_STRAP_BOOT_SD_TFAMON_FC:
+		lan966x_flexcom_init(FC_DEFAULT);
+		break;
+	case LAN966X_STRAP_TFAMON_FC0:
+		lan966x_flexcom_init(FLEXCOM0);
+		break;
+	case LAN966X_STRAP_TFAMON_FC2:
+		lan966x_flexcom_init(FLEXCOM2);
+		break;
+	case LAN966X_STRAP_TFAMON_FC3:
+		lan966x_flexcom_init(FLEXCOM3);
+		break;
+	case LAN966X_STRAP_TFAMON_FC4:
+		lan966x_flexcom_init(FLEXCOM4);
+		break;
+	case LAN966X_STRAP_TFAMON_USB:
 #ifdef LAN966X_USE_USB
-			lan966x_usb_init();
-			lan966x_usb_register_console();
+		lan966x_usb_init();
+		lan966x_usb_register_console();
 #endif /* LAN966X_USE_USB */
-			break;
-		default:
-			/* No console */
-			break;
-		}
+		break;
+	default:
+		/* No console */
+		break;
 	}
 }
 
@@ -325,12 +310,18 @@ uint32_t lan966x_get_boot_source(void)
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_BOOT_MMC:
+	case LAN966X_STRAP_BOOT_MMC_FC:
+	case LAN966X_STRAP_BOOT_MMC_TFAMON_FC:
 		boot_source = BOOT_SOURCE_EMMC;
 		break;
 	case LAN966X_STRAP_BOOT_QSPI:
+	case LAN966X_STRAP_BOOT_QSPI_FC:
+	case LAN966X_STRAP_BOOT_QSPI_TFAMON_FC:
 		boot_source = BOOT_SOURCE_QSPI;
 		break;
 	case LAN966X_STRAP_BOOT_SD:
+	case LAN966X_STRAP_BOOT_SD_FC:
+	case LAN966X_STRAP_BOOT_SD_TFAMON_FC:
 		boot_source = BOOT_SOURCE_SDMMC;
 		break;
 	default:
