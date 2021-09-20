@@ -243,11 +243,6 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	mbedtls_ecp_keypair kp;
 	mbedtls_mpi r, s;
 
-	/* Signature verification success */
-	INFO("%s: Called dlen = %d, siglen = %d, sig_alg_len = %d, pk_len = %d\n",
-	     __FUNCTION__,
-	     data_len, sig_len, sig_alg_len, pk_len);
-
 	/* Verify the signature algorithm */
 	/* Get pointers to signature OID and parameters */
 	p = sig_alg;
@@ -333,9 +328,6 @@ static int verify_hash(void *data_ptr, unsigned int data_len,
 	size_t len;
 	int rc;
 
-	INFO("%s: Called dlen = %d, digest_info_len = %d\n", __FUNCTION__,
-	     data_len, digest_info_len);
-
 	/* Digest info should be an MBEDTLS_ASN1_SEQUENCE */
 	p = (unsigned char *)digest_info_ptr;
 	end = p + digest_info_len;
@@ -397,8 +389,6 @@ static int auth_decrypt(enum crypto_dec_algo dec_algo, void *data_ptr,
 	case CRYPTO_GCM_DECRYPT:
 		rc = aes_gcm_decrypt(data_ptr, len, key, key_len, iv, iv_len,
 				     tag, tag_len);
-		INFO("%s: Called len = %d, key_len = %d, flags 0x%x - ret = %d\n", __FUNCTION__,
-		     len, key_len, key_flags, rc);
 		if (rc != 0)
 			return rc;
 		break;
