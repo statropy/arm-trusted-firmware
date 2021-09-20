@@ -232,27 +232,21 @@ static bool qspi_wait_flag_clear(const uintptr_t reg,
 
 static int qspi_init_controller(void)
 {
-	uint32_t status;
-
-	/* Already initialized? */
-	status = mmio_read_32(reg_base + QSPI_SR);
-	if (status & QSPI_SR_QSPIENS) {
-		/* Disable in a failsafe way */
-		mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLOFF);
+	/* Disable in a failsafe way */
+	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLOFF);
 
 #ifdef LAN966X_ASIC
-		if (qspi_wait_flag_clear(reg_base+ QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
-			return -EIO;
+	if (qspi_wait_flag_clear(reg_base+ QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
+		return -EIO;
 #endif
 
-		/* Set DLLON and STPCAL register */
-		mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLON | QSPI_CR_STPCAL);
+	/* Set DLLON and STPCAL register */
+	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLON | QSPI_CR_STPCAL);
 
 #ifdef LAN966X_ASIC
-		if (qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
-			return -EIO;
+	if (qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
+		return -EIO;
 #endif
-	}
 
 	/* Disable QSPI controller */
 	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_QSPIDIS);
