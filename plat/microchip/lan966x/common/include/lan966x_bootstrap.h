@@ -19,6 +19,8 @@
 #define BOOTSTRAP_EXEC         'E'
 // Override strapping
 #define BOOTSTRAP_STRAP        'O'
+// Set trace log-level
+#define BOOTSTRAP_TRACE_LVL    'T'
 // Program OTP data
 #define BOOTSTRAP_OTPD         'P'
 // Program OTP random data

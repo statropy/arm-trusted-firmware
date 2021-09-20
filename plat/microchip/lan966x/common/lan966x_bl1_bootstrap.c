@@ -169,6 +169,12 @@ static void handle_send_data(const bootstrap_req_t *req)
 	VERBOSE("Received %d out of %d bytes\n", offset, length);
 }
 
+static void handle_trace_lvl(const bootstrap_req_t *req)
+{
+	bootstrap_TxAck();
+	tf_log_set_max_level(req->arg0);
+}
+
 void lan966x_bootstrap_monitor(void)
 {
 	bootstrap_req_t req;
@@ -182,14 +188,17 @@ void lan966x_bootstrap_monitor(void)
 			continue;
 		}
 
-		if (is_cmd(&req, BOOTSTRAP_CONT))
+		if (is_cmd(&req, BOOTSTRAP_CONT)) {
+			bootstrap_TxAck();
 			break;
-		else if (is_cmd(&req, BOOTSTRAP_VERS))
+		} else if (is_cmd(&req, BOOTSTRAP_VERS))
 			handle_read_rom_version(&req);
 		else if (is_cmd(&req, BOOTSTRAP_SEND))
 			handle_send_data(&req);
 		else if (is_cmd(&req, BOOTSTRAP_STRAP))
 			handle_strap(&req);
+		else if (is_cmd(&req, BOOTSTRAP_TRACE_LVL))
+			handle_trace_lvl(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPD))
 			handle_otp_data(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPR))

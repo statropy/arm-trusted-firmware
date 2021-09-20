@@ -20,6 +20,7 @@ CMD_SJTAG_RD = 'Q'
 CMD_SJTAG_WR = 'A'
 CMD_ACK  = 'a'
 CMD_NACK = 'n'
+CMD_TRACE = 'T'
 
 def read_resp(fd)
     buf = ""
@@ -86,6 +87,7 @@ end
 
 def do_cmd(cmd)
     STDOUT.write cmd
+    STDOUT.flush
     STDERR.puts "REQ '#{cmd}'"
     return read_resp(STDIN)
 end
@@ -99,12 +101,24 @@ end
 
 STDIN.sync = true
 STDOUT.sync = true
-STDERR.reopen("/var/tmp/bootstrap.txt", "w")
 
 $options = {}
 OptionParser.new do |opts|
     opts.banner = "Usage: boot-monitor.rb [options]"
     opts.version = 0.1
+
+    opts.on('-d', '--device <name>', 'Use device for communication') do |name|
+      STDOUT.reopen(name, 'wb')
+      STDIN.reopen(name, 'rb')
+    end
+
+    opts.on('-l', '--logfile <filename>', 'Use file for logging') do |filename|
+      STDERR.reopen(filename, 'w')
+    end
+
+    opts.on('-t', '--trace-level <num>', 'Set maximum trace level') do |num|
+        do_cmd(fmt_req(CMD_TRACE, num.to_i))
+    end
 
     opts.on("-b", "--binary", "Send payload in binary form") do
         $options[:binary] = true
@@ -144,7 +158,10 @@ OptionParser.new do |opts|
     end
 
     opts.on("-c", "--continue", "Do continue command") do
-        rsp = do_cmd(fmt_req(CMD_CONT))
+        do_cmd(fmt_req(CMD_CONT))
+        while (true) do
+            STDERR.putc(STDIN.read(1))
+        end
     end
 
     opts.on("-s", "--strapping <num>", "Do strapping command") do |num|
