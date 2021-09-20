@@ -219,14 +219,13 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 
 	switch (CPKCL(u2Status)) {
 	case CPKCL_OK:
-		INFO("verify: All OK\n");
 		ret = CRYPTO_SUCCESS;
 		break;
 
 	default:
 		NOTICE("verify: Unexpected rc: %0x\n", CPKCL(u2Status));
 	case CPKCL_WRONG_SIGNATURE:
-		INFO("verify: Not OK\n");
+		NOTICE("verify: Not OK\n");
 		ret = CRYPTO_ERR_SIGNATURE;
 		break;
 	}
