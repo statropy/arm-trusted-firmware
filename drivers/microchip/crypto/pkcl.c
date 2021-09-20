@@ -7,8 +7,9 @@
 #include <assert.h>
 #include <common/debug.h>
 #include <drivers/auth/crypto_mod.h>
-#include <mbedtls/ecdsa.h>
+#include <lib/mmio.h>
 #include <mbedtls/bignum.h>
+#include <mbedtls/ecdsa.h>
 #include <mbedtls/error.h>
 
 #include "inc/CryptoLib_Headers_pb.h"
@@ -55,15 +56,35 @@
 #define BASE_ECDSAV_A(a,b)              (nu1) (BASE_ECDSAV_PUBLIC_KEY_Z(a,b) + a + 4)
 #define BASE_ECDSAV_WORKSPACE(a,b)      (nu1) (BASE_ECDSAV_A(a,b) + a + 4)
 
+// CPKCCSR
+#define OffCPKCCSR		(0x00000040)
+#define PKCC_SR			(0xE0000000 + OffCPKCCSR)
+
+#define BIT_CPKCCSR_BUSY         0x00000001
+#define BIT_CPKCCSR_CACHE        0x00000002
+#define BIT_CPKCCSR_CARRY        0x00000004
+#define BIT_CPKCCSR_ZERO         0x00000008
+#define BIT_CPKCCSR_RAMV         0x00000010
+#define BIT_CPKCCSR_SHAREV       0x00000020
+#define BIT_CPKCCSR_CLRRAM_BUSY  0x00000040
+
 void pkcl_init(void)
 {
 	CPKCL_PARAM CPKCLParam;
 	PCPKCL_PARAM pvCPKCLParam = &CPKCLParam;
+
+	/* Step 1: Wait for CPKCC RAM clear */
+	while (mmio_read_32(PKCC_SR) & BIT_CPKCCSR_CLRRAM_BUSY)
+		;
+
 	// vCPKCL_Process() is a macro command which fills-in the Command field
 	// and then calls the library
 	vCPKCL_Process(SelfTest, pvCPKCLParam);
 	if (CPKCL(u2Status) == CPKCL_OK) {
 		INFO("CPKCL V: 0x%08lx\n", CPKCL_SelfTest(u4Version));
+	} else {
+		ERROR("CPKCL error: 0x%08x\n", CPKCL(u2Status));
+		panic();
 	}
 }
 
