@@ -129,7 +129,7 @@ endif
 LAN966X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
 
 ${LAN966X_FW_CONFIG}: bin/fw_param.bin scripts/otp_data.yaml
-	$(Q)./scripts/otpbin.rb -y scripts/otp_data.yaml -o $@
+	$(Q)ruby ./scripts/otpbin.rb -y scripts/otp_data.yaml -o $@
 	$(Q)cat bin/fw_param.bin >> $@
 
 # FW config
