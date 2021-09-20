@@ -175,5 +175,4 @@ void bl2_platform_setup(void)
 #if defined(LAN966X_AES_TESTS)
 	lan966x_crypto_tests();
 #endif
-	lan966x_crypto_ecdsa_tests();
 }
