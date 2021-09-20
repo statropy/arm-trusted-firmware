@@ -164,12 +164,19 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 	unsigned int timeout;
 	unsigned short new_ccr, old_ccr;
 	unsigned int clk_div, base_clock, mult_clock;
+	unsigned int state;
 
-	timeout = 0x1000;
-	while ((mmio_read_32(reg_base + SDMMC_PSR) & (SDMMC_PSR_CMDINHD | SDMMC_PSR_CMDINHC)) && --timeout > 0) ;	//Wait for transaction stop
-	if (!timeout) {
-		return 1;
-	}
+	timeout = EMMC_POLLING_VALUE;
+	do {
+		if (timeout > 0) {
+			state = mmio_read_32(reg_base + SDMMC_PSR);
+			timeout--;
+			udelay(10);
+		} else {
+			ERROR("Timeout, CMD and DATn lines not low \n");
+			return 1;
+		}
+	} while (state & (SDMMC_PSR_CMDINHD | SDMMC_PSR_CMDINHC));
 
 	/* Save current value of clock control register */
 	old_ccr = mmio_read_16(reg_base + SDMMC_CCR);
@@ -223,12 +230,16 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 	mmio_write_16(reg_base + SDMMC_CCR, new_ccr);
 
 	/* Wait for internal clock to be stable */
-	timeout = 0x100000;
-	while (((mmio_read_16(reg_base + SDMMC_CCR) & SDMMC_CCR_INTCLKS) == 0)
-	       && (--timeout > 0)) ;
-	if (!timeout) {
-		return 1;
-	}
+	timeout = EMMC_POLLING_VALUE;
+	do {
+		if (timeout > 0) {
+			state = (unsigned int)mmio_read_16(reg_base + SDMMC_CCR);
+			timeout--;
+			udelay(10);
+		} else {
+			return 1;
+		}
+	} while ((state & SDMMC_CCR_INTCLKS) == 0);
 
 	/* Enable SD clock */
 	mmc_setbits_16(reg_base + SDMMC_CCR, SDMMC_CCR_SDCLKEN);
@@ -243,6 +254,7 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 static int lan966x_host_init(void)
 {
 	unsigned int timeout;
+	unsigned int state;
 	boot_source_type boot_source;
 	lan966x_params.clk_rate = 0u;
 
@@ -265,11 +277,15 @@ static int lan966x_host_init(void)
 	mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTALL);
 
 	timeout = 0xFFFF;
-	while ((mmio_read_8(reg_base + SDMMC_SRR) & SDMMC_SRR_SWRSTALL)
-	       && ((timeout--) != 1)) ;
-	if (timeout == 0) {
-		return -1;
-	}
+	do {
+		if (timeout > 0) {
+			state = (unsigned int)mmio_read_8(reg_base + SDMMC_SRR);
+			timeout--;
+			udelay(10);
+		} else {
+			return -1;
+		}
+	} while (state & SDMMC_SRR_SWRSTALL);
 
 	/* "SD Bus Power" init. */
 	mmc_setbits_8(reg_base + SDMMC_PCR, SDMMC_PCR_SDBPWR);
@@ -287,18 +303,24 @@ static int lan966x_host_init(void)
 		mmc_setbits_8(reg_base + SDMMC_DEBR, SDMMC_DEBR_CDDVAL(3));
 
 		/* delay before read present status */
-		udelay(10000);
-
-		/* Wait for sd-card stable present bit */
-		while (!(mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_CARDSS) && ((timeout --) != 1));
-		if (timeout == 0) {
-			return -1;
-		}
+		udelay(EMMC_POLL_LOOP_DELAY);
 
 		/* Error if sd-card is not detected */
 		if (!(mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_CARDINS)) {
 			return -1;
 		}
+
+		/* Wait for sd-card stable present bit */
+		timeout = EMMC_POLLING_VALUE;
+		do {
+			if (timeout > 0) {
+				state = mmio_read_32(reg_base + SDMMC_PSR);
+				timeout--;
+				udelay(10);
+			} else {
+				return -1;
+			}
+		} while (!(state & SDMMC_PSR_CARDSS));
 	}
 
 	return 0;
@@ -513,6 +535,7 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 	unsigned short emmcRegVal, cmdRegVal;
 	unsigned int is_busy_resp, timeout, not_ready;
 	unsigned int op;
+	unsigned int state;
 
 	VERBOSE("MMC: ATF CB send_cmd() %d \n", cmd->cmd_idx);
 
@@ -524,7 +547,15 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 		timeout = 0x10000;
 		mmio_write_8(reg_base + SDMMC_SRR,
 			     (SDMMC_SRR_SWRSTCMD | SDMMC_SRR_SWRSTDAT));
-		while (mmio_read_8(reg_base + SDMMC_SRR) && --timeout > 0) ;
+		do {
+			if (timeout > 0) {
+				state = (unsigned int)mmio_read_8(reg_base + SDMMC_SRR);
+				timeout--;
+				udelay(10);
+			} else {
+				state = 0;
+			}
+		} while (state);
 
 		resetDone = true;
 	}
@@ -606,13 +637,17 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 	}
 
 	/* Wait for CMD and DATn lines becomes ready */
-	timeout = 0x1000;
-	while ((mmio_read_32(reg_base + SDMMC_PSR) & not_ready)
-	       && (--timeout > 0)) ;
-	if (!timeout) {
-		ERROR("Timeout, CMD and DATn lines not low \n");
-		return 1;
-	}
+	timeout = EMMC_POLLING_VALUE;
+	do {
+		if (timeout > 0) {
+			state = mmio_read_32(reg_base + SDMMC_PSR);
+			timeout--;
+			udelay(10);
+		} else {
+			ERROR("Timeout, CMD and DATn lines not low \n");
+			return 1;
+		}
+	} while (state & not_ready);
 
 	/* Send command */
 	emmcRegVal = mmio_read_8(reg_base + SDMMC_MC1R);
