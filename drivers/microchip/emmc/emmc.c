@@ -302,14 +302,6 @@ static int lan966x_host_init(void)
 		/* Set debounce value register and check if sd-card is inserted*/
 		mmc_setbits_8(reg_base + SDMMC_DEBR, SDMMC_DEBR_CDDVAL(3));
 
-		/* delay before read present status */
-		udelay(EMMC_POLL_LOOP_DELAY);
-
-		/* Error if sd-card is not detected */
-		if (!(mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_CARDINS)) {
-			return -1;
-		}
-
 		/* Wait for sd-card stable present bit */
 		timeout = EMMC_POLLING_VALUE;
 		do {
@@ -318,9 +310,18 @@ static int lan966x_host_init(void)
 				timeout--;
 				udelay(10);
 			} else {
+				INFO("Polling expired \n");
 				return -1;
 			}
 		} while (!(state & SDMMC_PSR_CARDSS));
+
+		INFO("Polling : %d \n", timeout );
+
+		/* Error if sd-card is not detected */
+		if (!(mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_CARDINS)) {
+			INFO("Card not detected \n");
+			return -1;
+		}
 	}
 
 	return 0;
