@@ -310,16 +310,12 @@ static int lan966x_host_init(void)
 				timeout--;
 				udelay(10);
 			} else {
-				INFO("Polling expired \n");
 				return -1;
 			}
 		} while (!(state & SDMMC_PSR_CARDSS));
 
-		INFO("Polling : %d \n", timeout );
-
 		/* Error if sd-card is not detected */
 		if (!(mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_CARDINS)) {
-			INFO("Card not detected \n");
 			return -1;
 		}
 	}
