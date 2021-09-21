@@ -47,8 +47,8 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 }
 
 int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
-                          size_t *key_len, unsigned int *flags,
-                          const uint8_t *img_id, size_t img_id_len)
+			  size_t *key_len, unsigned int *flags,
+			  const uint8_t *img_id, size_t img_id_len)
 {
 	int ret;
 	size_t otp_keylen = OTP_TBBR_SSK_SIZE;
@@ -65,7 +65,7 @@ int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
 		*flags = 0;
 	}
 
-        return 0;
+	return 0;
 }
 
 int plat_get_nv_ctr(void *cookie, unsigned int *nv_ctr)
@@ -83,7 +83,7 @@ int plat_set_nv_ctr(void *cookie, unsigned int nv_ctr)
 /*
  * This function is the implementation of the shared Mbed TLS heap between
  * BL1 and BL2 for Arm platforms. The shared heap address is passed from BL1
- * to BL2 with a pointer. This pointer is passsed in arg3.
+ * to BL2 with a structure pointer. This pointer is passsed in arg2.
  */
 int plat_get_mbedtls_heap(void **heap_addr, size_t *heap_size)
 {

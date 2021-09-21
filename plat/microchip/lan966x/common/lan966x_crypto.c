@@ -21,51 +21,51 @@
 #include "sha.h"
 #include "aes.h"
 
-#define LIB_NAME		"SAMA5 crypto core"
+#define LIB_NAME		"LAN966X crypto core"
 
-#define BYTES_TO_T_UINT_4( a, b, c, d )                       \
-    ( (mbedtls_mpi_uint) (a) <<  0 ) |                        \
-    ( (mbedtls_mpi_uint) (b) <<  8 ) |                        \
-    ( (mbedtls_mpi_uint) (c) << 16 ) |                        \
-    ( (mbedtls_mpi_uint) (d) << 24 )
+#define BYTES_TO_T_UINT_4(a, b, c, d)		\
+	((mbedtls_mpi_uint) (a) <<  0) |	\
+	((mbedtls_mpi_uint) (b) <<  8) |	\
+	((mbedtls_mpi_uint) (c) << 16) |	\
+	((mbedtls_mpi_uint) (d) << 24)
 
-#define BYTES_TO_T_UINT_8( a, b, c, d, e, f, g, h ) \
-    BYTES_TO_T_UINT_4( a, b, c, d ),                \
-    BYTES_TO_T_UINT_4( e, f, g, h )
+#define BYTES_TO_T_UINT_8(a, b, c, d, e, f, g, h)	\
+	BYTES_TO_T_UINT_4(a, b, c, d),			\
+	BYTES_TO_T_UINT_4(e, f, g, h)
 
 static const mbedtls_mpi_uint default_a[] = {
-	BYTES_TO_T_UINT_8( 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff),
-	BYTES_TO_T_UINT_8( 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00),
-	BYTES_TO_T_UINT_8( 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
-	BYTES_TO_T_UINT_8( 0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff),
+	BYTES_TO_T_UINT_8(0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff),
+	BYTES_TO_T_UINT_8(0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00),
+	BYTES_TO_T_UINT_8(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+	BYTES_TO_T_UINT_8(0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff),
 };
 
-static inline void ecp_mpi_load( mbedtls_mpi *X, const mbedtls_mpi_uint *p, size_t len )
+static inline void ecp_mpi_load(mbedtls_mpi *X, const mbedtls_mpi_uint *p, size_t len)
 {
 	X->s = 1;
-	X->n = len / sizeof( mbedtls_mpi_uint );
+	X->n = len / sizeof(mbedtls_mpi_uint);
 	X->p = (mbedtls_mpi_uint *) p;
 }
 
 static void init(void)
 {
-
 	sha_init();
 	aes_init();
 	pkcl_init();
 }
 
 static int lan966x_get_pk_alg(unsigned char **p,
-			 const unsigned char *end,
-			 mbedtls_pk_type_t *pk_alg,
-			 mbedtls_asn1_buf *params)
+			      const unsigned char *end,
+			      mbedtls_pk_type_t *pk_alg,
+			      mbedtls_asn1_buf *params)
 {
 	int ret;
 	mbedtls_asn1_buf alg_oid;
 
 	memset(params, 0, sizeof(mbedtls_asn1_buf));
 
-	if ((ret = mbedtls_asn1_get_alg(p, end, &alg_oid, params)) != 0)
+	ret = mbedtls_asn1_get_alg(p, end, &alg_oid, params);
+	if (ret != 0)
 		return ret;
 
 	if (mbedtls_oid_get_pk_alg(&alg_oid, pk_alg) != 0)
@@ -75,9 +75,9 @@ static int lan966x_get_pk_alg(unsigned char **p,
 	 * No parameters with RSA (only for EC)
 	 */
 	if (*pk_alg == MBEDTLS_PK_RSA &&
-            ((params->tag != MBEDTLS_ASN1_NULL && params->tag != 0) ||
+	    ((params->tag != MBEDTLS_ASN1_NULL && params->tag != 0) ||
 	     params->len != 0))
-		return ret;
+		return MBEDTLS_ERR_PK_INVALID_ALG;
 
 	return 0;
 }
@@ -95,16 +95,17 @@ static int lan966x_use_ecparams(const mbedtls_asn1_buf *params, mbedtls_ecp_grou
 	}
 
 	/*
-	 * grp may already be initilialized; if so, make sure IDs match
+	 * grp may already be initialized; if so, make sure IDs match
 	 */
 	if (grp->id != MBEDTLS_ECP_DP_NONE && grp->id != grp_id)
 		return MBEDTLS_ERR_PK_KEY_INVALID_FORMAT;
 
-	if ((ret = mbedtls_ecp_group_load(grp, grp_id)) != 0)
+	ret = mbedtls_ecp_group_load(grp, grp_id);
+	if (ret != 0)
 		return ret;
 
-	if( grp->A.p == NULL )
-		ecp_mpi_load( &grp->A, default_a, sizeof(default_a));
+	if (grp->A.p == NULL)
+		ecp_mpi_load(&grp->A, default_a, sizeof(default_a));
 
 	return 0;
 }
@@ -116,7 +117,7 @@ static int lan966x_get_ecpubkey(unsigned char **p,
 	int ret;
 
 	if ((ret = mbedtls_ecp_point_read_binary(&key->grp, &key->Q,
-						   (const unsigned char *) *p, end - *p)) == 0)
+						 (const unsigned char *) *p, end - *p)) == 0)
 		ret = mbedtls_ecp_check_pubkey(&key->grp, &key->Q);
 
 	/*
@@ -151,10 +152,12 @@ static int lan966x_pk_parse_subpubkey(unsigned char **p,
 
 	end = *p + len;
 
-	if ((ret = lan966x_get_pk_alg(p, end, &pk_alg, &alg_params)) != 0)
+	ret = lan966x_get_pk_alg(p, end, &pk_alg, &alg_params);
+	if (ret != 0)
 		return ret;
 
-	if ((ret = mbedtls_asn1_get_bitstring_null(p, end, &len)) != 0)
+	ret = mbedtls_asn1_get_bitstring_null(p, end, &len);
+	if (ret != 0)
 		return ret;
 
 	if (*p + len != end)
@@ -183,19 +186,19 @@ static int lan966x_ecdsa_read_signature(const unsigned char *sig,
 	const unsigned char *end = sig + slen;
 	size_t len;
 
-	mbedtls_mpi_init( r );
-	mbedtls_mpi_init( s );
+	mbedtls_mpi_init(r);
+	mbedtls_mpi_init(s);
 
-	if( ( ret = mbedtls_asn1_get_tag( &p, end, &len,
-					  MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) ) != 0 )
+	if ((ret = mbedtls_asn1_get_tag(&p, end, &len,
+					MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0)
 		return ret += MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
 
-	if( p + len != end )
+	if (p + len != end)
 		return ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA +
 			MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
 
-	if( ( ret = mbedtls_asn1_get_mpi( &p, end, r ) ) != 0 ||
-	    ( ret = mbedtls_asn1_get_mpi( &p, end, s ) ) != 0 )
+	if ((ret = mbedtls_asn1_get_mpi(&p, end, r)) != 0 ||
+	    (ret = mbedtls_asn1_get_mpi(&p, end, s)) != 0)
 		ret += MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
 
 	return ret;
@@ -224,14 +227,14 @@ static inline lan966x_sha_type_t lan966x_shatype(const mbedtls_md_info_t *md_inf
  * Verify a signature.
  *
  * Parameters are passed using the DER encoding format following the ASN.1
- * structures detailed above.
+ * structures of the associated certificates.
  */
 static int verify_signature(void *data_ptr, unsigned int data_len,
 			    void *sig_ptr, unsigned int sig_len,
 			    void *sig_alg, unsigned int sig_alg_len,
 			    void *pk_ptr, unsigned int pk_len)
 {
-	int rc;
+	int ret;
 	mbedtls_asn1_buf sig_oid, sig_params;
 	mbedtls_asn1_buf signature;
 	mbedtls_md_type_t md_alg;
@@ -247,28 +250,28 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	/* Get pointers to signature OID and parameters */
 	p = sig_alg;
 	end = p + sig_alg_len;
-	rc = mbedtls_asn1_get_alg(&p, end, &sig_oid, &sig_params);
-	if (rc != 0)
+	ret = mbedtls_asn1_get_alg(&p, end, &sig_oid, &sig_params);
+	if (ret != 0)
 		return CRYPTO_ERR_SIGNATURE;
 
 	/* Get the actual signature algorithm (MD + PK) */
-	rc = mbedtls_x509_get_sig_alg(&sig_oid, &sig_params, &md_alg, &pk_alg, &sig_opts);
-	if (rc != 0) {
+	ret = mbedtls_x509_get_sig_alg(&sig_oid, &sig_params, &md_alg, &pk_alg, &sig_opts);
+	if (ret != 0) {
 		return CRYPTO_ERR_SIGNATURE;
 	}
 
 	/* General case: no options */
 	if (sig_opts != NULL) {
-		rc = CRYPTO_ERR_SIGNATURE;
+		ret = CRYPTO_ERR_SIGNATURE;
 		goto end2;
 	}
 
 	p = (unsigned char *)pk_ptr;
 	end = (unsigned char *)(p + pk_len);
 	mbedtls_ecp_keypair_init(&kp);
-	rc = lan966x_pk_parse_subpubkey(&p, end, &kp);
-	if (rc != 0) {
-		rc = CRYPTO_ERR_SIGNATURE;
+	ret = lan966x_pk_parse_subpubkey(&p, end, &kp);
+	if (ret != 0) {
+		ret = CRYPTO_ERR_SIGNATURE;
 		goto end2;
 	}
 
@@ -276,9 +279,9 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	p = (unsigned char *)sig_ptr;
 	end = (unsigned char *)(p + sig_len);
 	signature.tag = *p;
-	rc = mbedtls_asn1_get_bitstring_null(&p, end, &signature.len);
-	if (rc != 0) {
-		rc = CRYPTO_ERR_SIGNATURE;
+	ret = mbedtls_asn1_get_bitstring_null(&p, end, &signature.len);
+	if (ret != 0) {
+		ret = CRYPTO_ERR_SIGNATURE;
 		goto end1;
 	}
 	signature.p = p;
@@ -286,30 +289,30 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	/* Calculate the hash of the data */
 	md_info = mbedtls_md_info_from_type(md_alg);
 	if (md_info == NULL) {
-		rc = CRYPTO_ERR_SIGNATURE;
+		ret = CRYPTO_ERR_SIGNATURE;
 		goto end1;
 	}
-	rc = sha_calc(lan966x_shatype(md_info), data_ptr, data_len, hash);
-	if (rc != 0) {
-		rc = CRYPTO_ERR_SIGNATURE;
+	ret = sha_calc(lan966x_shatype(md_info), data_ptr, data_len, hash);
+	if (ret != 0) {
+		ret = CRYPTO_ERR_SIGNATURE;
 		goto end1;
 	}
 
 	if (lan966x_ecdsa_read_signature(signature.p, signature.len, &r, &s) == 0)
-		rc = pkcl_ecdsa_verify_signature(pk_alg, &kp, &r, &s,
-						 hash, mbedtls_md_get_size(md_info));
+		ret = pkcl_ecdsa_verify_signature(pk_alg, &kp, &r, &s,
+						  hash, mbedtls_md_get_size(md_info));
 	else
-		rc = CRYPTO_ERR_SIGNATURE;
+		ret = CRYPTO_ERR_SIGNATURE;
 
-	mbedtls_mpi_free( &r );
-	mbedtls_mpi_free( &s );
+	mbedtls_mpi_free(&r);
+	mbedtls_mpi_free(&s);
 end1:
 	mbedtls_ecp_keypair_free(&kp);
 
 end2:
 	mbedtls_free(sig_opts);
 
-	return rc;
+	return ret;
 }
 
 /*
@@ -326,25 +329,25 @@ static int verify_hash(void *data_ptr, unsigned int data_len,
 	const mbedtls_md_info_t *md_info;
 	unsigned char *p, *end, *hash;
 	size_t len;
-	int rc;
+	int ret;
 
 	/* Digest info should be an MBEDTLS_ASN1_SEQUENCE */
 	p = (unsigned char *)digest_info_ptr;
 	end = p + digest_info_len;
-	rc = mbedtls_asn1_get_tag(&p, end, &len, MBEDTLS_ASN1_CONSTRUCTED |
-				  MBEDTLS_ASN1_SEQUENCE);
-	if (rc != 0) {
+	ret = mbedtls_asn1_get_tag(&p, end, &len, MBEDTLS_ASN1_CONSTRUCTED |
+				   MBEDTLS_ASN1_SEQUENCE);
+	if (ret != 0) {
 		return CRYPTO_ERR_HASH;
 	}
 
 	/* Get the hash algorithm */
-	rc = mbedtls_asn1_get_alg(&p, end, &hash_oid, &params);
-	if (rc != 0) {
+	ret = mbedtls_asn1_get_alg(&p, end, &hash_oid, &params);
+	if (ret != 0) {
 		return CRYPTO_ERR_HASH;
 	}
 
-	rc = mbedtls_oid_get_md_alg(&hash_oid, &md_alg);
-	if (rc != 0) {
+	ret = mbedtls_oid_get_md_alg(&hash_oid, &md_alg);
+	if (ret != 0) {
 		return CRYPTO_ERR_HASH;
 	}
 
@@ -354,8 +357,8 @@ static int verify_hash(void *data_ptr, unsigned int data_len,
 	}
 
 	/* Hash should be octet string type */
-	rc = mbedtls_asn1_get_tag(&p, end, &len, MBEDTLS_ASN1_OCTET_STRING);
-	if (rc != 0) {
+	ret = mbedtls_asn1_get_tag(&p, end, &len, MBEDTLS_ASN1_OCTET_STRING);
+	if (ret != 0) {
 		return CRYPTO_ERR_HASH;
 	}
 
@@ -366,10 +369,10 @@ static int verify_hash(void *data_ptr, unsigned int data_len,
 	hash = p;
 
 	/* Calculate & check the hash of the data */
-	rc = sha_verify(lan966x_shatype(md_info), data_ptr, data_len,
-			hash, len);
+	ret = sha_verify(lan966x_shatype(md_info), data_ptr, data_len,
+			 hash, len);
 
-	return rc;
+	return ret;
 }
 
 /*
@@ -381,16 +384,16 @@ static int auth_decrypt(enum crypto_dec_algo dec_algo, void *data_ptr,
 			unsigned int iv_len, const void *tag,
 			unsigned int tag_len)
 {
-	int rc;
+	int ret;
 
 	assert((key_flags & ENC_KEY_IS_IDENTIFIER) == 0);
 
 	switch (dec_algo) {
 	case CRYPTO_GCM_DECRYPT:
-		rc = aes_gcm_decrypt(data_ptr, len, key, key_len, iv, iv_len,
-				     tag, tag_len);
-		if (rc != 0)
-			return rc;
+		ret = aes_gcm_decrypt(data_ptr, len, key, key_len, iv, iv_len,
+				      tag, tag_len);
+		if (ret != 0)
+			return ret;
 		break;
 	default:
 		return CRYPTO_ERR_DECRYPTION;

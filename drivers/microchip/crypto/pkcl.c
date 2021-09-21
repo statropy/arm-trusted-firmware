@@ -19,42 +19,42 @@
 
 #define PKCL_RAM_OFFSET 0x1000
 
-#define NEARTOFAR(x) ((void*)(LAN996X_PKCL_RAM_BASE - PKCL_RAM_OFFSET + (x)))
+#define NEARTOFAR(x) ((void *)(LAN996X_PKCL_RAM_BASE - PKCL_RAM_OFFSET + (x)))
 
 //******************************************************************************
 // Memory mapping for ECDSA signature
 //******************************************************************************
-#define BASE_ECDSA_MODULO(a,b)          (nu1) PKCL_RAM_OFFSET
-#define BASE_ECDSA_CNS(a,b)             (nu1) (BASE_ECDSA_MODULO(a,b) + a + 4)
-#define BASE_ECDSA_POINT_A(a,b)         (nu1) (BASE_ECDSA_CNS(a,b) + b + 12)
-#define BASE_ECDSA_POINT_A_X(a,b)       (nu1) (BASE_ECDSA_POINT_A(a,b))
-#define BASE_ECDSA_POINT_A_Y(a,b)       (nu1) (BASE_ECDSA_POINT_A_X(a,b) + a + 4)
-#define BASE_ECDSA_POINT_A_Z(a,b)       (nu1) (BASE_ECDSA_POINT_A_Y(a,b) + a + 4)
-#define BASE_ECDSA_A(a,b)               (nu1) (BASE_ECDSA_POINT_A_Z(a,b) + a + 4)
-#define BASE_PRIVATE_KEY(a,b)           (nu1) (BASE_ECDSA_A(a,b) + a + 4)
-#define BASE_ECDSA_SCALAR(a,b)          (nu1) (BASE_PRIVATE_KEY(a,b) + b + 4)
-#define BASE_ECDSA_ORDER(a,b)           (nu1) (BASE_ECDSA_SCALAR(a,b) + b + 4)
-#define BASE_ECDSA_HASH(a,b)            (nu1) (BASE_ECDSA_ORDER(a,b) + b + 4)
-#define BASE_ECDSA_WORKSPACE(a,b)       (nu1) (BASE_ECDSA_HASH(a,b) + b + 4)
+#define BASE_ECDSA_MODULO(a, b)          (nu1) PKCL_RAM_OFFSET
+#define BASE_ECDSA_CNS(a, b)             (nu1) (BASE_ECDSA_MODULO(a, b) + a + 4)
+#define BASE_ECDSA_POINT_A(a, b)         (nu1) (BASE_ECDSA_CNS(a, b) + b + 12)
+#define BASE_ECDSA_POINT_A_X(a, b)       (nu1) (BASE_ECDSA_POINT_A(a, b))
+#define BASE_ECDSA_POINT_A_Y(a, b)       (nu1) (BASE_ECDSA_POINT_A_X(a, b) + a + 4)
+#define BASE_ECDSA_POINT_A_Z(a, b)       (nu1) (BASE_ECDSA_POINT_A_Y(a, b) + a + 4)
+#define BASE_ECDSA_A(a, b)               (nu1) (BASE_ECDSA_POINT_A_Z(a, b) + a + 4)
+#define BASE_PRIVATE_KEY(a, b)           (nu1) (BASE_ECDSA_A(a, b) + a + 4)
+#define BASE_ECDSA_SCALAR(a, b)          (nu1) (BASE_PRIVATE_KEY(a, b) + b + 4)
+#define BASE_ECDSA_ORDER(a, b)           (nu1) (BASE_ECDSA_SCALAR(a, b) + b + 4)
+#define BASE_ECDSA_HASH(a, b)            (nu1) (BASE_ECDSA_ORDER(a, b) + b + 4)
+#define BASE_ECDSA_WORKSPACE(a, b)       (nu1) (BASE_ECDSA_HASH(a, b) + b + 4)
 
 //******************************************************************************
 // Memory mapping for ECDSA signature verification
 //******************************************************************************
-#define BASE_ECDSAV_MODULO(a,b)         (nu1) PKCL_RAM_OFFSET
-#define BASE_ECDSAV_CNS(a,b)            (nu1) (BASE_ECDSAV_MODULO(a,b) + a + 4)
-#define BASE_ECDSAV_ORDER(a,b)          (nu1) (BASE_ECDSAV_CNS(a,b) + b + 12)
-#define BASE_ECDSAV_SIGNATURE(a,b)      (nu1) (BASE_ECDSAV_ORDER(a,b) + b + 8)
-#define BASE_ECDSAV_HASH(a,b)           (nu1) (BASE_ECDSAV_SIGNATURE(a,b) + 2*b + 8)
-#define BASE_ECDSAV_POINT_A(a,b)        (nu1) (BASE_ECDSAV_HASH(a,b) + b + 4)
-#define BASE_ECDSAV_POINT_A_X(a,b)      (nu1) (BASE_ECDSAV_POINT_A(a,b))
-#define BASE_ECDSAV_POINT_A_Y(a,b)      (nu1) (BASE_ECDSAV_POINT_A_X(a,b) + a + 4)
-#define BASE_ECDSAV_POINT_A_Z(a,b)      (nu1) (BASE_ECDSAV_POINT_A_Y(a,b) + a + 4)
-#define BASE_ECDSAV_PUBLIC_KEY(a,b)     (nu1) (BASE_ECDSAV_POINT_A_Z(a,b) + a + 4)
-#define BASE_ECDSAV_PUBLIC_KEY_X(a,b)   (nu1) (BASE_ECDSAV_PUBLIC_KEY(a,b))
-#define BASE_ECDSAV_PUBLIC_KEY_Y(a,b)   (nu1) (BASE_ECDSAV_PUBLIC_KEY_X(a,b) + a + 4)
-#define BASE_ECDSAV_PUBLIC_KEY_Z(a,b)   (nu1) (BASE_ECDSAV_PUBLIC_KEY_Y(a,b) + a + 4)
-#define BASE_ECDSAV_A(a,b)              (nu1) (BASE_ECDSAV_PUBLIC_KEY_Z(a,b) + a + 4)
-#define BASE_ECDSAV_WORKSPACE(a,b)      (nu1) (BASE_ECDSAV_A(a,b) + a + 4)
+#define BASE_ECDSAV_MODULO(a, b)         (nu1) PKCL_RAM_OFFSET
+#define BASE_ECDSAV_CNS(a, b)            (nu1) (BASE_ECDSAV_MODULO(a, b) + a + 4)
+#define BASE_ECDSAV_ORDER(a, b)          (nu1) (BASE_ECDSAV_CNS(a, b) + b + 12)
+#define BASE_ECDSAV_SIGNATURE(a, b)      (nu1) (BASE_ECDSAV_ORDER(a, b) + b + 8)
+#define BASE_ECDSAV_HASH(a, b)           (nu1) (BASE_ECDSAV_SIGNATURE(a, b) + 2*b + 8)
+#define BASE_ECDSAV_POINT_A(a, b)        (nu1) (BASE_ECDSAV_HASH(a, b) + b + 4)
+#define BASE_ECDSAV_POINT_A_X(a, b)      (nu1) (BASE_ECDSAV_POINT_A(a, b))
+#define BASE_ECDSAV_POINT_A_Y(a, b)      (nu1) (BASE_ECDSAV_POINT_A_X(a, b) + a + 4)
+#define BASE_ECDSAV_POINT_A_Z(a, b)      (nu1) (BASE_ECDSAV_POINT_A_Y(a, b) + a + 4)
+#define BASE_ECDSAV_PUBLIC_KEY(a, b)     (nu1) (BASE_ECDSAV_POINT_A_Z(a, b) + a + 4)
+#define BASE_ECDSAV_PUBLIC_KEY_X(a, b)   (nu1) (BASE_ECDSAV_PUBLIC_KEY(a, b))
+#define BASE_ECDSAV_PUBLIC_KEY_Y(a, b)   (nu1) (BASE_ECDSAV_PUBLIC_KEY_X(a, b) + a + 4)
+#define BASE_ECDSAV_PUBLIC_KEY_Z(a, b)   (nu1) (BASE_ECDSAV_PUBLIC_KEY_Y(a, b) + a + 4)
+#define BASE_ECDSAV_A(a, b)              (nu1) (BASE_ECDSAV_PUBLIC_KEY_Z(a, b) + a + 4)
+#define BASE_ECDSAV_WORKSPACE(a, b)      (nu1) (BASE_ECDSAV_A(a, b) + a + 4)
 
 // CPKCCSR
 #define OffCPKCCSR		(0x00000040)
@@ -130,20 +130,20 @@ void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
 	CPKCL(u2Option) = 0;
 
 	/* Zero out parameter memory */
-	beg = BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize);
-	end = BASE_ECDSAV_WORKSPACE(u2ModuloPSize,u2OrderSize);
+	beg = BASE_ECDSAV_MODULO(u2ModuloPSize, u2OrderSize);
+	end = BASE_ECDSAV_WORKSPACE(u2ModuloPSize, u2OrderSize);
 	memset(NEARTOFAR(beg), 0, end - beg);
 
 	/* Copies the signature into appropriate memory area */
 	// Take care of the input signature format (???)
 	/* Copy R, S with 4 bytes zero spacing */
-	beg = BASE_ECDSAV_SIGNATURE(u2ModuloPSize,u2OrderSize);
+	beg = BASE_ECDSAV_SIGNATURE(u2ModuloPSize, u2OrderSize);
 	cpy_mpi(beg, r);
 	beg += u2OrderSize + 4;
 	cpy_mpi(beg, s);
 
 	/* Hash (byteorder?) */
-	beg = BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize);
+	beg = BASE_ECDSAV_HASH(u2ModuloPSize, u2OrderSize);
 	cpy_mpi(beg, h);
 
 	/* Mapping of mbedtls to PKCL:
@@ -163,28 +163,28 @@ void pkcl_ecdsa_verify_setup(PCPKCL_PARAM pvCPKCLParam,
 	*/
 
 	/* Copy in parameters */
-	cpy_mpi(BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize), &pubkey->grp.P);
-	cpy_mpi(BASE_ECDSAV_POINT_A_X(u2ModuloPSize,u2OrderSize), &pubkey->grp.G.X);
-	cpy_mpi(BASE_ECDSAV_POINT_A_Y(u2ModuloPSize,u2OrderSize), &pubkey->grp.G.Y);
-	cpy_mpi(BASE_ECDSAV_POINT_A_Z(u2ModuloPSize,u2OrderSize), &pubkey->grp.G.Z);
-	cpy_mpi(BASE_ECDSAV_A(u2ModuloPSize,u2OrderSize), &pubkey->grp.A);
-	cpy_mpi(BASE_ECDSAV_ORDER(u2ModuloPSize,u2OrderSize), &pubkey->grp.N);
-	cpy_mpi(BASE_ECDSAV_PUBLIC_KEY_X(u2ModuloPSize,u2OrderSize), &pubkey->Q.X);
-	cpy_mpi(BASE_ECDSAV_PUBLIC_KEY_Y(u2ModuloPSize,u2OrderSize), &pubkey->Q.Y);
-	cpy_mpi(BASE_ECDSAV_PUBLIC_KEY_Z(u2ModuloPSize,u2OrderSize), &pubkey->Q.Z);
+	cpy_mpi(BASE_ECDSAV_MODULO(u2ModuloPSize, u2OrderSize), &pubkey->grp.P);
+	cpy_mpi(BASE_ECDSAV_POINT_A_X(u2ModuloPSize, u2OrderSize), &pubkey->grp.G.X);
+	cpy_mpi(BASE_ECDSAV_POINT_A_Y(u2ModuloPSize, u2OrderSize), &pubkey->grp.G.Y);
+	cpy_mpi(BASE_ECDSAV_POINT_A_Z(u2ModuloPSize, u2OrderSize), &pubkey->grp.G.Z);
+	cpy_mpi(BASE_ECDSAV_A(u2ModuloPSize, u2OrderSize), &pubkey->grp.A);
+	cpy_mpi(BASE_ECDSAV_ORDER(u2ModuloPSize, u2OrderSize), &pubkey->grp.N);
+	cpy_mpi(BASE_ECDSAV_PUBLIC_KEY_X(u2ModuloPSize, u2OrderSize), &pubkey->Q.X);
+	cpy_mpi(BASE_ECDSAV_PUBLIC_KEY_Y(u2ModuloPSize, u2OrderSize), &pubkey->Q.Y);
+	cpy_mpi(BASE_ECDSAV_PUBLIC_KEY_Z(u2ModuloPSize, u2OrderSize), &pubkey->Q.Z);
 
 	// Ask for a Verify generation
 	CPKCL_ZpEcDsaVerify(u2ModLength)          = u2ModuloPSize;
 	CPKCL_ZpEcDsaVerify(u2ScalarLength)       = u2OrderSize;
-	CPKCL_ZpEcDsaVerify(nu1ModBase)           = BASE_ECDSAV_MODULO(u2ModuloPSize,u2OrderSize);
-	CPKCL_ZpEcDsaVerify(nu1CnsBase)           = BASE_ECDSAV_CNS(u2ModuloPSize,u2OrderSize);
-	CPKCL_ZpEcDsaVerify(nu1PointABase)        = BASE_ECDSAV_POINT_A(u2ModuloPSize,u2OrderSize);
-	CPKCL_ZpEcDsaVerify(nu1PointPublicKeyGen) = BASE_ECDSAV_PUBLIC_KEY(u2ModuloPSize,u2OrderSize);
-	CPKCL_ZpEcDsaVerify(nu1PointSignature)    = BASE_ECDSAV_SIGNATURE(u2ModuloPSize,u2OrderSize);
-	CPKCL_ZpEcDsaVerify(nu1OrderPointBase)    = BASE_ECDSAV_ORDER(u2ModuloPSize,u2OrderSize);
-	CPKCL_ZpEcDsaVerify(nu1ABase)             = BASE_ECDSAV_A(u2ModuloPSize,u2OrderSize);
-	CPKCL_ZpEcDsaVerify(nu1Workspace)         = BASE_ECDSAV_WORKSPACE(u2ModuloPSize,u2OrderSize);
-	CPKCL_ZpEcDsaVerify(nu1HashBase)          = BASE_ECDSAV_HASH(u2ModuloPSize,u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1ModBase)           = BASE_ECDSAV_MODULO(u2ModuloPSize, u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1CnsBase)           = BASE_ECDSAV_CNS(u2ModuloPSize, u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1PointABase)        = BASE_ECDSAV_POINT_A(u2ModuloPSize, u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1PointPublicKeyGen) = BASE_ECDSAV_PUBLIC_KEY(u2ModuloPSize, u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1PointSignature)    = BASE_ECDSAV_SIGNATURE(u2ModuloPSize, u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1OrderPointBase)    = BASE_ECDSAV_ORDER(u2ModuloPSize, u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1ABase)             = BASE_ECDSAV_A(u2ModuloPSize, u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1Workspace)         = BASE_ECDSAV_WORKSPACE(u2ModuloPSize, u2OrderSize);
+	CPKCL_ZpEcDsaVerify(nu1HashBase)          = BASE_ECDSAV_HASH(u2ModuloPSize, u2OrderSize);
 }
 
 int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
@@ -199,17 +199,17 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 
 	/* Only ECDSA signature */
 	if (type != MBEDTLS_PK_ECDSA) {
-		INFO("verify: Want ECDSA only\n");
+		ERROR("verify: Want ECDSA only\n");
 		return CRYPTO_ERR_SIGNATURE;
 	}
 
 	if (pubkey->grp.id != MBEDTLS_ECP_DP_SECP256R1) {
-		NOTICE("verify: Want ECDSA group secp256r1\n");
+		ERROR("verify: Want ECDSA group secp256r1\n");
 		return CRYPTO_ERR_SIGNATURE;
 	}
 
 	if (derive_mpi(&pubkey->grp, &h, hash, hash_len)) {
-		NOTICE("verify: Unable to derive hash MPI\n");
+		ERROR("verify: Unable to derive hash MPI\n");
 		return CRYPTO_ERR_SIGNATURE;
 	}
 
@@ -223,9 +223,9 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 		break;
 
 	default:
-		NOTICE("verify: Unexpected rc: %0x\n", CPKCL(u2Status));
+		ERROR("verify: Unexpected rc: %0x\n", CPKCL(u2Status));
 	case CPKCL_WRONG_SIGNATURE:
-		NOTICE("verify: Not OK\n");
+		ERROR("verify: Not OK\n");
 		ret = CRYPTO_ERR_SIGNATURE;
 		break;
 	}

@@ -39,17 +39,17 @@ static const uint32_t base = LAN966X_AES_BASE;
 
 static uint32_t unaligned_get32(const void *p)
 {
-        const uint8_t *bp = (const uint8_t *)p;
+	const uint8_t *bp = (const uint8_t *)p;
 
-        return ((uint32_t)bp[3] << 24)
-                | ((uint32_t)bp[2] << 16)
-                | ((uint32_t)bp[1] << 8)
-                | bp[0];
+	return ((uint32_t)bp[3] << 24)
+		| ((uint32_t)bp[2] << 16)
+		| ((uint32_t)bp[1] << 8)
+		| bp[0];
 }
 
 static void unaligned_put32(void *p, uint32_t w)
 {
-        uint8_t *bp = (uint8_t *)p;
+	uint8_t *bp = (uint8_t *)p;
 
 	bp[0] = w;
 	bp[1] = w >> 8;
@@ -71,13 +71,10 @@ static uint32_t aes_wait_flag(uint32_t mask)
 			s = mmio_read_32(AES_AES_WPSR(base));
 			WARN("WPSR: %08x\n", s);
 		}
-		/* Hummmm */
-		//udelay(1);
 	}
 
 	assert(tmo > 0);
 
-	//VERBOSE("Wait(%d): %08x\n", tmo, s);
 	return s;
 }
 
@@ -148,6 +145,7 @@ static void aes_decrypt(uint8_t *data, size_t len)
 		/* Get output data */
 		for (i = 0; i < nw; i++) {
 			uint32_t w = mmio_read_32(AES_AES_ODATAR(base, i));
+
 			unaligned_put32(data + (i * 4), w);
 		}
 
@@ -166,6 +164,7 @@ static int aes_check_tag(const uint8_t *tag, size_t tag_len)
 	(void) aes_wait_flag(AES_AES_ISR_TAGRDY_ISR(1));
 	for (i = 0; i < 4; i++) {
 		uint32_t w = mmio_read_32(AES_AES_TAGR(base, i));
+
 		unaligned_put32(tag_buf + (i * 4), w);
 	}
 
