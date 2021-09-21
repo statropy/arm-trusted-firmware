@@ -450,3 +450,29 @@ int lan966x_derive_key(const lan966x_key32_t *in,
 
 	return ret;
 }
+
+/*
+ * Some release build strapping modes will only show error traces by default
+ */
+void lan966x_set_max_trace_level(void)
+{
+#if !DEBUG
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_MMC:
+	case LAN966X_STRAP_BOOT_QSPI:
+	case LAN966X_STRAP_BOOT_SD:
+	case LAN966X_STRAP_PCIE_ENDPOINT:
+	case LAN966X_STRAP_TFAMON_FC0:
+	case LAN966X_STRAP_TFAMON_FC2:
+	case LAN966X_STRAP_TFAMON_FC3:
+	case LAN966X_STRAP_TFAMON_FC4:
+	case LAN966X_STRAP_TFAMON_USB:
+	case LAN966X_STRAP_SPI_SLAVE:
+		tf_log_set_max_level(LOG_LEVEL_ERROR);
+		break;
+	default:
+		/* No change in trace level */
+		break;
+	}
+#endif
+}

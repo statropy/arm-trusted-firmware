@@ -65,6 +65,7 @@ typedef enum {
 
 uint8_t lan966x_get_strapping(void);
 void lan966x_set_strapping(uint8_t value);
+void lan966x_set_max_trace_level(void);
 
 void lan966x_bootstrap_monitor(void);
 void lan966x_console_init(void);

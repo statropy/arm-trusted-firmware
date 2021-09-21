@@ -58,6 +58,9 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 
 void bl1_early_platform_setup(void)
 {
+	/* Limit trace level if needed */
+	lan966x_set_max_trace_level();
+
 	/* Console */
 	lan966x_console_init();
 
