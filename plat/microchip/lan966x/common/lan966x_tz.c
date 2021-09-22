@@ -114,6 +114,10 @@ static void setup_tzaes_asc(void)
 	tzaes_asc_region_enable(tzaes_asc, 0, false,
 				BL32_BASE,
 				BL32_LIMIT);
+
+	tzaes_asc_region_enable(tzaes_asc, 1, true,
+				PLAT_LAN966X_NS_IMAGE_BASE,
+				PLAT_LAN966X_NS_IMAGE_LIMIT);
 }
 
 void lan966x_tz_init(void)
