@@ -3,6 +3,7 @@
 require 'fileutils'
 require 'optparse'
 require 'yaml'
+require 'digest'
 require 'pp'
 
 platforms = {
@@ -11,9 +12,17 @@ platforms = {
     "lan966x_b0"	=> Hash[ :uboot =>  "u-boot-lan966x_evb_atf.bin", :bl2_at_el3 => false ],
 }
 
+bssk_derive_key = [
+		0x80, 0x66, 0xae, 0x0a, 0x98, 0x8c, 0xf1, 0x64,
+		0x8c, 0x55, 0x76, 0x02, 0xd3, 0xe7, 0x9e, 0x92,
+		0x2c, 0x37, 0x00, 0x7f, 0xd6, 0x43, 0x9d, 0x16,
+		0x94, 0xdd, 0x46, 0x2a, 0xcc, 0x61, 0xb5, 0x5d,
+]
+
 $option = { :platform	=> "lan966x_sr",
              :loglevel	=> 40,
              :tbbr	=> true,
+             :encrypt	=> false,
              :debug	=> true,
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
@@ -40,6 +49,14 @@ OptionParser.new do |opts|
     end
     opts.on("-t", "--[no-]tbbr", "Enable/disable TBBR") do |v|
         $option[:tbbr] = v
+    end
+    opts.on("--encrypt-ssk <key>", "Enable BL32 encryption with SSK") do |v|
+        $option[:encrypt_key] = v
+        $option[:encrypt_flag] = 0 # SSK
+    end
+    opts.on("--encrypt-bssk <key>", "Enable BL32 encryption with BSSK") do |v|
+        $option[:encrypt_key] = v
+        $option[:encrypt_flag] = 1 # BSSK
     end
     opts.on("-x", "--variant X", "BL2 variant (noop)") do |v|
         $option[:bl2variant] = v
@@ -126,6 +143,20 @@ if $option[:tbbr]
     end
     # We're currently using this as a reference - needs to be in sync with TFA
     do_cmd "git -C mbedtls checkout -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
+end
+
+if $option[:encrypt_key]
+    key = File.binread($option[:encrypt_key]);
+    raise "Key data must be 32 bytes" unless key.length == 32
+    if $option[:encrypt_flag] == 1
+        # Key is HUK, derive to form HUK
+        key = key + bssk_derive_key.pack("C*")
+        key = Digest::SHA256.digest( key )
+    end
+    key = key.unpack("C*").map{|i| sprintf("%02X", i)}.join("")
+    # Random Nonce
+    nonce = (0..11).map{ sprintf("%02X", rand(255)) }.join("")
+    args += "ENCRYPT_BL32=1 DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
 end
 
 if $option[:debug]
