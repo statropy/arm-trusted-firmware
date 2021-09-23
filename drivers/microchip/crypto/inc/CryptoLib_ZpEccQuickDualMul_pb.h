@@ -1,0 +1,69 @@
+//========================================================================
+//
+//   NOTE :    THIS SOFTWARE IS SUPPLIED FOR DEMONSTRATION PURPOSES ONLY.
+//             THERE IS NO SECURITY BUILT INTO THIS SOFTWARE
+//
+//========================================================================
+//
+//        Copyright (c) Atmel Corporation 2012 All rigths reserved
+//                     ATMEL CONFIDENTIAL PROPRIETARY
+//
+//========================================================================
+//                             DISCLAIMER
+//
+//    Atmel reserves the right to make changes without further notice
+//    to any product herein to improve reliability, function or design.
+//    Atmel does not assume any liability arising out of the
+//    application or use of any product, circuit, or software described
+//    herein; neither does it convey any license under its patent rights
+//    nor the rights of others. Atmel products are not designed,
+//    intended or authorized for use as components in systems intended
+//    for surgical implant into the body or other applications intended
+//    to support life, or for any other application in which the failure
+//    of the Atmel product could create a situation where personal
+//    injury or death may occur. Should Buyer purchase or use Atmel
+//    products for any such intended or unauthorized application, Buyer
+//    shall indemnify and hold Atmel and its officers, employees,
+//    subsidiaries, affiliates, and distributors harmless against all
+//    claims, costs, damages and expenses, and reasonable attorney fees
+//    arising out of, directly or indirectly, any claim of personal
+//    injury or death associated with such unintended or unauthorized
+//    use, even if such claim alleges that Atmel was negligent
+//    regarding the design or manufacture of the part. Atmel and the
+//    Atmel logo are registered trademarks of the Atmel corporation.
+//========================================================================
+//      ATMEL CryptoLib Library
+//------------------------------------------------------------------------
+//      File: CryptoLib_ZpEccInterleavingMul_pb.h
+//------------------------------------------------------------------------
+//      Description: Source of the Ecc Interleaving Multiply over Zp
+//------------------------------------------------------------------------
+#ifndef __CPKCL_ZPECC_QUICKDUALMULT_PB_INCLUDED__
+#define __CPKCL_ZPECC_QUICKDUALMULT_PB_INCLUDED__
+
+#define AbsVal(a)	((a > 0) ? a : (-a))
+
+
+// Structure definition
+typedef struct _CPKCL_ZpEccQuickDualMul {
+		pu1		  pu1ModCnsBase;
+		pu1       pu1PointABase;
+		pu1       pu1PointBBase;
+		pu1       pu1KABBase;
+		pu1       pu1AWorkBase;
+		//pu1       pu1ABase;
+		u2        u2ModLength;
+		u2        u2KLength;
+} _CPKCL_ZPECCQUICKDUALMUL, * _P_CPKCL_ZPECCQUICKDUALMUL;
+
+#define CPKCL_ZPECCMUL_SCAL_IN_CLASSIC_RAM   			(0x01 << 8)
+#define CPKCL_ZPECCMUL_WINSIZE_MASK 						0x0F
+#define CPKCL_ZPECCMUL_WINSIZE_B_VAL_TO_OPT(W)   		(((W) & CPKCL_ZPECCMUL_WINSIZE_MASK) << 4)
+#define CPKCL_ZPECCMUL_WINSIZE_A_VAL_TO_OPT(W)       	((W) & CPKCL_ZPECCMUL_WINSIZE_MASK)
+#define CPKCL_ZPECCMUL_WINSIZE_B_OPT_TO_VAL(Option)   	(((Option) >> 4) & CPKCL_ZPECCMUL_WINSIZE_MASK)
+#define CPKCL_ZPECCMUL_WINSIZE_A_OPT_TO_VAL(Option)   	((Option) & CPKCL_ZPECCMUL_WINSIZE_MASK)
+
+
+
+#endif //__CPKCL_ZPECC_QUICKDUALMULT_PB_INCLUDED__
+

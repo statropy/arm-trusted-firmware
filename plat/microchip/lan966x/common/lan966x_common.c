@@ -16,6 +16,7 @@
 #include <drivers/microchip/vcore_gpio.h>
 #include <drivers/microchip/sha.h>
 #include <lib/mmio.h>
+#include <plat/common/platform.h>
 #include <platform_def.h>
 
 #include <plat/common/platform.h>
@@ -29,6 +30,7 @@
 CASSERT((BL1_RW_SIZE + BL2_SIZE) <= LAN996X_SRAM_SIZE, assert_sram_depletion);
 
 static console_t lan966x_console;
+shared_memory_desc_t shared_memory_desc;
 
 #define FW_CONFIG_INIT_8(offset, value)		\
 	.config[offset] = (uint8_t) (value)
@@ -300,6 +302,7 @@ uint8_t lan966x_get_strapping(void)
 void lan966x_set_strapping(uint8_t value)
 {
 #if defined(DEBUG)
+	VERBOSE("OVERRIDE strapping = 0x%08x\n", value);
 	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), 0x10000 | value);
 #endif
 }
@@ -386,7 +389,7 @@ int lan966x_load_fw_config(unsigned int image_id)
 	flush_dcache_range((uintptr_t)&lan966x_fw_config, sizeof(lan966x_fw_config));
 #endif
 
-	return 0;
+	return result;
 }
 
 static int fw_config_read_bytes(unsigned int offset,

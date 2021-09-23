@@ -11,13 +11,13 @@
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/microchip/otp.h>
-#include <lib/fconf/fconf.h>
 #include <lib/utils.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 
 #include "lan966x_private.h"
+#include "lan966x_memmap.h"
 
 #define MAP_BL1_TOTAL   MAP_REGION_FLAT(				\
 		bl1_tzram_layout.total_base,				\
@@ -82,6 +82,8 @@ void bl1_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
 		MAP_BL1_TOTAL,
+		MAP_PKCL_CODE,
+		MAP_PKCL_DATA,
 		MAP_BL1_RO,
 		{0}
 	};
@@ -178,7 +180,11 @@ int bl1_plat_handle_post_image_load(unsigned int image_id)
 	 */
 	bl1_calc_bl2_mem_layout(&bl1_tzram_layout, &bl2_tzram_layout);
 	ep_info->args.arg1 = (uintptr_t)&bl2_tzram_layout;
-	ep_info->args.arg2 = (uintptr_t) &lan966x_fw_config;
+
+	/* Shared memory info in arg2 */
+	shared_memory_desc.fw_config = &lan966x_fw_config;
+	flush_dcache_range((uintptr_t) &shared_memory_desc, sizeof(shared_memory_desc));
+	ep_info->args.arg2 = (uintptr_t) &shared_memory_desc;
 
 	return 0;
 }

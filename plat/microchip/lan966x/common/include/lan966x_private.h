@@ -9,6 +9,14 @@
 
 #include <stdint.h>
 
+typedef struct {
+	void *fw_config;
+	void *mbedtls_heap_addr;
+	size_t mbedtls_heap_size;
+} shared_memory_desc_t;
+
+extern shared_memory_desc_t shared_memory_desc;
+
 #define LAN966X_KEY32_LEN	32
 typedef struct {
 	union {
@@ -101,4 +109,15 @@ void lan966x_sjtag_configure(void);
 int  lan966x_sjtag_read_challenge(lan966x_key32_t *k);
 int  lan966x_sjtag_write_response(const lan966x_key32_t *k);
 
-#endif	/* LAN966X_PRIVATE_H */
+
+#if defined(LAN966X_AES_TESTS)
+void lan966x_crypto_tests(void);
+#endif
+
+void lan966x_crypto_ecdsa_tests(void);
+
+#if TRUSTED_BOARD_BOOT
+void lan966x_mbed_heap_set(shared_memory_desc_t *d);
+#endif
+
+#endif /* LAN966X_PRIVATE_H */
