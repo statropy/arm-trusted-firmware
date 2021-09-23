@@ -238,6 +238,11 @@ bool otp_all_zero(const uint8_t *p, size_t nbytes)
 	return true;
 }
 
+bool otp_in_emulation(void)
+{
+	return !!(otp_flags & OTP_FLAG_EMULATION);
+}
+
 int otp_commit_emulation(void)
 {
 	int rc = -ENODEV, i;

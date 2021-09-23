@@ -9,6 +9,8 @@
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
+#include <errno.h>
+#include <tools_share/tbbr_oid.h>
 #include <tools_share/firmware_encrypted.h>
 
 #include "plat_otp.h"
@@ -46,6 +48,9 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 	return 0;
 }
 
+/*
+ * Get the non-volatile counter specified by the cookie
+ */
 int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
 			  size_t *key_len, unsigned int *flags,
 			  const uint8_t *img_id, size_t img_id_len)
@@ -68,16 +73,115 @@ int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
 	return 0;
 }
 
-int plat_get_nv_ctr(void *cookie, unsigned int *nv_ctr)
+/*
+ * Count the number of bits set in a vector of bytes
+ */
+static unsigned int lan966x_vector_count_bits(uint8_t *ptr, int len)
 {
-	*nv_ctr = 0;
+	unsigned int count = 0;
 
-	return 0;
+	for (; len > 0; --len, ++ptr) {
+		count += __builtin_popcount(*ptr);
+	}
+	return count;
 }
 
+/*
+ * Set the number of bits in a vector of bytes
+ */
+static int lan966x_vector_set_bits(uint8_t *buffer, int len, unsigned int value)
+{
+	unsigned int current, remaining;
+	int i;
+
+	if (value > len * 8)
+		return -ERANGE;
+
+	current = lan966x_vector_count_bits(buffer, len);
+	if (current > value)
+		return -EINVAL;
+
+	/* See how many bits we are short, set them in the data pattern */
+	remaining = value - current;
+	for (i = 0; i < len && remaining > 0; i++) {
+		uint8_t b = buffer[i];
+
+		/* Stuff as many bits in this byte as will fit */
+		while (remaining > 0 && b != 0xff) {
+			int bitidx = __builtin_ffs(~b);
+			assert(bitidx > 0 && bitidx <= 8);
+			b |= BIT(bitidx - 1);
+			--remaining; /* One more bit set */
+		}
+		/* Updated byte back in buffer */
+		buffer[i] = b;
+	}
+	/* Check the bit pattern */
+	current = lan966x_vector_count_bits(buffer, len);
+	return (current == value) ? 0 : -ERANGE;
+}
+
+#define NV_CT_LEN OTP_TBBR_NTNVCT_SIZE /* == OTP_TBBR_TNVCT_SIZE */
+
+/*
+ * Read out the NV counter OTP data
+ */
+static int lan966x_get_nv_ctr(void *cookie, uint8_t *buffer, size_t len)
+{
+	int ret = -ENODEV;
+
+	if (strcmp(cookie, TRUSTED_FW_NVCOUNTER_OID) == 0) {
+		ret = otp_read_otp_tbbr_tnvct(buffer, len);
+	} else if (strcmp(cookie, NON_TRUSTED_FW_NVCOUNTER_OID) == 0) {
+		ret = otp_read_otp_tbbr_ntnvct(buffer, len);
+	}
+
+	return ret;
+}
+
+/*
+ * Get the non-volatile counter specified by the cookie
+ */
+int plat_get_nv_ctr(void *cookie, unsigned int *nv_ctr)
+{
+	uint8_t buffer[NV_CT_LEN];
+	int ret = -ENODEV;
+
+	ret = lan966x_get_nv_ctr(cookie, buffer, sizeof(buffer));
+	if (ret == 0)
+		*nv_ctr = lan966x_vector_count_bits(buffer, sizeof(buffer));
+	return ret;
+}
+
+/*
+ * Set the non-volatile counter specified by the cookie
+ * The counters are monotonic, so it is an error to try to reduce the value
+ * The counters are not writable in OTP emulation mode
+ */
 int plat_set_nv_ctr(void *cookie, unsigned int nv_ctr)
 {
-	return 1;
+	uint8_t buffer[NV_CT_LEN];
+	int ret;
+
+	if (otp_in_emulation()) {
+		ERROR("NV counters are read-only in OTP emulation mode\n");
+		return -EIO;
+	}
+
+	ret = lan966x_get_nv_ctr(cookie, buffer, sizeof(buffer));
+	if (ret)
+		return ret;
+
+	ret = lan966x_vector_set_bits(buffer, sizeof(buffer), nv_ctr);
+	if (ret)
+		return ret;
+
+	if (strcmp(cookie, TRUSTED_FW_NVCOUNTER_OID) == 0) {
+		ret = otp_write_bytes(OTP_TBBR_TNVCT_ADDR, OTP_TBBR_TNVCT_SIZE, buffer);
+	} else if (strcmp(cookie, NON_TRUSTED_FW_NVCOUNTER_OID) == 0) {
+		ret = otp_write_bytes(OTP_TBBR_NTNVCT_ADDR, OTP_TBBR_NTNVCT_SIZE, buffer);
+	}
+	return ret;
 }
 
 /*
