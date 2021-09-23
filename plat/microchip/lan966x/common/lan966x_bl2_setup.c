@@ -110,7 +110,9 @@ static void bl2_early_platform_setup(void)
 
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
+#if (defined(BL1_RW_BASE) && defined(BL1_RW_LIMIT)) || TRUSTED_BOARD_BOOT
 	shared_memory_desc_t *desc = (shared_memory_desc_t *) arg2;
+#endif
 
 	/* Save memory layout */
 	bl2_tzram_layout = *(struct meminfo *) arg1;
