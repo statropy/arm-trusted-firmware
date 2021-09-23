@@ -8,11 +8,11 @@ require 'optparse'
 build_envirs            = %I[lan966x_evb lan966x_sr lan966x_b0]
 build_types             = %I[debug release]
 build_variants          = %I[bl2normal bl2noop]
-build_authentifications = %I[noauth] # %I[noauth auth ssk bssk]
+build_authentifications = %I[noauth auth] # %I[ssk bssk]
 
 build_type_args         = { debug: '--debug', release: '--no-debug' }
 build_variant_args      = { bl2normal: '', bl2noop: '-x noop' }
-build_auth_args         = { noauth: '--no-tbbr' }
+build_auth_args         = { noauth: '--no-tbbr', auth: '--tbbr' }
 
 option = {}
 OptionParser.new do |opts|
@@ -61,6 +61,7 @@ build_envirs.each do |be|
     build_variants.each do |bv|
       next if bv == :bl2noop && (be != :lan966x_b0 || bt != :release) # NOOP builds must be b0 release
       build_authentifications.each do |ba|
+        next if ba == :auth && be == :lan966x_evb # EVB does not support authentication of images
         bl1_filename = "#{be}-#{bt}-bl1.bin"
         nor_filename = "#{be}-#{bt}-#{bv}-#{ba}.img"
         fip_filename = "#{be}-#{bt}-#{bv}-#{ba}.fip"
