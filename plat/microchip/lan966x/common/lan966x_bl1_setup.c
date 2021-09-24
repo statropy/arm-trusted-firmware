@@ -70,6 +70,9 @@ void bl1_early_platform_setup(void)
 	/* Enable arch timer */
 	generic_delay_timer_init();
 
+	/* Check bootstrap mask: this may panic */
+	lan966x_validate_strapping();
+
 	/* PCIe - may never return */
 	lan966x_pcie_init();
 
