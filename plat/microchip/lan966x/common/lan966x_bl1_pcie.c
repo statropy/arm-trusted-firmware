@@ -34,9 +34,6 @@ typedef enum {
 #define PCIE_BAR_TARGET_REG(B)	PCIE_DBI_IATU_LWR_TARGET_ADDR_OFF_INBOUND_ ## B(LAN966X_PCIE_DBI_BASE)
 #define PCIE_BAR_MASK_REG(B)	PCIE_DBI_BAR ## B ##_MASK_REG(LAN966X_PCIE_DBI_BASE)
 
-#define PME_GENERATED_D0	BIT(0)
-#define PME_GENERATED_D1	BIT(1)
-
 static const struct {
 	char *name;
 	uint32_t bar_start;
@@ -252,12 +249,6 @@ void lan966x_pcie_init(void)
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
 			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(1) |
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
-
-	/* Reduce PME support to D0 and D1 states only */
-	mmio_clrsetbits_32(PCIE_DBI_CAP_ID_NXT_PTR_REG(LAN966X_PCIE_DBI_BASE),
-			   PCIE_DBI_CAP_ID_NXT_PTR_REG_PME_SUPPORT_M,
-			   PCIE_DBI_CAP_ID_NXT_PTR_REG_PME_SUPPORT(
-			   	   PME_GENERATED_D0 | PME_GENERATED_D1));
 
 	/* Read protect region 4 of the OTP (keys) */
 	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), BIT(4), BIT(4));
