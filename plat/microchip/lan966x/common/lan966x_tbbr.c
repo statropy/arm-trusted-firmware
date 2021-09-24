@@ -59,7 +59,8 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 }
 
 /*
- * Get the non-volatile counter specified by the cookie
+ * Get the platform symmetric decryption key, SSK or BSSK.
+ * The BSSK is derived from the HUK with a fixed salt.
  */
 int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
 			  size_t *key_len, unsigned int *flags,

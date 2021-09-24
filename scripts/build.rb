@@ -50,12 +50,12 @@ OptionParser.new do |opts|
     opts.on("-t", "--[no-]tbbr", "Enable/disable TBBR") do |v|
         $option[:tbbr] = v
     end
-    opts.on("--encrypt-ssk <key>", "Enable BL32 encryption with SSK") do |v|
-        $option[:encrypt_key] = v
+    opts.on("--encrypt-ssk <keyfile>", "Enable BL32 encryption with SSK") do |k|
+        $option[:encrypt_key] = k
         $option[:encrypt_flag] = 0 # SSK
     end
-    opts.on("--encrypt-bssk <key>", "Enable BL32 encryption with BSSK") do |v|
-        $option[:encrypt_key] = v
+    opts.on("--encrypt-bssk <keyfile>", "Enable BL32 encryption with BSSK") do |k|
+        $option[:encrypt_key] = k
         $option[:encrypt_flag] = 1 # BSSK
     end
     opts.on("-x", "--variant X", "BL2 variant (noop)") do |v|
