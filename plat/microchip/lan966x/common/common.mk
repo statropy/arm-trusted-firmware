@@ -66,7 +66,6 @@ endif
 
 LAN966X_STORAGE_SOURCES	:=	\
 				drivers/io/io_block.c					\
-				drivers/io/io_encrypted.c				\
 				drivers/io/io_fip.c					\
 				drivers/io/io_memmap.c					\
 				drivers/io/io_storage.c					\
