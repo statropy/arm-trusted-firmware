@@ -29,7 +29,7 @@ end.order!
 def banner(artifacts, cmd)
   5.times { puts }
   puts '#' * 80
-  artifacts.each { |arti| puts "#{'#' * 5} Artifact: #{arti}" unless File.exist?(arti) }
+  artifacts.each { |_from, to| puts "#{'#' * 5} Artifact: #{to}" unless File.exist?(to) }
   puts "#{'#' * 5} Command: #{cmd}"
   puts '#' * 80
   5.times { puts }
@@ -49,10 +49,6 @@ def pre_build
   puts '=' * 80
 end
 
-def get_arti(from, to)
-  FileUtils.mv(from, to, verbose: true) if !File.exist?(to) && File.exist?(from)
-end
-
 cleanup(true) if option[:clean]
 
 pre_build
@@ -62,24 +58,23 @@ build_envirs.each do |be|
       next if bv == :bl2noop && (be != :lan966x_b0 || bt != :release) # NOOP builds must be b0 release
       build_authentifications.each do |ba|
         next if ba == :auth && be == :lan966x_evb # EVB does not support authentication of images
-        bl1_filename = "#{be}-#{bt}-bl1.bin"
-        nor_filename = "#{be}-#{bt}-#{bv}-#{ba}.img"
-        fip_filename = "#{be}-#{bt}-#{bv}-#{ba}.fip"
-        gpt_filename = "#{be}-#{bt}-#{bv}-#{ba}.gpt"
-        bl1_dump_filename =  "#{be}-#{bt}-#{bv}-#{ba}-bl1.dump"
-        bl2_dump_filename =  "#{be}-#{bt}-#{bv}-#{ba}-bl2.dump"
+        artifacts = [
+          ["build/#{be}/#{bt}/bl1.bin",      "#{be}-#{bt}-bl1.bin"],
+          ["build/#{be}/#{bt}/fip.bin",      "#{be}-#{bt}-#{bv}-#{ba}.fip"],
+          ["build/#{be}/#{bt}/fip.gpt",      "#{be}-#{bt}-#{bv}-#{ba}.gpt"],
+          ["build/#{be}/#{bt}/#{be}.img",    "#{be}-#{bt}-#{bv}-#{ba}.img"],
+          ["build/#{be}/#{bt}/bl1/bl1.dump", "#{be}-#{bt}-#{bv}-#{ba}-bl1.dump"],
+          ["build/#{be}/#{bt}/bl2/bl2.dump", "#{be}-#{bt}-#{bv}-#{ba}-bl2.dump"]
+        ]
         cargs = "#{build_type_args[bt]} --gptimg --norimg #{build_auth_args[ba]} -p #{be} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
         cmd_clean = 'ruby scripts/build.rb distclean'
-        banner([fip_filename, gpt_filename, bl1_filename, nor_filename, bl1_dump_filename, bl2_dump_filename], cmd)
+        banner(artifacts, cmd)
         system(cmd_clean)
         system(cmd)
-        get_arti("build/#{be}/#{bt}/fip.bin", fip_filename)
-        get_arti("build/#{be}/#{bt}/fip.gpt", gpt_filename)
-        get_arti("build/#{be}/#{bt}/bl1.bin", bl1_filename)
-        get_arti("build/#{be}/#{bt}/#{be}.img", nor_filename)
-        get_arti("build/#{be}/#{bt}/bl1/bl1.dump", bl1_dump_filename)
-        get_arti("build/#{be}/#{bt}/bl2/bl2.dump", bl2_dump_filename)
+        artifacts.each do |from, to|
+          FileUtils.mv(from, to, verbose: true) if !File.exist?(to) && File.exist?(from)
+        end
       end
     end
   end
