@@ -114,10 +114,6 @@ static void setup_tzaes_asc(void)
 	tzaes_asc_region_enable(tzaes_asc, 0, false,
 				BL32_BASE,
 				BL32_LIMIT);
-
-	tzaes_asc_region_enable(tzaes_asc, 1, true,
-				PLAT_LAN966X_NS_IMAGE_BASE,
-				PLAT_LAN966X_NS_IMAGE_LIMIT);
 }
 
 void lan966x_tz_init(void)
@@ -134,11 +130,12 @@ void lan966x_tz_init(void)
 	/* TZASC controller */
 	setup_tzaes_asc();
 
-	/* NS setup */
-	setup_tzaesb(LAN966X_TZAESBNS_BASE);
-
 	/* S setup */
 	setup_tzaesb(LAN966X_TZAESBS_BASE);
+
+	/* Configure SECURITY_DDR_CSS for Non-Secure */
+	mmio_write_32(GPV_SECURITY_DDR_CSS(LAN966X_GPV_BASE),
+		      GPV_SECURITY_DDR_CSS_SECURITY_DDR_CSS(1));
 
 	/* NS periph access */
 	setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
