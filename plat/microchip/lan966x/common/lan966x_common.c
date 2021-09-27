@@ -479,3 +479,24 @@ void lan966x_set_max_trace_level(void)
 	}
 #endif
 }
+
+/*
+ * Check if the current boot strapping mode has been masked out by the
+ * OTP strapping mask and panic if this is the case.
+ */
+void lan966x_validate_strapping(void)
+{
+	union {
+		uint8_t b[2];
+		uint16_t w;
+	} mask;
+	uint16_t strapmask = BIT(lan966x_get_strapping());
+
+	if (otp_read_otp_strap_disable_mask(mask.b, OTP_STRAP_DISABLE_MASK_SIZE)) {
+		return;
+	}
+	if (strapmask & mask.w) {
+		ERROR("Bootstrapping masked: %u\n", lan966x_get_strapping());
+		panic();
+	}
+}

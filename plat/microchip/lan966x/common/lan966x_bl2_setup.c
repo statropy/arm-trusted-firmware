@@ -103,6 +103,9 @@ static void bl2_early_platform_setup(void)
 	/* Console */
 	lan966x_console_init();
 
+	/* Check bootstrap mask: this may panic */
+	lan966x_validate_strapping();
+
 	/* Announce HW */
 	INFO("Running on platform build: 0x%08x\n",
 	     mmio_read_32(CPU_BUILDID(LAN966X_CPU_BASE)));
