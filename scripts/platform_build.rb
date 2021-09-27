@@ -11,7 +11,7 @@ build_variants          = %I[bl2normal bl2noop]
 build_authentifications = %I[noauth auth] # %I[ssk bssk]
 
 build_type_args         = { debug: '--debug', release: '--no-debug' }
-build_variant_args      = { bl2normal: '', bl2noop: '-x noop' }
+build_variant_args      = { bl2normal: '', bl2noop: '--variant noop' }
 build_auth_args         = { noauth: '--no-tbbr', auth: '--tbbr' }
 
 option = {}

@@ -43,11 +43,6 @@ ifeq (${PLAT_VARIANT},)
 PLAT_VARIANT			:=	${PLAT}
 endif
 
-ifneq (${BL2_VARIANT},)
-BL2_CFLAGS		+=	-DLAN966X_BL2_VARIANT_${BL2_VARIANT}
-BL2_ASFLAGS		+=	-DLAN966X_BL2_VARIANT_${BL2_VARIANT}
-endif
-
 PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/${PLAT_VARIANT}/include	\
 			-Iplat/microchip/lan966x/common/include			\
 			-Idrivers/microchip/crypto/inc/				\
@@ -113,6 +108,10 @@ BL2_SOURCES		+=	\
 ifneq (${DECRYPTION_SUPPORT},none)
 BL1_SOURCES             +=      drivers/io/io_encrypted.c
 BL2_SOURCES             +=      drivers/io/io_encrypted.c
+endif
+
+ifeq (${BL2_VARIANT},NOOP)
+BL2_SOURCES             +=      plat/microchip/lan966x/common/${ARCH}/plat_bl2_noop.S
 endif
 
 # Enable Activity Monitor Unit extensions by default

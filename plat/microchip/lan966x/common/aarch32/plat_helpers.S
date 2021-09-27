@@ -7,7 +7,6 @@
 #include <arch.h>
 #include <asm_macros.S>
 #include <platform_def.h>
-#include <lan966x_targets.h>
 
 	.globl	plat_secondary_cold_boot_setup
 	.globl	plat_get_my_entrypoint
@@ -47,14 +46,6 @@ endfunc plat_secondary_cold_boot_setup
 	 */
 func plat_get_my_entrypoint
 	/* TODO support warm boot */
-
-#ifdef LAN966X_BL2_VARIANT_NOOP
-	/* GPR[0] = 0xcafebeef */
-	ldr	r3, =LAN966X_CPU_BASE
-	ldr	r2, =0xcafebeef
-	str	r2, [r3,#0]
-#endif
-
 	mov	r0, #0
 	bx 	lr
 endfunc plat_get_my_entrypoint
