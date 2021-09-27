@@ -64,7 +64,7 @@ OptionParser.new do |opts|
     opts.on("-d", "--[no-]debug", "Enable/disable DEBUG") do |v|
         $option[:debug] = v
     end
-    opts.on("-g", "--[no-]norimg", "Create a NOR image file with the FIP") do |v|
+    opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP") do |v|
         $option[:norimg] = v
     end
     opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP") do |v|
