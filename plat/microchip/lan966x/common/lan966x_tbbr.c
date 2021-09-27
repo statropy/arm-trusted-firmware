@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <drivers/auth/mbedtls/mbedtls_config.h>
+#include <errno.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
@@ -20,6 +21,15 @@ static const uint8_t lan966x_rotpk_header[] = {
 	/* DER header */
 	0x30, 0x31, 0x30, 0x0D, 0x06, 0x09, 0x60, 0x86, 0x48,
 	0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20
+};
+
+static const lan966x_key32_t lan966x_bssk_derive = {
+	.b = {
+		0x80, 0x66, 0xae, 0x0a, 0x98, 0x8c, 0xf1, 0x64,
+		0x8c, 0x55, 0x76, 0x02, 0xd3, 0xe7, 0x9e, 0x92,
+		0x2c, 0x37, 0x00, 0x7f, 0xd6, 0x43, 0x9d, 0x16,
+		0x94, 0xdd, 0x46, 0x2a, 0xcc, 0x61, 0xb5, 0x5d,
+	},
 };
 
 #define LAN966X_ROTPK_HASH_LEN	(OTP_TBBR_ROTPK_SIZE)
@@ -49,28 +59,41 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 }
 
 /*
- * Get the non-volatile counter specified by the cookie
+ * Get the platform symmetric decryption key, SSK or BSSK.
+ * The BSSK is derived from the HUK with a fixed salt.
  */
 int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
 			  size_t *key_len, unsigned int *flags,
 			  const uint8_t *img_id, size_t img_id_len)
 {
 	int ret;
-	size_t otp_keylen = OTP_TBBR_SSK_SIZE;
+	lan966x_key32_t otp_key;
+	size_t otp_keylen = LAN966X_KEY32_LEN;
 
-	assert(*key_len >= otp_keylen);
-	assert(fw_enc_status == FW_ENC_WITH_SSK);
-
-	otp_keylen = MIN(otp_keylen, *key_len);
-	ret = otp_read_otp_tbbr_ssk(key, otp_keylen);
-	if (ret < 0) {
-		return ret;
-	} else {
-		*key_len = otp_keylen;
-		*flags = 0;
+	switch (fw_enc_status) {
+	case FW_ENC_WITH_SSK:
+		ret = otp_read_otp_tbbr_ssk(otp_key.b, otp_keylen);
+		break;
+	case FW_ENC_WITH_BSSK:
+		ret = otp_read_otp_tbbr_huk(otp_key.b, otp_keylen);
+		if (ret == 0)
+			/* HUK not used directly */
+			ret = lan966x_derive_key(&otp_key, &lan966x_bssk_derive, &otp_key);
+		break;
+	default:
+		ret = -ENOTSUP;
 	}
 
-	return 0;
+	if (ret == 0) {
+		otp_keylen = MIN(*key_len, otp_keylen);
+		*key_len = otp_keylen;
+		*flags = 0;
+		memcpy(key, otp_key.b, otp_keylen);
+		/* Don't leak */
+		memset(&otp_key, 0, sizeof(otp_key));
+	}
+
+	return ret;
 }
 
 /*

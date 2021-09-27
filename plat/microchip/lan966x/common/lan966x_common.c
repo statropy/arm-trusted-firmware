@@ -43,7 +43,7 @@ shared_memory_desc_t shared_memory_desc;
 
 /* Define global fw_config, set default MMC settings */
 lan966x_fw_config_t lan966x_fw_config = {
-	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, MMC_INIT_SPEED),
+	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, MMC_DEFAULT_SPEED),
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_MMC_BUS_WIDTH, MMC_BUS_WIDTH_1),
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 10), /* 10Mhz */
 };
@@ -217,7 +217,7 @@ void lan966x_io_bootsource_init(void)
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
 		/* Setup MMC */
-		lan966x_sdmmc_init(boot_source);
+		lan966x_mmc_plat_config(boot_source);
 		break;
 
 	case BOOT_SOURCE_QSPI:

@@ -11,6 +11,7 @@
 #include <lib/mmio.h>
 
 #define MMC_INIT_SPEED		375000u
+#define MMC_DEFAULT_SPEED	10000000u
 #define SD_NORM_SPEED		25000000u
 #define SD_HIGH_SPEED		50000000u
 #define EMMC_NORM_SPEED		26000000u

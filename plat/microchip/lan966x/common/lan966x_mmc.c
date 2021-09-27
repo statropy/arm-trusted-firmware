@@ -61,18 +61,13 @@ void lan966x_mmc_plat_config(boot_source_type boot_source)
 	params.desc_base = LAN996X_SRAM_BASE;
 	params.desc_size = LAN996X_SRAM_SIZE;
 
-	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_MMC_CLK_RATE, &clk_rate);
-	params.clk_rate = clk_rate;
-	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_MMC_BUS_WIDTH, &bus_width);
-	params.bus_width = bus_width;
-
 	plat_lan966x_pinConfig(boot_source);
 
-	if (boot_source == BOOT_SOURCE_EMMC){
-		info.mmc_dev_type = MMC_IS_EMMC;
+	if (boot_source == BOOT_SOURCE_EMMC) {
 		params.mmc_dev_type = MMC_IS_EMMC;
+		info.mmc_dev_type = MMC_IS_EMMC;
 		info.max_bus_freq = EMMC_HIGH_SPEED;
-	} else if(boot_source == BOOT_SOURCE_SDMMC) {
+	} else if (boot_source == BOOT_SOURCE_SDMMC) {
 		params.mmc_dev_type = MMC_IS_SD;
 		info.mmc_dev_type = MMC_IS_SD;
 		info.ocr_voltage = SD_CARD_SUPP_VOLT;
@@ -80,26 +75,29 @@ void lan966x_mmc_plat_config(boot_source_type boot_source)
 	}
 
 	info.block_size = MMC_BLOCK_SIZE;
-	lan966x_mmc_init(&params, &info);
-}
 
-/* This is only called for
- *  - BOOT_SOURCE_EMMC
- *  - BOOT_SOURCE_SDMMC
- */
-void lan966x_sdmmc_init(boot_source_type boot_source)
-{
-	switch (boot_source) {
-	case BOOT_SOURCE_EMMC:
-		INFO("Initializing eMMC\n");
-		break;
-	case BOOT_SOURCE_SDMMC:
-		INFO("Initializing SDMMC\n");
-		break;
-	default:
-		break;
+	/* Update global lan966x_fw_config structure */
+	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_MMC_CLK_RATE, &clk_rate);
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_MMC_BUS_WIDTH, &bus_width);
+
+	/* Check if special configuration mode is set */
+	if (clk_rate == 0u) {
+#if defined(IMAGE_BL1)
+		/* In case of BL1, skip lan966x_mmc_init() and return. Proceed
+		 * with the default loaded mmc settings.*/
+		return;
+
+#elif defined(IMAGE_BL2)
+		/* In case of BL2, the default settings are overwritten by the
+		 * BL1. Therefore, the mmc configuration settings needs to be
+		 * loaded again. Call lan996x_mmc_init() afterwards. */
+		params.clk_rate = MMC_DEFAULT_SPEED;
+		params.bus_width = MMC_BUS_WIDTH_1;
+#endif
+	} else {
+		params.clk_rate = clk_rate;
+		params.bus_width = bus_width;
 	}
 
-	/* Initialize ATF MMC framework */
-	lan966x_mmc_plat_config(boot_source);
+	lan966x_mmc_init(&params, &info);
 }

@@ -142,13 +142,34 @@
 static card p_card;
 static uintptr_t reg_base;
 static uint16_t eistr = 0u;	/* Holds the error interrupt status */
-static bool resetDone = false;
 static lan966x_mmc_params_t lan966x_params;
 
 static const unsigned int TAAC_TimeExp[8] =
 	{ 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000 };
 static const unsigned int TAAC_TimeMant[16] =
 	{ 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80 };
+
+static void lan966x_mmc_reset(void) 
+{
+	unsigned int timeout;
+	unsigned int state;
+
+	VERBOSE("MMC: Software reset \n");
+
+	/* Reset CMD and DATA lines */
+	timeout = 0x10000;
+	mmio_write_8(reg_base + SDMMC_SRR,
+		     (SDMMC_SRR_SWRSTCMD | SDMMC_SRR_SWRSTDAT));
+	do {
+		if (timeout > 0) {
+			state = (unsigned int)mmio_read_8(reg_base + SDMMC_SRR);
+			timeout--;
+			udelay(10);
+		} else {
+			state = 0;
+		}
+	} while (state);
+}
 
 static void lan966x_clock_delay(unsigned int sd_clock_cycles)
 {
@@ -289,6 +310,9 @@ static int lan966x_host_init(void)
 
 	/* "SD Bus Power" init. */
 	mmc_setbits_8(reg_base + SDMMC_PCR, SDMMC_PCR_SDBPWR);
+
+	/* Reset of the MMC CMD and DATn lines */
+	lan966x_mmc_reset();
 
 	/* Set host controller data bus width to 1 bit */
 	mmc_setbits_8(reg_base + SDMMC_HC1R, SDMMC_HC1R_DW_1_BIT);
@@ -536,27 +560,6 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 
 	VERBOSE("MMC: ATF CB send_cmd() %d \n", cmd->cmd_idx);
 
-	/* The first received CMD will trigger the one time software reset stage */
-	if (!resetDone) {
-		VERBOSE("MMC: Software reset \n");
-
-		/* Reset CMD and DATA lines */
-		timeout = 0x10000;
-		mmio_write_8(reg_base + SDMMC_SRR,
-			     (SDMMC_SRR_SWRSTCMD | SDMMC_SRR_SWRSTDAT));
-		do {
-			if (timeout > 0) {
-				state = (unsigned int)mmio_read_8(reg_base + SDMMC_SRR);
-				timeout--;
-				udelay(10);
-			} else {
-				state = 0;
-			}
-		} while (state);
-
-		resetDone = true;
-	}
-
 	/* Parse CMD argument and set proper flags */
 	switch (cmd->cmd_idx) {
 	case 0:
@@ -671,7 +674,7 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 	case 1:
 		cmd->resp_data[0] = mmio_read_32(reg_base + SDMMC_RR0);
 
-		if((cmd->resp_data[0] & MMC_CARD_POWER_UP_STATUS) ==
+		if ((cmd->resp_data[0] & MMC_CARD_POWER_UP_STATUS) ==
 						MMC_CARD_POWER_UP_STATUS) {
 			p_card.card_type = MMC_CARD;
 
@@ -716,7 +719,7 @@ static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
 	case 41:
 		cmd->resp_data[0] = mmio_read_32(reg_base + SDMMC_RR0);
 
-		if((cmd->resp_data[0] & SD_CARD_CCS_STATUS) ==
+		if ((cmd->resp_data[0] & SD_CARD_CCS_STATUS) ==
 						SD_CARD_HCS_HIGH) {
 			p_card.card_capacity = SD_CARD_SDHC_SDXC;
 			VERBOSE("SDHC/SDXC (HIGH/EXTENDED CAPACITY) SDMMC\n");
@@ -800,13 +803,13 @@ static int lan996x_mmc_set_ios(unsigned int clk, unsigned int width)
 	VERBOSE("MMC: ATF CB set_ios() \n");
 
 	switch (width) {
-	case 0:
+	case MMC_BUS_WIDTH_1:
 		busWidth = SDMMC_HC1R_DW_1_BIT;
 		break;
-	case 1:
+	case MMC_BUS_WIDTH_4:
 		busWidth = SDMMC_HC1R_DW_4_BIT;
 		break;
-	case 2:
+	case MMC_BUS_WIDTH_8:
 		/* Check if hardware supports 8-bit bus width capabilities */
 		if ((mmio_read_32(reg_base + SDMMC_CA0R) &
 		     SDMMC_CA0R_ED8SUP) == SDMMC_CA0R_ED8SUP) {
@@ -936,7 +939,6 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 	lan966x_params.mmc_dev_type = info->mmc_dev_type;
 	reg_base = lan966x_params.reg_base;
 
-	/* Initial setup of host and device with 400 kHz clock and 4-bit bus */
 	retVal = mmc_init(&lan996x_ops, params->clk_rate, params->bus_width,
 			  params->flags, info);
 
