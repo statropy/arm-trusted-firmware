@@ -465,8 +465,39 @@ void lan966x_set_max_trace_level(void)
 	case LAN966X_STRAP_BOOT_QSPI:
 	case LAN966X_STRAP_BOOT_SD:
 	case LAN966X_STRAP_PCIE_ENDPOINT:
+	case LAN966X_STRAP_TFAMON_FC0:
+	case LAN966X_STRAP_TFAMON_FC2:
+	case LAN966X_STRAP_TFAMON_FC3:
+	case LAN966X_STRAP_TFAMON_FC4:
+	case LAN966X_STRAP_TFAMON_USB:
 	case LAN966X_STRAP_SPI_SLAVE:
 		tf_log_set_max_level(LOG_LEVEL_ERROR);
+		break;
+	default:
+		/* No change in trace level */
+		break;
+	}
+#endif
+}
+
+/*
+ * Restore the loglevel for certain strapping modes release builds.
+ */
+void lan966x_reset_max_trace_level(void)
+{
+#if !DEBUG
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_MMC:
+	case LAN966X_STRAP_BOOT_QSPI:
+	case LAN966X_STRAP_BOOT_SD:
+	case LAN966X_STRAP_PCIE_ENDPOINT:
+	case LAN966X_STRAP_TFAMON_FC0:
+	case LAN966X_STRAP_TFAMON_FC2:
+	case LAN966X_STRAP_TFAMON_FC3:
+	case LAN966X_STRAP_TFAMON_FC4:
+	case LAN966X_STRAP_TFAMON_USB:
+	case LAN966X_STRAP_SPI_SLAVE:
+		tf_log_set_max_level(LOG_LEVEL);
 		break;
 	default:
 		/* No change in trace level */

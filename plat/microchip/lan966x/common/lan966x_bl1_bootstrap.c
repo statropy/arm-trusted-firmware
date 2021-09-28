@@ -179,6 +179,7 @@ void lan966x_bootstrap_monitor(void)
 {
 	bootstrap_req_t req;
 
+	lan966x_reset_max_trace_level();
 	INFO("*** ENTERING BOOTSTRAP MONITOR ***\n");
 
 	while (1) {
@@ -218,4 +219,5 @@ void lan966x_bootstrap_monitor(void)
 	}
 
 	INFO("*** EXITING BOOTSTRAP MONITOR ***\n");
+	lan966x_set_max_trace_level();
 }
