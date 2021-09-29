@@ -64,6 +64,13 @@
 #define BL2_LIMIT		(BL2_BASE + BL2_SIZE)
 
 /*
+ * BL2U - As BL2
+ */
+#define BL2U_BASE		BL2_BASE
+#define BL2U_SIZE		BL2_SIZE
+#define BL2U_LIMIT		BL2_LIMIT
+
+/*
  * MMC buffer for BL1 is at top of BL2 memory. BL2 allocates its own
  * buffer area.
  */

@@ -86,7 +86,7 @@ const mmap_region_t plat_arm_mmap[] = {
 	{0}
 };
 #endif
-#ifdef IMAGE_BL2
+#if defined(IMAGE_BL2) || defined(IMAGE_BL2U)
 const mmap_region_t plat_arm_mmap[] = {
 	LAN996X_MAP_QSPI0,
 	LAN996X_MAP_AXI,

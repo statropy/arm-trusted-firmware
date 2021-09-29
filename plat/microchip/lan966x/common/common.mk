@@ -105,6 +105,9 @@ BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_tz.c
 
+BL2U_SOURCES		+=	\
+				plat/microchip/lan966x/common/lan966x_bl2u_setup.c
+
 ifneq (${DECRYPTION_SUPPORT},none)
 BL1_SOURCES             +=      drivers/io/io_encrypted.c
 BL2_SOURCES             +=      drivers/io/io_encrypted.c
