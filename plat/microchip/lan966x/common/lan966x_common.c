@@ -307,6 +307,25 @@ void lan966x_set_strapping(uint8_t value)
 #endif
 }
 
+bool lan966x_monitor_enabled(void)
+{
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_MMC_TFAMON_FC:
+	case LAN966X_STRAP_BOOT_QSPI_TFAMON_FC:
+	case LAN966X_STRAP_BOOT_SD_TFAMON_FC:
+	case LAN966X_STRAP_TFAMON_FC0:
+	case LAN966X_STRAP_TFAMON_FC2:
+	case LAN966X_STRAP_TFAMON_FC3:
+	case LAN966X_STRAP_TFAMON_FC4:
+	case LAN966X_STRAP_TFAMON_USB:
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+
 uint32_t lan966x_get_boot_source(void)
 {
 	boot_source_type boot_source;

@@ -73,6 +73,7 @@ typedef enum {
 
 uint8_t lan966x_get_strapping(void);
 void lan966x_set_strapping(uint8_t value);
+bool lan966x_monitor_enabled(void);
 void lan966x_set_max_trace_level(void);
 void lan966x_reset_max_trace_level(void);
 
@@ -120,5 +121,7 @@ void lan966x_crypto_ecdsa_tests(void);
 #if TRUSTED_BOARD_BOOT
 void lan966x_mbed_heap_set(shared_memory_desc_t *d);
 #endif
+
+void lan966x_bl1_trigger_fwu(void);
 
 #endif /* LAN966X_PRIVATE_H */

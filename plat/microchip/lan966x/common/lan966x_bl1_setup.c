@@ -111,6 +111,11 @@ static bool lan966x_bootable_source(void)
 	return false;
 }
 
+void lan966x_bl1_trigger_fwu(void)
+{
+	is_fwu_needed = true;
+}
+
 void bl1_platform_setup(void)
 {
 	/* IO */
@@ -129,17 +134,8 @@ void bl1_platform_setup(void)
 	lan966x_sjtag_configure();
 
 	/* Strapped for boot monitor? */
-	switch (lan966x_get_strapping()) {
-	case LAN966X_STRAP_BOOT_MMC_TFAMON_FC:
-	case LAN966X_STRAP_BOOT_QSPI_TFAMON_FC:
-	case LAN966X_STRAP_BOOT_SD_TFAMON_FC:
-	case LAN966X_STRAP_TFAMON_FC0:
-	case LAN966X_STRAP_TFAMON_FC2:
-	case LAN966X_STRAP_TFAMON_FC3:
-	case LAN966X_STRAP_TFAMON_FC4:
-	case LAN966X_STRAP_TFAMON_USB:
+	if (lan966x_monitor_enabled()) {
 		lan966x_bootstrap_monitor();
-		break;
 	}
 }
 
@@ -149,11 +145,12 @@ void bl1_plat_prepare_exit(entry_point_info_t *ep_info)
 
 /*******************************************************************************
  * The following function checks if Firmware update is needed,
- * by checking if TOC in FIP image is valid or not.
+ * which may be triggered by the monitor mode
  ******************************************************************************/
 unsigned int bl1_plat_get_next_image_id(void)
 {
-	return  is_fwu_needed ? NS_BL1U_IMAGE_ID : BL2_IMAGE_ID;
+	unsigned int img = is_fwu_needed ? BL2U_IMAGE_ID : BL2_IMAGE_ID;
+	return  img;
 }
 
 /*
