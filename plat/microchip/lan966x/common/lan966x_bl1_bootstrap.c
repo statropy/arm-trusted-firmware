@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <assert.h>
+
+#include <errno.h>
 #include <common/debug.h>
 #include <plat/common/platform.h>
 #include <endian.h>
-#include <../bl1/bl1_private.h>	/* UGLY... */
 
 #include "lan966x_private.h"
 #include "lan966x_bootstrap.h"
@@ -20,7 +22,6 @@ __attribute__((__noreturn__)) void plat_bootstrap_exec(void);
 
 static struct {
 	uint32_t length;
-	bool     authenticated;
 } received_code_status;
 
 static void handle_read_rom_version(const bootstrap_req_t *req)
@@ -84,27 +85,54 @@ static void handle_otp_commit(const bootstrap_req_t *req)
 		bootstrap_TxNack("OTP commit failed");
 }
 
-static void handle_auth(const bootstrap_req_t *req)
+static int bl1_load_image(unsigned int image_id)
 {
-	/* TBBR not enabled yet */
-	bootstrap_TxAck();
-	received_code_status.authenticated = true;
+	image_desc_t *desc;
+	image_info_t *info;
+	int err;
+
+	/* Get the image descriptor */
+	desc = bl1_plat_get_image_desc(image_id);
+	if (desc == NULL)
+		return -ENOENT;
+
+	/* Get the image info */
+	info = &desc->image_info;
+
+	err = bl1_plat_handle_pre_image_load(image_id);
+	if (err != 0) {
+		ERROR("Failure in pre image load handling of BL2U (%d)\n", err);
+		return err;
+	}
+
+	err = load_auth_image(image_id, info);
+	if (err != 0) {
+		ERROR("Failed to load BL2U firmware.\n");
+		return err;
+	}
+
+	/* Allow platform to handle image information. */
+	err = bl1_plat_handle_post_image_load(image_id);
+	if (err != 0) {
+		ERROR("Failure in post image load handling of BL2U (%d)\n", err);
+		return err;
+	}
+
+	return 0;
 }
 
-static void handle_exec(const bootstrap_req_t *req)
+static int handle_auth(const bootstrap_req_t *req)
 {
-	if (received_code_status.length) {
+	int rc = bl1_load_image(BL2U_IMAGE_ID);
 
-		/* We're going ahead */
+	if (rc == 0) {
 		bootstrap_TxAck();
-
-		bl1_plat_handle_post_image_load(BL2_IMAGE_ID);
-		bl1_prepare_next_image(BL2_IMAGE_ID);
-
-		plat_bootstrap_exec();
-		/* Not reached */
+		lan966x_bl1_trigger_fwu();
+	} else {
+		bootstrap_TxNack_rc("Authenticate fails", rc);
 	}
-	bootstrap_TxNack("Nothing to execute");
+
+	return rc;
 }
 
 static void handle_sjtag_rd(bootstrap_req_t *req)
@@ -133,16 +161,20 @@ static void handle_sjtag_wr(bootstrap_req_t *req)
 static void handle_send_data(const bootstrap_req_t *req)
 {
 	uint32_t length = req->arg0;
-	uintptr_t start = BL2_BASE;
+	uintptr_t start;
 	uint8_t *ptr;
 	int nBytes, offset;
 
-	if (length == 0 || length > BL2_SIZE) {
+	if (length == 0 || length > BL1_MON_MAX_SIZE) {
 		bootstrap_TxNack("Length Error");
 		return;
 	}
 
-	ptr = (uint8_t*)start;
+	/* Put dld as high in BL2 area as possible */
+	start = ((BL1_MON_LIMIT - length) & ~0xFF);
+	assert(start >= BL1_MON_MIN_BASE && start < BL1_MON_LIMIT);
+	/* Download to this (aligned) address */
+	ptr = (uint8_t *) start;
 
 	// Go ahead, receive data
 	bootstrap_TxAck();
@@ -164,7 +196,9 @@ static void handle_send_data(const bootstrap_req_t *req)
 
 	/* We have data */
 	received_code_status.length = length;
-	received_code_status.authenticated = false;
+
+	/* Inform IO layer of the FIP */
+	lan966x_bl1_io_enable_ram_fip(start, length);
 
 	VERBOSE("Received %d out of %d bytes\n", offset, length);
 }
@@ -178,11 +212,12 @@ static void handle_trace_lvl(const bootstrap_req_t *req)
 void lan966x_bootstrap_monitor(void)
 {
 	bootstrap_req_t req;
+	bool exit_monitor = false;
 
 	lan966x_reset_max_trace_level();
 	INFO("*** ENTERING BOOTSTRAP MONITOR ***\n");
 
-	while (1) {
+	while (!exit_monitor) {
 
 		if (!bootstrap_RxReq(&req)) {
 			bootstrap_TxNack("Garbled command");
@@ -191,7 +226,7 @@ void lan966x_bootstrap_monitor(void)
 
 		if (is_cmd(&req, BOOTSTRAP_CONT)) {
 			bootstrap_TxAck();
-			break;
+			exit_monitor = true;
 		} else if (is_cmd(&req, BOOTSTRAP_VERS))
 			handle_read_rom_version(&req);
 		else if (is_cmd(&req, BOOTSTRAP_SEND))
@@ -206,11 +241,10 @@ void lan966x_bootstrap_monitor(void)
 			handle_otp_random(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPC))
 			handle_otp_commit(&req);
-		else if (is_cmd(&req, BOOTSTRAP_AUTH))
-			handle_auth(&req);
-		else if (is_cmd(&req, BOOTSTRAP_EXEC))
-			handle_exec(&req);
-		else if (is_cmd(&req, BOOTSTRAP_SJTAG_RD))
+		else if (is_cmd(&req, BOOTSTRAP_AUTH)) {
+			if (handle_auth(&req) == 0)
+				exit_monitor = true;
+		} else if (is_cmd(&req, BOOTSTRAP_SJTAG_RD))
 			handle_sjtag_rd(&req);
 		else if (is_cmd(&req, BOOTSTRAP_SJTAG_WR))
 			handle_sjtag_wr(&req);

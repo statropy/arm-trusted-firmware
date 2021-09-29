@@ -13,10 +13,8 @@
 #define BOOTSTRAP_SEND         'S'
 // Data transmitted
 #define BOOTSTRAP_DATA         'D'
-// Authenticate data
+// Authenticate & load BL2U
 #define BOOTSTRAP_AUTH         'U'
-// Exec downloaded data
-#define BOOTSTRAP_EXEC         'E'
 // Override strapping
 #define BOOTSTRAP_STRAP        'O'
 // Set trace log-level
@@ -85,9 +83,14 @@ static inline void bootstrap_TxAckData(const void *data, uint32_t len)
 	bootstrap_Tx(BOOTSTRAP_ACK, 0, len, data);
 }
 
+static inline void bootstrap_TxNack_rc(const char *str, uint32_t rc)
+{
+	bootstrap_Tx(BOOTSTRAP_NACK, rc, strlen(str), (const uint8_t *)str);
+}
+
 static inline void bootstrap_TxNack(const char *str)
 {
-	bootstrap_Tx(BOOTSTRAP_NACK, 0, strlen(str), (const uint8_t*)str);
+	bootstrap_Tx(BOOTSTRAP_NACK, 0, strlen(str), (const uint8_t *)str);
 }
 
 bool bootstrap_RxDataCrc(bootstrap_req_t *req, uint8_t *data);

@@ -90,7 +90,6 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/microchip/lan966x/common/lan966x_trng.c
 
 BL1_SOURCES		+=	\
-				plat/microchip/lan966x/common/${ARCH}/plat_bootstrap.S	\
 				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_pcie.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c	\
