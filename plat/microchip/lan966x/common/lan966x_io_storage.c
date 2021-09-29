@@ -62,6 +62,16 @@ static const io_block_dev_spec_t mmc_dev_spec = {
 	.block_size = MMC_BLOCK_SIZE,
 };
 
+/*
+ * State data about alternate boot source(s).  Only used in
+ * conjunction with BL1 monitor mode.
+ */
+enum {
+	FIP_SELECT_MONITOR,
+	FIP_SELECT_DEFAULT,
+};
+static int fip_select;
+
 /* Data will be fetched from the GPT */
 static io_block_spec_t fip_mmc_block_spec;
 
@@ -79,6 +89,10 @@ static const io_block_spec_t mmc_gpt_spec = {
 
 static const io_uuid_spec_t bl2_uuid_spec = {
 	.uuid = UUID_TRUSTED_BOOT_FIRMWARE_BL2,
+};
+
+static const io_uuid_spec_t bl2u_uuid_spec = {
+	.uuid = UUID_TRUSTED_UPDATE_FIRMWARE_BL2U,
 };
 
 static const io_uuid_spec_t bl31_uuid_spec = {
@@ -145,6 +159,10 @@ static const io_uuid_spec_t tos_fw_cert_uuid_spec = {
 static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 	.uuid = UUID_NON_TRUSTED_FW_CONTENT_CERT,
 };
+
+static const io_uuid_spec_t fwu_cert_uuid_spec = {
+	.uuid = UUID_TRUSTED_FWU_CERT,
+};
 #endif /* TRUSTED_BOARD_BOOT */
 
 static int check_fip(const uintptr_t spec);
@@ -156,11 +174,6 @@ static int open_enc_fip(const uintptr_t spec);
 #endif
 
 static const struct plat_io_policy policies[] = {
-	[FIP_IMAGE_ID] = {
-		&mmc_dev_handle,
-		(uintptr_t)&fip_mmc_block_spec,
-		check_mmc
-	},
 	[ENC_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl32_uuid_spec, /* Dummy */
@@ -169,6 +182,11 @@ static const struct plat_io_policy policies[] = {
 	[BL2_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl2_uuid_spec,
+		check_fip
+	},
+	[BL2U_IMAGE_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&bl2u_uuid_spec,
 		check_fip
 	},
 	[BL31_IMAGE_ID] = {
@@ -270,6 +288,11 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&nt_fw_cert_uuid_spec,
 		check_fip
 	},
+	[FWU_CERT_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&fwu_cert_uuid_spec,
+		check_fip
+	},
 #endif /* TRUSTED_BOARD_BOOT */
 
 	[GPT_IMAGE_ID] = {
@@ -298,6 +321,39 @@ static const struct plat_io_policy boot_source_policies[] = {
 	},
 	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
+
+#if defined(IMAGE_BL1)
+
+static io_block_spec_t fip_ram_spec;
+
+void lan966x_bl1_io_enable_ram_fip(size_t offset, size_t length)
+{
+	fip_ram_spec.offset = offset;
+	fip_ram_spec.length = length;
+}
+
+static int check_monitor(const uintptr_t spec)
+{
+	int result;
+	uintptr_t local_image_handle;
+
+	result = io_dev_init(memmap_dev_handle, (uintptr_t)NULL);
+	if (result == 0) {
+		result = io_open(memmap_dev_handle, spec, &local_image_handle);
+		if (result == 0) {
+			VERBOSE("Using RAM FIP\n");
+			io_close(local_image_handle);
+		}
+	}
+	return result;
+}
+
+static const struct plat_io_policy boot_source_monitor = {
+	&memmap_dev_handle,
+	(uintptr_t) &fip_ram_spec,
+	check_monitor
+};
+#endif
 
 #ifndef DECRYPTION_SUPPORT_none
 static int open_enc_fip(const uintptr_t spec)
@@ -374,7 +430,9 @@ static int check_error(const uintptr_t spec)
 void lan966x_io_setup(void)
 {
 	int result;
-	boot_source_type boot_source;
+
+	/* Use default FIP from boot source */
+	fip_select = FIP_SELECT_DEFAULT;
 
 	lan966x_io_bootsource_init();
 
@@ -384,9 +442,16 @@ void lan966x_io_setup(void)
 	result = io_dev_open(fip_dev_con, (uintptr_t)NULL, &fip_dev_handle);
 	assert(result == 0);
 
-	boot_source = lan966x_get_boot_source();
+	/* These are prepared even if we use SD/MMC */
+	result = register_io_dev_memmap(&memmap_dev_con);
+	assert(result == 0);
 
-	switch (boot_source) {
+	result = io_dev_open(memmap_dev_con, (uintptr_t)NULL,
+			     &memmap_dev_handle);
+	assert(result == 0);
+
+	/* Device specific operations */
+	switch (lan966x_get_boot_source()) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
 		result = register_io_dev_block(&mmc_dev_con);
@@ -400,12 +465,6 @@ void lan966x_io_setup(void)
 		break;
 
 	case BOOT_SOURCE_QSPI:
-		result = register_io_dev_memmap(&memmap_dev_con);
-		assert(result == 0);
-
-		result = io_dev_open(memmap_dev_con, (uintptr_t)NULL,
-				     &memmap_dev_handle);
-		assert(result == 0);
 		break;
 
 	case BOOT_SOURCE_NONE:
@@ -431,6 +490,49 @@ void lan966x_io_setup(void)
 	(void)result;
 }
 
+/*
+ * When BL1 has a RAM FIP defined, use that as 1st source.
+ */
+#if defined(IMAGE_BL1)
+bool fip_ram_valid(io_block_spec_t *spec)
+{
+	if (spec->length == 0 ||
+	    spec->offset < BL1_MON_MIN_BASE ||
+	    (spec->offset + spec->length) > BL1_MON_LIMIT)
+		return false;
+	return true;
+}
+
+int bl1_plat_handle_pre_image_load(unsigned int image_id)
+{
+	/* Use RAM FIP only if defined */
+	fip_select =
+		fip_ram_valid(&fip_ram_spec) ?
+		FIP_SELECT_MONITOR :
+		FIP_SELECT_DEFAULT;
+
+	return 0;
+}
+
+int plat_try_next_boot_source(void)
+{
+	if (fip_select == FIP_SELECT_MONITOR) {
+		fip_select = FIP_SELECT_DEFAULT;
+		return 1;	/* Try again */
+	}
+	return 0;		/* No more */
+}
+#endif
+
+static const struct plat_io_policy *current_fip_io_policy(void)
+{
+#if defined(IMAGE_BL1)
+	if (fip_select == FIP_SELECT_MONITOR)
+		return &boot_source_monitor;
+#endif
+	return &boot_source_policies[lan966x_get_boot_source()];
+}
+
 /* Return an IO device handle and specification which can be used to access
  * an image. Use this to enforce platform load policy
  */
@@ -438,14 +540,12 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 			  uintptr_t *image_spec)
 {
 	int result;
-	uint32_t boot_source;
 	const struct plat_io_policy *policy;
 
 	assert(image_id < ARRAY_SIZE(policies));
 
-	boot_source = lan966x_get_boot_source();
 	if (image_id == FIP_IMAGE_ID)
-		policy = &boot_source_policies[boot_source];
+		policy = current_fip_io_policy();
 	else
 		policy = &policies[image_id];
 
