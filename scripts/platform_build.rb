@@ -59,7 +59,7 @@ build_envirs.each do |be|
       build_authentifications.each do |ba|
         next if ba == :auth && be == :lan966x_evb # EVB does not support authentication of images
         artifacts = [
-          ["build/#{be}/#{bt}/bl1.bin",      "#{be}-#{bt}-bl1.bin"],
+          ["build/#{be}/#{bt}/bl1.bin",      "#{be}-#{bt}-#{ba}-bl1.bin"],
           ["build/#{be}/#{bt}/fip.bin",      "#{be}-#{bt}-#{bv}-#{ba}.fip"],
           ["build/#{be}/#{bt}/fip.gpt",      "#{be}-#{bt}-#{bv}-#{ba}.gpt"],
           ["build/#{be}/#{bt}/#{be}.img",    "#{be}-#{bt}-#{bv}-#{ba}.img"],
