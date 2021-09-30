@@ -36,7 +36,7 @@
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
 
-int get_rotpk_info(void)
+static void get_rotpk_info(void)
 {
 	uint8_t rotpk[OTP_TBBR_ROTPK_SIZE];
 	int ret;
@@ -50,8 +50,6 @@ int get_rotpk_info(void)
 		INFO("Have ROTPK, len %d, bytes %02x:%02x:%02x:%02x\n", sizeof(rotpk),
 		     rotpk[0], rotpk[1], rotpk[2], rotpk[3]);
 	}
-
-	return 0;
 }
 
 void bl2u_platform_setup(void)
