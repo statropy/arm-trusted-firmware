@@ -10,7 +10,6 @@ CMD_VERS = 'V'
 CMD_SEND = 'S'
 CMD_DATA = 'D'
 CMD_AUTH = 'U'
-CMD_EXEC = 'E'
 CMD_STRAP= 'O'
 CMD_OTPD = 'P'
 CMD_OTPR = 'R'
@@ -128,7 +127,7 @@ OptionParser.new do |opts|
         do_cmd(fmt_req(CMD_VERS))
     end
 
-    opts.on("-s", "--send <file>", "Send file") do |file|
+    opts.on("-s", "--send <file>", "Send file (FWU FIP)") do |file|
         sz = File.size?(file)
         if sz
             rsp = do_cmd(fmt_req(CMD_SEND,sz))
@@ -153,8 +152,8 @@ OptionParser.new do |opts|
         end
     end
 
-    opts.on("-e", "--execute", "Do execute command") do
-        rsp = do_cmd(fmt_req(CMD_EXEC))
+    opts.on("-a", "--authenticate", "Do auth/execute command") do
+        rsp = do_cmd(fmt_req(CMD_AUTH))
     end
 
     opts.on("-c", "--continue", "Do continue command") do
@@ -208,11 +207,7 @@ OptionParser.new do |opts|
                           fmt_req(CMD_ACK,8)
                       ])
         show_examples("Authenticate", [
-                          fmt_req(CMD_AUTH,0,"The quick brown fox jumps over the lazy dog"),
-                          fmt_req(CMD_ACK)
-                      ])
-        show_examples("Execute", [
-                          fmt_req(CMD_EXEC),
+                          fmt_req(CMD_AUTH),
                           fmt_req(CMD_ACK)
                       ])
         show_examples("Override strapping", [

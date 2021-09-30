@@ -18,8 +18,6 @@
 /* Max OTP data to write in one req */
 #define MAX_OTP_DATA	1024
 
-__attribute__((__noreturn__)) void plat_bootstrap_exec(void);
-
 static struct {
 	uint32_t length;
 } received_code_status;
@@ -180,7 +178,7 @@ static void handle_send_data(const bootstrap_req_t *req)
 	bootstrap_TxAck();
 
 	/* Gobble up the data chunks */
-	offset = 0;
+	nBytes = offset = 0;
 	while (offset < length &&
 	       (nBytes = bootstrap_RxData(ptr, offset,
 					  length - offset)) > 0) {
@@ -188,11 +186,10 @@ static void handle_send_data(const bootstrap_req_t *req)
 		offset += nBytes;
 	}
 
-	/*
-	 * We need to flush since execution may be using different
-	 * context than the current.
-	 */
-	flush_dcache_range(start, length);
+	if (offset != length) {
+		ERROR("RxData Error: n = %d, l = %d, o = %d\n", nBytes, length, offset);
+		return;
+	}
 
 	/* We have data */
 	received_code_status.length = length;
@@ -200,7 +197,7 @@ static void handle_send_data(const bootstrap_req_t *req)
 	/* Inform IO layer of the FIP */
 	lan966x_bl1_io_enable_ram_fip(start, length);
 
-	VERBOSE("Received %d out of %d bytes\n", offset, length);
+	INFO("Received %d bytes\n", length);
 }
 
 static void handle_trace_lvl(const bootstrap_req_t *req)
