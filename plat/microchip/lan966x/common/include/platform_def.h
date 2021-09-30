@@ -73,7 +73,7 @@
 /*
  * BL1 bootstrap download area
  */
-#define BL1_MON_MIN_OFFSET	SIZE_K(8)
+#define BL1_MON_MIN_OFFSET	SIZE_K(4)
 #define BL1_MON_MAX_SIZE	(BL2_SIZE - BL1_MON_MIN_OFFSET)
 #define BL1_MON_MIN_BASE	(BL2_BASE + BL1_MON_MIN_OFFSET)
 #define BL1_MON_LIMIT		BL2_LIMIT
