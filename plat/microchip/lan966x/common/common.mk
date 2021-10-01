@@ -111,7 +111,9 @@ BL2_SOURCES             +=      drivers/io/io_encrypted.c
 endif
 
 ifeq (${BL2_VARIANT},NOOP)
-BL2_SOURCES             +=      plat/microchip/lan966x/common/${ARCH}/plat_bl2_noop.S
+override BL2_SOURCES		:=	\
+				bl2/${ARCH}/bl2_entrypoint.S				\
+				plat/microchip/lan966x/common/${ARCH}/plat_bl2_noop.S
 endif
 
 # Enable Activity Monitor Unit extensions by default

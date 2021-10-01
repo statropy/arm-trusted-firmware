@@ -10,6 +10,8 @@
 
 	.weak	plat_get_my_stack
 	.weak	plat_set_my_stack
+	.weak	bl2_setup
+	.weak	bl2_main
 
 	/* -----------------------------------------------------
 	 * unsigned long plat_get_my_stack ()
@@ -42,6 +44,17 @@ func plat_set_my_stack
 	mov	sp, r0
 	bx	lr
 endfunc plat_set_my_stack
+
+	/* -----------------------------------------------------
+	 * Platform stub functions
+	 * -----------------------------------------------------
+	 */
+func bl2_setup
+	bx	lr
+endfunc	bl2_setup
+func bl2_main
+	bx	lr
+endfunc	bl2_main
 
 	/* -----------------------------------------------------
 	 * Per-cpu stacks in normal memory. Each cpu gets a
