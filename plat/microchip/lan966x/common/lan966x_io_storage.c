@@ -67,7 +67,7 @@ static const io_block_dev_spec_t mmc_dev_spec = {
  * conjunction with BL1 monitor mode.
  */
 enum {
-	FIP_SELECT_MONITOR,
+	FIP_SELECT_RAM_FIP,
 	FIP_SELECT_DEFAULT,
 };
 static int fip_select;
@@ -324,15 +324,15 @@ static const struct plat_io_policy boot_source_policies[] = {
 
 #if defined(IMAGE_BL1)
 
-static io_block_spec_t fip_ram_spec;
+static io_block_spec_t ram_fip_spec;
 
 void lan966x_bl1_io_enable_ram_fip(size_t offset, size_t length)
 {
-	fip_ram_spec.offset = offset;
-	fip_ram_spec.length = length;
+	ram_fip_spec.offset = offset;
+	ram_fip_spec.length = length;
 }
 
-static int check_monitor(const uintptr_t spec)
+static int check_ram_fip(const uintptr_t spec)
 {
 	int result;
 	uintptr_t local_image_handle;
@@ -348,10 +348,10 @@ static int check_monitor(const uintptr_t spec)
 	return result;
 }
 
-static const struct plat_io_policy boot_source_monitor = {
+static const struct plat_io_policy boot_source_ram_fip = {
 	&memmap_dev_handle,
-	(uintptr_t) &fip_ram_spec,
-	check_monitor
+	(uintptr_t) &ram_fip_spec,
+	check_ram_fip
 };
 #endif
 
@@ -494,7 +494,7 @@ void lan966x_io_setup(void)
  * When BL1 has a RAM FIP defined, use that as 1st source.
  */
 #if defined(IMAGE_BL1)
-bool fip_ram_valid(io_block_spec_t *spec)
+bool ram_fip_valid(io_block_spec_t *spec)
 {
 	if (spec->length == 0 ||
 	    spec->offset < BL1_MON_MIN_BASE ||
@@ -507,8 +507,8 @@ int bl1_plat_handle_pre_image_load(unsigned int image_id)
 {
 	/* Use RAM FIP only if defined */
 	fip_select =
-		fip_ram_valid(&fip_ram_spec) ?
-		FIP_SELECT_MONITOR :
+		ram_fip_valid(&ram_fip_spec) ?
+		FIP_SELECT_RAM_FIP :
 		FIP_SELECT_DEFAULT;
 
 	return 0;
@@ -516,7 +516,7 @@ int bl1_plat_handle_pre_image_load(unsigned int image_id)
 
 int plat_try_next_boot_source(void)
 {
-	if (fip_select == FIP_SELECT_MONITOR) {
+	if (fip_select == FIP_SELECT_RAM_FIP) {
 		fip_select = FIP_SELECT_DEFAULT;
 		return 1;	/* Try again */
 	}
@@ -527,8 +527,8 @@ int plat_try_next_boot_source(void)
 static const struct plat_io_policy *current_fip_io_policy(void)
 {
 #if defined(IMAGE_BL1)
-	if (fip_select == FIP_SELECT_MONITOR)
-		return &boot_source_monitor;
+	if (fip_select == FIP_SELECT_RAM_FIP)
+		return &boot_source_ram_fip;
 #endif
 	return &boot_source_policies[lan966x_get_boot_source()];
 }
