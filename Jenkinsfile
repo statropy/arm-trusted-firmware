@@ -36,6 +36,7 @@ node('blademaster') {
                 archive '*.gpt'
                 archive '*.img'
                 archive '*.dump'
+                archive 'keys/*'
         }
     }
 }
