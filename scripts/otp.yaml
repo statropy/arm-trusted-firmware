@@ -212,11 +212,67 @@
   - name: PROTECT_REGION0_START_ADDR
     width: 16
     desc: Start address of protected region 0.
-    offset: 0
+    offset: 240
   - name: PROTECT_REGION0_END_ADDR
     width: 16
     desc: End address of protected region 0.
+    offset: 224
+  - name: PROTECT_REGION1_START_ADDR
+    width: 16
+    desc: Start address of protected region 1.
+    offset: 208
+  - name: PROTECT_REGION1_END_ADDR
+    width: 16
+    desc: End address of protected region 1.
+    offset: 192
+  - name: PROTECT_REGION2_START_ADDR
+    width: 16
+    desc: Start address of protected region 2.
+    offset: 176
+  - name: PROTECT_REGION2_END_ADDR
+    width: 16
+    desc: End address of protected region 2.
+    offset: 160
+  - name: PROTECT_REGION3_START_ADDR
+    width: 16
+    desc: Start address of protected region 3.
+    offset: 144
+  - name: PROTECT_REGION3_END_ADDR
+    width: 16
+    desc: End address of protected region 3.
+    offset: 128
+  - name: PROTECT_REGION4_START_ADDR
+    width: 16
+    desc: Start address of protected region 4.
+    offset: 112
+  - name: PROTECT_REGION4_END_ADDR
+    width: 16
+    desc: End address of protected region 4.
+    offset: 96
+  - name: PROTECT_REGION5_START_ADDR
+    width: 16
+    desc: Start address of protected region 5.
+    offset: 80
+  - name: PROTECT_REGION5_END_ADDR
+    width: 16
+    desc: End address of protected region 5.
+    offset: 64
+  - name: PROTECT_REGION6_START_ADDR
+    width: 16
+    desc: Start address of protected region 6.
+    offset: 48
+  - name: PROTECT_REGION6_END_ADDR
+    width: 16
+    desc: End address of protected region 6.
+    offset: 32
+  - name: PROTECT_REGION7_START_ADDR
+    width: 16
+    desc: Start address of protected region 7.
     offset: 16
+  - name: PROTECT_REGION7_END_ADDR
+    width: 16
+    desc: End address of protected region 7.
+    offset: 0
   prod_cust: true
 
 - name: OTP_PCIE_FLAGS
