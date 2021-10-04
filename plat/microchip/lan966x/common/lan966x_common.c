@@ -12,9 +12,9 @@
 #include <drivers/microchip/flexcom_uart.h>
 #include <drivers/microchip/lan966x_clock.h>
 #include <drivers/microchip/qspi.h>
+#include <drivers/microchip/sha.h>
 #include <drivers/microchip/tz_matrix.h>
 #include <drivers/microchip/vcore_gpio.h>
-#include <drivers/microchip/sha.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
@@ -372,12 +372,7 @@ void lan966x_fwconfig_apply(void)
 	}
 }
 
-/*
- * Note: The FW_CONFIG is read *wo* authentication, as the OTP
- * emulation data may contain the actual (emulated) rotpk. This is
- * only called when a *hw* ROTPK has *not* been deployed.
- */
-int lan966x_load_fw_config(unsigned int image_id)
+int lan966x_load_fw_config_raw(unsigned int image_id)
 {
 	uintptr_t dev_handle, image_handle, image_spec = 0;
 	size_t bytes_read;
@@ -407,6 +402,35 @@ int lan966x_load_fw_config(unsigned int image_id)
 	/* This is fwd to BL2 */
 	flush_dcache_range((uintptr_t)&lan966x_fw_config, sizeof(lan966x_fw_config));
 #endif
+
+	return result;
+}
+
+int lan966x_load_fw_config(unsigned int image_id)
+{
+	int result;
+
+	/* The FW_CONFIG is first read *wo* authentication. */
+	result = lan966x_load_fw_config_raw(image_id);
+
+	/* If OK, then *authenticate* */
+	if (result == 0 && otp_emu_init()) {
+#ifdef IMAGE_BL1		/* Only authenticate at BL1 */
+		image_desc_t *desc = bl1_plat_get_image_desc(image_id);
+
+		if (desc == NULL) {
+			result = -ENOENT;
+		} else {
+			result = load_auth_image(image_id, &desc->image_info);
+			if (result != 0)
+				ERROR("FW_CONFIG did not authenticate: rc %d\n", result);
+		}
+#endif
+	}
+
+	/* Be sure to reset config if any issues occur */
+	if (result != 0)
+		memset(&lan966x_fw_config, 0, sizeof(lan966x_fw_config));
 
 	return result;
 }
