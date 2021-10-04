@@ -14,6 +14,32 @@ build_type_args         = { debug: '--debug', release: '--no-debug' }
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop' }
 build_auth_args         = { noauth: '--no-tbbr', auth: '--tbbr' }
 
+#Desired artifacts
+#FIP:
+#  lan966x_b0-debug-bl2noop-auth.fip
+#  lan966x_b0-debug-bl2noop-noauth.fip
+#  lan966x_b0-debug-bl2normal-auth.fip
+#  lan966x_b0-debug-bl2normal-noauth.fip
+#  lan966x_b0-release-bl2noop-auth.fip
+#  lan966x_b0-release-bl2noop-noauth.fip
+#  lan966x_b0-release-bl2normal-auth.fip
+#  lan966x_b0-release-bl2normal-noauth.fip
+#
+#  lan966x_evb-debug-bl2normal-auth.fip
+#  lan966x_evb-debug-bl2normal-noauth.fip
+#  lan966x_evb-release-bl2normal-auth.fip
+#  lan966x_evb-release-bl2normal-noauth.fip
+#
+#  lan966x_sr-debug-bl2normal-auth.fip
+#  lan966x_sr-debug-bl2normal-noauth.fip
+#  lan966x_sr-release-bl2normal-auth.fip
+#  lan966x_sr-release-bl2normal-noauth.fip
+#
+#BL1:
+#  lan966x_sr-debug-bl2normal-auth.bl1    ->  lan966x_sr-debug.bl1
+#  lan966x_sr-release-bl2normal-auth.bl1  ->  lan966x_sr-release.bl1
+#  lan966x_b0-release-bl2normal-auth.bl1  ->  lan966x_b0-release.bl1
+
 option = {}
 OptionParser.new do |opts|
   opts.banner = %(Usage: #{__FILE__} [options]
