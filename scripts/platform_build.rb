@@ -5,7 +5,7 @@
 require 'fileutils'
 require 'optparse'
 
-build_envirs            = %I[lan966x_evb lan966x_sr lan966x_b0]
+build_platforms         = %I[lan966x_evb lan966x_sr lan966x_b0]
 build_types             = %I[debug release]
 build_variants          = %I[bl2normal bl2noop]
 build_authentifications = %I[noauth auth] # %I[ssk bssk]
@@ -78,19 +78,19 @@ end
 cleanup(true) if option[:clean]
 
 pre_build
-build_envirs.each do |be|
+build_platforms.each do |bp|
   build_types.each do |bt|
     build_variants.each do |bv|
-      next if bv == :bl2noop && (be != :lan966x_b0 || bt != :release) # NOOP builds must be b0 release
+      next if bv == :bl2noop && (bp != :lan966x_b0 || bt != :release) # NOOP builds must be b0 release
       build_authentifications.each do |ba|
-        next if ba == :auth && be == :lan966x_evb # EVB does not support authentication of images
+        next if ba == :auth && bp == :lan966x_evb # EVB does not support authentication of images
         artifacts = [
-          ["build/#{be}/#{bt}/bl1.bin",      "#{be}-#{bt}-#{ba}-bl1.bin"],
-          ["build/#{be}/#{bt}/fip.bin",      "#{be}-#{bt}-#{bv}-#{ba}.fip"],
-          ["build/#{be}/#{bt}/fip.gpt",      "#{be}-#{bt}-#{bv}-#{ba}.gpt"],
-          ["build/#{be}/#{bt}/#{be}.img",    "#{be}-#{bt}-#{bv}-#{ba}.img"],
-          ["build/#{be}/#{bt}/bl1/bl1.dump", "#{be}-#{bt}-#{bv}-#{ba}-bl1.dump"],
-          ["build/#{be}/#{bt}/bl2/bl2.dump", "#{be}-#{bt}-#{bv}-#{ba}-bl2.dump"]
+          ["build/#{bp}/#{bt}/bl1.bin",      "#{bp}-#{bt}-#{ba}-bl1.bin"],
+          ["build/#{bp}/#{bt}/fip.bin",      "#{bp}-#{bt}-#{bv}-#{ba}.fip"],
+          ["build/#{bp}/#{bt}/fip.gpt",      "#{bp}-#{bt}-#{bv}-#{ba}.gpt"],
+          ["build/#{bp}/#{bt}/#{be}.img",    "#{bp}-#{bt}-#{bv}-#{ba}.img"],
+          ["build/#{bp}/#{bt}/bl1/bl1.dump", "#{bp}-#{bt}-#{bv}-#{ba}-bl1.dump"],
+          ["build/#{bp}/#{bt}/bl2/bl2.dump", "#{bp}-#{bt}-#{bv}-#{ba}-bl2.dump"]
         ]
         cargs = "#{build_type_args[bt]} --gptimg --norimg #{build_auth_args[ba]} -p #{be} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
