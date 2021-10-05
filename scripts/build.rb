@@ -156,7 +156,7 @@ if $option[:encrypt_key]
     key = key.unpack("C*").map{|i| sprintf("%02X", i)}.join("")
     # Random Nonce
     nonce = (0..11).map{ sprintf("%02X", rand(255)) }.join("")
-    args += "ENCRYPT_BL32=1 DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
+    args += "ENCRYPT_BL2=1 ENCRYPT_BL32=1 DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
 end
 
 if $option[:debug]
