@@ -31,6 +31,7 @@ node('blademaster') {
         throw error
     } finally {
         stage("Archiving results") {
+                archive '*.bl1'
                 archive '*.fip'
                 archive '*.bin'
                 archive '*.gpt'
