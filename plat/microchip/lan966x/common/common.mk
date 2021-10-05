@@ -71,6 +71,10 @@ LAN966X_STORAGE_SOURCES	:=	\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_mmc.c
 
+ifneq (${TRUSTED_BOARD_BOOT},0)
+LAN966X_STORAGE_SOURCES	+=	drivers/io/io_encrypted.c
+endif
+
 PLAT_BL_COMMON_SOURCES	+=	\
 				${LAN966X_CONSOLE_SOURCES}				\
 				${LAN966X_STORAGE_SOURCES}				\
@@ -106,11 +110,6 @@ BL2_SOURCES		+=	\
 
 BL2U_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c
-
-ifneq (${DECRYPTION_SUPPORT},none)
-BL1_SOURCES             +=      drivers/io/io_encrypted.c
-BL2_SOURCES             +=      drivers/io/io_encrypted.c
-endif
 
 ifeq (${BL2_VARIANT},NOOP)
 override BL2_SOURCES		:=	\

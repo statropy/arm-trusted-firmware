@@ -29,6 +29,7 @@ static uintptr_t backend_handle;
 static uintptr_t backend_image_spec;
 
 static io_dev_info_t enc_dev_info;
+static struct fw_enc_hdr enc_header;
 
 /* Encrypted firmware driver functions */
 static int enc_dev_open(const uintptr_t dev_spec, io_dev_info_t **dev_info);
@@ -108,6 +109,7 @@ static int enc_dev_close(io_dev_info_t *dev_info)
 static int enc_file_open(io_dev_info_t *dev_info, const uintptr_t spec,
 			 io_entity_t *entity)
 {
+	size_t bytes_read;
 	int result;
 
 	assert(spec != 0);
@@ -122,6 +124,20 @@ static int enc_file_open(io_dev_info_t *dev_info, const uintptr_t spec,
 		result = -ENOENT;
 	}
 
+	result = io_read(backend_handle, (uintptr_t)&enc_header, sizeof(enc_header),
+			 &bytes_read);
+	if (result != 0) {
+		WARN("Failed to read encryption header (%i)\n", result);
+		enc_file_close(entity);
+		return -ENOENT;
+	}
+
+	if (!is_valid_header(&enc_header)) {
+		WARN("Encryption header check failed.\n");
+		enc_file_close(entity);
+		return -ENOENT;
+	}
+	VERBOSE("Encryption header looks OK.\n");
 	return result;
 }
 
@@ -154,7 +170,6 @@ static int enc_file_read(io_entity_t *entity, uintptr_t buffer, size_t length,
 			 size_t *length_read)
 {
 	int result;
-	struct fw_enc_hdr header;
 	enum fw_enc_status_t fw_enc_status;
 	size_t bytes_read;
 	uint8_t key[ENC_MAX_KEY_SIZE];
@@ -165,23 +180,10 @@ static int enc_file_read(io_entity_t *entity, uintptr_t buffer, size_t length,
 	assert(entity != NULL);
 	assert(length_read != NULL);
 
-	result = io_read(backend_handle, (uintptr_t)&header, sizeof(header),
-			 &bytes_read);
-	if (result != 0) {
-		WARN("Failed to read encryption header (%i)\n", result);
-		return -ENOENT;
-	}
+	fw_enc_status = enc_header.flags & FW_ENC_STATUS_FLAG_MASK;
 
-	if (!is_valid_header(&header)) {
-		WARN("Encryption header check failed.\n");
-		return -ENOENT;
-	}
-
-	VERBOSE("Encryption header looks OK.\n");
-	fw_enc_status = header.flags & FW_ENC_STATUS_FLAG_MASK;
-
-	if ((header.iv_len > ENC_MAX_IV_SIZE) ||
-	    (header.tag_len > ENC_MAX_TAG_SIZE)) {
+	if ((enc_header.iv_len > ENC_MAX_IV_SIZE) ||
+	    (enc_header.tag_len > ENC_MAX_TAG_SIZE)) {
 		WARN("Incorrect IV or tag length\n");
 		return -ENOENT;
 	}
@@ -202,11 +204,11 @@ static int enc_file_read(io_entity_t *entity, uintptr_t buffer, size_t length,
 		return -ENOENT;
 	}
 
-	result = crypto_mod_auth_decrypt(header.dec_algo,
+	result = crypto_mod_auth_decrypt(enc_header.dec_algo,
 					 (void *)buffer, *length_read, key,
-					 key_len, key_flags, header.iv,
-					 header.iv_len, header.tag,
-					 header.tag_len);
+					 key_len, key_flags, enc_header.iv,
+					 enc_header.iv_len, enc_header.tag,
+					 enc_header.tag_len);
 	memset(key, 0, key_len);
 
 	if (result != 0) {
