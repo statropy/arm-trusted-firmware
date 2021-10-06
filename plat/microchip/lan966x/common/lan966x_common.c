@@ -408,35 +408,38 @@ int lan966x_load_fw_config_raw(unsigned int image_id)
 
 int lan966x_load_fw_config(unsigned int image_id)
 {
-	uint8_t config[FW_CONFIG_MAX_DATA];
-	int result;
+	int result = 0;
 
-	/* Save the current config */
-	memcpy(config, lan966x_fw_config.config, sizeof(config));
+	/* If ROTPK not set, read fw_config */
+	if (otp_emu_init()) {
+		uint8_t config[FW_CONFIG_MAX_DATA];
 
-	/* The FW_CONFIG is first read *wo* authentication. */
-	result = lan966x_load_fw_config_raw(image_id);
+		/* Save the current config */
+		memcpy(config, lan966x_fw_config.config, sizeof(config));
 
-	/* If OK, then *authenticate* */
-	if (result == 0) {
-		otp_emu_init();
+		/* The FW_CONFIG is first read *wo* authentication. */
+		result = lan966x_load_fw_config_raw(image_id);
+
+		/* If OK, then *authenticate* */
+		if (result == 0) {
 #ifdef IMAGE_BL1		/* Only authenticate at BL1 */
-		image_desc_t *desc = bl1_plat_get_image_desc(image_id);
+			image_desc_t *desc = bl1_plat_get_image_desc(image_id);
 
-		if (desc == NULL) {
-			result = -ENOENT;
-		} else {
-			result = load_auth_image(image_id, &desc->image_info);
-			if (result != 0)
-				ERROR("FW_CONFIG did not authenticate: rc %d\n", result);
-		}
+			if (desc == NULL) {
+				result = -ENOENT;
+			} else {
+				result = load_auth_image(image_id, &desc->image_info);
+				if (result != 0)
+					ERROR("FW_CONFIG did not authenticate: rc %d\n", result);
+			}
 #endif
-	}
+		}
 
-	/* If something went wrong, restore fw_config */
-	if (result != 0) {
-		memset(&lan966x_fw_config, 0, sizeof(lan966x_fw_config));
-		memcpy(lan966x_fw_config.config, config, sizeof(config));
+		/* If something went wrong, restore fw_config */
+		if (result != 0) {
+			memset(&lan966x_fw_config, 0, sizeof(lan966x_fw_config));
+			memcpy(lan966x_fw_config.config, config, sizeof(config));
+		}
 	}
 
 	return result;
