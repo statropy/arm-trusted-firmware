@@ -4,23 +4,22 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
-#include <platform_def.h>
-
-#include <arch_helpers.h>
-#include <common/bl_common.h>
 #include <common/debug.h>
 #include <common/desc_image_load.h>
-#include <lib/mmio.h>
-#include <plat/common/platform.h>
 #include <drivers/generic_delay_timer.h>
+#include <drivers/microchip/tz_matrix.h>
+#include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 
 #include "lan966x_private.h"
 
 static entry_point_info_t bl33_ep_info;
+
+#define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
+		LAN996X_SRAM_BASE,					\
+		LAN996X_SRAM_SIZE,					\
+		MT_MEMORY | MT_RW | MT_SECURE)
 
 #define MAP_BL_SP_MIN_TOTAL	MAP_REGION_FLAT(			\
 					BL32_BASE,			\
@@ -87,8 +86,6 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	/* Console */
 	lan966x_console_init();
 
-	VERBOSE("sp_min_setup\n");
-
 	bl31_params_parse_helper(arg0, NULL, &bl33_ep_info);
 }
 
@@ -109,6 +106,7 @@ void sp_min_platform_setup(void)
 void sp_min_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
+		MAP_SRAM_TOTAL,
 		MAP_BL_SP_MIN_TOTAL,
 		ARM_MAP_BL_RO,
 #if USE_COHERENT_MEM
@@ -125,4 +123,30 @@ void sp_min_plat_arch_setup(void)
 void sp_min_plat_fiq_handler(uint32_t id)
 {
 	VERBOSE("[sp_min] interrupt #%d\n", id);
+}
+
+static void configure_sram(void)
+{
+	INFO("Enabling SRAM NS access\n");
+	/* Reset SRAM content */
+	memset((void *)LAN996X_SRAM_BASE, 0, LAN996X_SRAM_SIZE);
+	flush_dcache_range((uintptr_t)LAN996X_SRAM_BASE, LAN996X_SRAM_SIZE);
+	/* Enable SRAM for NS access */
+	matrix_configure_slave_security(MATRIX_SLAVE_FLEXRAM0,
+					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128K) |
+					MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128K),
+					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_128K),
+					MATRIX_LANSECH_NS(0));
+	/* - and DMAC SRAM access */
+	matrix_configure_slave_security(MATRIX_SLAVE_FLEXRAM1,
+					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128K) |
+					MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128K),
+					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_128K),
+					MATRIX_LANSECH_NS(0));
+}
+
+void sp_min_plat_runtime_setup(void)
+{
+	/* Reset SRAM and allow NS access */
+	configure_sram();
 }
