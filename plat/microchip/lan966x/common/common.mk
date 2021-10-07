@@ -118,6 +118,15 @@ override BL2_SOURCES		:=	\
 				plat/microchip/lan966x/common/${ARCH}/plat_bl2_noop.S
 endif
 
+# Add the build options to pack Trusted OS Extra1 and Trusted OS Extra2 images
+# in the FIP if the platform requires.
+ifneq ($(BL32_EXTRA1),)
+$(eval $(call TOOL_ADD_IMG,bl32_extra1,--tos-fw-extra1,,$(ENCRYPT_BL32)))
+endif
+ifneq ($(BL32_EXTRA2),)
+$(eval $(call TOOL_ADD_IMG,bl32_extra2,--tos-fw-extra2,,$(ENCRYPT_BL32)))
+endif
+
 # Enable Activity Monitor Unit extensions by default
 ENABLE_AMU			:=	1
 
