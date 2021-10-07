@@ -86,19 +86,19 @@
 #define BL1_MMC_BUF_BASE	(BL2_LIMIT - MMC_BUF_SIZE)
 
 /*
- * BL32 - top of DDR
+ * BL32 - start of DDR
  */
-#define BL32_BASE		(BL32_LIMIT - BL32_SIZE)
-#define BL32_SIZE		UL(2 * 1024 * 1024)
-#define BL32_LIMIT		(LAN996X_DDR_BASE + LAN996X_DDR_SIZE)
+#define BL32_BASE		LAN996X_DDR_BASE
+#define BL32_SIZE		SIZE_M(2)
+#define BL32_LIMIT		(BL32_BASE + BL32_SIZE)
 
 /*
- * BL33 - start of DDR
+ * BL33 - top of DDR
  */
 
-#define PLAT_LAN966X_NS_IMAGE_BASE	LAN996X_DDR_BASE
+#define PLAT_LAN966X_NS_IMAGE_BASE	BL32_LIMIT
 #define PLAT_LAN966X_NS_IMAGE_SIZE	(LAN996X_DDR_SIZE - BL32_SIZE)
-#define PLAT_LAN966X_NS_IMAGE_LIMIT	BL32_BASE
+#define PLAT_LAN966X_NS_IMAGE_LIMIT	(PLAT_LAN966X_NS_IMAGE_BASE + PLAT_LAN966X_NS_IMAGE_SIZE)
 
 /*
  * Default FlexCom console
@@ -135,8 +135,10 @@
 
 #if defined(IMAGE_BL1)
 #define MAX_XLAT_TABLES			2
-#else
-#define MAX_XLAT_TABLES			4
+#elif defined(IMAGE_BL2) || defined(IMAGE_BL2U)
+#define MAX_XLAT_TABLES			3
+#elif defined(IMAGE_BL32)
+#define MAX_XLAT_TABLES			8
 #endif
 
 #define MAX_MMAP_REGIONS		16
