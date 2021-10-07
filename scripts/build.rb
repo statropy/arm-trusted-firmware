@@ -189,25 +189,25 @@ cmd = "cov-build --dir #{$cov_dir} #{cmd}" if $option[:coverity]
 puts cmd
 do_cmd cmd
 
-img = build + "/" + $option[:platform] + ".img"
-if pdef[:bl2_at_el3]
-    # BL2 placed in the start of FLASH
-    b = "#{build}/bl2.bin"
-else
-    # BL2 is in FIP
-    b = "/dev/null"
-end
-
 exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
 
 if $option[:norimg]
-    FileUtils.cp(b, img)
-    tsize = 80
-    do_cmd("truncate --size=#{tsize}k #{img}")
-    # Reserve UBoot env 2 * 256k
-    tsize += 512
-    do_cmd("truncate --size=#{tsize}k #{img}")
-    do_cmd("cat #{build}/fip.bin >> #{img}")
+    img = build + "/" + $option[:platform] + ".img"
+    if pdef[:bl2_at_el3]
+        # BL2 placed in the start of FLASH
+        b = "#{build}/bl2.bin"
+        FileUtils.cp(b, img)
+        tsize = 80
+        do_cmd("truncate --size=#{tsize}k #{img}")
+        # Reserve UBoot env 2 * 256k
+        tsize += 512
+        do_cmd("truncate --size=#{tsize}k #{img}")
+        # Lastly, the FIP
+        do_cmd("cat #{build}/fip.bin >> #{img}")
+    else
+        # BL2 is in FIP, FIP start at 0
+        FileUtils.cp("#{build}/fip.bin", img)
+    end
     # List binaries
     do_cmd("ls -l #{build}/*.bin #{build}/*.img")
 end
