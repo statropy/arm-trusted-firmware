@@ -223,6 +223,11 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl32_extra2_uuid_spec,
 		check_enc_fip
 	},
+	[BL33_IMAGE_ID] = {
+		&enc_dev_handle,
+		(uintptr_t)&bl33_uuid_spec,
+		check_enc_fip
+	},
 #else
 	[BL32_IMAGE_ID] = {
 		&fip_dev_handle,
@@ -239,12 +244,12 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl32_extra2_uuid_spec,
 		check_fip
 	},
-#endif /* TRUSTED_BOARD_BOOT */
 	[BL33_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl33_uuid_spec,
 		check_fip
 	},
+#endif /* TRUSTED_BOARD_BOOT */
 	[FW_CONFIG_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&fw_config_uuid_spec,
@@ -335,6 +340,11 @@ static const struct plat_io_policy fallback_policies[] = {
 	[BL32_EXTRA2_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl32_extra2_uuid_spec,
+		check_fip
+	},
+	[BL33_IMAGE_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&bl33_uuid_spec,
 		check_fip
 	},
 };
