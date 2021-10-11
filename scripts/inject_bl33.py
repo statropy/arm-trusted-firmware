@@ -10,7 +10,7 @@ debugger = Debugger()
 debugger.getCurrentExecutionContext().getExecutionService().stop()
 
 # Run until BL33
-lan966x.run_to(debugger, "N:0x60000000")
+lan966x.run_to(debugger, "N:0x60200000")
 
 uboot = lan966x.get_uboot_dir(debugger)
 
