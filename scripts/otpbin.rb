@@ -68,8 +68,6 @@ if $data
       raise "Unknown OTP field #{e["field"]}" unless f
       set_bits(e, f)
     end
-else
-    $bits[0, 384] = [0]
 end
 
 # output

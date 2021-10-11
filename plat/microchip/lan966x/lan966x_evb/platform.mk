@@ -1,6 +1,5 @@
 BL2_AT_EL3			:=	1
 LAN966X_OTP_DATA		:=	scripts/otp_data.yaml
-LAN966X_OTP_DATA_ARG		:=	-y ${LAN966X_OTP_DATA}
 
 include plat/microchip/lan966x/common/common.mk
 

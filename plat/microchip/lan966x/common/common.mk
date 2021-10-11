@@ -138,7 +138,7 @@ endif
 LAN966X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
 
 ${LAN966X_FW_CONFIG}: bin/fw_param.bin ${LAN966X_OTP_DATA}
-	ruby ./scripts/otpbin.rb ${LAN966X_OTP_DATA_ARG} -o $@
+	ruby ./scripts/otpbin.rb $(if ${LAN966X_OTP_DATA},-y ${LAN966X_OTP_DATA}) -o $@
 	$(Q)cat bin/fw_param.bin >> $@
 
 # FW config
