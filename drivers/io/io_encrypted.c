@@ -133,7 +133,7 @@ static int enc_file_open(io_dev_info_t *dev_info, const uintptr_t spec,
 	}
 
 	if (!is_valid_header(&header)) {
-		WARN("Encryption header check failed.\n");
+		INFO("No encryption header: this is plaintext.\n");
 		enc_file_close(entity);
 		return -ENOENT;
 	}
