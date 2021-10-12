@@ -52,7 +52,8 @@ void lan966x_sjtag_configure(void)
 			mmio_write_32(SJTAG_DEVICE_DIGEST(LAN966X_SJTAG_BASE, i), sjtag_ssk.w[i]);
 
 		/* Now enable */
-		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE), SJTAG_CTL_SJTAG_EN(1));
+		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE),
+				SJTAG_CTL_SJTAG_DIGEST_CMP(1) | SJTAG_CTL_SJTAG_EN(1));
 
 		/* Don't leak data */
 		memset(&sjtag_nonce, 0, sizeof(sjtag_nonce));
