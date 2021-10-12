@@ -5,16 +5,27 @@
  */
 
 #include <common/bl_common.h>
+#include <common/debug.h>
 #include <common/desc_image_load.h>
+#include <lib/mmio.h>
 #include <plat/common/platform.h>
+
+#include "lan966x_regs.h"
 
 /*******************************************************************************
  * This function flushes the data structures so that they are visible
  * in memory for the next BL image.
+ * NB: This code is only part of BL2
  ******************************************************************************/
 void plat_flush_next_bl_params(void)
 {
+	uint32_t regions;
+
 	flush_bl_params_desc();
+	VERBOSE("Protect OTP, just before BL2 is done\n");
+	/* Protect OTP sections 0-5 */
+	regions = BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5);
+	mmio_write_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), regions);
 }
 
 /*******************************************************************************
