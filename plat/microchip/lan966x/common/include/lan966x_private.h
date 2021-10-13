@@ -98,7 +98,7 @@ void lan966x_mmc_plat_config(boot_source_type boot_source);
 
 uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 uint32_t lan966x_get_boot_source(void);
-int lan966x_load_fw_config(unsigned int image_id, bool auth_load);
+int lan966x_load_fw_config(unsigned int image_id);
 void lan966x_fwconfig_apply(void);
 int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
 int lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst);

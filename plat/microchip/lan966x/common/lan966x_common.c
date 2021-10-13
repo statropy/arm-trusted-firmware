@@ -406,7 +406,7 @@ int lan966x_load_fw_config_raw(unsigned int image_id)
 	return result;
 }
 
-int lan966x_load_fw_config(unsigned int image_id, bool auth_load)
+int lan966x_load_fw_config(unsigned int image_id)
 {
 	uint8_t config[FW_CONFIG_MAX_DATA];
 	int result = 0;
@@ -422,8 +422,9 @@ int lan966x_load_fw_config(unsigned int image_id, bool auth_load)
 		result = lan966x_load_fw_config_raw(image_id);
 	}
 
-	/* Possibly authenticated load of FW_CONFIG */
-	if (auth_load) {
+#ifdef IMAGE_BL1
+	/* Only authenticate at BL1 */
+	{
 		image_desc_t *desc = bl1_plat_get_image_desc(image_id);
 
 		if (desc == NULL) {
@@ -434,6 +435,7 @@ int lan966x_load_fw_config(unsigned int image_id, bool auth_load)
 				ERROR("FW_CONFIG did not authenticate: rc %d\n", result);
 		}
 	}
+#endif
 
 	/* If something went wrong, restore fw_config.config, zero OTP emu */
 	if (result != 0) {
