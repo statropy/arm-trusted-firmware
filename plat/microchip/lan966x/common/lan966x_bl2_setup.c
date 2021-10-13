@@ -155,7 +155,7 @@ void bl2_platform_setup(void)
 
 #if BL2_AT_EL3
 	/* No BL1 to forward fw_config, load it ourselves */
-	lan966x_load_fw_config(FW_CONFIG_ID);
+	lan966x_load_fw_config(FW_CONFIG_ID, false);
 	/* Apply fw_config */
 	lan966x_fwconfig_apply();
 #endif

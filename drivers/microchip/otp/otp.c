@@ -155,7 +155,7 @@ static int otp_hw_write_bytes(unsigned int offset, unsigned int nbytes, const ui
 	return rc;
 }
 
-bool otp_emu_init(void)
+void otp_emu_init(void)
 {
 	uint8_t rotpk[OTP_TBBR_ROTPK_SIZE];
 
@@ -169,9 +169,6 @@ bool otp_emu_init(void)
 		NOTICE("OTP emulation disabled (by OTP)\n");
 		memset(rotpk, 0, sizeof(rotpk)); /* Don't leak data */
 	}
-
-	/* Return true if emulation in effect */
-	return !!(otp_flags &= OTP_FLAG_EMULATION);
 }
 
 static uint8_t otp_emu_get_byte(unsigned int offset)
