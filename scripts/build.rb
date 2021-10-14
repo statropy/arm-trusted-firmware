@@ -79,6 +79,12 @@ OptionParser.new do |opts|
     opts.on("-R", "--[no-]ramusage", "Report RAM usage") do |v|
         $option[:ramusage] = v
     end
+    opts.on("--extra1 <file>", "Add BL32 EXTRA1 image to FIP") do |v|
+        $option[:bl32extra1] = v
+    end
+    opts.on("--extra2 <file>", "Add BL32 EXTRA2 image to FIP") do |v|
+        $option[:bl32extra2] = v
+    end
 end.order!
 
 def do_cmd(cmd)
@@ -134,6 +140,8 @@ args += "BL33=#{uboot} "
 
 args += "PLAT=#{$option[:platform]} ARCH=aarch32 AARCH32_SP=sp_min "
 args += "BL2_VARIANT=#{$option[:bl2variant].upcase} " if $option[:bl2variant]
+args += "BL32_EXTRA1=#{$option[:bl32extra1]} " if $option[:bl32extra1]
+args += "BL32_EXTRA2=#{$option[:bl32extra2]} " if $option[:bl32extra2]
 
 if $option[:tbbr]
     args += "TRUSTED_BOARD_BOOT=1 GENERATE_COT=1 CREATE_KEYS=1 MBEDTLS_DIR=mbedtls "
@@ -156,7 +164,7 @@ if $option[:encrypt_key]
     key = key.unpack("C*").map{|i| sprintf("%02X", i)}.join("")
     # Random Nonce
     nonce = (0..11).map{ sprintf("%02X", rand(255)) }.join("")
-    args += "ENCRYPT_BL32=1 DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
+    args += "ENCRYPT_BL2=1 ENCRYPT_BL32=1 DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
 end
 
 if $option[:debug]

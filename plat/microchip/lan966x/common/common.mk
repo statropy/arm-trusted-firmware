@@ -75,6 +75,10 @@ LAN966X_STORAGE_SOURCES	:=	\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_mmc.c
 
+ifneq (${TRUSTED_BOARD_BOOT},0)
+LAN966X_STORAGE_SOURCES	+=	drivers/io/io_encrypted.c
+endif
+
 PLAT_BL_COMMON_SOURCES	+=	\
 				${LAN966X_CONSOLE_SOURCES}				\
 				${LAN966X_STORAGE_SOURCES}				\
@@ -111,15 +115,19 @@ BL2_SOURCES		+=	\
 BL2U_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c
 
-ifneq (${DECRYPTION_SUPPORT},none)
-BL1_SOURCES             +=      drivers/io/io_encrypted.c
-BL2_SOURCES             +=      drivers/io/io_encrypted.c
-endif
-
 ifeq (${BL2_VARIANT},NOOP)
 override BL2_SOURCES		:=	\
 				bl2/${ARCH}/bl2_entrypoint.S				\
 				plat/microchip/lan966x/common/${ARCH}/plat_bl2_noop.S
+endif
+
+# Add the build options to pack Trusted OS Extra1 and Trusted OS Extra2 images
+# in the FIP if the platform requires.
+ifneq ($(BL32_EXTRA1),)
+$(eval $(call TOOL_ADD_IMG,bl32_extra1,--tos-fw-extra1,,$(ENCRYPT_BL32)))
+endif
+ifneq ($(BL32_EXTRA2),)
+$(eval $(call TOOL_ADD_IMG,bl32_extra2,--tos-fw-extra2,,$(ENCRYPT_BL32)))
 endif
 
 # Enable Activity Monitor Unit extensions by default

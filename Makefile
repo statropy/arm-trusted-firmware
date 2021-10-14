@@ -1114,7 +1114,7 @@ FIP_BL2_ARGS := tb-fw
 endif
 
 $(if ${BL2}, $(eval $(call TOOL_ADD_IMG,bl2,--${FIP_BL2_ARGS})),\
-	$(eval $(call MAKE_BL,2,${FIP_BL2_ARGS})))
+	$(eval $(call MAKE_BL,2,${FIP_BL2_ARGS},,$(ENCRYPT_BL2))))
 endif
 
 ifeq (${NEED_SCP_BL2},yes)

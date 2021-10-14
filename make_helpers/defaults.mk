@@ -121,6 +121,9 @@ ENABLE_BTI			:= 0
 # Use BRANCH_PROTECTION to enable PAUTH.
 ENABLE_PAUTH			:= 0
 
+# By default BL2 encryption disabled
+ENCRYPT_BL2			:= 0
+
 # By default BL31 encryption disabled
 ENCRYPT_BL31			:= 0
 
