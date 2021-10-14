@@ -128,7 +128,6 @@ void bl1_platform_setup(void)
 	}
 
 	/* OTP */
-	otp_emu_init();
 
 	/* SJTAG: Configure challenge, no freeze */
 	lan966x_sjtag_configure();

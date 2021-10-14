@@ -215,9 +215,6 @@ int otp_write_bytes(unsigned int offset, unsigned int nbytes, const uint8_t *dst
 	assert(nbytes > 0);
 	assert((offset + nbytes) < OTP_MEM_SIZE);
 
-	/* Make sure we're initialized */
-	otp_emu_init();
-
 	return otp_hw_write_bytes(offset, nbytes, dst);
 }
 
