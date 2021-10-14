@@ -62,10 +62,12 @@ end.order!
 
 schema = process_yaml($options[:schema])
 
-$data.each do |e|
-    f = find_elem(schema, e["field"])
-    raise "Unknown OTP field #{e["field"]}" unless f
-    set_bits(e, f)
+if $data
+    $data.each do |e|
+      f = find_elem(schema, e["field"])
+      raise "Unknown OTP field #{e["field"]}" unless f
+      set_bits(e, f)
+    end
 end
 
 # output
