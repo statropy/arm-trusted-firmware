@@ -21,12 +21,10 @@
 /* Data structure which holds the extents of the trusted SRAM for BL2 */
 static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 
-#if TRUSTED_BOARD_BOOT
 #define MAP_SHARED_HEAP		MAP_REGION_FLAT(			\
 					LAN966X_SRAM_BASE,		\
 					LAN966X_SRAM_SIZE, 		\
 					MT_MEMORY | MT_RW | MT_SECURE)
-#endif
 
 #define MAP_BL2_TOTAL		MAP_REGION_FLAT(			\
 					bl2_tzram_layout.total_base,	\
@@ -65,7 +63,7 @@ static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 void bl2_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
-#if TRUSTED_BOARD_BOOT && !BL2_AT_EL3
+#if !BL2_AT_EL3
 		MAP_SHARED_HEAP,
 #endif
 		MAP_BL2_TOTAL,
@@ -113,21 +111,15 @@ static void bl2_early_platform_setup(void)
 
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
-#if (defined(BL1_RW_BASE) && defined(BL1_RW_LIMIT)) || TRUSTED_BOARD_BOOT
 	shared_memory_desc_t *desc = (shared_memory_desc_t *) arg2;
-#endif
 
 	/* Save memory layout */
 	bl2_tzram_layout = *(struct meminfo *) arg1;
 
-#if defined(BL1_RW_BASE) && defined(BL1_RW_LIMIT)
 	memcpy(&lan966x_fw_config, desc->fw_config, sizeof(lan966x_fw_config));
-#endif
 
-#if TRUSTED_BOARD_BOOT
 	/* Forward mbedTLS heap */
 	lan966x_mbed_heap_set(desc);
-#endif
 
 	/* Common setup */
 	bl2_early_platform_setup();

@@ -11,6 +11,9 @@ endif
 ARM_CORTEX_A7                   := yes
 ARM_ARCH_MAJOR			:= 7
 
+# We have/require TBB
+TRUSTED_BOARD_BOOT		:= 1
+
 # Default number of CPUs per cluster on FVP
 LAN966x_MAX_CPUS_PER_CLUSTER	:= 1
 
@@ -35,12 +38,8 @@ NTFW_NVCTR_VAL		:=	3
 
 include lib/xlat_tables_v2/xlat_tables.mk
 
-ifneq (${TRUSTED_BOARD_BOOT},0)
-
-    $(info Including platform TBBR)
-    include plat/microchip/lan966x/common/plat_tbbr.mk
-
-endif
+$(info Including platform TBBR)
+include plat/microchip/lan966x/common/plat_tbbr.mk
 
 # Default chip variant = platform
 ifeq (${PLAT_VARIANT},)
@@ -65,6 +64,7 @@ endif
 
 LAN966X_STORAGE_SOURCES	:=	\
 				drivers/io/io_block.c					\
+				drivers/io/io_encrypted.c				\
 				drivers/io/io_fip.c					\
 				drivers/io/io_memmap.c					\
 				drivers/io/io_storage.c					\
@@ -74,10 +74,6 @@ LAN966X_STORAGE_SOURCES	:=	\
 				drivers/partition/partition.c				\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_mmc.c
-
-ifneq (${TRUSTED_BOARD_BOOT},0)
-LAN966X_STORAGE_SOURCES	+=	drivers/io/io_encrypted.c
-endif
 
 PLAT_BL_COMMON_SOURCES	+=	\
 				${LAN966X_CONSOLE_SOURCES}				\
