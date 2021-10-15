@@ -37,10 +37,8 @@ static const io_dev_connector_t *memmap_dev_con;
 static uintptr_t fip_dev_handle;
 static uintptr_t mmc_dev_handle;
 static uintptr_t memmap_dev_handle;
-#if TRUSTED_BOARD_BOOT
 static const io_dev_connector_t *enc_dev_con;
 static uintptr_t enc_dev_handle;
-#endif /* TRUSTED_BOARD_BOOT */
 
 #if defined(IMAGE_BL2)
 static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
@@ -174,29 +172,19 @@ static int check_fip(const uintptr_t spec);
 static int check_mmc(const uintptr_t spec);
 static int check_memmap(const uintptr_t spec);
 static int check_error(const uintptr_t spec);
-#if TRUSTED_BOARD_BOOT
 static int check_enc_fip(const uintptr_t spec);
-#endif /* TRUSTED_BOARD_BOOT */
 
 static const struct plat_io_policy policies[] = {
 	[ENC_IMAGE_ID] = {
 		&fip_dev_handle,
-		(uintptr_t)&bl2_uuid_spec, /* Dummy */
+		(uintptr_t)&bl32_uuid_spec, /* Dummy, but must be present in FIP */
 		check_fip
 	},
-#if TRUSTED_BOARD_BOOT
 	[BL2_IMAGE_ID] = {
 		&enc_dev_handle,
 		(uintptr_t)&bl2_uuid_spec,
 		check_enc_fip
 	},
-#else
-	[BL2_IMAGE_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&bl2_uuid_spec,
-		check_fip
-	},
-#endif /* TRUSTED_BOARD_BOOT */
 	[BL2U_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl2u_uuid_spec,
@@ -207,7 +195,6 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl31_uuid_spec,
 		check_fip
 	},
-#if TRUSTED_BOARD_BOOT
 	[BL32_IMAGE_ID] = {
 		&enc_dev_handle,
 		(uintptr_t)&bl32_uuid_spec,
@@ -228,28 +215,6 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl33_uuid_spec,
 		check_enc_fip
 	},
-#else
-	[BL32_IMAGE_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&bl32_uuid_spec,
-		check_fip
-	},
-	[BL32_EXTRA1_IMAGE_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&bl32_extra1_uuid_spec,
-		check_fip
-	},
-	[BL32_EXTRA2_IMAGE_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&bl32_extra2_uuid_spec,
-		check_fip
-	},
-	[BL33_IMAGE_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)&bl33_uuid_spec,
-		check_fip
-	},
-#endif /* TRUSTED_BOARD_BOOT */
 	[FW_CONFIG_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&fw_config_uuid_spec,
@@ -320,7 +285,6 @@ static const struct plat_io_policy policies[] = {
 	},
 };
 
-#if TRUSTED_BOARD_BOOT
 static const struct plat_io_policy fallback_policies[] = {
 	[BL2_IMAGE_ID] = {
 		&fip_dev_handle,
@@ -348,8 +312,6 @@ static const struct plat_io_policy fallback_policies[] = {
 		check_fip
 	},
 };
-
-#endif /* TRUSTED_BOARD_BOOT */
 
 /* Set io_policy structures for allowing boot from MMC or QSPI */
 static const struct plat_io_policy boot_source_policies[] = {
@@ -421,6 +383,11 @@ static int check_enc_fip(const uintptr_t spec)
 		}
 	}
 	return result;
+}
+#else
+static int check_enc_fip(const uintptr_t spec)
+{
+	return check_fip(spec);
 }
 #endif /* TRUSTED_BOARD_BOOT */
 
@@ -496,17 +463,20 @@ void lan966x_io_setup(void)
 	result = register_io_dev_memmap(&memmap_dev_con);
 	assert(result == 0);
 
+	result = io_dev_open(memmap_dev_con, (uintptr_t)NULL,
+			     &memmap_dev_handle);
+	assert(result == 0);
+
 #if TRUSTED_BOARD_BOOT
 	result = register_io_dev_enc(&enc_dev_con);
 	assert(result == 0);
 
 	result = io_dev_open(enc_dev_con, (uintptr_t)NULL, &enc_dev_handle);
 	assert(result == 0);
+#else
+	enc_dev_con = fip_dev_con;
+	enc_dev_handle = fip_dev_handle;
 #endif /* TRUSTED_BOARD_BOOT */
-
-	result = io_dev_open(memmap_dev_con, (uintptr_t)NULL,
-			     &memmap_dev_handle);
-	assert(result == 0);
 
 	/* Device specific operations */
 	switch (lan966x_get_boot_source()) {
@@ -600,7 +570,6 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 
 	result = policy->check(policy->image_spec);
 	if (result != 0) {
-#if TRUSTED_BOARD_BOOT
 		if (image_id < ARRAY_SIZE(fallback_policies) &&
 		    fallback_policies[image_id].check) {
 			policy = &fallback_policies[image_id];
@@ -608,13 +577,10 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 			if (result == 0)
 				goto done;
 		}
-#endif /* TRUSTED_BOARD_BOOT */
 		return result;
 	}
 
-#if TRUSTED_BOARD_BOOT
 done:
-#endif /* TRUSTED_BOARD_BOOT */
 	*image_spec = policy->image_spec;
 	*dev_handle = *(policy->dev_handle);
 
