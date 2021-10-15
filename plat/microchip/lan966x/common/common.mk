@@ -29,10 +29,6 @@ $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 # Pass LAN966x_MAX_PE_PER_CPU to the build system.
 $(eval $(call add_define,LAN966x_MAX_PE_PER_CPU))
 
-# Non-volatile counter values
-TFW_NVCTR_VAL		:=	2
-NTFW_NVCTR_VAL		:=	3
-
 include lib/xlat_tables_v2/xlat_tables.mk
 
 ifneq (${TRUSTED_BOARD_BOOT},0)
