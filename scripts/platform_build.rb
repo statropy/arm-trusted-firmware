@@ -10,7 +10,6 @@ build_types             = %I[debug release]
 build_variants          = %I[bl2normal bl2noop]
 build_authentifications = %I[auth] # %I[ssk bssk]
 
-build_type_args         = { debug: '--debug', release: '--no-debug' }
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop' }
 build_auth_args         = { noauth: '--no-tbbr', auth: '--tbbr' }
 
@@ -70,7 +69,7 @@ build_platforms.each do |bp|
         elsif bp == :lan966x_b0 && bt == :release && bv == :bl2normal && ba == :auth
           artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{bp}-#{bt}.bl1"]
         end
-        cargs = "#{build_type_args[bt]} --gptimg --norimg #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
+        cargs = "--#{bt} --gptimg --norimg #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
         cmd_clean = 'ruby scripts/build.rb distclean'
         banner(artifacts, cmd)

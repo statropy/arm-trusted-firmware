@@ -21,7 +21,6 @@ bssk_derive_key = [
 
 $option = { :platform	=> "lan966x_sr",
              :loglevel	=> 40,
-             :tbbr	=> true,
              :encrypt	=> false,
              :debug	=> true,
              :key_alg	=> 'ecdsa',
@@ -47,9 +46,6 @@ OptionParser.new do |opts|
     opts.on("-r", "--root-of-trust <keyfile>", "Set ROT key file") do |k|
         $option[:rot] = k
     end
-    opts.on("-t", "--[no-]tbbr", "Enable/disable TBBR") do |v|
-        $option[:tbbr] = v
-    end
     opts.on("--encrypt-ssk <keyfile>", "Enable BL32 encryption with SSK") do |k|
         $option[:encrypt_key] = k
         $option[:encrypt_flag] = 0 # SSK
@@ -61,8 +57,11 @@ OptionParser.new do |opts|
     opts.on("-x", "--variant X", "BL2 variant (noop)") do |v|
         $option[:bl2variant] = v
     end
-    opts.on("-d", "--[no-]debug", "Enable/disable DEBUG") do |v|
-        $option[:debug] = v
+    opts.on("-d", "--debug", "Enable DEBUG") do
+        $option[:debug] = true
+    end
+    opts.on("--release", "Disable DEBUG") do
+        $option[:debug] = false
     end
     opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP") do |v|
         $option[:norimg] = v
@@ -143,15 +142,14 @@ args += "BL2_VARIANT=#{$option[:bl2variant].upcase} " if $option[:bl2variant]
 args += "BL32_EXTRA1=#{$option[:bl32extra1]} " if $option[:bl32extra1]
 args += "BL32_EXTRA2=#{$option[:bl32extra2]} " if $option[:bl32extra2]
 
-if $option[:tbbr]
-    args += "TRUSTED_BOARD_BOOT=1 GENERATE_COT=1 CREATE_KEYS=1 MBEDTLS_DIR=mbedtls "
-    args += "KEY_ALG=#{$option[:key_alg]} ROT_KEY=#{$option[:rot]} "
-    if !File.directory?("mbedtls")
-        do_cmd("git clone https://github.com/ARMmbed/mbedtls.git")
-    end
-    # We're currently using this as a reference - needs to be in sync with TFA
-    do_cmd "git -C mbedtls checkout -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
+# TBBR: Former option, now always on
+args += "GENERATE_COT=1 CREATE_KEYS=1 MBEDTLS_DIR=mbedtls "
+args += "KEY_ALG=#{$option[:key_alg]} ROT_KEY=#{$option[:rot]} "
+if !File.directory?("mbedtls")
+    do_cmd("git clone https://github.com/ARMmbed/mbedtls.git")
 end
+# We're currently using this as a reference - needs to be in sync with TFA
+do_cmd "git -C mbedtls checkout -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
 
 if $option[:encrypt_key]
     key = File.binread($option[:encrypt_key]);
