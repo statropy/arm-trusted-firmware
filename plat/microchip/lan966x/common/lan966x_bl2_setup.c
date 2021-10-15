@@ -22,8 +22,8 @@
 static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 
 #define MAP_SHARED_HEAP		MAP_REGION_FLAT(			\
-					LAN996X_SRAM_BASE,		\
-					LAN996X_SRAM_SIZE, 		\
+					LAN966X_SRAM_BASE,		\
+					LAN966X_SRAM_SIZE, 		\
 					MT_MEMORY | MT_RW | MT_SECURE)
 
 #define MAP_BL2_TOTAL		MAP_REGION_FLAT(			\

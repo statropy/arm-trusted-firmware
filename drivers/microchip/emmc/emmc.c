@@ -347,7 +347,7 @@ static int lan966x_host_init(void)
 	return 0;
 }
 
-static void lan996x_mmc_initialize(void)
+static void lan966x_mmc_initialize(void)
 {
 	int retVal;
 
@@ -551,7 +551,7 @@ static void lan966x_set_data_timeout(unsigned int trans_type)
 	mmio_write_8(reg_base + SDMMC_TCR, SDMMC_TCR_DTCVAL(timeout_val - 13));
 }
 
-static int lan996x_mmc_send_cmd(struct mmc_cmd *cmd)
+static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 {
 	unsigned short emmcRegVal, cmdRegVal;
 	unsigned int is_busy_resp, timeout, not_ready;
@@ -762,7 +762,7 @@ static int lan966x_recover_error(unsigned int error_int_status)
 	cmd.cmd_arg = 0u;
 	cmd.resp_type = 0u;
 
-	if (lan996x_mmc_send_cmd(&cmd)) {
+	if (lan966x_mmc_send_cmd(&cmd)) {
 		/* No response from SD card to CMD12 */
 		if (eistr & SDMMC_EISTR_CMDTEO) {
 			/* Perform software reset */
@@ -792,7 +792,7 @@ static int lan966x_recover_error(unsigned int error_int_status)
 	return 0;
 }
 
-static int lan996x_mmc_set_ios(unsigned int clk, unsigned int width)
+static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 {
 	uint8_t busWidth = 0u;
 	uint32_t clock = 0u;
@@ -850,7 +850,7 @@ static int lan996x_mmc_set_ios(unsigned int clk, unsigned int width)
 	return 0;
 }
 
-static int lan996x_mmc_prepare(int lba, uintptr_t buf, size_t size)
+static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size)
 {
 	VERBOSE("MMC: ATF CB prepare() \n");
 
@@ -870,7 +870,7 @@ static int lan996x_mmc_prepare(int lba, uintptr_t buf, size_t size)
  * This function is called from the mmc_fill_device_info() callback ->read
  * and provides the data for the mmc_ext_csd structure.
  */
-static int lan996x_mmc_read(int lba, uintptr_t buf, size_t size)
+static int lan966x_mmc_read(int lba, uintptr_t buf, size_t size)
 {
 	unsigned int i;
 	unsigned int *pExtBuffer = (unsigned int *)buf;
@@ -901,7 +901,7 @@ static int lan996x_mmc_read(int lba, uintptr_t buf, size_t size)
 	return 0;
 }
 
-static int lan996x_mmc_write(int lba, uintptr_t buf, size_t size)
+static int lan966x_mmc_write(int lba, uintptr_t buf, size_t size)
 {
 	VERBOSE("MMC: ATF CB write() not implemented \n");
 
@@ -909,13 +909,13 @@ static int lan996x_mmc_write(int lba, uintptr_t buf, size_t size)
 }
 
 /* Hold the callback information. Map ATF calls to user application code  */
-static const struct mmc_ops lan996x_ops = {
-	.init = lan996x_mmc_initialize,
-	.send_cmd = lan996x_mmc_send_cmd,
-	.set_ios = lan996x_mmc_set_ios,
-	.prepare = lan996x_mmc_prepare,
-	.read = lan996x_mmc_read,
-	.write = lan996x_mmc_write,
+static const struct mmc_ops lan966x_ops = {
+	.init = lan966x_mmc_initialize,
+	.send_cmd = lan966x_mmc_send_cmd,
+	.set_ios = lan966x_mmc_set_ios,
+	.prepare = lan966x_mmc_prepare,
+	.read = lan966x_mmc_read,
+	.write = lan966x_mmc_write,
 };
 
 void lan966x_mmc_init(lan966x_mmc_params_t * params,
@@ -939,7 +939,7 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 	lan966x_params.mmc_dev_type = info->mmc_dev_type;
 	reg_base = lan966x_params.reg_base;
 
-	retVal = mmc_init(&lan996x_ops, params->clk_rate, params->bus_width,
+	retVal = mmc_init(&lan966x_ops, params->clk_rate, params->bus_width,
 			  params->flags, info);
 
 	if (retVal != 0) {

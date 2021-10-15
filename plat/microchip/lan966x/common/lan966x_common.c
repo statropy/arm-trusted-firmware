@@ -27,7 +27,7 @@
 #include "lan966x_private.h"
 #include "plat_otp.h"
 
-CASSERT((BL1_RW_SIZE + BL2_SIZE) <= LAN996X_SRAM_SIZE, assert_sram_depletion);
+CASSERT((BL1_RW_SIZE + BL2_SIZE) <= LAN966X_SRAM_SIZE, assert_sram_depletion);
 
 static console_t lan966x_console;
 shared_memory_desc_t shared_memory_desc;
@@ -48,16 +48,16 @@ lan966x_fw_config_t lan966x_fw_config = {
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 25), /* 25Mhz */
 };
 
-#define LAN996X_MAP_QSPI0						\
+#define LAN966X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
-		LAN996X_QSPI0_MMAP,					\
-		LAN996X_QSPI0_RANGE,					\
+		LAN966X_QSPI0_MMAP,					\
+		LAN966X_QSPI0_RANGE,					\
 		MT_MEMORY | MT_RO | MT_SECURE)
 
-#define LAN996X_MAP_AXI							\
+#define LAN966X_MAP_AXI							\
 	MAP_REGION_FLAT(						\
-		LAN996X_DEV_BASE,					\
-		LAN996X_DEV_SIZE,					\
+		LAN966X_DEV_BASE,					\
+		LAN966X_DEV_SIZE,					\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
 #define LAN966X_MAP_BL32					\
@@ -74,22 +74,22 @@ lan966x_fw_config_t lan966x_fw_config = {
 
 #define LAN966X_MAP_USB						\
 	MAP_REGION_FLAT(					\
-		LAN996X_USB_BASE,				\
-		LAN996X_USB_SIZE,				\
+		LAN966X_USB_BASE,				\
+		LAN966X_USB_SIZE,				\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_AXI,
+	LAN966X_MAP_QSPI0,
+	LAN966X_MAP_AXI,
 	LAN966X_MAP_USB,
 	{0}
 };
 #endif
 #if defined(IMAGE_BL2) || defined(IMAGE_BL2U)
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_AXI,
+	LAN966X_MAP_QSPI0,
+	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_NS_MEM,
 	LAN966X_MAP_USB,
@@ -98,8 +98,8 @@ const mmap_region_t plat_arm_mmap[] = {
 #endif
 #ifdef IMAGE_BL32
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_AXI,
+	LAN966X_MAP_QSPI0,
+	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_USB,
 	{0}

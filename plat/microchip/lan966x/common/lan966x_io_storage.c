@@ -81,8 +81,8 @@ static io_block_spec_t fip_mmc_block_spec;
 #define FLASH_FIP_OFFSET	0
 #endif
 static const io_block_spec_t fip_qspi_block_spec = {
-	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
-	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
+	.offset = LAN966X_QSPI0_MMAP + FLASH_FIP_OFFSET,
+	.length = LAN966X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 };
 
 static const io_block_spec_t mmc_gpt_spec = {
