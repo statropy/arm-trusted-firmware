@@ -19,7 +19,7 @@
 
 #define PKCL_RAM_OFFSET 0x1000
 
-#define NEARTOFAR(x) ((void *)(LAN996X_PKCL_RAM_BASE - PKCL_RAM_OFFSET + (x)))
+#define NEARTOFAR(x) ((void *)(LAN966X_PKCL_RAM_BASE - PKCL_RAM_OFFSET + (x)))
 
 //******************************************************************************
 // Memory mapping for ECDSA signature

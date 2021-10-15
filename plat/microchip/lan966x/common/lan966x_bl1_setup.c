@@ -77,8 +77,8 @@ void bl1_early_platform_setup(void)
 	lan966x_pcie_init();
 
 	/* Allow BL1 to see the whole Trusted RAM */
-	bl1_tzram_layout.total_base = LAN996X_SRAM_BASE;
-	bl1_tzram_layout.total_size = LAN996X_SRAM_SIZE;
+	bl1_tzram_layout.total_base = LAN966X_SRAM_BASE;
+	bl1_tzram_layout.total_size = LAN966X_SRAM_SIZE;
 }
 
 void bl1_plat_arch_setup(void)
