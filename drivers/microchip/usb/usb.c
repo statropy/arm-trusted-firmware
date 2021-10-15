@@ -940,7 +940,7 @@ void lan966x_usb_init(void)
 	memset(cdc, 0x0, sizeof(struct cdc));
 	memset(req, 0x0, sizeof(union usb_request));
 	cdc->base = LAN966X_UDPHS0_BASE;
-	cdc->ept_fifos = LAN996X_USB_BASE;
+	cdc->ept_fifos = LAN966X_USB_BASE;
 	cdc->cpubase = LAN966X_CPU_BASE;
 	cdc->setup = req;
 	cdc->current_configuration = 0;

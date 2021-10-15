@@ -58,8 +58,8 @@ void lan966x_mmc_plat_config(boot_source_type boot_source)
 	memset(&info, 0, sizeof(struct mmc_device_info));
 
 	params.reg_base = LAN966X_SDMMC_BASE;
-	params.desc_base = LAN996X_SRAM_BASE;
-	params.desc_size = LAN996X_SRAM_SIZE;
+	params.desc_base = LAN966X_SRAM_BASE;
+	params.desc_size = LAN966X_SRAM_SIZE;
 
 	plat_lan966x_pinConfig(boot_source);
 
@@ -90,7 +90,7 @@ void lan966x_mmc_plat_config(boot_source_type boot_source)
 #elif defined(IMAGE_BL2)
 		/* In case of BL2, the default settings are overwritten by the
 		 * BL1. Therefore, the mmc configuration settings needs to be
-		 * loaded again. Call lan996x_mmc_init() afterwards. */
+		 * loaded again. Call lan966x_mmc_init() afterwards. */
 		params.clk_rate = MMC_DEFAULT_SPEED;
 		params.bus_width = MMC_BUS_WIDTH_1;
 #endif

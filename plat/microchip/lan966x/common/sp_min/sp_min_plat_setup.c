@@ -17,8 +17,8 @@
 static entry_point_info_t bl33_ep_info;
 
 #define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
-		LAN996X_SRAM_BASE,					\
-		LAN996X_SRAM_SIZE,					\
+		LAN966X_SRAM_BASE,					\
+		LAN966X_SRAM_SIZE,					\
 		MT_MEMORY | MT_RW | MT_SECURE)
 
 #define MAP_BL_SP_MIN_TOTAL	MAP_REGION_FLAT(			\
@@ -129,8 +129,8 @@ static void configure_sram(void)
 {
 	INFO("Enabling SRAM NS access\n");
 	/* Reset SRAM content */
-	memset((void *)LAN996X_SRAM_BASE, 0, LAN996X_SRAM_SIZE);
-	flush_dcache_range((uintptr_t)LAN996X_SRAM_BASE, LAN996X_SRAM_SIZE);
+	memset((void *)LAN966X_SRAM_BASE, 0, LAN966X_SRAM_SIZE);
+	flush_dcache_range((uintptr_t)LAN966X_SRAM_BASE, LAN966X_SRAM_SIZE);
 	/* Enable SRAM for NS access */
 	matrix_configure_slave_security(MATRIX_SLAVE_FLEXRAM0,
 					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128K),
