@@ -11,7 +11,7 @@ build_variants          = %I[bl2normal bl2noop]
 build_authentifications = %I[auth] # %I[ssk bssk]
 
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop' }
-build_auth_args         = { noauth: '--no-tbbr', auth: '--tbbr' }
+build_auth_args         = { auth: '' }
 
 option = {}
 OptionParser.new do |opts|
@@ -56,18 +56,20 @@ build_platforms.each do |bp|
     build_variants.each do |bv|
       next if bv == :bl2noop && bp != :lan966x_b0 # NOOP builds must be b0
       build_authentifications.each do |ba|
+        dst = "#{bp}-#{bt}-#{bv}-#{ba}"
         artifacts = [
-          ["build/#{bp}/#{bt}/fip.bin",      "#{bp}-#{bt}-#{bv}-#{ba}.fip"],
-          ["build/#{bp}/#{bt}/fip.gpt",      "#{bp}-#{bt}-#{bv}-#{ba}.gpt"],
-          ["build/#{bp}/#{bt}/#{bp}.img",    "#{bp}-#{bt}-#{bv}-#{ba}.img"],
-          ["build/#{bp}/#{bt}/bl1/bl1.dump", "#{bp}-#{bt}-#{bv}-#{ba}-bl1.dump"],
-          ["build/#{bp}/#{bt}/bl2/bl2.dump", "#{bp}-#{bt}-#{bv}-#{ba}-bl2.dump"]
+          ["build/#{bp}/#{bt}/fip.bin",      "#{dst}.fip"],
+          ["build/#{bp}/#{bt}/fip.gpt",      "#{dst}.gpt"],
+          ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
+          ["build/#{bp}/#{bt}/bl1/bl1.dump", "#{dst}-bl1.dump"],
+          ["build/#{bp}/#{bt}/bl2/bl2.dump", "#{dst}-bl2.dump"]
         ]
         # Limit the BL1 image artifacts
+        dst = "#{bp}-#{bt}"
         if bp == :lan966x_sr && bv == :bl2normal && ba == :auth
-          artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{bp}-#{bt}.bl1"]
+          artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
         elsif bp == :lan966x_b0 && bt == :release && bv == :bl2normal && ba == :auth
-          artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{bp}-#{bt}.bl1"]
+          artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
         end
         cargs = "--#{bt} --gptimg --norimg #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
