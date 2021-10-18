@@ -29,7 +29,7 @@
 
 #define PLAT_MAX_OFF_STATE		U(2)
 
-#define MAX_IO_DEVICES			3
+#define MAX_IO_DEVICES			4
 #define MAX_IO_HANDLES			4
 /* eMMC RPMB and eMMC User Data */
 #define MAX_IO_BLOCK_DEVICES		U(2)
@@ -121,9 +121,6 @@
 #elif defined(IMAGE_BL32)
 # define PLATFORM_STACK_SIZE		UL(0x440)
 #endif
-
-#define MAX_IO_DEVICES			3
-#define MAX_IO_HANDLES			4
 
 #if defined(IMAGE_BL1)
 #define MAX_XLAT_TABLES			2
