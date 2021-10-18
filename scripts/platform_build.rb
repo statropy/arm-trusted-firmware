@@ -8,10 +8,12 @@ require 'optparse'
 build_platforms         = %I[lan966x_evb lan966x_sr lan966x_b0]
 build_types             = %I[debug release]
 build_variants          = %I[bl2normal bl2noop]
-build_authentifications = %I[auth] # %I[ssk bssk]
+build_authentifications = %I[auth ssk bssk]
 
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop' }
-build_auth_args         = { auth: '' }
+build_auth_args         = { auth: '',
+                            ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl32,bl33',
+                            bssk: '--encrypt-ssk keys/huk.bin --encrypt-images bl2,bl32,bl33' }
 
 option = {}
 OptionParser.new do |opts|
