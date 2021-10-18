@@ -46,11 +46,14 @@ OptionParser.new do |opts|
     opts.on("-r", "--root-of-trust <keyfile>", "Set ROT key file") do |k|
         $option[:rot] = k
     end
-    opts.on("--encrypt-ssk <keyfile>", "Enable BL32 encryption with SSK") do |k|
+    opts.on("--encrypt-images <imagelist>", "List of encrypted images, eg BL2,BL32,BL33") do |k|
+        $option[:encrypt_images] = k
+    end
+    opts.on("--encrypt-ssk <keyfile>", "Enable encryption with SSK") do |k|
         $option[:encrypt_key] = k
         $option[:encrypt_flag] = 0 # SSK
     end
-    opts.on("--encrypt-bssk <keyfile>", "Enable BL32 encryption with BSSK") do |k|
+    opts.on("--encrypt-bssk <keyfile>", "Enable encryption with BSSK") do |k|
         $option[:encrypt_key] = k
         $option[:encrypt_flag] = 1 # BSSK
     end
@@ -151,7 +154,10 @@ end
 # We're currently using this as a reference - needs to be in sync with TFA
 do_cmd "git -C mbedtls checkout -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
 
-if $option[:encrypt_key]
+if $option[:encrypt_images] && $option[:encrypt_key]
+    $option[:encrypt_images].split(',').each do |image|
+        args += "ENCRYPT_#{image.upcase}=1 "
+    end
     key = File.binread($option[:encrypt_key]);
     raise "Key data must be 32 bytes" unless key.length == 32
     if $option[:encrypt_flag] == 1
@@ -162,7 +168,7 @@ if $option[:encrypt_key]
     key = key.unpack("C*").map{|i| sprintf("%02X", i)}.join("")
     # Random Nonce
     nonce = (0..11).map{ sprintf("%02X", rand(255)) }.join("")
-    args += "ENCRYPT_BL2=1 ENCRYPT_BL32=1 DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
+    args += "DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
 end
 
 if $option[:debug]

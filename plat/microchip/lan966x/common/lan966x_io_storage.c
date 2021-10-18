@@ -175,7 +175,7 @@ static int check_enc_fip(const uintptr_t spec);
 static const struct plat_io_policy policies[] = {
 	[ENC_IMAGE_ID] = {
 		&fip_dev_handle,
-		(uintptr_t)&bl2_uuid_spec, /* Dummy */
+		(uintptr_t)&bl32_uuid_spec, /* Dummy, but must be present in FIP */
 		check_fip
 	},
 	[BL2_IMAGE_ID] = {
@@ -209,9 +209,9 @@ static const struct plat_io_policy policies[] = {
 		check_enc_fip
 	},
 	[BL33_IMAGE_ID] = {
-		&fip_dev_handle,
+		&enc_dev_handle,
 		(uintptr_t)&bl33_uuid_spec,
-		check_fip
+		check_enc_fip
 	},
 	[FW_CONFIG_ID] = {
 		&fip_dev_handle,
@@ -299,6 +299,11 @@ static const struct plat_io_policy fallback_policies[] = {
 	[BL32_EXTRA2_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl32_extra2_uuid_spec,
+		check_fip
+	},
+	[BL33_IMAGE_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&bl33_uuid_spec,
 		check_fip
 	},
 };
@@ -446,14 +451,14 @@ void lan966x_io_setup(void)
 	result = register_io_dev_memmap(&memmap_dev_con);
 	assert(result == 0);
 
+	result = io_dev_open(memmap_dev_con, (uintptr_t)NULL,
+			     &memmap_dev_handle);
+	assert(result == 0);
+
 	result = register_io_dev_enc(&enc_dev_con);
 	assert(result == 0);
 
 	result = io_dev_open(enc_dev_con, (uintptr_t)NULL, &enc_dev_handle);
-	assert(result == 0);
-
-	result = io_dev_open(memmap_dev_con, (uintptr_t)NULL,
-			     &memmap_dev_handle);
 	assert(result == 0);
 
 	/* Device specific operations */

@@ -1153,7 +1153,7 @@ endif
 
 # Add the BL33 image if required by the platform
 ifeq (${NEED_BL33},yes)
-$(eval $(call TOOL_ADD_IMG,bl33,--nt-fw))
+$(eval $(call TOOL_ADD_IMG,bl33,--nt-fw,,$(ENCRYPT_BL33)))
 endif
 
 ifeq (${NEED_BL2U},yes)
