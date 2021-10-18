@@ -81,8 +81,8 @@ static io_block_spec_t fip_mmc_block_spec;
 #define FLASH_FIP_OFFSET	0
 #endif
 static const io_block_spec_t fip_qspi_block_spec = {
-	.offset = LAN996X_QSPI0_MMAP + FLASH_FIP_OFFSET,
-	.length = LAN996X_QSPI0_RANGE - FLASH_FIP_OFFSET,
+	.offset = LAN966X_QSPI0_MMAP + FLASH_FIP_OFFSET,
+	.length = LAN966X_QSPI0_RANGE - FLASH_FIP_OFFSET,
 };
 
 static const io_block_spec_t mmc_gpt_spec = {
@@ -122,7 +122,6 @@ static const io_uuid_spec_t fw_config_uuid_spec = {
 	.uuid = UUID_FW_CONFIG,
 };
 
-#if TRUSTED_BOARD_BOOT
 static const io_uuid_spec_t tb_fw_cert_uuid_spec = {
 	.uuid = UUID_TRUSTED_BOOT_FW_CERT,
 };
@@ -166,7 +165,6 @@ static const io_uuid_spec_t nt_fw_cert_uuid_spec = {
 static const io_uuid_spec_t fwu_cert_uuid_spec = {
 	.uuid = UUID_TRUSTED_FWU_CERT,
 };
-#endif /* TRUSTED_BOARD_BOOT */
 
 static int check_fip(const uintptr_t spec);
 static int check_mmc(const uintptr_t spec);
@@ -220,7 +218,6 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&fw_config_uuid_spec,
 		check_fip
 	},
-#if TRUSTED_BOARD_BOOT
 	[TRUSTED_BOOT_FW_CERT_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&tb_fw_cert_uuid_spec,
@@ -276,8 +273,6 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&fwu_cert_uuid_spec,
 		check_fip
 	},
-#endif /* TRUSTED_BOARD_BOOT */
-
 	[GPT_IMAGE_ID] = {
 		&mmc_dev_handle,
 		(uintptr_t)&mmc_gpt_spec,
@@ -366,7 +361,6 @@ static const struct plat_io_policy boot_source_ram_fip = {
 };
 #endif
 
-#if TRUSTED_BOARD_BOOT
 /* Check encryption header in payload */
 static int check_enc_fip(const uintptr_t spec)
 {
@@ -384,12 +378,6 @@ static int check_enc_fip(const uintptr_t spec)
 	}
 	return result;
 }
-#else
-static int check_enc_fip(const uintptr_t spec)
-{
-	return check_fip(spec);
-}
-#endif /* TRUSTED_BOARD_BOOT */
 
 static int check_fip(const uintptr_t spec)
 {
@@ -467,16 +455,11 @@ void lan966x_io_setup(void)
 			     &memmap_dev_handle);
 	assert(result == 0);
 
-#if TRUSTED_BOARD_BOOT
 	result = register_io_dev_enc(&enc_dev_con);
 	assert(result == 0);
 
 	result = io_dev_open(enc_dev_con, (uintptr_t)NULL, &enc_dev_handle);
 	assert(result == 0);
-#else
-	enc_dev_con = fip_dev_con;
-	enc_dev_handle = fip_dev_handle;
-#endif /* TRUSTED_BOARD_BOOT */
 
 	/* Device specific operations */
 	switch (lan966x_get_boot_source()) {

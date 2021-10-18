@@ -12,9 +12,9 @@
 #include <drivers/microchip/flexcom_uart.h>
 #include <drivers/microchip/lan966x_clock.h>
 #include <drivers/microchip/qspi.h>
+#include <drivers/microchip/sha.h>
 #include <drivers/microchip/tz_matrix.h>
 #include <drivers/microchip/vcore_gpio.h>
-#include <drivers/microchip/sha.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
@@ -27,7 +27,7 @@
 #include "lan966x_private.h"
 #include "plat_otp.h"
 
-CASSERT((BL1_RW_SIZE + BL2_SIZE) <= LAN996X_SRAM_SIZE, assert_sram_depletion);
+CASSERT((BL1_RW_SIZE + BL2_SIZE) <= LAN966X_SRAM_SIZE, assert_sram_depletion);
 
 static console_t lan966x_console;
 shared_memory_desc_t shared_memory_desc;
@@ -48,16 +48,16 @@ lan966x_fw_config_t lan966x_fw_config = {
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 25), /* 25Mhz */
 };
 
-#define LAN996X_MAP_QSPI0						\
+#define LAN966X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
-		LAN996X_QSPI0_MMAP,					\
-		LAN996X_QSPI0_RANGE,					\
+		LAN966X_QSPI0_MMAP,					\
+		LAN966X_QSPI0_RANGE,					\
 		MT_MEMORY | MT_RO | MT_SECURE)
 
-#define LAN996X_MAP_AXI							\
+#define LAN966X_MAP_AXI							\
 	MAP_REGION_FLAT(						\
-		LAN996X_DEV_BASE,					\
-		LAN996X_DEV_SIZE,					\
+		LAN966X_DEV_BASE,					\
+		LAN966X_DEV_SIZE,					\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
 #define LAN966X_MAP_BL32					\
@@ -74,22 +74,22 @@ lan966x_fw_config_t lan966x_fw_config = {
 
 #define LAN966X_MAP_USB						\
 	MAP_REGION_FLAT(					\
-		LAN996X_USB_BASE,				\
-		LAN996X_USB_SIZE,				\
+		LAN966X_USB_BASE,				\
+		LAN966X_USB_SIZE,				\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_AXI,
+	LAN966X_MAP_QSPI0,
+	LAN966X_MAP_AXI,
 	LAN966X_MAP_USB,
 	{0}
 };
 #endif
 #if defined(IMAGE_BL2) || defined(IMAGE_BL2U)
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_AXI,
+	LAN966X_MAP_QSPI0,
+	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_NS_MEM,
 	LAN966X_MAP_USB,
@@ -98,8 +98,8 @@ const mmap_region_t plat_arm_mmap[] = {
 #endif
 #ifdef IMAGE_BL32
 const mmap_region_t plat_arm_mmap[] = {
-	LAN996X_MAP_QSPI0,
-	LAN996X_MAP_AXI,
+	LAN966X_MAP_QSPI0,
+	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_USB,
 	{0}
@@ -372,12 +372,7 @@ void lan966x_fwconfig_apply(void)
 	}
 }
 
-/*
- * Note: The FW_CONFIG is read *wo* authentication, as the OTP
- * emulation data may contain the actual (emulated) rotpk. This is
- * only called when a *hw* ROTPK has *not* been deployed.
- */
-int lan966x_load_fw_config(unsigned int image_id)
+int lan966x_load_fw_config_raw(unsigned int image_id)
 {
 	uintptr_t dev_handle, image_handle, image_spec = 0;
 	size_t bytes_read;
@@ -407,6 +402,46 @@ int lan966x_load_fw_config(unsigned int image_id)
 	/* This is fwd to BL2 */
 	flush_dcache_range((uintptr_t)&lan966x_fw_config, sizeof(lan966x_fw_config));
 #endif
+
+	return result;
+}
+
+int lan966x_load_fw_config(unsigned int image_id)
+{
+	uint8_t config[FW_CONFIG_MAX_DATA];
+	int result = 0;
+
+	/* Save the current config */
+	memcpy(config, lan966x_fw_config.config, sizeof(config));
+
+	/* Make sure OTP emu is initialized */
+	otp_emu_init();
+
+	/* If OTP emu active, read fw_config raw/unauthenticated */
+	if (otp_in_emulation()) {
+		result = lan966x_load_fw_config_raw(image_id);
+	}
+
+#ifdef IMAGE_BL1
+	/* Only authenticate at BL1 */
+	{
+		image_desc_t *desc = bl1_plat_get_image_desc(image_id);
+
+		if (desc == NULL) {
+			result = -ENOENT;
+		} else {
+			result = load_auth_image(image_id, &desc->image_info);
+			if (result != 0)
+				ERROR("FW_CONFIG did not authenticate: rc %d\n", result);
+		}
+	}
+#endif
+
+	/* If something went wrong, restore fw_config.config, zero OTP emu */
+	if (result != 0) {
+		memset(&lan966x_fw_config, 0, sizeof(lan966x_fw_config));
+		memcpy(lan966x_fw_config.config, config, sizeof(config));
+	}
 
 	return result;
 }

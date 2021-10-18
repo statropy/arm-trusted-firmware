@@ -119,9 +119,7 @@ void lan966x_crypto_tests(void);
 
 void lan966x_crypto_ecdsa_tests(void);
 
-#if TRUSTED_BOARD_BOOT
 void lan966x_mbed_heap_set(shared_memory_desc_t *d);
-#endif
 
 void lan966x_bl1_trigger_fwu(void);
 

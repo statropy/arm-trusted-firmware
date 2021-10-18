@@ -19,13 +19,6 @@
 #include "lan966x_regs.h"
 #include "lan966x_memmap.h"
 
-#if TRUSTED_BOARD_BOOT
-#define MAP_SHARED_HEAP		MAP_REGION_FLAT(			\
-					LAN996X_SRAM_BASE,		\
-					LAN996X_SRAM_SIZE,		\
-					MT_MEMORY | MT_RW | MT_SECURE)
-#endif
-
 #define MAP_BL2U_TOTAL		MAP_REGION_FLAT(			\
 					BL2U_BASE,			\
 					BL2U_LIMIT - BL2U_BASE,		\
