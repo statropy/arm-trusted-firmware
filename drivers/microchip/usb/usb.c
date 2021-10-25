@@ -148,14 +148,14 @@ static struct cdc setup_cdc;
 
 static union usb_request setup_payload;
 
-static struct cdc_line_coding line = {
+static struct cdc_line_coding const line = {
 	115200, /* baudrate */
 	0, /* 1 Stop Bit */
 	0, /* None Parity */
 	8 /* 8 Data bits */
 };
 
-static const uint8_t device_descriptor[] = {
+static uint8_t const device_descriptor[] = {
 	/* Device descriptor */
 	18, /* bLength */
 	USB_GEN_DESC_DEVICE, /* bDescriptorType */
