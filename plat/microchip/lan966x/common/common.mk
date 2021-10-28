@@ -26,6 +26,9 @@ LOG_LEVEL := 40
 # Single-core system
 WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 
+# Assume that BL33 isn't the Linux kernel by default
+LAN966X_DIRECT_LINUX_BOOT	:=	0
+
 # Pass LAN966x_MAX_CPUS_PER_CLUSTER to the build system.
 $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 
@@ -147,3 +150,9 @@ ${LAN966X_FW_CONFIG}: bin/fw_param.bin ${LAN966X_OTP_DATA}
 
 # FW config
 $(eval $(call TOOL_ADD_PAYLOAD,${LAN966X_FW_CONFIG},--fw-config,${LAN966X_FW_CONFIG}))
+
+# Direct Linux boot
+$(eval $(call add_define,LAN966X_DIRECT_LINUX_BOOT))
+ifneq ($(NT_FW_CONFIG),)
+$(eval $(call TOOL_ADD_PAYLOAD,${NT_FW_CONFIG},--nt-fw-config,${NT_FW_CONFIG}))
+endif
