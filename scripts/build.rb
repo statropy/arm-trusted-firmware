@@ -144,6 +144,15 @@ end
 pdef = platforms[$option[:platform]]
 raise "Unknown platform: #{$option[:platform]}" unless pdef
 
+if $option[:debug]
+    args += "DEBUG=1 "
+    build = "build/#{$option[:platform]}/debug"
+else
+    args += "DEBUG=0 "
+    build = "build/#{$option[:platform]}/release"
+end
+FileUtils.mkdir_p build
+
 sdk_dir = install_sdk()
 tc_conf = YAML::load( File.open( sdk_dir + "/.mscc-version" ) )
 install_toolchain(tc_conf["toolchain"])
@@ -151,7 +160,11 @@ install_toolchain(tc_conf["toolchain"])
 if $option[:linux_boot]
     kernel = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/mscc-linux-kernel.bin"
     dtb = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/" + pdef[:dtb]
-    args += "BL33=#{kernel} LAN966X_DIRECT_LINUX_BOOT=1 NT_FW_CONFIG=#{dtb} "
+    dtb_new = build + "/lan966x.dtb"
+    dtb_overlay = "#{build}/overlay.dtbo"
+    do_cmd("dtc -q -o #{dtb_overlay} scripts/overlay.dtso || /bin/true")
+    do_cmd("fdtoverlay -i #{dtb} -o #{dtb_new} #{dtb_overlay}")
+    args += "BL33=#{kernel} LAN966X_DIRECT_LINUX_BOOT=1 NT_FW_CONFIG=#{dtb_new} "
 else
     uboot = sdk_dir + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x/" + pdef[:uboot]
     args += "BL33=#{uboot} "
@@ -186,14 +199,6 @@ if $option[:encrypt_images] && $option[:encrypt_key]
     # Random Nonce
     nonce = (0..11).map{ sprintf("%02X", rand(255)) }.join("")
     args += "DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
-end
-
-if $option[:debug]
-    args += "DEBUG=1 "
-    build = "build/#{$option[:platform]}/debug"
-else
-    args += "DEBUG=0 "
-    build = "build/#{$option[:platform]}/release"
 end
 
 if $option[:clean] || $option[:coverity]
