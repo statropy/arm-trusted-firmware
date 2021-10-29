@@ -261,6 +261,11 @@ if $option[:gptimg]
         # reserve last 64 blocks for backup partition table
         back_partsize = 64
         total_blocks = (fip_blocks * 2) + main_partsize + back_partsize
+        if $option[:linux_boot]
+            # 256M root
+            root_blocks = (256 * 1024 * 1024) / 512
+            total_blocks += root_blocks
+        end
         # Create partition file of appropriate size
         do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=#{total_blocks}")
         do_cmd("parted -s #{gptfile} mktable gpt")
@@ -276,6 +281,15 @@ if $option[:gptimg]
         do_cmd("parted -s #{gptfile} mkpart fip.bak #{p_start}s #{p_end}s")
         # Inject data
         do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        if $option[:linux_boot]
+            # Add root partition
+            p_start += fip_blocks
+            p_end += root_blocks
+            do_cmd("parted -s #{gptfile} mkpart root #{p_start}s #{p_end}s")
+            # Inject data
+            root = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/rootfs.ext4"
+            do_cmd("dd status=none if=#{root} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        end
     end
     do_cmd("gdisk -l #{gptfile}")
 end
