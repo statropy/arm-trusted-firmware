@@ -120,6 +120,10 @@ void lan966x_tz_init(void)
 {
 	INFO("Configuring TrustZone (with encrypted RAM)\n");
 
+	/* Enable TZAESB_LITE_EN - UNG_MASERATI-759 and better performance */
+	mmio_write_32(CPU_TZAESB(LAN966X_CPU_BASE),
+		      CPU_TZAESB_TZAESB_LITE_EN(1));
+
 	/*
 	 * Enable TZPM for NS transactions, Otherwise all are treated
 	 * as Secure transactions in CPU subsystem
