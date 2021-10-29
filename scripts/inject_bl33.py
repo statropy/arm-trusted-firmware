@@ -12,8 +12,10 @@ debugger.getCurrentExecutionContext().getExecutionService().stop()
 # Run until BL33
 lan966x.run_to(debugger, "N:0x60200000")
 
-uboot = lan966x.get_uboot_dir(debugger)
+bin = "/opt/mscc/mscc-brsdk-arm-2021.02-564/arm-cortex_a8-linux-gnu/bootloaders/lan966x/"
+if lan966x.target_is_fpga(debugger):
+    bin += "u-boot-lan966x_sr_atf.bin"
+else:
+    bin += "u-boot-lan966x_evb_atf.bin"
 
-lan966x.load_stage(debugger, "BL33",
-                   uboot + "/u-boot",
-                   uboot + "/u-boot.bin")
+lan966x.load_stage_binary(debugger, "BL33", bin)
