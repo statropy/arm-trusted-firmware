@@ -26,6 +26,9 @@ LOG_LEVEL := 40
 # Single-core system
 WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 
+# Enable USB console
+LAN966X_USE_USB			:=	1
+
 # Assume that BL33 isn't the Linux kernel by default
 LAN966X_DIRECT_LINUX_BOOT	:=	0
 
