@@ -9,10 +9,12 @@
 
 #include <lib/xlat_tables/xlat_tables_compat.h>
 
-/*
- * Due to chip architecture, PKCL cannot be cached.
- */
+#if defined(LAN966X_ASIC)
+/* Due to chip bug, PKCL cannot be cached. */
 #define PKCL_CODE		(MT_NON_CACHEABLE | MT_RO | MT_EXECUTE)
+#else
+#define PKCL_CODE		MT_CODE
+#endif
 
 #define MAP_PKCL_CODE		MAP_REGION_FLAT(			\
 					LAN966X_PKCL_ROM_BASE,		\
