@@ -566,6 +566,8 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 	unsigned int is_busy_resp, timeout, not_ready;
 	unsigned int op;
 	unsigned int state;
+	
+	boot_source_type boot_source = lan966x_get_boot_source();
 
 	VERBOSE("MMC: ATF CB send_cmd() %d \n", cmd->cmd_idx);
 
@@ -662,7 +664,11 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 	emmcRegVal = mmio_read_8(reg_base + SDMMC_MC1R);
 	emmcRegVal &= ~(SDMMC_MC1R_CMDTYP_Msk | SDMMC_MC1R_OPD);	//Clear MMC command type and Open Drain fields
 	emmcRegVal |= ((op >> 16) & 0xFFFF);
-	emmcRegVal |= SDMMC_MC1R_FCD;	// Set ForceCardDetect flag (eMMC mode)
+
+	/* Set ForceCardDetect flag only in eMMC mode */
+	if(boot_source == BOOT_SOURCE_EMMC) {
+		emmcRegVal |= SDMMC_MC1R_FCD;
+	}
 
 	mmio_write_8(reg_base + SDMMC_MC1R, emmcRegVal);
 	mmio_write_32(reg_base + SDMMC_ARG1R, cmd->cmd_arg);
