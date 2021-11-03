@@ -161,8 +161,8 @@ if $option[:linux_boot]
     kernel = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/mscc-linux-kernel.bin"
     dtb = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/" + pdef[:dtb]
     dtb_new = build + "/lan966x.dtb"
-    dtb_overlay = "#{build}/overlay.dtbo"
-    do_cmd("dtc -q -o #{dtb_overlay} scripts/overlay.dtso || /bin/true")
+    dtb_overlay = "#{build}/lan966x_overlay.dtbo"
+    do_cmd("dtc -q -o #{dtb_overlay} scripts/lan966x_overlay.dtso || /bin/true")
     do_cmd("fdtoverlay -i #{dtb} -o #{dtb_new} #{dtb_overlay}")
     args += "BL33=#{kernel} LAN966X_DIRECT_LINUX_BOOT=1 NT_FW_CONFIG=#{dtb_new} "
 else
