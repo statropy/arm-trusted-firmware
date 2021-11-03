@@ -17,8 +17,6 @@
 #include "plat_otp.h"
 #include "lan966x_private.h"
 
-static unsigned int emu_fw_nvcounter, emu_nt_fw_nvcounter;
-
 static const uint8_t lan966x_rotpk_header[] = {
 	/* DER header */
 	0x30, 0x31, 0x30, 0x0D, 0x06, 0x09, 0x60, 0x86, 0x48,
@@ -146,35 +144,6 @@ static int lan966x_vector_set_bits(uint8_t *buffer, int len, unsigned int value)
 	return (current == value) ? 0 : -ERANGE;
 }
 
-/* Emulation handling */
-int lan966x_get_emu_ctr(void *cookie, unsigned int *nv_ctr)
-{
-	int ret = 0;
-
-	if (strcmp(cookie, TRUSTED_FW_NVCOUNTER_OID) == 0) {
-		*nv_ctr = emu_fw_nvcounter;
-	} else if (strcmp(cookie, NON_TRUSTED_FW_NVCOUNTER_OID) == 0) {
-		*nv_ctr = emu_nt_fw_nvcounter;
-	} else
-		ret = -EINVAL;
-
-	return ret;
-}
-
-int lan966x_set_emu_ctr(void *cookie, unsigned int nv_ctr)
-{
-	int ret = 0;
-
-	if (strcmp(cookie, TRUSTED_FW_NVCOUNTER_OID) == 0) {
-		emu_fw_nvcounter = nv_ctr;
-	} else if (strcmp(cookie, NON_TRUSTED_FW_NVCOUNTER_OID) == 0) {
-		emu_nt_fw_nvcounter = nv_ctr;
-	} else
-		ret = -EINVAL;
-
-	return ret;
-}
-
 #define NV_CT_LEN OTP_TBBR_NTNVCT_SIZE /* == OTP_TBBR_TNVCT_SIZE */
 
 /*
@@ -201,10 +170,6 @@ int plat_get_nv_ctr(void *cookie, unsigned int *nv_ctr)
 	uint8_t buffer[NV_CT_LEN];
 	int ret;
 
-	if (otp_in_emulation()) {
-		return lan966x_get_emu_ctr(cookie, nv_ctr);
-	}
-
 	ret = lan966x_get_nv_ctr(cookie, buffer, sizeof(buffer));
 	if (ret == 0)
 		*nv_ctr = lan966x_vector_count_bits(buffer, sizeof(buffer));
@@ -222,7 +187,8 @@ int plat_set_nv_ctr(void *cookie, unsigned int nv_ctr)
 	int ret;
 
 	if (otp_in_emulation()) {
-		return lan966x_set_emu_ctr(cookie, nv_ctr);
+		NOTICE("NV counters are read-only in OTP emulation mode\n");
+		return 0;
 	}
 
 	ret = lan966x_get_nv_ctr(cookie, buffer, sizeof(buffer));
