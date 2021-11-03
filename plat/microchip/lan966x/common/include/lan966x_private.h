@@ -123,4 +123,8 @@ void lan966x_mbed_heap_set(shared_memory_desc_t *d);
 
 void lan966x_bl1_trigger_fwu(void);
 
+#if defined(LAN966X_EMMC_TESTS)
+void lan966x_emmc_tests(void);
+#endif
+
 #endif /* LAN966X_PRIVATE_H */

@@ -289,6 +289,15 @@ static int lan966x_host_init(void)
 		p_card.card_type = SD_CARD;
 		p_card.card_capacity = SD_CARD_SDSC;
 	}
+#if defined(LAN966X_EMMC_TESTS)
+	/* When the EVB board is used and LAN966X_EMMC_TESTS is enabled, the
+	 * previously called lan966x_get_boot_source() function will return
+	 * BOOT_SOURCE_QSPI. Since this is a special test mode, this boot_source
+	 * is not considered and supported here. Therefore, the default eMMC
+	 * values needs to be set here. */
+	p_card.card_type = MMC_CARD;
+	p_card.card_capacity = MMC_NORM_DENSITY;
+#endif
 
 	lan966x_clk_disable(LAN966X_CLK_ID_SDMMC0);
 	lan966x_clk_set_rate(LAN966X_CLK_ID_SDMMC0, LAN966X_CLK_FREQ_SDMMC);
@@ -840,7 +849,17 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 		} else {
 			clock = clk;
 		}
+	} 
+#if defined(LAN966X_EMMC_TESTS)
+	else {
+		/* When the EVB board is used and LAN966X_EMMC_TESTS is enabled,
+		 * the previously called lan966x_get_boot_source() function will
+		 * return BOOT_SOURCE_QSPI. Since this is a special test mode,
+		 * this boot_source is not considered and supported here.
+		 * Set clock value as requested. */
+		clock = clk;
 	}
+#endif
 
 	INFO("MMC: Set mmc clk_freq to: %d\n", clock);
 	if (lan966x_set_clk_freq(clock, SDMMC_CLK_CTRL_PROG_MODE)) {

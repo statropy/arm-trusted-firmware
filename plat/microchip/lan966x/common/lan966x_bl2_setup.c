@@ -168,4 +168,8 @@ void bl2_platform_setup(void)
 #if defined(LAN966X_AES_TESTS)
 	lan966x_crypto_tests();
 #endif
+
+#if defined(LAN966X_EMMC_TESTS)
+	lan966x_emmc_tests();
+#endif
 }
