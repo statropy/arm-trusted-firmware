@@ -187,7 +187,7 @@ int plat_set_nv_ctr(void *cookie, unsigned int nv_ctr)
 	int ret;
 
 	if (otp_in_emulation()) {
-		NOTICE("NV counters are read-only in OTP emulation mode\n");
+		VERBOSE("NV counters are read-only in OTP emulation mode\n");
 		return 0;
 	}
 
