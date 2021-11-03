@@ -13,6 +13,13 @@
 	.globl	plat_is_my_cpu_primary
 	.globl	plat_arm_calc_core_pos
 	.globl	plat_my_core_pos
+	.globl	plat_error_handler
+	.globl	plat_report_exception
+	.globl	plat_panic_handler
+	.globl	lan966x_crash_console
+	.globl	plat_crash_console_init
+	.globl	plat_crash_console_putc
+	.globl	plat_crash_console_flush
 
 	/* --------------------------------------------------------------------
 	 * void plat_secondary_cold_boot_setup (void);
@@ -118,3 +125,124 @@ func plat_arm_calc_core_pos
 
 	bx	lr
 endfunc plat_arm_calc_core_pos
+
+.section .data.crash_console, "aw"
+	.align 4
+console_base: .fill 1, 4, 0	/* zero fill one 4 byte word */
+
+	/*
+	 * lan966x_crash_console
+	 * Store the console_t pointer
+	 * for later use
+	 * r0: console_t *con
+	 * Clobber: r1
+	 */
+func lan966x_crash_console
+	ldr	r1, =console_base
+	str	r0, [r1]
+	bx	lr
+endfunc lan966x_crash_console
+
+	/*
+	 * plat_crash_console_init
+	 * Dummy function
+	 */
+func plat_crash_console_init
+	bx	lr
+endfunc plat_crash_console_init
+
+	/*
+	 * plat_crash_console_putc
+	 * Use the flexcom console putc
+	 * r0: char ch
+	 * Clobber: r1
+	 */
+func plat_crash_console_putc
+	ldr	r1, =console_base
+	ldr	r1, [r1]
+	/* check console base */
+	cmp	r1, #0
+	beq	crash_error_putc
+	b	console_flexcom_putc
+crash_error_putc:
+	mov r0, #-1
+	bx  lr
+endfunc plat_crash_console_putc
+
+	/*
+	 * plat_crash_console_flush
+	 * Use the flexcom console flush
+	 * Clobber: r1
+	 */
+func plat_crash_console_flush
+	ldr	r1, =console_base
+	ldr	r1, [r1]
+	/* check console base */
+	cmp	r1, #0
+	beq	crash_error_flush
+	b	console_flexcom_flush
+crash_error_flush:
+	mov r0, #-1
+	bx  lr
+endfunc plat_crash_console_flush
+
+.section .rodata.error_handler_msg, "aS"
+	error_pc: .asciz "\nPC at: 0x"
+	panic_pc: .asciz "\nPanic at PC: 0x"
+	error_no: .asciz "\nError: 0x"
+	excp_no:  .asciz "\nException: 0x"
+
+	/*
+	 * plat_error_handler
+	 * Show error value and program counter
+	 * r0: error value argument
+	 * lr: program counter at call time
+	 * Clobbers: r4, r10, r11
+	 */
+func plat_error_handler
+	mov	r10, r0
+	mov	r11, lr
+	ldr	r4, =error_no
+	bl	asm_print_str
+	mov	r4, r10
+	bl	asm_print_hex
+show_pc:
+	ldr	r4, =error_pc
+	bl	asm_print_str
+	mov	r4, r11
+	bl	asm_print_hex
+wait_here:
+	wfi
+	b	wait_here
+endfunc plat_error_handler
+
+	/*
+	 * plat_report_exception
+	 * Show error value and program counter
+	 * r0: error value argument
+	 * r1: program counter at call time
+	 * Clobbers: r4, r10, r11, r12
+	 */
+func plat_report_exception
+	mov	r10, r0
+	mov	r11, r1
+	mov	r12, lr
+	ldr	r4, =excp_no
+	bl	asm_print_str
+	mov	r4, r10
+	bl	asm_print_hex
+	mov	r0, r10
+	mov	r1, r11
+	bx	r12
+endfunc plat_report_exception
+
+	/*
+	 * plat_panic_handler
+	 * Use existing trace
+	 * lr: program counter at call time
+	 * Clobbers: r11
+	 */
+func plat_panic_handler
+	mov	r11, lr
+	b	show_pc
+endfunc plat_panic_handler

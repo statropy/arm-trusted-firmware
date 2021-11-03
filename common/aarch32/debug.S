@@ -202,6 +202,9 @@ endfunc do_panic
 func report_exception
 	mrs	r0, cpsr
 	and	r0, #MODE32_MASK
+	/* Save PC at the exception */
+	mov	r1, lr
 	bl	plat_report_exception
-	no_ret	plat_panic_handler
+	mov	lr, r1
+	b	plat_panic_handler
 endfunc report_exception

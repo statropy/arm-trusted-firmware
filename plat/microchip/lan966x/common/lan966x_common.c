@@ -170,6 +170,7 @@ static void lan966x_flexcom_init(int idx)
 				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
 	console_set_scope(&lan966x_console,
 			  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
+	lan966x_crash_console(&lan966x_console);
 }
 
 void lan966x_console_init(void)
