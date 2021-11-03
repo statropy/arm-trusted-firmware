@@ -168,7 +168,7 @@ static int lan966x_get_nv_ctr(void *cookie, uint8_t *buffer, size_t len)
 int plat_get_nv_ctr(void *cookie, unsigned int *nv_ctr)
 {
 	uint8_t buffer[NV_CT_LEN];
-	int ret = -ENODEV;
+	int ret;
 
 	ret = lan966x_get_nv_ctr(cookie, buffer, sizeof(buffer));
 	if (ret == 0)
@@ -187,8 +187,8 @@ int plat_set_nv_ctr(void *cookie, unsigned int nv_ctr)
 	int ret;
 
 	if (otp_in_emulation()) {
-		ERROR("NV counters are read-only in OTP emulation mode\n");
-		return -EIO;
+		VERBOSE("NV counters are read-only in OTP emulation mode\n");
+		return 0;
 	}
 
 	ret = lan966x_get_nv_ctr(cookie, buffer, sizeof(buffer));
