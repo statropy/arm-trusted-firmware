@@ -10,7 +10,6 @@
 #include <bl1/bl1.h>
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
-#include <drivers/microchip/otp.h>
 #include <lib/utils.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
@@ -126,8 +125,6 @@ void bl1_platform_setup(void)
 		lan966x_load_fw_config(FW_CONFIG_ID);
 		lan966x_fwconfig_apply();
 	}
-
-	/* OTP */
 
 	/* SJTAG: Configure challenge, no freeze */
 	lan966x_sjtag_configure();

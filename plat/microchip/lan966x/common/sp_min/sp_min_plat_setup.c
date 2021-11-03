@@ -65,6 +65,20 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 		return NULL;
 	}
 
+#if LAN966X_DIRECT_LINUX_BOOT
+	/*
+	 * According to the file ``Documentation/arm/Booting`` of the Linux
+	 * kernel tree, Linux expects:
+	 * r0 = 0
+	 * r1 = machine type number, optional in DT-only platforms (~0 if so)
+	 * r2 = Physical address of the device tree blob
+	 */
+	INFO("lan966x: Preparing to boot 32-bit Linux kernel\n");
+	next_image_info->args.arg0 = 0U;
+	next_image_info->args.arg1 = ~0U;
+	next_image_info->args.arg2 = (u_register_t) LAN966X_LINUX_DTB_BASE;
+#endif
+
 	return next_image_info;
 }
 

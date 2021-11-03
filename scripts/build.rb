@@ -7,9 +7,18 @@ require 'digest'
 require 'pp'
 
 platforms = {
-    "lan966x_sr"	=> Hash[ :uboot =>  "u-boot-lan966x_sr_atf.bin",  :bl2_at_el3 => false ],
-    "lan966x_evb"	=> Hash[ :uboot =>  "u-boot-lan966x_evb_atf.bin", :bl2_at_el3 => true  ],
-    "lan966x_b0"	=> Hash[ :uboot =>  "u-boot-lan966x_evb_atf.bin", :bl2_at_el3 => false ],
+    "lan966x_sr"	=> Hash[
+        :uboot =>  "u-boot-lan966x_sr_atf.bin",
+        :dtb   =>  "lan966x-sr.dtb",
+        :bl2_at_el3 => false ],
+    "lan966x_evb"	=> Hash[
+        :uboot =>  "u-boot-lan966x_evb_atf.bin",
+        :dtb   =>  "lan966x_pcb8291.dtb",
+        :bl2_at_el3 => true  ],
+    "lan966x_b0"	=> Hash[
+        :uboot =>  "u-boot-lan966x_evb_atf.bin",
+        :dtb   =>  "lan966x_pcb8291.dtb",
+        :bl2_at_el3 => false ],
 }
 
 bssk_derive_key = [
@@ -59,6 +68,9 @@ OptionParser.new do |opts|
     end
     opts.on("-x", "--variant X", "BL2 variant (noop)") do |v|
         $option[:bl2variant] = v
+    end
+    opts.on("-l", "--linux-as-bl33", "Enable direct Linux booting") do
+        $option[:linux_boot] = true
     end
     opts.on("-d", "--debug", "Enable DEBUG") do
         $option[:debug] = true
@@ -132,13 +144,31 @@ end
 pdef = platforms[$option[:platform]]
 raise "Unknown platform: #{$option[:platform]}" unless pdef
 
+if $option[:debug]
+    args += "DEBUG=1 "
+    build = "build/#{$option[:platform]}/debug"
+else
+    args += "DEBUG=0 "
+    build = "build/#{$option[:platform]}/release"
+end
+FileUtils.mkdir_p build
+
 sdk_dir = install_sdk()
 tc_conf = YAML::load( File.open( sdk_dir + "/.mscc-version" ) )
 install_toolchain(tc_conf["toolchain"])
 
-bootloaders = sdk_dir + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x"
-uboot = bootloaders + "/" + pdef[:uboot]
-args += "BL33=#{uboot} "
+if $option[:linux_boot]
+    kernel = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/mscc-linux-kernel.bin"
+    dtb = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/" + pdef[:dtb]
+    dtb_new = build + "/lan966x.dtb"
+    dtb_overlay = "#{build}/lan966x_overlay.dtbo"
+    do_cmd("dtc -q -o #{dtb_overlay} scripts/lan966x_overlay.dtso || /bin/true")
+    do_cmd("fdtoverlay -i #{dtb} -o #{dtb_new} #{dtb_overlay}")
+    args += "BL33=#{kernel} LAN966X_DIRECT_LINUX_BOOT=1 NT_FW_CONFIG=#{dtb_new} "
+else
+    uboot = sdk_dir + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x/" + pdef[:uboot]
+    args += "BL33=#{uboot} "
+end
 
 args += "PLAT=#{$option[:platform]} ARCH=aarch32 AARCH32_SP=sp_min "
 args += "BL2_VARIANT=#{$option[:bl2variant].upcase} " if $option[:bl2variant]
@@ -169,14 +199,6 @@ if $option[:encrypt_images] && $option[:encrypt_key]
     # Random Nonce
     nonce = (0..11).map{ sprintf("%02X", rand(255)) }.join("")
     args += "DECRYPTION_SUPPORT=1 FW_ENC_STATUS=#{$option[:encrypt_flag]} ENC_KEY=#{key} ENC_NONCE=#{nonce} "
-end
-
-if $option[:debug]
-    args += "DEBUG=1 "
-    build = "build/#{$option[:platform]}/debug"
-else
-    args += "DEBUG=0 "
-    build = "build/#{$option[:platform]}/release"
 end
 
 if $option[:clean] || $option[:coverity]
@@ -226,18 +248,48 @@ end
 
 if $option[:gptimg]
     gptfile = "#{build}/fip.gpt"
-    bkupgpt = "#{build}/backup.gpt"
-    FileUtils.rm_f(gptfile)
     begin
-        do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=6178")
+        fip = "#{build}/fip.bin"
+        # Get size of FIP
+        size = File.size?(fip)
+        # Convert size to sectors
+        fip_blocks = (size / 512.0).ceil();
+        # Align partitions to multiple of 2048
+        fip_blocks = (fip_blocks / 2048.0).ceil() * 2048;
+        # Reserve first 2048 blocks for partition table
+        main_partsize = 2048
+        # reserve last 64 blocks for backup partition table
+        back_partsize = 64
+        total_blocks = (fip_blocks * 2) + main_partsize + back_partsize
+        if $option[:linux_boot]
+            # 256M root
+            root_blocks = (256 * 1024 * 1024) / 512
+            total_blocks += root_blocks
+        end
+        # Create partition file of appropriate size
+        do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=#{total_blocks}")
         do_cmd("parted -s #{gptfile} mktable gpt")
-        do_cmd("parted -s #{gptfile} mkpart fip 2048s 4095s")           # Align partitions to multipla of 1024
-        do_cmd("parted -s #{gptfile} mkpart fip.bak 4096s 6143s")
-        do_cmd("dd if=#{gptfile} of=#{bkupgpt} skip=6145 bs=512")       # Copy backup partition table
-        do_cmd("dd if=#{build}/fip.bin of=#{gptfile} seek=2048 bs=512") # Insert fip in first partition
-        do_cmd("dd if=#{bkupgpt} of=#{gptfile} seek=6145 bs=512")       # Restore backup partition table
-    ensure
-        FileUtils.rm_f(bkupgpt)
+        # Add first main partition
+        p_start = main_partsize
+        p_end = p_start + fip_blocks -1
+        do_cmd("parted -s #{gptfile} mkpart fip #{p_start}s #{p_end}s")
+        # Inject data
+        do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        # Add second backup partition
+        p_start += fip_blocks
+        p_end += fip_blocks
+        do_cmd("parted -s #{gptfile} mkpart fip.bak #{p_start}s #{p_end}s")
+        # Inject data
+        do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        if $option[:linux_boot]
+            # Add root partition
+            p_start += fip_blocks
+            p_end += root_blocks
+            do_cmd("parted -s #{gptfile} mkpart root #{p_start}s #{p_end}s")
+            # Inject data
+            root = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/rootfs.ext4"
+            do_cmd("dd status=none if=#{root} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        end
     end
     do_cmd("gdisk -l #{gptfile}")
 end
