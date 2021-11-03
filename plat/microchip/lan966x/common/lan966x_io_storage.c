@@ -22,6 +22,7 @@
 #include <drivers/partition/partition.h>
 #include <lib/mmio.h>
 #include <tools_share/firmware_image_package.h>
+#include <plat/common/platform.h>
 
 #include "lan966x_private.h"
 
@@ -493,7 +494,7 @@ void lan966x_io_setup(void)
 
 	default:
 		ERROR("Unknown boot source \n");
-		panic();
+		plat_error_handler(-ENOTSUP);
 		break;
 	}
 
@@ -593,7 +594,7 @@ int lan966x_set_fip_addr(unsigned int image_id, const char *name)
 			entry = get_partition_entry(FW_BACKUP_PARTITION_NAME);
 			if (entry == NULL) {
 				ERROR("No valid partition found !\n");
-				panic();
+				plat_error_handler(-ENOTBLK);
 			}
 		} else {
 			INFO("Find the '%s' partition, fetch FIP configuration "
