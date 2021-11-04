@@ -262,37 +262,28 @@ unsigned int plat_get_syscnt_freq2(void)
 	return SYS_COUNTER_FREQ_IN_TICKS;
 }
 
-uint8_t lan966x_get_strapping(void)
+#define GPR0_STRAPPING_SET	0x10000
+/*
+ * Read strapping into GPR(0) to allow override
+ */
+void lan966x_init_strapping(void)
 {
 	uint32_t status;
 	uint8_t strapping;
 
 	status = mmio_read_32(CPU_GENERAL_STAT(LAN966X_CPU_BASE));
 	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
+	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), GPR0_STRAPPING_SET | strapping);
+}
 
-#if defined(DEBUG)
-	/*
-	 * NOTE: This allows overriding the strapping switches through
-	 * the GPR registers.
-	 *
-	 * In the DEBUG build, GPR(0) can be used to override the
-	 * actual strapping. If any of the non-cfg (lower 4) bits are
-	 * set, the the low 4 bits will override the actual
-	 * strapping.
-	 *
-	 * You can set the GPR0 in the DSTREAM init like
-	 * this:
-	 *
-	 * > memory set_typed S:0xE00C0000 (unsigned int) (0x10000a)
-	 *
-	 * This would override the strapping with the value: 0xa
-	 */
+uint8_t lan966x_get_strapping(void)
+{
+	uint32_t status;
+	uint8_t strapping;
+
 	status = mmio_read_32(CPU_GPR(LAN966X_CPU_BASE, 0));
-	if (status & ~CPU_GENERAL_STAT_VCORE_CFG_M) {
-		VERBOSE("OVERRIDE CPU_GENERAL_STAT = 0x%08x\n", status);
-		strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
-	}
-#endif
+	assert(status & GPR0_STRAPPING_SET);
+	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
 
 	VERBOSE("VCORE_CFG = %d\n", strapping);
 
@@ -301,10 +292,8 @@ uint8_t lan966x_get_strapping(void)
 
 void lan966x_set_strapping(uint8_t value)
 {
-#if defined(DEBUG)
 	VERBOSE("OVERRIDE strapping = 0x%08x\n", value);
-	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), 0x10000 | value);
-#endif
+	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), GPR0_STRAPPING_SET | value);
 }
 
 bool lan966x_monitor_enabled(void)
@@ -326,7 +315,7 @@ bool lan966x_monitor_enabled(void)
 	return false;
 }
 
-uint32_t lan966x_get_boot_source(void)
+boot_source_type lan966x_get_boot_source(void)
 {
 	boot_source_type boot_source;
 

@@ -57,6 +57,9 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 
 void bl1_early_platform_setup(void)
 {
+	/* Strapping */
+	lan966x_init_strapping();
+
 	/* Limit trace level if needed */
 	lan966x_set_max_trace_level();
 
@@ -98,13 +101,15 @@ void bl1_plat_arch_setup(void)
 #endif /* __aarch64__ */
 }
 
-static bool lan966x_bootable_source(void)
+static bool lan966x_bootable_source(boot_source_type boot_source)
 {
-	switch (lan966x_get_boot_source()) {
+	switch (boot_source) {
 	case BOOT_SOURCE_QSPI:
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
 		return true;
+	default:
+		break;
 	}
 
 	return false;
@@ -117,11 +122,13 @@ void lan966x_bl1_trigger_fwu(void)
 
 void bl1_platform_setup(void)
 {
+	boot_source_type boot_source = lan966x_get_boot_source();
+
 	/* IO */
 	lan966x_io_setup();
 
 	/* Prepare fw_config from applicable boot source */
-	if (lan966x_bootable_source()) {
+	if (lan966x_bootable_source(boot_source)) {
 		lan966x_load_fw_config(FW_CONFIG_ID);
 		lan966x_fwconfig_apply();
 	}

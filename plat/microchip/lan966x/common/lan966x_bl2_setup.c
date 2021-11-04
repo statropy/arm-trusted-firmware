@@ -87,13 +87,14 @@ void bl2_plat_arch_setup(void)
 
 static void bl2_early_platform_setup(void)
 {
-	/* Limit trace level if needed */
-	lan966x_set_max_trace_level();
-
 #if BL2_AT_EL3
 	/* BL1 was not there */
+	lan966x_init_strapping();
 	lan966x_timer_init();
 #endif
+
+	/* Limit trace level if needed */
+	lan966x_set_max_trace_level();
 
 	/* Enable arch timer */
 	generic_delay_timer_init();
