@@ -85,7 +85,7 @@ static int otp_hw_read_byte(unsigned int offset, uint8_t *dst)
 			return -EACCES;
 		*dst = (uint8_t) mmio_read_32(OTP_OTP_RD_DATA(reg_base));
 		if (*dst) {
-			VERBOSE("OTP read %02x @ %04x\n", *dst, offset);
+			INFO("OTP read %02x @ %04x\n", *dst, offset);
 		}
 	}
 	return rc;
@@ -124,7 +124,7 @@ static int otp_hw_write_byte(unsigned int offset, uint8_t data)
 			return -EACCES;
 		if (pass & OTP_OTP_PASS_FAIL_OTP_FAIL(1))
 			return -EIO;
-		VERBOSE("OTP wrote %02x @ %04x\n", data, offset);
+		INFO("OTP wrote %02x @ %04x\n", data, offset);
 	}
 	return rc;
 }

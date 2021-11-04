@@ -275,6 +275,8 @@ void lan966x_init_strapping(void)
 	status = mmio_read_32(CPU_GENERAL_STAT(LAN966X_CPU_BASE));
 	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
 	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), GPR0_STRAPPING_SET | strapping);
+	/* XXXX */
+	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), GPR0_STRAPPING_SET | 0xa);
 }
 
 uint8_t lan966x_get_strapping(void)
