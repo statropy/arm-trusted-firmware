@@ -262,7 +262,8 @@ unsigned int plat_get_syscnt_freq2(void)
 	return SYS_COUNTER_FREQ_IN_TICKS;
 }
 
-#define GPR0_STRAPPING_SET	0x10000
+#define GPR0_STRAPPING_SET	BIT(20) /* 0x100000 */
+
 /*
  * Read strapping into GPR(0) to allow override
  */
