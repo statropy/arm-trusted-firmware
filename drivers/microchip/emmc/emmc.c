@@ -566,11 +566,8 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 	unsigned int is_busy_resp, timeout, not_ready;
 	unsigned int op;
 	unsigned int state;
-	boot_source_type boot_source;
 
 	VERBOSE("MMC: ATF CB send_cmd() %d \n", cmd->cmd_idx);
-
-	boot_source = lan966x_get_boot_source();
 
 	/* Parse CMD argument and set proper flags */
 	switch (cmd->cmd_idx) {
@@ -668,7 +665,7 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 
 	/* When using eMMC, the FCD (Force Card Detect) bit will be set to 1 to bypass the card
 	 * detection procedure by using the SDMMC_CD signal */
-	if (boot_source == BOOT_SOURCE_EMMC) {
+	if (lan966x_get_boot_source() == BOOT_SOURCE_EMMC) {
 		emmcRegVal |= SDMMC_MC1R_FCD;
 	}
 
