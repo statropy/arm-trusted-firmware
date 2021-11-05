@@ -101,7 +101,7 @@ void bl1_plat_arch_setup(void)
 #endif /* __aarch64__ */
 }
 
-static bool lan966x_bootable_source(void)
+static bool lan966x_bootable_source()
 {
 	boot_source_type boot_source = lan966x_get_boot_source();
 
