@@ -153,38 +153,40 @@
   address: 0x30
   desc:
   fields:
-  - name: UVOV_TRIM0
+  - name: UVOV_GPIOB_TRIM
     width: 6
-    desc: UVOV 0 trim value
+    desc: Trimming value for UVOV_GPIOB. Corresponding register = UVOV:UVOV_CFG[0]
     offset: 37
-  - name: UVOV_TRIM1
+  - name: UVOV_BOOT_TRIM
     width: 6
-    desc: UVOV 1 trim value
+    desc: Trimming value for UVOV_BOOT. Corresponding register = UVOV:UVOV_CFG[1]
     offset: 31
-  - name: UVOV_TRIM2
+  - name: UVOV_RGMII_TRIM
     width: 6
-    desc: UVOV 2 trim value
+    desc: Trimming value for UVOV_RGMII. Corresponding register = UVOV:UVOV_CFG[4]
     offset: 25
-  - name: UVOV_TRIM3
+  - name: UVOV_GPIOA_TRIM
     width: 6
-    desc: UVOV 3 trim value
+    desc: Trimming value for UVOV_GPIOA. Corresponding register = UVOV:UVOV_CFG[5]
     offset: 19
   - name: COM_BIAS_BG_TC_TRIM
     width: 5
-    desc: Common for all units (bench characterization)
+    desc: USB AFE bias TC trim value (common for all units (bench characterization))
     offset: 14
   - name: COM_BIAS_BG_MAG_TRIM
     width: 6
-    desc: Trim bits are determined in ATE trim sequence and vary from part to part
+    desc: USB AFE bias MAG trim value (Found in ATE trim sequence, vary part-to-part)
     offset: 8
+    accessor: true
   - name: COM_RBIAS_TC_TRIM
     width: 2
-    desc: Common for all units (bench characterization)
+    desc: USB AFE rbias TC trim value (common for all units (bench characterization))
     offset: 6
   - name: COM_RBIAS_MAG_TRIM
     width: 6
-    desc: Trim bits are determined in ATE trim sequence and vary from part to part
+    desc: USB AFE rbias MAG trim value (Found in ATE trim sequence, vary part-to-part)
     offset: 0
+    accessor: true
 
 
 - name: PROTECT_OTP_WRITE

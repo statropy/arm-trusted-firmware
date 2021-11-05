@@ -160,3 +160,10 @@ $(eval $(call add_define,LAN966X_DIRECT_LINUX_BOOT))
 ifneq ($(NT_FW_CONFIG),)
 $(eval $(call TOOL_ADD_PAYLOAD,${NT_FW_CONFIG},--nt-fw-config,${NT_FW_CONFIG}))
 endif
+
+# Regenerate the header file from the YAML definition
+LAN966X_OTP_H = plat/microchip/lan966x/common/include/plat_otp.h
+
+${LAN966X_OTP_H}: scripts/otp.yaml
+	$(info Generating OTP headerfile)
+	$(Q)scripts/otpgen.rb  -y $< -g $@

@@ -173,8 +173,21 @@ static void lan966x_flexcom_init(int idx)
 	lan966x_crash_console(&lan966x_console);
 }
 
+#ifdef LAN966X_USE_USB
+void lan966x_usb_get_trim_values(uint32_t *bias, uint32_t *rbias)
+{
+	*bias = otp_read_com_bias_bg_mag_trim();
+	*rbias = otp_read_com_rbias_mag_trim();
+}
+#endif
+
 void lan966x_console_init(void)
 {
+#ifdef LAN966X_USE_USB
+	uint32_t bias;
+	uint32_t rbias;
+#endif /* LAN966X_USE_USB */
+
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
 	switch (lan966x_get_strapping()) {
@@ -200,7 +213,8 @@ void lan966x_console_init(void)
 		break;
 	case LAN966X_STRAP_TFAMON_USB:
 #ifdef LAN966X_USE_USB
-		lan966x_usb_init();
+		lan966x_usb_get_trim_values(&bias, &rbias);
+		lan966x_usb_init(bias, rbias);
 		lan966x_usb_register_console();
 #endif /* LAN966X_USE_USB */
 		break;
