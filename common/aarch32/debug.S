@@ -200,11 +200,5 @@ endfunc do_panic
 	 * passes it to platform.
 	 ***********************************************************/
 func report_exception
-	mrs	r0, cpsr
-	and	r0, #MODE32_MASK
-	/* Save PC at the exception */
-	mov	r1, lr
-	bl	plat_report_exception
-	mov	lr, r1
-	b	plat_panic_handler
+	b	plat_report_exception
 endfunc report_exception

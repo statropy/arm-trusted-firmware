@@ -129,6 +129,61 @@ endfunc plat_arm_calc_core_pos
 .section .data.crash_console, "aw"
 	.align 4
 console_base: .fill 1, 4, 0	/* zero fill one 4 byte word */
+reg_dump: .fill 16, 4, 0	/* zero fill 16 4 byte words (r0-r12, lr, cpsr,
+				 * mode)
+				 */
+
+	/* Save a single register via sp and increment pointer */
+	.macro saver _reg
+	str	\_reg, [sp]
+	add	sp, #4
+	.endm
+
+	/* Save important registers, must be room in reg_dump array  */
+	.macro save_registers
+	ldr	sp, =reg_dump
+	saver	r0
+	saver	r1
+	saver	r2
+	saver	r3
+	saver	r4
+	saver	r5
+	saver	r6
+	saver	r7
+	saver	r8
+	saver	r9
+	saver	r10
+	saver	r11
+	saver	r12
+	saver	lr
+	mrs	r1, cpsr
+	saver	r1
+	and	r1, #MODE32_MASK
+	saver	r1
+	ldr	sp, =reg_dump
+	.endm
+
+	/* Print a single register */
+	.macro	prreg _name, _areg
+	ldr	r4, =\_name
+	bl	asm_print_str
+	ldr	r4, [\_areg]
+	bl	asm_print_hex
+	add	\_areg, #4
+	.endm
+
+	/* Print exception mode (except for MON = 22) */
+	.macro	prexc _name, _areg
+	ldr	r4, [\_areg]
+	cmp	r4, #22
+	beq	1f
+	ldr	r4, =\_name
+	bl	asm_print_str
+	ldr	r4, [\_areg]
+	bl	asm_print_hex
+	add	\_areg, #4
+1:
+	.endm
 
 	/*
 	 * lan966x_crash_console
@@ -187,62 +242,83 @@ crash_error_flush:
 endfunc plat_crash_console_flush
 
 .section .rodata.error_handler_msg, "aS"
-	error_pc: .asciz "\nPC at: 0x"
-	panic_pc: .asciz "\nPanic at PC: 0x"
-	error_no: .asciz "\nError: 0x"
-	excp_no:  .asciz "\nException: 0x"
+	error_no:	.asciz "\nError: 0x"
+	excp_no: 	.asciz "\nException: 0x"
+	r0name:		.asciz "\nR0   = 0x"
+	r1name:		.asciz "\nR1   = 0x"
+	r2name:		.asciz "\nR2   = 0x"
+	r3name:		.asciz "\nR3   = 0x"
+	r4name:		.asciz "\nR4   = 0x"
+	r5name:		.asciz "\nR5   = 0x"
+	r6name:		.asciz "\nR6   = 0x"
+	r7name:		.asciz "\nR7   = 0x"
+	r8name:		.asciz "\nR8   = 0x"
+	r9name:		.asciz "\nR9   = 0x"
+	r10name:	.asciz "\nR10  = 0x"
+	r11name:	.asciz "\nR11  = 0x"
+	r12name:	.asciz "\nR12  = 0x"
+	lrname:		.asciz "\nLR   = 0x"
+	cpsrname:	.asciz "\nCPSR = 0x"
+
+	/*
+	 * print_registers
+	 * Print important registers
+	 * Registers must have been saved previously
+	 * Clobbers: sp, and whatever the asm_print routines clobbers
+	 */
+func print_registers
+	ldr	sp, =reg_dump
+	prreg	r0name, sp
+	prreg	r1name, sp
+	prreg	r2name, sp
+	prreg	r3name, sp
+	prreg	r4name, sp
+	prreg	r5name, sp
+	prreg	r6name, sp
+	prreg	r7name, sp
+	prreg	r8name, sp
+	prreg	r9name, sp
+	prreg	r10name, sp
+	prreg	r11name, sp
+	prreg	r12name, sp
+	prreg	lrname, sp
+	prreg	cpsrname, sp
+	prexc	excp_no, sp
+	ldr	sp, =reg_dump
+end_here:
+	wfi
+	b end_here
+endfunc print_registers
 
 	/*
 	 * plat_error_handler
-	 * Show error value and program counter
 	 * r0: error value argument
-	 * lr: program counter at call time
-	 * Clobbers: r4, r10, r11
+	 * Clobbers: r0, r4, sp
 	 */
 func plat_error_handler
-	mov	r10, r0
-	mov	r11, lr
+	save_registers
+	mov	r5, r0
 	ldr	r4, =error_no
 	bl	asm_print_str
-	mov	r4, r10
+	mov	r4, r5
 	bl	asm_print_hex
-show_pc:
-	ldr	r4, =error_pc
-	bl	asm_print_str
-	mov	r4, r11
-	bl	asm_print_hex
-wait_here:
-	wfi
-	b	wait_here
+	b	print_registers
 endfunc plat_error_handler
 
 	/*
 	 * plat_report_exception
-	 * Show error value and program counter
-	 * r0: error value argument
-	 * r1: program counter at call time
-	 * Clobbers: r4, r10, r11, r12
+	 * Clobbers: r0, r4, sp
 	 */
 func plat_report_exception
-	mov	r10, r0
-	mov	r11, r1
-	mov	r12, lr
-	ldr	r4, =excp_no
-	bl	asm_print_str
-	mov	r4, r10
-	bl	asm_print_hex
-	mov	r0, r10
-	mov	r1, r11
-	bx	r12
+	save_registers
+	b	print_registers
 endfunc plat_report_exception
 
 	/*
 	 * plat_panic_handler
-	 * Use existing trace
-	 * lr: program counter at call time
-	 * Clobbers: r11
+	 * Clobbers: r0, r4, sp
 	 */
 func plat_panic_handler
-	mov	r11, lr
-	b	show_pc
+	save_registers
+	b	print_registers
 endfunc plat_panic_handler
