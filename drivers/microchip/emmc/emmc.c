@@ -662,7 +662,12 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 	emmcRegVal = mmio_read_8(reg_base + SDMMC_MC1R);
 	emmcRegVal &= ~(SDMMC_MC1R_CMDTYP_Msk | SDMMC_MC1R_OPD);	//Clear MMC command type and Open Drain fields
 	emmcRegVal |= ((op >> 16) & 0xFFFF);
-	emmcRegVal |= SDMMC_MC1R_FCD;	// Set ForceCardDetect flag (eMMC mode)
+
+	/* When using eMMC, the FCD (Force Card Detect) bit will be set to 1 to bypass the card
+	 * detection procedure by using the SDMMC_CD signal */
+	if (lan966x_get_boot_source() == BOOT_SOURCE_EMMC) {
+		emmcRegVal |= SDMMC_MC1R_FCD;
+	}
 
 	mmio_write_8(reg_base + SDMMC_MC1R, emmcRegVal);
 	mmio_write_32(reg_base + SDMMC_ARG1R, cmd->cmd_arg);
