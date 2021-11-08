@@ -90,6 +90,7 @@ void lan966x_pcie_init(void);
 void lan966x_usb_init(void);
 void lan966x_usb_register_console(void);
 void lan966x_validate_strapping(void);
+void lan966x_crash_console(console_t *console);
 
 uint32_t lan966x_trng_read(void);
 

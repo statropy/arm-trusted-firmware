@@ -91,7 +91,6 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/microchip/otp/otp.c				\
 				drivers/microchip/tz_matrix/tz_matrix.c			\
 				lib/cpus/aarch32/cortex_a7.S				\
-				plat/common/${ARCH}/crash_console_helpers.S		\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
 				plat/microchip/lan966x/common/lan966x_crc32.c		\
