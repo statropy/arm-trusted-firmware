@@ -370,16 +370,26 @@ int auth_mod_verify_img(unsigned int img_id,
 			rc = 0;
 			break;
 		case AUTH_METHOD_HASH:
+			INFO("Authenticating image id=%u (hash)\n", img_id);
 			rc = auth_hash(&auth_method->param.hash,
 					img_desc, img_ptr, img_len);
+			INFO("Authenticated image id=%u (hash) = %d\n", img_id, rc);
 			break;
 		case AUTH_METHOD_SIG:
+			INFO("Authenticating image id=%u (sign)\n", img_id);
 			rc = auth_signature(&auth_method->param.sig,
 					img_desc, img_ptr, img_len);
+			INFO("Authenticated image id=%u (sign) = %d\n", img_id, rc);
 			break;
 		case AUTH_METHOD_NV_CTR:
+			INFO("Authenticating image id=%u (ctr %s)\n", img_id,
+			     (char *)auth_method->param.nv_ctr.plat_nv_ctr->cookie);
 			rc = auth_nvctr(&auth_method->param.nv_ctr,
 					img_desc, img_ptr, img_len);
+			INFO("Authenticated image id=%u (ctr %s) = %d\n",
+			     img_id,
+			     (char *)auth_method->param.nv_ctr.plat_nv_ctr->cookie,
+			     rc);
 			break;
 		default:
 			/* Unknown authentication method */
