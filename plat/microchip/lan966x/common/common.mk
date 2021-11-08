@@ -11,6 +11,8 @@ endif
 ARM_CORTEX_A7                   := yes
 ARM_ARCH_MAJOR			:= 7
 
+COLD_BOOT_SINGLE_CPU		:= 1
+
 # We have/require TBB
 TRUSTED_BOARD_BOOT		:= 1
 

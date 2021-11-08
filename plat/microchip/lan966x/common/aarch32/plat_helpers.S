@@ -10,7 +10,6 @@
 
 	.globl	plat_secondary_cold_boot_setup
 	.globl	plat_get_my_entrypoint
-	.globl	plat_is_my_cpu_primary
 	.globl	plat_arm_calc_core_pos
 	.globl	plat_my_core_pos
 
@@ -49,24 +48,6 @@ func plat_get_my_entrypoint
 	mov	r0, #0
 	bx 	lr
 endfunc plat_get_my_entrypoint
-
-	/* -----------------------------------------------------
-	 * unsigned int plat_is_my_cpu_primary (void);
-	 *
-	 * Find out whether the current cpu is the primary
-	 * cpu.
-	 * -----------------------------------------------------
-	 */
-func plat_is_my_cpu_primary
-	ldcopr	r0, MPIDR
-	ldr	r1, =MPIDR_AFFINITY_MASK
-	and	r0, r1
-	cmp	r0, #LAN966x_PRIMARY_CPU
-	moveq	r0, #1
-	movne	r0, #0
-	bx	lr
-endfunc plat_is_my_cpu_primary
-
 
 	/* ------------------------------------
 	 *  unsigned int plat_my_core_pos(void)
