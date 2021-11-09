@@ -11,6 +11,8 @@ endif
 ARM_CORTEX_A7                   := yes
 ARM_ARCH_MAJOR			:= 7
 
+COLD_BOOT_SINGLE_CPU		:= 1
+
 # We have/require TBB
 TRUSTED_BOARD_BOOT		:= 1
 
@@ -89,7 +91,6 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/microchip/otp/otp.c				\
 				drivers/microchip/tz_matrix/tz_matrix.c			\
 				lib/cpus/aarch32/cortex_a7.S				\
-				plat/common/${ARCH}/crash_console_helpers.S		\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
 				plat/microchip/lan966x/common/lan966x_crc32.c		\

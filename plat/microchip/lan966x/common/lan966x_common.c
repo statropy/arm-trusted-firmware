@@ -170,6 +170,7 @@ static void lan966x_flexcom_init(int idx)
 				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
 	console_set_scope(&lan966x_console,
 			  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
+	lan966x_crash_console(&lan966x_console);
 }
 
 void lan966x_console_init(void)
@@ -262,37 +263,29 @@ unsigned int plat_get_syscnt_freq2(void)
 	return SYS_COUNTER_FREQ_IN_TICKS;
 }
 
-uint8_t lan966x_get_strapping(void)
+#define GPR0_STRAPPING_SET	BIT(20) /* 0x100000 */
+
+/*
+ * Read strapping into GPR(0) to allow override
+ */
+void lan966x_init_strapping(void)
 {
 	uint32_t status;
 	uint8_t strapping;
 
 	status = mmio_read_32(CPU_GENERAL_STAT(LAN966X_CPU_BASE));
 	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
+	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), GPR0_STRAPPING_SET | strapping);
+}
 
-#if defined(DEBUG)
-	/*
-	 * NOTE: This allows overriding the strapping switches through
-	 * the GPR registers.
-	 *
-	 * In the DEBUG build, GPR(0) can be used to override the
-	 * actual strapping. If any of the non-cfg (lower 4) bits are
-	 * set, the the low 4 bits will override the actual
-	 * strapping.
-	 *
-	 * You can set the GPR0 in the DSTREAM init like
-	 * this:
-	 *
-	 * > memory set_typed S:0xE00C0000 (unsigned int) (0x10000a)
-	 *
-	 * This would override the strapping with the value: 0xa
-	 */
+uint8_t lan966x_get_strapping(void)
+{
+	uint32_t status;
+	uint8_t strapping;
+
 	status = mmio_read_32(CPU_GPR(LAN966X_CPU_BASE, 0));
-	if (status & ~CPU_GENERAL_STAT_VCORE_CFG_M) {
-		VERBOSE("OVERRIDE CPU_GENERAL_STAT = 0x%08x\n", status);
-		strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
-	}
-#endif
+	assert(status & GPR0_STRAPPING_SET);
+	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
 
 	VERBOSE("VCORE_CFG = %d\n", strapping);
 
@@ -301,10 +294,22 @@ uint8_t lan966x_get_strapping(void)
 
 void lan966x_set_strapping(uint8_t value)
 {
-#if defined(DEBUG)
-	VERBOSE("OVERRIDE strapping = 0x%08x\n", value);
-	mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), 0x10000 | value);
-#endif
+
+	/* To override strapping previous boot src must be 'none' */
+	if (lan966x_get_boot_source() == BOOT_SOURCE_NONE) {
+		/* And new strapping should be limited as below */
+		if (value == LAN966X_STRAP_BOOT_MMC ||
+		    value == LAN966X_STRAP_BOOT_QSPI ||
+		    value == LAN966X_STRAP_BOOT_SD ||
+		    value == LAN966X_STRAP_PCIE_ENDPOINT) {
+			NOTICE("OVERRIDE strapping = 0x%08x\n", value);
+			mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), GPR0_STRAPPING_SET | value);
+		} else {
+			ERROR("Strap override %d illegal\n", value);
+		}
+	} else {
+		ERROR("Strap override is illegal if boot source is already valid\n");
+	}
 }
 
 bool lan966x_monitor_enabled(void)
@@ -326,7 +331,7 @@ bool lan966x_monitor_enabled(void)
 	return false;
 }
 
-uint32_t lan966x_get_boot_source(void)
+boot_source_type lan966x_get_boot_source(void)
 {
 	boot_source_type boot_source;
 
@@ -562,7 +567,7 @@ void lan966x_reset_max_trace_level(void)
 
 /*
  * Check if the current boot strapping mode has been masked out by the
- * OTP strapping mask and panic if this is the case.
+ * OTP strapping mask and abort if this is the case.
  */
 void lan966x_validate_strapping(void)
 {
@@ -577,6 +582,6 @@ void lan966x_validate_strapping(void)
 	}
 	if (strapmask & mask.w) {
 		ERROR("Bootstrapping masked: %u\n", lan966x_get_strapping());
-		panic();
+		plat_error_handler(-EINVAL);
 	}
 }

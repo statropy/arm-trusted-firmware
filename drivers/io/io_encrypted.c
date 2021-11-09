@@ -121,7 +121,7 @@ static int enc_file_open(io_dev_info_t *dev_info, const uintptr_t spec,
 			 &backend_handle);
 	if (result != 0) {
 		WARN("Failed to open backend device (%i)\n", result);
-		result = -ENOENT;
+		return -ENOENT;
 	}
 
 	result = io_read(backend_handle, (uintptr_t)&header, sizeof(header),

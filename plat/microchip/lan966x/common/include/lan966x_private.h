@@ -71,6 +71,7 @@ typedef enum {
 	BOOT_SOURCE_NONE
 } boot_source_type;
 
+void lan966x_init_strapping(void);
 uint8_t lan966x_get_strapping(void);
 void lan966x_set_strapping(uint8_t value);
 bool lan966x_monitor_enabled(void);
@@ -89,6 +90,7 @@ void lan966x_pcie_init(void);
 void lan966x_usb_init(void);
 void lan966x_usb_register_console(void);
 void lan966x_validate_strapping(void);
+void lan966x_crash_console(console_t *console);
 
 uint32_t lan966x_trng_read(void);
 
@@ -97,7 +99,7 @@ void plat_lan966x_gic_init(void);
 void lan966x_mmc_plat_config(boot_source_type boot_source);
 
 uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
-uint32_t lan966x_get_boot_source(void);
+boot_source_type lan966x_get_boot_source(void);
 int lan966x_load_fw_config(unsigned int image_id);
 void lan966x_fwconfig_apply(void);
 int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);

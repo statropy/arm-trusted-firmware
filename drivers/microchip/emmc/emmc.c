@@ -363,10 +363,10 @@ static void lan966x_mmc_initialize(void)
 	VERBOSE("MMC: ATF CB init() \n");
 
 	retVal = lan966x_host_init();
-	assert(retVal == 0);
-
-	/* Prevent compiler warning in release build */
-	(void)retVal;
+	if (retVal != 0) {
+		ERROR("MMC host initialization failed !\n");
+		panic();
+	}
 }
 
 static void lan966x_get_cid_register(void)
