@@ -83,6 +83,14 @@ static void handle_otp_commit(const bootstrap_req_t *req)
 		bootstrap_TxNack("OTP commit failed");
 }
 
+static void handle_otp_regions(const bootstrap_req_t *req)
+{
+	if (otp_write_regions() == 0)
+		bootstrap_TxAck();
+	else
+		bootstrap_TxNack("OTP write regions failed");
+}
+
 static int bl1_load_image(unsigned int image_id)
 {
 	image_desc_t *desc;
@@ -238,6 +246,8 @@ void lan966x_bootstrap_monitor(void)
 			handle_otp_random(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPC))
 			handle_otp_commit(&req);
+		else if (is_cmd(&req, BOOTSTRAP_OTP_REGIONS))
+			handle_otp_regions(&req);
 		else if (is_cmd(&req, BOOTSTRAP_AUTH)) {
 			if (handle_auth(&req) == 0)
 				exit_monitor = true;

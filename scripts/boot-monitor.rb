@@ -14,6 +14,7 @@ CMD_STRAP= 'O'
 CMD_OTPD = 'P'
 CMD_OTPR = 'R'
 CMD_OTPC = 'M'
+CMD_OTP_REGIONS = 'G'
 CMD_CONT = 'C'
 CMD_SJTAG_RD = 'Q'
 CMD_SJTAG_WR = 'A'
@@ -181,6 +182,10 @@ OptionParser.new do |opts|
 
     opts.on("-m", "--otp-commit", "Program OTP with current emulation data") do
         rsp = do_cmd(fmt_req(CMD_OTPC))
+    end
+
+    opts.on("--otp-regions", "Program OTP regions") do
+        rsp = do_cmd(fmt_req(CMD_OTP_REGIONS))
     end
 
     opts.on("-R", "--sjtag-read-challenge", "Read SJTAG challenge (NONCE)") do

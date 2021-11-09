@@ -21,6 +21,7 @@ int otp_write_uint32(unsigned int offset, uint32_t w);
 
 bool otp_in_emulation(void);
 int otp_commit_emulation(void);
+int otp_write_regions(void);
 
 bool otp_all_zero(const uint8_t *p, size_t nbytes);
 

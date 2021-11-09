@@ -23,8 +23,8 @@ void plat_flush_next_bl_params(void)
 
 	flush_bl_params_desc();
 	VERBOSE("Protect OTP, just before BL2 is done\n");
-	/* Protect OTP sections 0-5 */
-	regions = BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5);
+	/* Protect OTP section 4 - Keys */
+	regions = BIT(4);
 	mmio_write_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), regions);
 }
 

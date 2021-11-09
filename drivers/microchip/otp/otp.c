@@ -269,3 +269,29 @@ int otp_commit_emulation(void)
 
 	return rc;
 }
+
+int otp_write_regions(void)
+{
+	struct {
+		uint16_t begin;
+		uint16_t end;
+	} regions[] = {
+		{ 0x0000, 0x003F },  // Manufacturing data
+		{ 0x0040, 0x0043 },  // OTP Write protect
+		{ 0x0044, 0x0063 },  // OTP Region Definitions
+		{ 0x0064, 0x00FF },  // Insecure configuration without emulation
+		{ 0x0100, 0x01FF },  // Keys and other security related
+		{ 0x0200, 0x023F },  // Non-volatile secure counters
+		{ 0x0240, 0x027F },  // Insecure configuration with emulation
+		{ 0x0280, 0x1FFF },  // User-space / Customer usage
+	};
+	uint32_t ck;
+
+	/* Check if programmed already */
+	if (otp_read_uint32(PROTECT_REGION_ADDR_ADDR, &ck) == 0 && ck == 0)
+	        return otp_write_bytes(PROTECT_REGION_ADDR_ADDR,
+				       sizeof(regions), (uint8_t*) regions);
+
+	/* Writing OTP regions not possible, not blank or protected */
+	return -1;
+}

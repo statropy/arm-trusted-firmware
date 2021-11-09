@@ -25,6 +25,8 @@
 #define BOOTSTRAP_OTPR         'R'
 // Commit OTP emulation data
 #define BOOTSTRAP_OTPC         'M'
+// Program OTP regions
+#define BOOTSTRAP_OTP_REGIONS  'G'
 // Continue boot
 #define BOOTSTRAP_CONT         'C'
 // SJTAG Read Challenge
