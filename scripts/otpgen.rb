@@ -74,7 +74,7 @@ static inline int aname(uint8_t *dst, size_t nbytes)			\\
 static inline uint32_t aname(void)					\\
 {									\\
 	uint32_t w;							\\
-	int addr = grp_name##_ADDR + OTP_##fld_name##_OFF;		\\
+	int addr = grp_name##_ADDR + (OTP_##fld_name##_OFF / 8);	\\
 	int off = OTP_##fld_name##_OFF % 8;				\\
 	(void) otp_read_uint32(addr, &w);				\\
 	return (w >> off) & GENMASK(OTP_##fld_name##_BITS - 1, 0);	\\

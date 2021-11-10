@@ -68,14 +68,14 @@
 #define TRIM_SIZE                                8
 
 /* Fields in TRIM */
-#define OTP_UVOV_TRIM0_OFF                       37
-#define OTP_UVOV_TRIM0_BITS                      6
-#define OTP_UVOV_TRIM1_OFF                       31
-#define OTP_UVOV_TRIM1_BITS                      6
-#define OTP_UVOV_TRIM2_OFF                       25
-#define OTP_UVOV_TRIM2_BITS                      6
-#define OTP_UVOV_TRIM3_OFF                       19
-#define OTP_UVOV_TRIM3_BITS                      6
+#define OTP_UVOV_GPIOB_TRIM_OFF                  37
+#define OTP_UVOV_GPIOB_TRIM_BITS                 6
+#define OTP_UVOV_BOOT_TRIM_OFF                   31
+#define OTP_UVOV_BOOT_TRIM_BITS                  6
+#define OTP_UVOV_RGMII_TRIM_OFF                  25
+#define OTP_UVOV_RGMII_TRIM_BITS                 6
+#define OTP_UVOV_GPIOA_TRIM_OFF                  19
+#define OTP_UVOV_GPIOA_TRIM_BITS                 6
 #define OTP_COM_BIAS_BG_TC_TRIM_OFF              14
 #define OTP_COM_BIAS_BG_TC_TRIM_BITS             5
 #define OTP_COM_BIAS_BG_MAG_TRIM_OFF             8
@@ -207,7 +207,7 @@ static inline int aname(uint8_t *dst, size_t nbytes)			\
 static inline uint32_t aname(void)					\
 {									\
 	uint32_t w;							\
-	int addr = grp_name##_ADDR + OTP_##fld_name##_OFF;		\
+	int addr = grp_name##_ADDR + (OTP_##fld_name##_OFF / 8);	\
 	int off = OTP_##fld_name##_OFF % 8;				\
 	(void) otp_read_uint32(addr, &w);				\
 	return (w >> off) & GENMASK(OTP_##fld_name##_BITS - 1, 0);	\
@@ -220,6 +220,8 @@ otp_accessor_group_read(otp_read_serial_number, SERIAL_NUMBER);
 otp_accessor_read_bool(otp_read_jtag_disable, SECURE_JTAG, JTAG_DISABLE);
 otp_accessor_read_field(otp_read_jtag_mode, SECURE_JTAG, JTAG_MODE);
 otp_accessor_group_read(otp_read_jtag_uuid, JTAG_UUID);
+otp_accessor_read_field(otp_read_com_bias_bg_mag_trim, TRIM, COM_BIAS_BG_MAG_TRIM);
+otp_accessor_read_field(otp_read_com_rbias_mag_trim, TRIM, COM_RBIAS_MAG_TRIM);
 otp_accessor_read_field(otp_read_otp_pcie_flags_max_link_speed, OTP_PCIE_FLAGS, OTP_PCIE_FLAGS_MAX_LINK_SPEED);
 otp_accessor_group_read(otp_read_otp_pcie_dev, OTP_PCIE_DEV);
 otp_accessor_read_bytes(otp_read_otp_pcie_device_id, OTP_PCIE_ID, OTP_PCIE_DEVICE_ID);

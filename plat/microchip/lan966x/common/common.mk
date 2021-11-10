@@ -28,9 +28,6 @@ LOG_LEVEL := 40
 # Single-core system
 WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 
-# Enable USB console
-LAN966X_USE_USB			:=	1
-
 # Assume that BL33 isn't the Linux kernel by default
 LAN966X_DIRECT_LINUX_BOOT	:=	0
 
@@ -59,12 +56,8 @@ LAN966X_CONSOLE_SOURCES	:=	\
 				drivers/microchip/gpio/vcore_gpio.c			\
 				drivers/microchip/qspi/qspi.c				\
 				drivers/microchip/flexcom_uart/flexcom_console.S	\
-				drivers/gpio/gpio.c
-
-ifneq (${LAN966X_USE_USB},)
-$(eval $(call add_define,LAN966X_USE_USB))
-LAN966X_CONSOLE_SOURCES	+=	drivers/microchip/usb/usb.c
-endif
+				drivers/gpio/gpio.c					\
+				drivers/microchip/usb/usb.c
 
 LAN966X_STORAGE_SOURCES	:=	\
 				drivers/io/io_block.c					\
@@ -160,3 +153,10 @@ $(eval $(call add_define,LAN966X_DIRECT_LINUX_BOOT))
 ifneq ($(NT_FW_CONFIG),)
 $(eval $(call TOOL_ADD_PAYLOAD,${NT_FW_CONFIG},--nt-fw-config,${NT_FW_CONFIG}))
 endif
+
+# Regenerate the header file from the YAML definition
+LAN966X_OTP_H = plat/microchip/lan966x/common/include/plat_otp.h
+
+${LAN966X_OTP_H}: scripts/otp.yaml
+	$(info Generating OTP headerfile)
+	$(Q)scripts/otpgen.rb  -y $< -g $@
