@@ -28,9 +28,6 @@ LOG_LEVEL := 40
 # Single-core system
 WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 
-# Enable USB console
-LAN966X_USE_USB			:=	1
-
 # Assume that BL33 isn't the Linux kernel by default
 LAN966X_DIRECT_LINUX_BOOT	:=	0
 
@@ -59,12 +56,8 @@ LAN966X_CONSOLE_SOURCES	:=	\
 				drivers/microchip/gpio/vcore_gpio.c			\
 				drivers/microchip/qspi/qspi.c				\
 				drivers/microchip/flexcom_uart/flexcom_console.S	\
-				drivers/gpio/gpio.c
-
-ifneq (${LAN966X_USE_USB},)
-$(eval $(call add_define,LAN966X_USE_USB))
-LAN966X_CONSOLE_SOURCES	+=	drivers/microchip/usb/usb.c
-endif
+				drivers/gpio/gpio.c					\
+				drivers/microchip/usb/usb.c
 
 LAN966X_STORAGE_SOURCES	:=	\
 				drivers/io/io_block.c					\
