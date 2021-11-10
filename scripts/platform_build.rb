@@ -7,10 +7,10 @@ require 'optparse'
 
 build_platforms         = %I[lan966x_evb lan966x_sr lan966x_b0]
 build_types             = %I[debug release]
-build_variants          = %I[bl2normal bl2noop]
+build_variants          = %I[bl2normal bl2noop bl2noop_otp]
 build_authentifications = %I[auth ssk bssk]
 
-build_variant_args      = { bl2normal: '', bl2noop: '--variant noop' }
+build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp' }
 build_auth_args         = { auth: '',
                             ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl32,bl33',
                             bssk: '--encrypt-ssk keys/huk.bin --encrypt-images bl2,bl32,bl33' }
@@ -56,7 +56,7 @@ pre_build
 build_platforms.each do |bp|
   build_types.each do |bt|
     build_variants.each do |bv|
-      next if bv == :bl2noop && bp != :lan966x_b0 # NOOP builds must be b0
+      next if (bv == :bl2noop || bv == :bl2noop_otp) && bp != :lan966x_b0 # NOOP builds must be b0
       build_authentifications.each do |ba|
         dst = "#{bp}-#{bt}-#{bv}-#{ba}"
         artifacts = [
