@@ -14,7 +14,6 @@
 #include <lib/mmio.h>
 
 #include "lan966x_private.h"
-#include "lan966x_regs.h"
 
 /* -------- SDMMC_BSR : (SDMMC Offset: 0x04) Block Size Register ---------- */
 #define SDMMC_BSR	0x04	/* uint16_t */
@@ -336,9 +335,6 @@ static int lan966x_host_init(void)
 		/* Set debounce value register and check if sd-card is inserted*/
 		mmc_setbits_8(reg_base + SDMMC_DEBR, SDMMC_DEBR_CDDVAL(3));
 
-		// add debug information
-		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), 0x1);
-
 		/* Wait for sd-card stable present bit */
 		timeout = EMMC_POLLING_VALUE;
 		do {
@@ -347,22 +343,12 @@ static int lan966x_host_init(void)
 				timeout--;
 				udelay(10);
 			} else {
-				// add debug information
-				mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), 0x2);
 				return -1;
 			}
-		} while (!(state & SDMMC_PSR_CARDSS));
+		} while (!((state & SDMMC_PSR_CARDSS) && (state & SDMMC_PSR_CARDINS)));
 
-		/* Error if sd-card is not detected */
-		if (!(mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_CARDINS)) {
-
-			// add debug information
-			mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), 0x4);
-			return -1;
-		}
-
-		// add debug information
-		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), 0x8);
+		/* Enable SD clock */
+		mmc_setbits_16(reg_base + SDMMC_CCR, SDMMC_CCR_SDCLKEN);
 	}
 
 	return 0;
@@ -376,8 +362,6 @@ static void lan966x_mmc_initialize(void)
 
 	retVal = lan966x_host_init();
 	if (retVal != 0) {
-		// add debug information
-		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), 0x10);
 		ERROR("MMC host initialization failed !\n");
 		panic();
 	}
