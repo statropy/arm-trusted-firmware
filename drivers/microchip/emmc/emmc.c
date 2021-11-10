@@ -345,12 +345,10 @@ static int lan966x_host_init(void)
 			} else {
 				return -1;
 			}
-		} while (!(state & SDMMC_PSR_CARDSS));
+		} while (!((state & SDMMC_PSR_CARDSS) && (state & SDMMC_PSR_CARDINS)));
 
-		/* Error if sd-card is not detected */
-		if (!(mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_CARDINS)) {
-			return -1;
-		}
+		/* Enable SD clock */
+		mmc_setbits_16(reg_base + SDMMC_CCR, SDMMC_CCR_SDCLKEN);
 	}
 
 	return 0;
