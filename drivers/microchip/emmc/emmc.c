@@ -667,6 +667,14 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 		emmcRegVal |= SDMMC_MC1R_FCD;
 	}
 
+#if defined(LAN966X_EMMC_TESTS)
+	/* When e.g the EVB board is used and LAN966X_EMMC_TESTS is enabled,
+	 * the previously called lan966x_get_boot_source() function will
+	 * return BOOT_SOURCE_QSPI. Since this is a special test mode,
+	 * the value for the FCD needs to be set accordingly */
+	emmcRegVal |= SDMMC_MC1R_FCD;
+#endif
+
 	mmio_write_8(reg_base + SDMMC_MC1R, emmcRegVal);
 	mmio_write_32(reg_base + SDMMC_ARG1R, cmd->cmd_arg);
 	mmio_write_16(reg_base + SDMMC_CR, cmdRegVal);
