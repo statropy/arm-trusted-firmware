@@ -107,10 +107,11 @@ BL2_SOURCES		+=	\
 BL2U_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c
 
-ifeq (${BL2_VARIANT},NOOP) || (${BL2_VARIANT},NOOP_OTP)
+ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
 override BL2_SOURCES		:=	\
 				bl2/${ARCH}/bl2_entrypoint.S				\
 				plat/microchip/lan966x/common/${ARCH}/plat_bl2_noop.S
+$(info Generating a BL2 NOOP)
 endif
 
 # Add the build options to pack Trusted OS Extra1 and Trusted OS Extra2 images
