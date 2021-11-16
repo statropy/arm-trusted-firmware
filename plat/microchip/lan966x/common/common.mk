@@ -45,6 +45,9 @@ include lib/xlat_tables_v2/xlat_tables.mk
 $(info Including platform TBBR)
 include plat/microchip/lan966x/common/plat_tbbr.mk
 
+# MCHP SOC family
+$(eval $(call add_define,MCHP_SOC_LAN966X))
+
 # Default chip variant = platform
 ifeq (${PLAT_VARIANT},)
 PLAT_VARIANT			:=	${PLAT}
@@ -58,7 +61,7 @@ PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/${PLAT_VARIANT}/include	\
 LAN966X_CONSOLE_SOURCES	:=	\
 				drivers/microchip/gpio/vcore_gpio.c			\
 				drivers/microchip/qspi/qspi.c				\
-				drivers/microchip/flexcom_uart/flexcom_console.S	\
+				drivers/microchip/flexcom_uart/aarch32/flexcom_console.S \
 				drivers/gpio/gpio.c					\
 				drivers/microchip/usb/usb.c
 

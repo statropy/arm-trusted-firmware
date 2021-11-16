@@ -7,7 +7,7 @@
 #include <asm_macros.S>
 #include <console_macros.S>
 
-#include "flexcom_uart_regs.h"
+#include "../flexcom_uart_regs.h"
 
 	.globl  console_flexcom_register
 	.globl  console_flexcom_putc

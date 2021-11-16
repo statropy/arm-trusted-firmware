@@ -13,8 +13,6 @@
 #include <drivers/mmc.h>
 #include <lib/mmio.h>
 
-#include "lan966x_private.h"
-
 /* -------- SDMMC_BSR : (SDMMC Offset: 0x04) Block Size Register ---------- */
 #define SDMMC_BSR	0x04	/* uint16_t */
 #define   SDMMC_BSR_BLKSIZE_Pos 0
@@ -149,7 +147,7 @@ static const unsigned int TAAC_TimeExp[8] =
 static const unsigned int TAAC_TimeMant[16] =
 	{ 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80 };
 
-static void lan966x_mmc_reset(void) 
+static void lan966x_mmc_reset(void)
 {
 	unsigned int timeout;
 	unsigned int state;
@@ -276,28 +274,17 @@ static int lan966x_host_init(void)
 {
 	unsigned int timeout;
 	unsigned int state;
-	boot_source_type boot_source;
+
 	lan966x_params.clk_rate = 0u;
 
-	boot_source = lan966x_get_boot_source();
-
 	/* Set default values for eMMC/SDMMC */
-	if (boot_source == BOOT_SOURCE_EMMC) {
+	if (lan966x_params.mmc_dev_type == MMC_IS_EMMC) {
 		p_card.card_type = MMC_CARD;
 		p_card.card_capacity = MMC_NORM_DENSITY;
-	} else if (boot_source == BOOT_SOURCE_SDMMC) {
+	} else if (lan966x_params.mmc_dev_type == MMC_IS_SD) {
 		p_card.card_type = SD_CARD;
 		p_card.card_capacity = SD_CARD_SDSC;
 	}
-#if defined(LAN966X_EMMC_TESTS)
-	/* When the EVB board is used and LAN966X_EMMC_TESTS is enabled, the
-	 * previously called lan966x_get_boot_source() function will return
-	 * BOOT_SOURCE_QSPI. Since this is a special test mode, this boot_source
-	 * is not considered and supported here. Therefore, the default eMMC
-	 * values needs to be set here. */
-	p_card.card_type = MMC_CARD;
-	p_card.card_capacity = MMC_NORM_DENSITY;
-#endif
 
 	lan966x_clk_disable(LAN966X_CLK_ID_SDMMC0);
 	lan966x_clk_set_rate(LAN966X_CLK_ID_SDMMC0, LAN966X_CLK_FREQ_SDMMC);
@@ -331,7 +318,7 @@ static int lan966x_host_init(void)
 	}
 
 	/* Check if sd-card is physically present */
-	if (boot_source == BOOT_SOURCE_SDMMC) {
+	if (lan966x_params.mmc_dev_type == MMC_IS_SD) {
 		/* Set debounce value register and check if sd-card is inserted*/
 		mmc_setbits_8(reg_base + SDMMC_DEBR, SDMMC_DEBR_CDDVAL(3));
 
@@ -663,17 +650,9 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 
 	/* When using eMMC, the FCD (Force Card Detect) bit will be set to 1 to bypass the card
 	 * detection procedure by using the SDMMC_CD signal */
-	if (lan966x_get_boot_source() == BOOT_SOURCE_EMMC) {
+	if (lan966x_params.mmc_dev_type == MMC_IS_EMMC) {
 		emmcRegVal |= SDMMC_MC1R_FCD;
 	}
-
-#if defined(LAN966X_EMMC_TESTS)
-	/* When e.g the EVB board is used and LAN966X_EMMC_TESTS is enabled,
-	 * the previously called lan966x_get_boot_source() function will
-	 * return BOOT_SOURCE_QSPI. Since this is a special test mode,
-	 * the value for the FCD needs to be set accordingly */
-	emmcRegVal |= SDMMC_MC1R_FCD;
-#endif
 
 	mmio_write_8(reg_base + SDMMC_MC1R, emmcRegVal);
 	mmio_write_32(reg_base + SDMMC_ARG1R, cmd->cmd_arg);
@@ -816,9 +795,6 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 {
 	uint8_t busWidth = 0u;
 	uint32_t clock = 0u;
-	boot_source_type boot_source;
-
-	boot_source = lan966x_get_boot_source();
 
 	VERBOSE("MMC: ATF CB set_ios() \n");
 
@@ -848,29 +824,19 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 	/* Mainly, the desired clock rate should be adjusted by the fw_config
 	 * parameter. This check prevents that the maximum allowed clock
 	 * settings are exceeded depending on the respective mmc device. */
-	if (boot_source == BOOT_SOURCE_EMMC) {
+	if (lan966x_params.mmc_dev_type == MMC_IS_EMMC) {
 		if (clk >= EMMC_HIGH_SPEED) {
 			clock = EMMC_HIGH_SPEED;
 		} else {
 			clock = clk;
 		}
-	} else if (boot_source == BOOT_SOURCE_SDMMC) {
+	} else if (lan966x_params.mmc_dev_type == MMC_IS_SD) {
 		if (clk >= SD_HIGH_SPEED) {
 			clock = SD_HIGH_SPEED;
 		} else {
 			clock = clk;
 		}
-	} 
-#if defined(LAN966X_EMMC_TESTS)
-	else {
-		/* When the EVB board is used and LAN966X_EMMC_TESTS is enabled,
-		 * the previously called lan966x_get_boot_source() function will
-		 * return BOOT_SOURCE_QSPI. Since this is a special test mode,
-		 * this boot_source is not considered and supported here.
-		 * Set clock value as requested. */
-		clock = clk;
 	}
-#endif
 
 	INFO("MMC: Set mmc clk_freq to: %d\n", clock);
 	if (lan966x_set_clk_freq(clock, SDMMC_CLK_CTRL_PROG_MODE)) {
@@ -954,6 +920,15 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 	int retVal;
 
 	VERBOSE("MMC: lan966x_mmc_init() \n");
+
+#if defined(LAN966X_EMMC_TESTS)
+	/* When the EVB board is used and LAN966X_EMMC_TESTS is enabled, the
+	 * previously called lan966x_get_boot_source() function will return
+	 * BOOT_SOURCE_QSPI. Since this is a special test mode, this boot_source
+	 * is not considered and supported here. Therefore, the default eMMC
+	 * values needs to be set here. */
+	lan966x_params.mmc_dev_type = MMC_IS_EMMC;
+#endif
 
 	assert((params != 0) &&
 	       ((params->reg_base & MMC_BLOCK_MASK) == 0) &&

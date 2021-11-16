@@ -8,17 +8,38 @@ require 'pp'
 
 platforms = {
     "lan966x_sr"	=> Hash[
+        :arch  => "arm",
         :uboot =>  "u-boot-lan966x_sr_atf.bin",
         :dtb   =>  "lan966x-sr.dtb",
         :bl2_at_el3 => false ],
     "lan966x_evb"	=> Hash[
+        :arch  => "arm",
         :uboot =>  "u-boot-lan966x_evb_atf.bin",
         :dtb   =>  "lan966x_pcb8291.dtb",
         :bl2_at_el3 => true  ],
     "lan966x_b0"	=> Hash[
+        :arch  => "arm",
         :uboot =>  "u-boot-lan966x_evb_atf.bin",
         :dtb   =>  "lan966x_pcb8291.dtb",
         :bl2_at_el3 => false ],
+    "lan969x_sr"	=> Hash[
+        :arch  => "arm64",
+        :uboot =>  nil,
+        :dtb   =>  nil,
+        :bl2_at_el3 => false ],
+}
+
+architectures = {
+    "arm" => Hash[
+        :bsp_arch => "arm",
+        :tc_dir   => "arm-cortex_a8-linux-gnueabihf",
+        :tc_prf   => "arm-cortex_a8-linux-gnueabihf",
+        :atf_arch => "aarch32", ],
+    "arm64" => Hash[
+        :bsp_arch => "arm64",
+        :tc_dir   => "arm64-armv8_a-linux-gnu",
+        :tc_prf   => "aarch64-armv8_a-linux-gnu",
+        :atf_arch => "aarch64", ],
 }
 
 bssk_derive_key = [
@@ -117,7 +138,7 @@ def do_cmdret(cmd)
 end
 
 def install_sdk()
-    brsdk_name = "mscc-brsdk-#{$option[:arch]}-#{$option[:sdk]}"
+    brsdk_name = "mscc-brsdk-#{$arch[:bsp_arch]}-#{$option[:sdk]}"
     brsdk_base = "/opt/mscc/#{brsdk_name}"
     if not File.exist? brsdk_base
         if File.exist? "/usr/local/bin/mscc-install-pkg"
@@ -132,17 +153,19 @@ def install_toolchain(tc_vers)
     tc_folder = tc_vers
     tc_folder = "#{tc_vers}-toolchain" if not tc_vers.include? "toolchain"
     tc_path = "mscc-toolchain-bin-#{tc_vers}"
-    $bin = "/opt/mscc/" + tc_path + "/arm-cortex_a8-linux-gnueabihf/bin"
+    $bin = "/opt/mscc/" + tc_path + "/" + $arch[:tc_dir] + "/bin"
     if !File.directory?($bin)
         do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
         raise "Unable to install toolchain to #{$bin}" unless File.exist?($bin)
     end
-    ENV["CROSS_COMPILE"] = "#{$bin}/arm-linux-"
+    ENV["CROSS_COMPILE"] = $bin + "/" + $arch[:tc_prf] + "-"
     puts "Using toolchain #{tc_vers} at #{$bin}"
 end
 
 pdef = platforms[$option[:platform]]
 raise "Unknown platform: #{$option[:platform]}" unless pdef
+$arch = architectures[pdef[:arch]]
+raise "Unknown architecture: #{pdef[:arch]}" unless $arch
 
 if $option[:debug]
     args += "DEBUG=1 "
@@ -166,11 +189,18 @@ if $option[:linux_boot]
     do_cmd("fdtoverlay -i #{dtb} -o #{dtb_new} #{dtb_overlay}")
     args += "BL33=#{kernel} LAN966X_DIRECT_LINUX_BOOT=1 NT_FW_CONFIG=#{dtb_new} "
 else
-    uboot = sdk_dir + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x/" + pdef[:uboot]
-    args += "BL33=#{uboot} "
+    if pdef[:uboot]
+        uboot = sdk_dir + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x/" + pdef[:uboot]
+        args += "BL33=#{uboot} "
+    else
+        args += "BL33=/dev/null "
+    end
 end
 
-args += "PLAT=#{$option[:platform]} ARCH=aarch32 AARCH32_SP=sp_min "
+args += "PLAT=#{$option[:platform]} ARCH=#{$arch[:atf_arch]} "
+if $arch[:atf_arch] == "aarch32"
+    args += " AARCH32_SP=sp_min "
+end
 args += "BL2_VARIANT=#{$option[:bl2variant].upcase} " if $option[:bl2variant]
 args += "BL32_EXTRA1=#{$option[:bl32extra1]} " if $option[:bl32extra1]
 args += "BL32_EXTRA2=#{$option[:bl32extra2]} " if $option[:bl32extra2]
@@ -304,7 +334,7 @@ if $option[:ramusage]
     ["bl1", "bl2"].each do |s|
         elf = "#{build}/#{s}/#{s}.elf"
         if File.exist? elf
-            o = `#{$bin}/arm-linux-size #{elf}`
+            o = `#{$bin}/#{$arch[:tc_prf]}-size #{elf}`
             raise "Unable to read size of #{elf} - $?" unless $?.success?
             b1 = o.split("\n")[1]
             d = b1.match(/(\d+)[ \t]+(\d+)[ \t]+(\d+)[ \t]+(\d+)/);
