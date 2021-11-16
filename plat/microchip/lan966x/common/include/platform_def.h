@@ -34,8 +34,6 @@
 /* eMMC RPMB and eMMC User Data */
 #define MAX_IO_BLOCK_DEVICES		U(2)
 
-#define LAN966x_PRIMARY_CPU		0x0
-
 /*
  * BL1 specific defines.
  */
