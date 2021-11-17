@@ -149,7 +149,7 @@ ${LAN966X_FW_PARAM}: scripts/fw_data.yaml
 # Generate the FIPs FW_CONFIG
 LAN966X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
 
-${LAN966X_FW_CONFIG}: ${LAN966X_FW_PARAM} ${LAN966X_OTP_DATA} ${LAN966X_FW_PARAM}
+${LAN966X_FW_CONFIG}: ${LAN966X_OTP_DATA} ${LAN966X_FW_PARAM}
 	$(Q)ruby ./scripts/otpbin.rb $(if ${LAN966X_OTP_DATA},-y ${LAN966X_OTP_DATA}) -o $@
 	$(Q)cat ${LAN966X_FW_PARAM} >> $@
 
