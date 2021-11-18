@@ -57,10 +57,6 @@ func console_flexcom_register
 
 	/* Configure USART in Asynchronous mode */
 	mov r3, #(USART_MR_PAR_NONE | USART_MR_CHMODE_NORMAL | USART_MR_CHRL_8BIT | USART_MR_NBSTOP_1BIT)
-#if defined(LAN966X_ASIC)
-	/* Use GCLKPMC_PCK */
-	orr r3, r3, #(USART_MR_USCLK_SEL(2))
-#endif
 	str r3, [r1, #USART_REG_MR]
 
 	/* Enable RX and Tx */

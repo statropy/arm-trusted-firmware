@@ -116,22 +116,21 @@ enum lan966x_flexcom_id {
 
 static struct lan966x_flexcom_args {
 	uintptr_t base;
-	unsigned int clk_id;
 	int rx_gpio;
 	int tx_gpio;
 } lan966x_flexcom_map[] = {
 	[FLEXCOM0] = {
-		LAN966X_FLEXCOM_0_BASE, LAN966X_CLK_ID_FLEXCOM0, 25, 26
+		LAN966X_FLEXCOM_0_BASE, 25, 26
 	},
 	[FLEXCOM1] = { 0 },
 	[FLEXCOM2] = {
-		LAN966X_FLEXCOM_2_BASE, LAN966X_CLK_ID_FLEXCOM2, 44, 45
+		LAN966X_FLEXCOM_2_BASE, 44, 45
 	},
 	[FLEXCOM3] = {
-		LAN966X_FLEXCOM_3_BASE, LAN966X_CLK_ID_FLEXCOM3, 52, 53
+		LAN966X_FLEXCOM_3_BASE, 52, 53
 	},
 	[FLEXCOM4] = {
-		LAN966X_FLEXCOM_4_BASE, LAN966X_CLK_ID_FLEXCOM4, 57, 58
+		LAN966X_FLEXCOM_4_BASE, 57, 58
 	},
 };
 
@@ -159,15 +158,10 @@ static void lan966x_flexcom_init(int idx)
 	vcore_gpio_set_alt(fc->rx_gpio, 1);
 	vcore_gpio_set_alt(fc->tx_gpio, 1);
 
-	/* Configure clock on UART */
-	lan966x_clk_disable(fc->clk_id);
-	lan966x_clk_set_rate(fc->clk_id, LAN966X_CLK_FREQ_FLEXCOM); /* 30MHz */
-	lan966x_clk_enable(fc->clk_id);
-
 	/* Initialize the console to provide early debug support */
 	console_flexcom_register(&lan966x_console,
 				 fc->base + FLEXCOM_UART_OFFSET,
-				 FLEXCOM_DIVISOR(FACTORY_CLK, FLEXCOM_BAUDRATE));
+				 FLEXCOM_DIVISOR(PERIPHERAL_CLK, FLEXCOM_BAUDRATE));
 	console_set_scope(&lan966x_console,
 			  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
 	lan966x_crash_console(&lan966x_console);
