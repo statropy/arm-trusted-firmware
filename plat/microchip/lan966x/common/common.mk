@@ -140,11 +140,19 @@ ifneq (${ENABLE_STACK_PROTECTOR},0)
 PLAT_BL_COMMON_SOURCES  +=      plat/microchip/lan966x/common/lan966x_stack_protector.c
 endif
 
+# Generate binary FW configuration data for inclusion in the FIPs FW_CONFIG
+LAN966X_FW_PARAM	:=	${BUILD_PLAT}/fw_param.bin
+
+${LAN966X_FW_PARAM}: scripts/fw_data.yaml
+	$(info Generating binary FW configuration data)
+	$(Q)ruby scripts/otp_fw_data.rb $< $@
+
+# Generate the FIPs FW_CONFIG
 LAN966X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
 
-${LAN966X_FW_CONFIG}: bin/fw_param.bin ${LAN966X_OTP_DATA}
+${LAN966X_FW_CONFIG}: ${LAN966X_OTP_DATA} ${LAN966X_FW_PARAM}
 	$(Q)ruby ./scripts/otpbin.rb $(if ${LAN966X_OTP_DATA},-y ${LAN966X_OTP_DATA}) -o $@
-	$(Q)cat bin/fw_param.bin >> $@
+	$(Q)cat ${LAN966X_FW_PARAM} >> $@
 
 # FW config
 $(eval $(call TOOL_ADD_PAYLOAD,${LAN966X_FW_CONFIG},--fw-config,${LAN966X_FW_CONFIG}))

@@ -1,0 +1,17 @@
+---
+- field: LAN966X_FW_CONF_MMC_CLK_RATE
+  size: 32
+  value: 25000000
+- field: LAN966X_FW_CONF_MMC_BUS_WIDTH
+  size: 8
+  value: 1      # MMC_BUS_WIDTH_4
+- field: LAN966X_FW_CONF_QSPI_CLK
+  size: 8
+  value: 30
+- field: LAN966X_FW_CONF_MMC_SPEED_MODE
+  size: 8
+  value: 3      # SDMMC_TIMING_HS
+- field: LAN966X_FW_CONF_MMC_TX_TUNING_PHASE
+  size: 8
+  value: 12     # Maserati HW Tx phase default value
+...
