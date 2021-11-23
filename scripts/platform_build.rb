@@ -13,7 +13,7 @@ build_authentifications = %I[auth ssk bssk]
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp' }
 build_auth_args         = { auth: '',
                             ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl32,bl33',
-                            bssk: '--encrypt-ssk keys/huk.bin --encrypt-images bl2,bl32,bl33' }
+                            bssk: '--encrypt-bssk keys/huk.bin --encrypt-images bl2,bl32,bl33' }
 
 option = {}
 OptionParser.new do |opts|
