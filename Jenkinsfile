@@ -11,6 +11,8 @@ properties([
         [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '20']],
         ])
 
+def isBootRomRelease = env.BRANCH_NAME.matches(/(.+\.b0$/)
+
 node('blademaster') {
 
     stage("SCM Checkout") {
@@ -30,14 +32,20 @@ node('blademaster') {
     } catch (error) {
         throw error
     } finally {
-        stage("Archiving results") {
-                archive '*.bl1'
-                archive '*.fip'
-                archive '*.bin'
-                archive '*.gpt'
-                archive '*.img'
-                archive '*.dump'
-                archive 'keys/*'
+        if (isBootRomRelease) {
+            stage("Archiving results") {
+                    archive '*.bl1'
+                    archive '*bl1.dump'
+            }
+        } else {
+            stage("Archiving results") {
+                    archive '*.fip'
+                    archive '*.bin'
+                    archive '*.gpt'
+                    archive '*.img'
+                    archive '*bl2.dump'
+                    archive 'keys/*'
+            }
         }
     }
 }
