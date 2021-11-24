@@ -15,6 +15,9 @@ OptionParser.new do |opts|
         $options[:key] = File.binread(f);
         raise "Key data must be 32 bytes" unless $options[:key].length == 32
     end
+    opts.on("-h", "--hexdigest", "Output as hex digest (for boot monitor ruby script)") do
+        $options[:hexdigest] = true;
+    end
 end.order!
 
 raise "Missing key option, use --key <file>" if $options[:key].nil?
@@ -34,5 +37,9 @@ raise "Must have 32 bytes key data" unless $options[:key].length == 32
 data += $options[:key]
 
 # The challenge response is a SHA256 hash of (challenge + sjtag-key)
-response = Digest::SHA256.digest(data).unpack("V*").map{|i| i.to_s(16)}.join(" ")
+if $options[:hexdigest]
+    response = Digest::SHA256.hexdigest(data)
+else
+    response = Digest::SHA256.digest(data).unpack("V*").map{|i| i.to_s(16)}.join(" ")
+end
 puts "Response: #{response}"
