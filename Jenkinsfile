@@ -33,12 +33,12 @@ node('blademaster') {
         throw error
     } finally {
         if (isBootRomRelease) {
-            stage("Archiving results") {
+            stage("Archiving Boot ROM results") {
                     archive '*.bl1'
                     archive '*bl1.dump'
             }
         } else {
-            stage("Archiving results") {
+            stage("Archiving FIP results") {
                     archive '*.fip'
                     archive '*.bin'
                     archive '*.gpt'
