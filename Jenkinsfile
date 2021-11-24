@@ -34,11 +34,12 @@ node('blademaster') {
     } finally {
         if (isBootRomRelease) {
             stage("Archiving Boot ROM results") {
-                    archive '*.bl1'
+                    archive 'lan966x_b0-*.bl1'
                     archive '*bl1.dump'
             }
         } else {
             stage("Archiving FIP results") {
+                    archive 'lan966x_sr-*.bl1'
                     archive '*.fip'
                     archive '*.bin'
                     archive '*.gpt'
