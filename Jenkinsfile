@@ -11,7 +11,7 @@ properties([
         [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '20']],
         ])
 
-def isBootRomRelease = env.BRANCH_NAME.matches(/(.+\.b0)/)
+def isBootRomRelease = env.BRANCH_NAME.matches(/\.b0/)
 
 node('blademaster') {
 
