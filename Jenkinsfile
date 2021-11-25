@@ -11,8 +11,6 @@ properties([
         [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '20']],
         ])
 
-def isBootRomRelease = env.BRANCH_NAME.matches(/.+[.]b0/)
-
 node('blademaster') {
 
     stage("SCM Checkout") {
@@ -33,8 +31,7 @@ node('blademaster') {
         throw error
     } finally {
         echo "Branch is: ${env.BRANCH_NAME}"
-        echo "isBootRomRelease is: ${isBootRomRelease}"
-        if (isBootRomRelease) {
+        if (env.BRANCH_NAME =~ /\.b0/) {
             stage("Archiving Boot ROM results") {
                     archive 'lan966x_b0-*.bl1'
                     archive '*bl1.dump'
