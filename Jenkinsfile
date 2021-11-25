@@ -32,6 +32,8 @@ node('blademaster') {
     } catch (error) {
         throw error
     } finally {
+        echo "Branch is: ${env.BRANCH_NAME}"
+        echo "isBootRomRelease is: ${isBootRomRelease}"
         if (isBootRomRelease) {
             stage("Archiving Boot ROM results") {
                     archive 'lan966x_b0-*.bl1'
