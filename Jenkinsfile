@@ -34,6 +34,7 @@ node('blademaster') {
         if (env.BRANCH_NAME =~ /\.b0/) {
             stage("Archiving Boot ROM results") {
                     archive 'lan966x_b0-*.bl1'
+                    archive 'lan966x_sr-*.bl1'
                     archive '*b0-release-bl2normal-auth-bl1.dump'
                     archive '*sr-*-bl2normal-auth-bl1.dump'
             }
