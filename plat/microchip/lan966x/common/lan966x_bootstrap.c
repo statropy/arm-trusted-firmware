@@ -121,6 +121,8 @@ bool bootstrap_RxReq(bootstrap_req_t *req)
 	bstrap_char_req_t rxdata;
 	int rx;
 
+	bootstrap_req_flags = 0; /* Reset flags */
+
 	/* Syncronize SOF */
 	while(MON_GET() != BOOTSTRAP_SOF)
 		;
@@ -138,8 +140,10 @@ bool bootstrap_RxReq(bootstrap_req_t *req)
 		req->arg0 = atohex(rxdata.arg0, BSTRAP_HEXFLD_LEN);
 		req->len = atohex(rxdata.len, BSTRAP_HEXFLD_LEN);
 		/* Req flags */
-		if (rxdata.pay_delim == '%')
+		if (rxdata.pay_delim == '%') {
+			bootstrap_req_flags |= BSTRAP_REQ_FLAG_BINARY;
 			req->flags |= BSTRAP_REQ_FLAG_BINARY;
+		}
 		/* Fixed part of CRC */
 		req->crc = Crc32c(0, &rxdata, sizeof(rxdata));
 		/* Commands with payloads are checked later */
