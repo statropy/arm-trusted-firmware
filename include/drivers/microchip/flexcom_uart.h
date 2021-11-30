@@ -7,16 +7,16 @@
 #ifndef FLEXCOM_UART_H
 #define FLEXCOM_UART_H
 
+/*
+ * Calculate UART divisor, using rounding - the (_br / 2) part.
+ */
+#define FLEXCOM_DIVISOR(_sck, _br) (((_sck / 16) + (_br / 2)) / _br)
+
 #include <drivers/console.h>
 
 #ifndef __ASSEMBLER__
 
 #include <stdint.h>
-
-/* calculation routine for baudrate */
-#define FLEXCOM_DIVISOR(mck, baud)					\
-	(((((mck) * 10u) / ((baud) * 16u)) % 10u) >= 5u) ?		\
-	(mck / (baud * 16u) + 1u) : ((mck) / (baud * 16u))
 
 /*
  * Initialize a new flexcom console instance and register it with the console

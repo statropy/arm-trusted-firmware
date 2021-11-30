@@ -88,14 +88,12 @@
  * Flexcom UART related constants
  */
 #define FLEXCOM_BAUDRATE            UL(115200)
-#define FLEXCOM_UART_CLK_IN_HZ      UL(19200000)
 
-/* QSPI controller(s) */
-
-#define QSPI_SIZE	0x00000100
-
-/* ToDo: Check defines */
-#define FACTORY_CLK     UL(30000000)    /* Factory CLK used on sunrise board */
+#if defined(LAN966X_ASIC)
+#define PERIPHERAL_CLK	UL(200000000) /* Peripheral CLK used on silicon */
+#else
+#define PERIPHERAL_CLK	UL(20000000)  /* Peripheral CLK used on sunrise board */
+#endif
 
 /* Sunrise FPGA base clock settings
  * On the real hardware this value will be calculated by the using the proper
