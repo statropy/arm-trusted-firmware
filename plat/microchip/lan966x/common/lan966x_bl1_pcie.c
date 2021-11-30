@@ -86,7 +86,7 @@ static const struct {
 	},
 	{
 		"SRAM",
-		0x01000000,
+		  0x100000,
 		   0x20000,
 		PCIE_BAR_REG(4),
 		PCIE_BAR_MASK(4),
@@ -168,12 +168,15 @@ static void lan966x_config_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_si
 		}
 	}
 	if (enable) {
-		INFO("Enable PCIe BAR[%d]: offset: 0x%08x, mask: 0x%x\n", bar, start, size - 1);
+		uint32_t mask = size - 1;
+
+		start = start & ~mask;
+		INFO("Enable PCIe BAR[%d]: offset: 0x%08x, mask: 0x%x\n", bar, start, mask);
 		mmio_clrsetbits_32(lan966x_pcie_bar_config[bar].bar_reg,
 				   lan966x_pcie_bar_config[bar].bar_mask,
 				   lan966x_pcie_bar_config[bar].bar_value);
 		mmio_write_32(lan966x_pcie_bar_config[bar].bar_target_reg, start);
-		mmio_write_32(lan966x_pcie_bar_config[bar].bar_mask_reg, size - 1);
+		mmio_write_32(lan966x_pcie_bar_config[bar].bar_mask_reg, mask);
 	} else {
 		INFO("Disable PCIe BAR[%d]\n", bar);
 		mmio_write_32(lan966x_pcie_bar_config[bar].bar_mask_reg, 0);
