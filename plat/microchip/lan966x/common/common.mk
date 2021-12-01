@@ -31,6 +31,9 @@ WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 # Assume that BL33 isn't the Linux kernel by default
 LAN966X_DIRECT_LINUX_BOOT	:=	0
 
+# Must be zero on aarch32
+ENABLE_SVE_FOR_NS		:=	0
+
 # Pass LAN966x_MAX_CPUS_PER_CLUSTER to the build system.
 $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 
