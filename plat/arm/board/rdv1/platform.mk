@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-# RD-V1 platform uses GIC-Clayton which is based on GICv4.1
+# RD-V1 platform uses GIC-700 which is based on GICv4.1
 GIC_ENABLE_V4_EXTN	:=	1
 
 include plat/arm/css/sgi/sgi-common.mk
@@ -58,3 +58,8 @@ $(eval $(call TOOL_ADD_PAYLOAD,${NT_FW_CONFIG},--nt-fw-config,${NT_FW_CONFIG}))
 
 override CTX_INCLUDE_AARCH32_REGS	:= 0
 override ENABLE_AMU			:= 1
+
+ifneq ($(CSS_SGI_PLATFORM_VARIANT),0)
+ $(error "CSS_SGI_PLATFORM_VARIANT for RD-V1 should always be 0, \
+     currently set to ${CSS_SGI_PLATFORM_VARIANT}.")
+endif

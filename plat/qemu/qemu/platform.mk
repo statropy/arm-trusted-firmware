@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013-2020, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2013-2021, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -24,6 +24,10 @@ ifeq (${SPD},opteed)
 add-lib-optee 		:= 	yes
 endif
 ifeq ($(AARCH32_SP),optee)
+add-lib-optee 		:= 	yes
+endif
+ifeq ($(SPMC_OPTEE),1)
+$(eval $(call add_define,SPMC_OPTEE))
 add-lib-optee 		:= 	yes
 endif
 
@@ -107,7 +111,10 @@ BL1_SOURCES		+=	drivers/io/io_semihosting.c		\
 ifeq (${ARM_ARCH_MAJOR},8)
 BL1_SOURCES		+=	lib/cpus/aarch64/aem_generic.S		\
 				lib/cpus/aarch64/cortex_a53.S		\
-				lib/cpus/aarch64/cortex_a57.S
+				lib/cpus/aarch64/cortex_a57.S		\
+				lib/cpus/aarch64/cortex_a72.S		\
+				lib/cpus/aarch64/qemu_max.S		\
+
 else
 BL1_SOURCES		+=	lib/cpus/${ARCH}/cortex_a15.S
 endif
@@ -135,9 +142,9 @@ BL1_SOURCES		+=	drivers/io/io_encrypted.c
 BL2_SOURCES		+=	drivers/io/io_encrypted.c
 endif
 
-QEMU_GICV2_SOURCES	:=	drivers/arm/gic/v2/gicv2_helpers.c	\
-				drivers/arm/gic/v2/gicv2_main.c		\
-				drivers/arm/gic/common/gic_common.c	\
+# Include GICv2 driver files
+include drivers/arm/gic/v2/gicv2.mk
+QEMU_GICV2_SOURCES	:=	${GICV2_SOURCES}			\
 				plat/common/plat_gicv2.c		\
 				${PLAT_QEMU_COMMON_PATH}/qemu_gicv2.c
 
@@ -160,14 +167,22 @@ ifeq (${ARM_ARCH_MAJOR},8)
 BL31_SOURCES		+=	lib/cpus/aarch64/aem_generic.S		\
 				lib/cpus/aarch64/cortex_a53.S		\
 				lib/cpus/aarch64/cortex_a57.S		\
+				lib/cpus/aarch64/cortex_a72.S		\
+				lib/cpus/aarch64/qemu_max.S		\
 				lib/semihosting/semihosting.c		\
 				lib/semihosting/${ARCH}/semihosting_call.S \
 				plat/common/plat_psci_common.c		\
+				drivers/arm/pl061/pl061_gpio.c		\
+				drivers/gpio/gpio.c			\
 				${PLAT_QEMU_COMMON_PATH}/qemu_pm.c			\
 				${PLAT_QEMU_COMMON_PATH}/topology.c			\
 				${PLAT_QEMU_COMMON_PATH}/aarch64/plat_helpers.S	\
 				${PLAT_QEMU_COMMON_PATH}/qemu_bl31_setup.c		\
 				${QEMU_GIC_SOURCES}
+
+ifeq (${SPD},spmd)
+BL31_SOURCES		+=	plat/qemu/common/qemu_spmd_manifest.c
+endif
 endif
 
 # Add the build options to pack Trusted OS Extra1 and Trusted OS Extra2 images

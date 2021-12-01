@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -15,6 +15,18 @@ static inline bool is_armv7_gentimer_present(void)
 {
 	/* The Generic Timer is always present in an ARMv8-A implementation */
 	return true;
+}
+
+static inline bool is_armv8_1_pan_present(void)
+{
+	return ((read_id_aa64mmfr1_el1() >> ID_AA64MMFR1_EL1_PAN_SHIFT) &
+		ID_AA64MMFR1_EL1_PAN_MASK) != 0U;
+}
+
+static inline bool is_armv8_1_vhe_present(void)
+{
+	return ((read_id_aa64mmfr1_el1() >> ID_AA64MMFR1_EL1_VHE_SHIFT) &
+		ID_AA64MMFR1_EL1_VHE_MASK) != 0U;
 }
 
 static inline bool is_armv8_2_ttcnp_present(void)
@@ -82,6 +94,12 @@ static inline bool is_armv8_5_rng_present(void)
 		ID_AA64ISAR0_RNDR_MASK);
 }
 
+static inline bool is_armv8_6_feat_amuv1p1_present(void)
+{
+	return (((read_id_aa64pfr0_el1() >> ID_AA64PFR0_AMU_SHIFT) &
+		ID_AA64PFR0_AMU_MASK) >= ID_AA64PFR0_AMU_V1P1);
+}
+
 /*
  * Return MPAM version:
  *
@@ -97,6 +115,23 @@ static inline unsigned int get_mpam_version(void)
 		ID_AA64PFR0_MPAM_SHIFT) & ID_AA64PFR0_MPAM_MASK) << 4) |
 				((read_id_aa64pfr1_el1() >>
 		ID_AA64PFR1_MPAM_FRAC_SHIFT) & ID_AA64PFR1_MPAM_FRAC_MASK));
+}
+
+static inline bool is_feat_hcx_present(void)
+{
+	return (((read_id_aa64mmfr1_el1() >> ID_AA64MMFR1_EL1_HCX_SHIFT) &
+		ID_AA64MMFR1_EL1_HCX_MASK) == ID_AA64MMFR1_EL1_HCX_SUPPORTED);
+}
+
+static inline unsigned int get_armv9_2_feat_rme_support(void)
+{
+	/*
+	 * Return the RME version, zero if not supported.  This function can be
+	 * used as both an integer value for the RME version or compared to zero
+	 * to detect RME presence.
+	 */
+	return (unsigned int)(read_id_aa64pfr0_el1() >>
+		ID_AA64PFR0_FEAT_RME_SHIFT) & ID_AA64PFR0_FEAT_RME_MASK;
 }
 
 #endif /* ARCH_FEATURES_H */

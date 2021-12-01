@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2020, Renesas Electronics Corporation. All rights reserved.
+# Copyright (c) 2018-2021, Renesas Electronics Corporation. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -34,6 +34,9 @@ RCAR_D3:=5
 RCAR_V3M:=6
 RCAR_AUTO:=99
 RZ_G2M:=100
+RZ_G2H:=101
+RZ_G2N:=102
+RZ_G2E:=103
 $(eval $(call add_define,RCAR_H3))
 $(eval $(call add_define,RCAR_M3))
 $(eval $(call add_define,RCAR_M3N))
@@ -43,6 +46,9 @@ $(eval $(call add_define,RCAR_D3))
 $(eval $(call add_define,RCAR_V3M))
 $(eval $(call add_define,RCAR_AUTO))
 $(eval $(call add_define,RZ_G2M))
+$(eval $(call add_define,RZ_G2H))
+$(eval $(call add_define,RZ_G2N))
+$(eval $(call add_define,RZ_G2E))
 
 RCAR_CUT_10:=0
 RCAR_CUT_11:=1
@@ -59,10 +65,12 @@ $(eval $(call add_define,RCAR_CUT_30))
 ERRATA_A53_835769  := 1
 ERRATA_A53_843419  := 1
 ERRATA_A53_855873  := 1
+ERRATA_A53_1530924 := 1
 
 # Enable workarounds for selected Cortex-A57 erratas.
 ERRATA_A57_859972  := 1
 ERRATA_A57_813419  := 1
+ERRATA_A57_1319537 := 1
 
 PLAT_INCLUDES	:=	-Iplat/renesas/common/include/registers	\
 			-Iplat/renesas/common/include		\
@@ -71,9 +79,8 @@ PLAT_INCLUDES	:=	-Iplat/renesas/common/include/registers	\
 PLAT_BL_COMMON_SOURCES	:=	drivers/renesas/common/iic_dvfs/iic_dvfs.c \
 				plat/renesas/common/rcar_common.c
 
-RCAR_GIC_SOURCES	:=	drivers/arm/gic/common/gic_common.c	\
-				drivers/arm/gic/v2/gicv2_main.c		\
-				drivers/arm/gic/v2/gicv2_helpers.c	\
+include drivers/arm/gic/v2/gicv2.mk
+RCAR_GIC_SOURCES	:=	${GICV2_SOURCES} \
 				plat/common/plat_gicv2.c
 
 BL2_SOURCES	+=	${RCAR_GIC_SOURCES}				\
