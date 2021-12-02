@@ -123,12 +123,6 @@ void lan969x_console_init(void)
 	//vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
 	lan969x_flexcom_init(FLEXCOM0);
-
-	/* Init console for crash report */
-	plat_crash_console_init();
-
-	/* Test */
-	plat_crash_console_putc('*');
 }
 
 uintptr_t plat_get_ns_image_entrypoint(void)

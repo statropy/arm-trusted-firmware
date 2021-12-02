@@ -55,6 +55,8 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 
 COLD_BOOT_SINGLE_CPU		:= 1
 
+CRASH_REPORTING			:= 1
+
 # Tune compiler for Cortex-A53
 ifeq ($(notdir $(CC)),armclang)
     TF_CFLAGS_aarch64	+=	-mcpu=cortex-a53
