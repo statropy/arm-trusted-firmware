@@ -42,6 +42,7 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				drivers/microchip/clock/lan966x_clock.c \
 				drivers/delay_timer/generic_delay_timer.c \
 				drivers/microchip/flexcom_uart/aarch64/flexcom_console.S \
+				drivers/microchip/tz_matrix/tz_matrix.c	\
 				${LAN969X_PLAT_COMMON}/aarch64/plat_helpers.S \
 				${LAN969X_PLAT_COMMON}/lan969x_common.c
 

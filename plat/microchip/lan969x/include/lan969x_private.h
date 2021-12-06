@@ -34,4 +34,6 @@ void lan969x_console_init(void);
 void lan969x_timer_init(void);
 void lan969x_io_setup(void);
 
+void lan969x_mmc_plat_config(boot_source_type boot_source);
+
 #endif /* LAN969X_PRIVATE_H */
