@@ -43,7 +43,7 @@ $(eval $(call add_define,LAN966x_MAX_PE_PER_CPU))
 include lib/xlat_tables_v2/xlat_tables.mk
 
 $(info Including platform TBBR)
-include plat/microchip/lan966x/common/plat_tbbr.mk
+include drivers/microchip/crypto/lan966x_crypto.mk
 
 # MCHP SOC family
 $(eval $(call add_define,MCHP_SOC_LAN966X))
@@ -100,7 +100,8 @@ BL1_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl1_pcie.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
-				plat/microchip/lan966x/common/lan966x_sjtag.c
+				plat/microchip/lan966x/common/lan966x_sjtag.c		\
+				plat/microchip/lan966x/common/lan966x_tbbr.c
 
 BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
@@ -108,6 +109,7 @@ BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_ddr.c		\
 				plat/microchip/lan966x/common/lan966x_image_load.c	\
 				plat/microchip/lan966x/common/lan966x_sjtag.c		\
+				plat/microchip/lan966x/common/lan966x_tbbr.c		\
 				plat/microchip/lan966x/common/lan966x_tz.c
 
 BL2U_SOURCES		+=	\

@@ -16,7 +16,7 @@ AUTH_SOURCES	:=	drivers/auth/auth_mod.c				\
 			drivers/auth/img_parser_mod.c
 
 ifeq (${LAN966X_HW_CRYPTO},yes)
-AUTH_SOURCES	+= plat/microchip/lan966x/common/lan966x_crypto.c
+AUTH_SOURCES	+= drivers/microchip/crypto/lan966x_crypto.c
 else
 CRYPTO_LIB_MK := drivers/auth/mbedtls/mbedtls_crypto.mk
 $(info Including ${CRYPTO_LIB_MK})
@@ -26,7 +26,7 @@ endif
 # Include the selected chain of trust sources.
 ifeq (${LAN966X_CRYPTO_TEST},yes)
 $(eval $(call add_define,LAN966X_AES_TESTS))
-BL2_SOURCES	+= plat/microchip/lan966x/common/lan966x_crypto_tests.c
+BL2_SOURCES	+= drivers/microchip/crypto/lan966x_crypto_tests.c
 endif
 
 # Include the selected chain of trust sources.
@@ -41,11 +41,9 @@ else
 endif
 
 BL1_SOURCES	+=	${AUTH_SOURCES}					\
-			plat/microchip/lan966x/common/lan966x_tbbr.c	\
 			bl1/tbbr/tbbr_img_desc.c
 
-BL2_SOURCES	+=	${AUTH_SOURCES}					\
-			plat/microchip/lan966x/common/lan966x_tbbr.c
+BL2_SOURCES	+=	${AUTH_SOURCES}
 
 IMG_PARSER_LIB_MK := drivers/auth/mbedtls/mbedtls_x509.mk
 
