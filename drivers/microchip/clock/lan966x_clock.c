@@ -9,17 +9,11 @@
 #include <drivers/microchip/lan966x_clock.h>
 #include <lib/mmio.h>
 
-#if defined(MCHP_SOC_LAN966X)
 #include "lan966x_regs.h"
-#define CPU_BASE LAN966X_CPU_BASE
-#elif defined(MCHP_SOC_LAN969X)
-#include "lan969x_regs.h"
-#define CPU_BASE LAN969X_CPU_BASE
-#endif
 
 #define PARENT_RATE 600000000UL
 
-static const uint32_t base = CPU_BASE;
+static const uint32_t base = LAN966X_CPU_BASE;
 
 int lan966x_clk_disable(unsigned int clock)
 {

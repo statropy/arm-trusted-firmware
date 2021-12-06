@@ -134,7 +134,7 @@ static void aes_decrypt(uint8_t *data, size_t len)
 		nb = MIN((size_t)AES_BLOCK_LEN, len);
 		nw = div_round_up(nb, 4); /* To word count */
 		/* Write input */
-		VERBOSE("AES: len %d, bytes %d, words %d\n", len, nb, nw);
+		VERBOSE("AES: len %zd, bytes %zd, words %d\n", len, nb, nw);
 		for (i = 0; i < nw; i++)
 			mmio_write_32(AES_AES_IDATAR(base, i),
 				      unaligned_get32(data +  + (i * 4)));
@@ -160,7 +160,7 @@ static int aes_check_tag(const uint8_t *tag, size_t tag_len)
 	int i, diff, rc;
 	uint8_t tag_buf[AES_BLOCK_LEN];
 
-	VERBOSE("AES: get tag - %d bytes\n", tag_len);
+	VERBOSE("AES: get tag - %zd bytes\n", tag_len);
 	(void) aes_wait_flag(AES_AES_ISR_TAGRDY_ISR(1));
 	for (i = 0; i < 4; i++) {
 		uint32_t w = mmio_read_32(AES_AES_TAGR(base, i));
@@ -186,7 +186,7 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 {
 	int rc;
 
-	VERBOSE("aes-gcm: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
+	VERBOSE("aes-gcm: data_len %zd, key_len %d, iv_len %d, tag_len %d\n",
 		len, key_len, iv_len, tag_len);
 
 	/* NIST recommendation: 96 bits/12 bytes */

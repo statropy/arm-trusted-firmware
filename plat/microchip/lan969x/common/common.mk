@@ -6,6 +6,10 @@
 
 include lib/xlat_tables_v2/xlat_tables.mk
 
+# We have/require TBB
+TRUSTED_BOARD_BOOT		:= 1
+include drivers/microchip/crypto/lan966x_crypto.mk
+
 # MCHP SOC family
 $(eval $(call add_define,MCHP_SOC_LAN969X))
 
@@ -43,6 +47,7 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				drivers/delay_timer/generic_delay_timer.c \
 				drivers/microchip/flexcom_uart/aarch64/flexcom_console.S \
 				drivers/microchip/tz_matrix/tz_matrix.c	\
+				${LAN969X_PLAT_COMMON}/lan969x_tbbr.c	\
 				${LAN969X_PLAT_COMMON}/aarch64/plat_helpers.S \
 				${LAN969X_PLAT_COMMON}/lan969x_common.c
 

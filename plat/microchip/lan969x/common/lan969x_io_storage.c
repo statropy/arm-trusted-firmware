@@ -39,9 +39,7 @@ static const io_dev_connector_t *memmap_dev_con;
 static uintptr_t fip_dev_handle;
 static uintptr_t mmc_dev_handle;
 static uintptr_t memmap_dev_handle;
-#if defined(NO_TBBR)
 static const io_dev_connector_t *enc_dev_con;
-#endif
 static uintptr_t enc_dev_handle;
 
 #define FW_PARTITION_NAME		"fip"
@@ -75,13 +73,9 @@ static int fip_select;
 /* Data will be fetched from the GPT */
 static io_block_spec_t fip_mmc_block_spec;
 
-#if BL2_AT_EL3
-/* 80k BL2/SPL + 2 * 256 U-Boot Env */
-#define FLASH_FIP_OFFSET	(1024 * (80 + 2 * 256))
-#else
 /* Plain FIP at offset zero */
 #define FLASH_FIP_OFFSET	0
-#endif
+
 static const io_block_spec_t fip_qspi_block_spec = {
 	.offset = LAN969X_QSPI0_MMAP + FLASH_FIP_OFFSET,
 	.length = LAN969X_QSPI0_RANGE - FLASH_FIP_OFFSET,
@@ -404,7 +398,6 @@ static const struct plat_io_policy boot_source_ram_fip = {
 static int check_enc_fip(const uintptr_t spec)
 {
 	int result;
-#if defined(NO_TBBR)
 	uintptr_t local_image_handle;
 
 	/* See if an encrypted FIP is available */
@@ -416,17 +409,12 @@ static int check_enc_fip(const uintptr_t spec)
 			io_close(local_image_handle);
 		}
 	}
-#else
-	result = -1;
-#endif
-
 	return result;
 }
 
 static int check_fip(const uintptr_t spec)
 {
 	int result;
-#if defined(NO_TBBR)
 	uintptr_t local_image_handle;
 
 	/* See if a Firmware Image Package is available */
@@ -438,9 +426,6 @@ static int check_fip(const uintptr_t spec)
 			io_close(local_image_handle);
 		}
 	}
-#else
-	result = -1;
-#endif
 	return result;
 }
 
@@ -537,13 +522,11 @@ void lan969x_io_setup(void)
 			     &memmap_dev_handle);
 	assert(result == 0);
 
-#if defined(NO_TBBR)
 	result = register_io_dev_enc(&enc_dev_con);
 	assert(result == 0);
 
 	result = io_dev_open(enc_dev_con, (uintptr_t)NULL, &enc_dev_handle);
 	assert(result == 0);
-#endif
 
 	/* Device specific operations */
 	switch (lan969x_get_boot_source()) {

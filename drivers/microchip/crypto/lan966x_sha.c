@@ -89,7 +89,7 @@ static int sha_process(lan966x_sha_type_t hash_type, const void *input, size_t l
 	assert((hash_len % 4) == 0);
 	hash_len /= 4;
 
-	VERBOSE("SHA algo %d, %d words hash, input %d bytes\n", hash_type, hash_len, len);
+	VERBOSE("SHA algo %d, %zd words hash, input %zd bytes\n", hash_type, hash_len, len);
 
 	/* Set algo and mode */
 	w = SHA_SHA_MR_ALGO(hash_type) | SHA_SHA_MR_CHKCNT(hash_len);
@@ -115,7 +115,7 @@ static int sha_process(lan966x_sha_type_t hash_type, const void *input, size_t l
 	/* Write data */
 	nwords = div_round_up(len, 4);
 	mmio_setbits_32(SHA_SHA_CR(base), SHA_SHA_CR_FIRST(1));
-	VERBOSE("Len(%d) -> %d words\n", len, nwords);
+	VERBOSE("Len(%zd) -> %d words\n", len, nwords);
 
 	/* For sha384/512, also use IODATARx */
 	fifo = ((hash_type == SHA_MR_ALGO_SHA384) |
@@ -138,7 +138,7 @@ static int sha_process(lan966x_sha_type_t hash_type, const void *input, size_t l
 	/* Wait until checked */
 	if (in_hash) {
 		w = sha_wait_flag(SHA_SHA_ISR_CHECKF_ISR_M);
-		VERBOSE("Check(%08x) -> %d\n", w, SHA_SHA_ISR_CHKST_ISR_X(w));
+		VERBOSE("Check(%08x) -> %d\n", w, (unsigned int) SHA_SHA_ISR_CHKST_ISR_X(w));
 		return SHA_SHA_ISR_CHKST_ISR_X(w) == CHKST_OK ?
 			CRYPTO_SUCCESS : CRYPTO_ERR_SIGNATURE;
 	}

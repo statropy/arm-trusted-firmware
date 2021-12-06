@@ -13,15 +13,9 @@
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/lan966x_clock.h>
 
-#if defined(MCHP_SOC_LAN966X)
 #include "lan966x_regs.h"
-#define QSPI_BASE LAN966X_QSPI_0_BASE
-#elif defined(MCHP_SOC_LAN969X)
-#include "lan969x_regs.h"
-#define QSPI_BASE LAN969X_QSPI_0_BASE
-#endif
 
-static const uintptr_t reg_base = QSPI_BASE;
+static const uintptr_t reg_base = LAN966X_QSPI_0_BASE;
 static bool qspi_init_done;
 
 /* QSPI register offsets */

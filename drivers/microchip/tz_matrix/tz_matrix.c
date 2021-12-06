@@ -31,15 +31,9 @@
 #include <lib/mmio.h>
 #include <drivers/microchip/tz_matrix.h>
 
-#if defined(MCHP_SOC_LAN966X)
 #include "lan966x_regs.h"
-#define HMATRIX_BASE LAN966X_HMATRIX2_BASE
-#elif defined(MCHP_SOC_LAN969X)
-#include "lan969x_regs.h"
-#define HMATRIX_BASE LAN969X_HMATRIX2_BASE;
-#endif
 
-static uintptr_t reg_base = HMATRIX_BASE;
+static uintptr_t reg_base = LAN966X_HMATRIX2_BASE;
 
 static void matrix_write(unsigned int offset,
 			 const uint32_t value)

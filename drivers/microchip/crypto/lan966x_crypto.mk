@@ -13,6 +13,7 @@ AUTH_SOURCES	:=	drivers/auth/auth_mod.c				\
 			drivers/auth/crypto_mod.c			\
 			drivers/microchip/crypto/aes.c			\
 			drivers/microchip/crypto/pkcl.c			\
+			drivers/microchip/crypto/lan966x_sha.c		\
 			drivers/auth/img_parser_mod.c
 
 ifeq (${LAN966X_HW_CRYPTO},yes)
