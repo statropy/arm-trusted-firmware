@@ -161,3 +161,12 @@ LAN966X_OTP_H = plat/microchip/lan966x/common/include/plat_otp.h
 ${LAN966X_OTP_H}: scripts/otp.yaml
 	$(info Generating OTP headerfile)
 	$(Q)scripts/otpgen.rb  -y $< -g $@
+
+ifdef BL1_SOURCES
+# Convert BL1 image to intel-hex format
+all : ${BUILD_PLAT}/bl1.hex
+
+${BUILD_PLAT}/bl1.hex: ${BUILD_PLAT}/bl1.bin
+	$(info Generating BL1 intel-hex image)
+	$(Q)$(OC) -I binary -O ihex ${BUILD_PLAT}/bl1.bin $@
+endif
