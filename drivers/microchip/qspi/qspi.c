@@ -13,9 +13,15 @@
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/lan966x_clock.h>
 
-#include "lan966x_private.h"
+#if defined(MCHP_SOC_LAN966X)
+#include "lan966x_regs.h"
+#define QSPI_BASE LAN966X_QSPI_0_BASE
+#elif defined(MCHP_SOC_LAN969X)
+#include "lan969x_regs.h"
+#define QSPI_BASE LAN969X_QSPI_0_BASE
+#endif
 
-static uintptr_t reg_base;
+static const uintptr_t reg_base = QSPI_BASE;
 static bool qspi_init_done;
 
 /* QSPI register offsets */
@@ -334,12 +340,14 @@ static int qspi_change_ifr(uint32_t ifr)
 	return 0;
 }
 
-void qspi_init(uintptr_t base)
+#pragma weak plat_qspi_init_clock
+void plat_qspi_init_clock(void)
+{
+}
+
+void qspi_init(void)
 {
 	int ret;
-	uint8_t clk = 0;
-
-	reg_base = base;
 
 	/* Already initialized? */
 	if (qspi_init_done) {
@@ -347,14 +355,8 @@ void qspi_init(uintptr_t base)
 		return;		/* Already initialized */
 	}
 
-	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk);
-	/* Clamp to [5MHz ; 100MHz] */
-	clk = MAX(clk, (uint8_t) 5);
-	clk = MIN(clk, (uint8_t) 100);
-	VERBOSE("QSPI: Using clock %u Mhz\n", clk);
-	lan966x_clk_disable(LAN966X_CLK_ID_QSPI0);
-	lan966x_clk_set_rate(LAN966X_CLK_ID_QSPI0, clk * 1000 * 1000);
-	lan966x_clk_enable(LAN966X_CLK_ID_QSPI0);
+	/* Platform clock init */
+	plat_qspi_init_clock();
 
 	/* Do actual QSPI init */
 	ret = qspi_init_controller();
@@ -390,5 +392,5 @@ void qspi_reinit(void)
 
 	/* Force initialize again */
 	qspi_init_done = false;
-	qspi_init(reg_base);
+	qspi_init();
 }

@@ -27,6 +27,7 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/io/io_memmap.c					\
 				drivers/io/io_storage.c					\
 				drivers/microchip/emmc/emmc.c				\
+				drivers/microchip/qspi/qspi.c				\
 				drivers/mmc/mmc.c					\
 				drivers/partition/gpt.c					\
 				drivers/partition/partition.c				\

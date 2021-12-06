@@ -9,7 +9,13 @@
 
 #include <stdint.h>
 
-void qspi_init(uintptr_t base);
+void qspi_init(void);
 void qspi_reinit(void);
+
+/*
+ * Platform can implement this to override default QSPI clock setup.
+ *
+ */
+void plat_qspi_init_clock(void);
 
 #endif  /* QSPI_H */

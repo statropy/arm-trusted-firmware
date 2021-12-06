@@ -229,7 +229,7 @@ void lan966x_io_bootsource_init(void)
 				CPU_GENERAL_CTRL_IF_SI_OWNER_M);
 
 		/* Enable memmap access */
-		qspi_init(LAN966X_QSPI_0_BASE);
+		qspi_init();
 
 		/* Ensure we have ample reach on QSPI mmap area */
 		/* 16M should be more than adequate - EVB/SVB have 2M */
@@ -248,6 +248,20 @@ void lan966x_io_bootsource_init(void)
 	default:
 		break;
 	}
+}
+
+void plat_qspi_init_clock(void)
+{
+	uint8_t clk = 0;
+
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk);
+	/* Clamp to [5MHz ; 100MHz] */
+	clk = MAX(clk, (uint8_t) 5);
+	clk = MIN(clk, (uint8_t) 100);
+	VERBOSE("QSPI: Using clock %u Mhz\n", clk);
+	lan966x_clk_disable(LAN966X_CLK_ID_QSPI0);
+	lan966x_clk_set_rate(LAN966X_CLK_ID_QSPI0, clk * 1000 * 1000);
+	lan966x_clk_enable(LAN966X_CLK_ID_QSPI0);
 }
 
 void lan966x_timer_init(void)

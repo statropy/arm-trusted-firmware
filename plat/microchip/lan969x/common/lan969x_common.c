@@ -223,3 +223,9 @@ const mmap_region_t *plat_arm_get_mmap(void)
 {
 	return plat_arm_mmap;
 }
+
+/* Platform QSPI clock init - currenly empty */
+void plat_qspi_init_clock(void)
+{
+	INFO("QSPI: Platform clock init (TBD)\n");
+}
