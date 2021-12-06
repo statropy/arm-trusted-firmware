@@ -37,7 +37,7 @@ def banner(artifacts, cmd)
 end
 
 def cleanup(do_exit = false)
-  files = Dir.glob('*.bl1') + Dir.glob('*.bin') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt') + Dir.glob('*.dump')
+  files = Dir.glob('*.bl1') + Dir.glob('*.bin') + Dir.glob('*.bl1.hex') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt') + Dir.glob('*.dump')
   FileUtils.rm_f(files, verbose: true)
   FileUtils.rm_rf('build', verbose: true)
   exit(0) if do_exit
@@ -70,8 +70,10 @@ build_platforms.each do |bp|
         dst = "#{bp}-#{bt}"
         if bp == :lan966x_sr && bv == :bl2normal && ba == :auth
           artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
+          artifacts << ["build/#{bp}/#{bt}/bl1.hex",      "#{dst}.bl1.hex"]
         elsif bp == :lan966x_b0 && bt == :release && bv == :bl2normal && ba == :auth
           artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
+          artifacts << ["build/#{bp}/#{bt}/bl1.hex",      "#{dst}.bl1.hex"]
         end
         cargs = "--#{bt} --gptimg --norimg #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
