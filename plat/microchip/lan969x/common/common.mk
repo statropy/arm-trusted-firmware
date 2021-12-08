@@ -17,7 +17,8 @@ LAN969X_PLAT		:=	plat/microchip/lan969x
 LAN969X_PLAT_BOARD	:=	${LAN969X_PLAT}/${PLAT}
 LAN969X_PLAT_COMMON	:=	${LAN969X_PLAT}/common
 
-PLAT_INCLUDES		:=	-Iinclude/drivers/microchip/			\
+PLAT_INCLUDES		:=	-Iinclude/plat/microchip/common			\
+				-Iinclude/drivers/microchip/			\
 				-I${LAN969X_PLAT}/include
 
 GIC_SOURCES		:=	drivers/arm/gic/common/gic_common.c		\
@@ -41,15 +42,17 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 #				drivers/microchip/gpio/vcore_gpio.s
 
 PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
+				${LAN969X_PLAT_COMMON}/aarch64/plat_helpers.S \
+				${LAN969X_PLAT_COMMON}/lan969x_common.c \
+				${LAN969X_PLAT_COMMON}/lan969x_tbbr.c	\
 				${LAN969X_STORAGE_SOURCES}		\
 				drivers/delay_timer/delay_timer.c	\
-				drivers/microchip/clock/lan966x_clock.c \
 				drivers/delay_timer/generic_delay_timer.c \
+				drivers/microchip/clock/lan966x_clock.c \
+				drivers/microchip/otp/otp.c		\
 				drivers/microchip/flexcom_uart/aarch64/flexcom_console.S \
 				drivers/microchip/tz_matrix/tz_matrix.c	\
-				${LAN969X_PLAT_COMMON}/lan969x_tbbr.c	\
-				${LAN969X_PLAT_COMMON}/aarch64/plat_helpers.S \
-				${LAN969X_PLAT_COMMON}/lan969x_common.c
+				plat/microchip/common/fw_config.c
 
 BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S		\
 				plat/common/aarch64/platform_up_stack.S	\

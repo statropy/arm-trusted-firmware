@@ -7,19 +7,24 @@
 #include <assert.h>
 #include <common/debug.h>
 #include <drivers/console.h>
+#include <drivers/microchip/emmc.h>
 #include <drivers/microchip/flexcom_uart.h>
 #include <drivers/microchip/lan966x_clock.h>
+#include <drivers/microchip/qspi.h>
 #include <drivers/microchip/vcore_gpio.h>
+#include <fw_config.h>
 #include <lib/mmio.h>
-#include <plat/common/platform.h>
-#include <platform_def.h>
-
-#include <plat/common/platform.h>
-#include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
 
 #include "lan969x_regs.h"
 #include "lan969x_private.h"
+
+/* Define global fw_config, set default MMC settings */
+lan966x_fw_config_t lan966x_fw_config = {
+	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, MMC_DEFAULT_SPEED),
+	FW_CONFIG_INIT_8(LAN966X_FW_CONF_MMC_BUS_WIDTH, MMC_BUS_WIDTH_1),
+	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 25), /* 25Mhz */
+};
 
 #define LAN969X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
@@ -228,4 +233,22 @@ const mmap_region_t *plat_arm_get_mmap(void)
 void plat_qspi_init_clock(void)
 {
 	INFO("QSPI: Platform clock init (TBD)\n");
+}
+
+void lan969x_fwconfig_apply(void)
+{
+	boot_source_type boot_source = lan969x_get_boot_source();
+
+	/* Update storage drivers with new values from fw_config */
+	switch (boot_source) {
+	case BOOT_SOURCE_QSPI:
+		qspi_reinit();
+		break;
+	case BOOT_SOURCE_SDMMC:
+	case BOOT_SOURCE_EMMC:
+		lan969x_mmc_plat_config(boot_source);
+		break;
+	default:
+		break;
+	}
 }

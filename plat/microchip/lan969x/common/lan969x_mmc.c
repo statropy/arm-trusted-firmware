@@ -8,6 +8,7 @@
 
 #include <drivers/microchip/vcore_gpio.h>
 #include <drivers/microchip/emmc.h>
+#include <fw_config.h>
 
 #include "lan969x_regs.h"
 #include "lan969x_private.h"
@@ -82,10 +83,9 @@ void lan969x_mmc_plat_config(boot_source_type boot_source)
 	info.block_size = MMC_BLOCK_SIZE;
 
 	/* Update global lan969x_fw_config structure */
-#if 0	/* No fw_config yet */
-	lan969x_fw_config_read_uint32(LAN969X_FW_CONF_MMC_CLK_RATE, &clk_rate);
-	lan969x_fw_config_read_uint8(LAN969X_FW_CONF_MMC_BUS_WIDTH, &bus_width);
-#endif
+	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_MMC_CLK_RATE, &clk_rate);
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_MMC_BUS_WIDTH, &bus_width);
+
 	/* Check if special configuration mode is set */
 	if (clk_rate == 0u) {
 #if defined(IMAGE_BL1)

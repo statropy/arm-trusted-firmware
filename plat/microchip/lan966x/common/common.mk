@@ -173,7 +173,7 @@ $(eval $(call TOOL_ADD_PAYLOAD,${NT_FW_CONFIG},--nt-fw-config,${NT_FW_CONFIG}))
 endif
 
 # Regenerate the header file from the YAML definition
-LAN966X_OTP_H = plat/microchip/lan966x/common/include/plat_otp.h
+LAN966X_OTP_H = include/plat/microchip/common/plat_otp.h
 
 ${LAN966X_OTP_H}: scripts/otp.yaml
 	$(info Generating OTP headerfile)

@@ -29,6 +29,7 @@ void lan969x_init_strapping(void);
 soc_strapping lan969x_get_strapping(void);
 void lan969x_set_strapping(soc_strapping value);
 boot_source_type lan969x_get_boot_source(void);
+void lan969x_fwconfig_apply(void);
 
 void lan969x_console_init(void);
 void lan969x_timer_init(void);
