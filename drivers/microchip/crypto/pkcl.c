@@ -70,13 +70,16 @@
 
 void pkcl_init(void)
 {
+#if !defined(MCHP_SOC_LAN969X)
 	CPKCL_PARAM CPKCLParam;
 	PCPKCL_PARAM pvCPKCLParam = &CPKCLParam;
+#endif
 
 	/* Step 1: Wait for CPKCC RAM clear */
 	while (mmio_read_32(PKCC_SR) & BIT_CPKCCSR_CLRRAM_BUSY)
 		;
 
+#if !defined(MCHP_SOC_LAN969X)
 	// vCPKCL_Process() is a macro command which fills-in the Command field
 	// and then calls the library
 	vCPKCL_Process(SelfTest, pvCPKCLParam);
@@ -86,6 +89,7 @@ void pkcl_init(void)
 		ERROR("CPKCL error: 0x%08x\n", CPKCL(u2Status));
 		panic();
 	}
+#endif
 }
 
 static void cpy_mpi(uint16_t offset, const mbedtls_mpi *mpi)
@@ -215,6 +219,7 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 
 	pkcl_ecdsa_verify_setup(pvCPKCLParam, pubkey, r, s, &h);
 
+#if !defined(MCHP_SOC_LAN969X)
 	vCPKCL_Process(ZpEcDsaVerifyFast, pvCPKCLParam);
 
 	switch (CPKCL(u2Status)) {
@@ -229,6 +234,14 @@ int pkcl_ecdsa_verify_signature(mbedtls_pk_type_t type,
 		ret = CRYPTO_ERR_SIGNATURE;
 		break;
 	}
+#else
+	ret = mbedtls_ecdsa_verify(&pubkey->grp,
+				   hash, hash_len,
+				   &pubkey->Q,
+				   r, s);
+	INFO("mbedTLS verify: %d\n", ret);
+	ret = ret ? CRYPTO_ERR_SIGNATURE: CRYPTO_SUCCESS;
+#endif
 
 	return ret;
 }
