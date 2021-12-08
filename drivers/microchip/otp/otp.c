@@ -8,11 +8,11 @@
 #include <drivers/delay_timer.h>
 #include <drivers/microchip/otp.h>
 #include <errno.h>
+#include <fw_config.h>
 #include <lib/mmio.h>
 #include <string.h>
 
 #include "lan966x_regs.h"
-#include "lan966x_private.h"
 #include "plat_otp.h"
 
 /* Restrict OTP emulation */

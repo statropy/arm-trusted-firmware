@@ -25,25 +25,8 @@ typedef struct {
 	};
 } lan966x_key32_t;
 
-typedef enum {
-	LAN966X_FW_CONF_MMC_CLK_RATE	= 0,	// mmc clock frequency	- word access
-	LAN966X_FW_CONF_MMC_BUS_WIDTH	= 4,	// mmc bus width	- byte access
-	LAN966X_FW_CONF_QSPI_CLK 	= 5,	// qspi clock frequency	- byte access
-	LAN966X_FW_CONF_NUM_OF_ITEMS
-} lan966x_fw_cfg_data;
-
-#define OTP_EMU_MAX_DATA	384
-#define FW_CONFIG_MAX_DATA	128
-
 #define FW_PARTITION_NAME		"fip"
 #define FW_BACKUP_PARTITION_NAME	"fip.bak"
-
-typedef struct {
-	uint8_t otp_emu_data[OTP_EMU_MAX_DATA];
-	uint8_t config[FW_CONFIG_MAX_DATA];
-} lan966x_fw_config_t;
-
-extern lan966x_fw_config_t lan966x_fw_config;
 
 enum {
 	LAN966X_STRAP_BOOT_MMC_FC = 0,
@@ -100,12 +83,7 @@ void lan966x_mmc_plat_config(boot_source_type boot_source);
 
 uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 boot_source_type lan966x_get_boot_source(void);
-int lan966x_load_fw_config(unsigned int image_id);
 void lan966x_fwconfig_apply(void);
-int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
-int lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst);
-int lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst);
-int lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
 
 int lan966x_derive_key(const lan966x_key32_t *in, const lan966x_key32_t *salt, lan966x_key32_t *out);
@@ -113,7 +91,6 @@ int lan966x_derive_key(const lan966x_key32_t *in, const lan966x_key32_t *salt, l
 void lan966x_sjtag_configure(void);
 int  lan966x_sjtag_read_challenge(lan966x_key32_t *k);
 int  lan966x_sjtag_write_response(const lan966x_key32_t *k);
-
 
 #if defined(LAN966X_AES_TESTS)
 void lan966x_crypto_tests(void);

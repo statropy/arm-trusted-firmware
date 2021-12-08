@@ -8,6 +8,8 @@
 
 #include <drivers/microchip/vcore_gpio.h>
 #include <drivers/microchip/emmc.h>
+#include <fw_config.h>
+
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
 

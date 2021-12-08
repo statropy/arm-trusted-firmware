@@ -53,7 +53,8 @@ ifeq (${PLAT_VARIANT},)
 PLAT_VARIANT			:=	${PLAT}
 endif
 
-PLAT_INCLUDES	:=	-Iplat/microchip/lan966x/${PLAT_VARIANT}/include	\
+PLAT_INCLUDES	:=	-Iinclude/plat/microchip/common				\
+			-Iplat/microchip/lan966x/${PLAT_VARIANT}/include	\
 			-Iplat/microchip/lan966x/common/include			\
 			-Idrivers/microchip/crypto/inc/				\
 			-Iinclude/drivers/microchip
@@ -89,6 +90,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/microchip/otp/otp.c				\
 				drivers/microchip/tz_matrix/tz_matrix.c			\
 				lib/cpus/aarch32/cortex_a7.S				\
+				plat/microchip/common/fw_config.c			\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
 				plat/microchip/lan966x/common/lan966x_crc32.c		\
