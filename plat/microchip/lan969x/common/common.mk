@@ -52,7 +52,9 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				drivers/microchip/otp/otp.c		\
 				drivers/microchip/flexcom_uart/aarch64/flexcom_console.S \
 				drivers/microchip/tz_matrix/tz_matrix.c	\
-				plat/microchip/common/fw_config.c
+				plat/microchip/common/fw_config.c	\
+				plat/microchip/common/plat_crypto.c	\
+				plat/microchip/common/plat_tbbr.c
 
 BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S		\
 				plat/common/aarch64/platform_up_stack.S	\
