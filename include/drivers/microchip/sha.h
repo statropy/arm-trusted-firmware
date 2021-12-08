@@ -7,6 +7,8 @@
 #ifndef MICROCHIP_SHA
 #define MICROCHIP_SHA
 
+#include <stddef.h>
+
 typedef enum {
 	SHA_MR_ALGO_SHA1   = 0,
 	SHA_MR_ALGO_SHA256 = 1,

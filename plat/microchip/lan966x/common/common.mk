@@ -92,6 +92,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				lib/cpus/aarch32/cortex_a7.S				\
 				plat/microchip/common/fw_config.c			\
 				plat/microchip/common/plat_crypto.c			\
+				plat/microchip/common/plat_tbbr.c			\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
 				plat/microchip/lan966x/common/lan966x_crc32.c		\
