@@ -11,7 +11,6 @@
 #include <drivers/microchip/flexcom_uart.h>
 #include <drivers/microchip/lan966x_clock.h>
 #include <drivers/microchip/qspi.h>
-#include <drivers/microchip/sha.h>
 #include <drivers/microchip/tz_matrix.h>
 #include <drivers/microchip/vcore_gpio.h>
 #include <fw_config.h>
@@ -383,28 +382,6 @@ void lan966x_fwconfig_apply(void)
 	default:
 		break;
 	}
-}
-
-/*
- * Derive a 32 byte key with a 32 byte salt, output a 32 byte key
- */
-int lan966x_derive_key(const lan966x_key32_t *in,
-		       const lan966x_key32_t *salt,
-		       lan966x_key32_t *out)
-{
-	uint8_t buf[LAN966X_KEY32_LEN * 2];
-	int ret;
-
-	/* Use one contiguous buffer for now */
-	memcpy(buf, in->b, LAN966X_KEY32_LEN);
-	memcpy(buf + LAN966X_KEY32_LEN, salt->b, LAN966X_KEY32_LEN);
-
-	ret = sha_calc(SHA_MR_ALGO_SHA256, buf, sizeof(buf), out->b);
-
-	/* Don't leak */
-	memset(buf, 0, sizeof(buf));
-
-	return ret;
 }
 
 /*

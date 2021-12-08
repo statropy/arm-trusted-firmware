@@ -8,6 +8,7 @@
 #define LAN966X_PRIVATE_H
 
 #include <stdint.h>
+#include <plat_crypto.h>
 
 typedef struct {
 	void *fw_config;
@@ -16,14 +17,6 @@ typedef struct {
 } shared_memory_desc_t;
 
 extern shared_memory_desc_t shared_memory_desc;
-
-#define LAN966X_KEY32_LEN	32
-typedef struct {
-	union {
-		uint8_t  b[LAN966X_KEY32_LEN];
-		uint32_t w[LAN966X_KEY32_LEN / 4];
-	};
-} lan966x_key32_t;
 
 #define FW_PARTITION_NAME		"fip"
 #define FW_BACKUP_PARTITION_NAME	"fip.bak"
@@ -85,8 +78,6 @@ uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 boot_source_type lan966x_get_boot_source(void);
 void lan966x_fwconfig_apply(void);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
-
-int lan966x_derive_key(const lan966x_key32_t *in, const lan966x_key32_t *salt, lan966x_key32_t *out);
 
 void lan966x_sjtag_configure(void);
 int  lan966x_sjtag_read_challenge(lan966x_key32_t *k);
