@@ -167,17 +167,17 @@ static struct {
 	const void *hash;
 	size_t hash_len;
 } testdata[] = {
-	{ MBEDTLS_MD_SHA1, inp_1, sizeof(inp_1)-1, hash_sha1_1, sizeof(hash_sha1_1) },
-	{ MBEDTLS_MD_SHA1, inp_2, sizeof(inp_2)-1, hash_sha1_2, sizeof(hash_sha1_2) },
-	{ MBEDTLS_MD_SHA224, inp_1, sizeof(inp_1)-1, hash_sha224_1, sizeof(hash_sha224_1) },
-	{ MBEDTLS_MD_SHA224, inp_2, sizeof(inp_2)-1, hash_sha224_2, sizeof(hash_sha224_2) },
-	{ MBEDTLS_MD_SHA256, inp_1, sizeof(inp_1)-1, hash_sha256_1, sizeof(hash_sha256_1) },
-	{ MBEDTLS_MD_SHA256, inp_2, sizeof(inp_2)-1, hash_sha256_2, sizeof(hash_sha256_2) },
-	{ MBEDTLS_MD_SHA384, inp_1, sizeof(inp_1)-1, hash_sha384_1, sizeof(hash_sha384_1) },
-	{ MBEDTLS_MD_SHA384, inp_2, sizeof(inp_2)-1, hash_sha384_2, sizeof(hash_sha384_2) },
-	{ MBEDTLS_MD_SHA512, inp_1, sizeof(inp_1)-1, hash_sha512_1, sizeof(hash_sha512_1) },
-	{ MBEDTLS_MD_SHA512, inp_2, sizeof(inp_2)-1, hash_sha512_2, sizeof(hash_sha512_2) },
-	{ MBEDTLS_MD_SHA512, inp_3, sizeof(inp_3)-1, hash_sha512_3, sizeof(hash_sha512_3) },
+	{ SHA_MR_ALGO_SHA1, inp_1, sizeof(inp_1)-1, hash_sha1_1, sizeof(hash_sha1_1) },
+	{ SHA_MR_ALGO_SHA1, inp_2, sizeof(inp_2)-1, hash_sha1_2, sizeof(hash_sha1_2) },
+	{ SHA_MR_ALGO_SHA224, inp_1, sizeof(inp_1)-1, hash_sha224_1, sizeof(hash_sha224_1) },
+	{ SHA_MR_ALGO_SHA224, inp_2, sizeof(inp_2)-1, hash_sha224_2, sizeof(hash_sha224_2) },
+	{ SHA_MR_ALGO_SHA256, inp_1, sizeof(inp_1)-1, hash_sha256_1, sizeof(hash_sha256_1) },
+	{ SHA_MR_ALGO_SHA256, inp_2, sizeof(inp_2)-1, hash_sha256_2, sizeof(hash_sha256_2) },
+	{ SHA_MR_ALGO_SHA384, inp_1, sizeof(inp_1)-1, hash_sha384_1, sizeof(hash_sha384_1) },
+	{ SHA_MR_ALGO_SHA384, inp_2, sizeof(inp_2)-1, hash_sha384_2, sizeof(hash_sha384_2) },
+	{ SHA_MR_ALGO_SHA512, inp_1, sizeof(inp_1)-1, hash_sha512_1, sizeof(hash_sha512_1) },
+	{ SHA_MR_ALGO_SHA512, inp_2, sizeof(inp_2)-1, hash_sha512_2, sizeof(hash_sha512_2) },
+	{ SHA_MR_ALGO_SHA512, inp_3, sizeof(inp_3)-1, hash_sha512_3, sizeof(hash_sha512_3) },
 };
 
 void sha_test(void)
