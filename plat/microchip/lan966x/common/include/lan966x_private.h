@@ -68,8 +68,6 @@ void lan966x_usb_register_console(void);
 void lan966x_validate_strapping(void);
 void lan966x_crash_console(console_t *console);
 
-uint32_t lan966x_trng_read(void);
-
 void plat_lan966x_gic_driver_init(void);
 void plat_lan966x_gic_init(void);
 void lan966x_mmc_plat_config(boot_source_type boot_source);
@@ -78,10 +76,6 @@ uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 boot_source_type lan966x_get_boot_source(void);
 void lan966x_fwconfig_apply(void);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
-
-void lan966x_sjtag_configure(void);
-int  lan966x_sjtag_read_challenge(lan966x_key32_t *k);
-int  lan966x_sjtag_write_response(const lan966x_key32_t *k);
 
 #if defined(LAN966X_AES_TESTS)
 void lan966x_crypto_tests(void);

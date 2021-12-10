@@ -7,9 +7,8 @@
 #include <assert.h>
 #include <common/debug.h>
 #include <drivers/delay_timer.h>
-#include <drivers/microchip/lan966x_trng.h>
-#include <lib/mmio.h>
 #include <plat/common/plat_trng.h>
+#include <lib/mmio.h>
 
 #include "lan966x_regs.h"
 

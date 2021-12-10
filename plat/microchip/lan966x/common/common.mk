@@ -96,22 +96,22 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
 				plat/microchip/lan966x/common/lan966x_crc32.c		\
-				plat/microchip/lan966x/common/lan966x_trng.c
+				drivers/microchip/trng/lan966x_trng.c
 
 BL1_SOURCES		+=	\
+				plat/microchip/common/lan966x_sjtag.c			\
 				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_pcie.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
-				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_tbbr.c
 
 BL2_SOURCES		+=	\
+				plat/microchip/common/lan966x_sjtag.c			\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
 				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c		\
 				plat/microchip/lan966x/common/lan966x_image_load.c	\
-				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_tbbr.c		\
 				plat/microchip/lan966x/common/lan966x_tz.c
 

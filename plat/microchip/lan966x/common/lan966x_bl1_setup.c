@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
 #include <arch.h>
+#include <assert.h>
 #include <bl1/bl1.h>
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
@@ -15,6 +14,7 @@
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
+#include <plat/microchip/common/lan966x_sjtag.h>
 
 #include "lan966x_private.h"
 #include "lan966x_memmap.h"

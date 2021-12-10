@@ -6,14 +6,16 @@
 
 #include <assert.h>
 
-#include <errno.h>
 #include <common/debug.h>
-#include <plat/common/platform.h>
+#include <drivers/microchip/lan966x_trng.h>
+#include <drivers/microchip/otp.h>
 #include <endian.h>
+#include <errno.h>
+#include <plat/common/platform.h>
+#include <plat/microchip/common/lan966x_sjtag.h>
 
 #include "lan966x_private.h"
 #include "lan966x_bootstrap.h"
-#include "otp.h"
 
 /* Max OTP data to write in one req */
 #define MAX_OTP_DATA	1024

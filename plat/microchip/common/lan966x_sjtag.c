@@ -5,12 +5,14 @@
  */
 
 #include <common/debug.h>
+#include <drivers/microchip/lan966x_trng.h>
+#include <lan966x_sjtag.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
+#include <plat_crypto.h>
+#include <plat_otp.h>
 
 #include "lan966x_regs.h"
-#include "lan966x_private.h"
-#include "plat_otp.h"
 
 #define LAN966X_SJTAG_OPEN	0
 #define LAN966X_SJTAG_MODE1	1
