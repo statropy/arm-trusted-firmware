@@ -17,6 +17,7 @@
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
+#include <plat/microchip/common/lan966x_sjtag.h>
 
 #include "lan969x_private.h"
 
@@ -109,6 +110,9 @@ void bl1_platform_setup(void)
 {
 	/* IO */
 	bl1_io_setup();
+
+	/* SJTAG: Configure challenge, no freeze */
+	lan966x_sjtag_configure();
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)

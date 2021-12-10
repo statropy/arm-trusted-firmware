@@ -49,21 +49,24 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				drivers/delay_timer/delay_timer.c	\
 				drivers/delay_timer/generic_delay_timer.c \
 				drivers/microchip/clock/lan966x_clock.c \
-				drivers/microchip/otp/otp.c		\
 				drivers/microchip/flexcom_uart/aarch64/flexcom_console.S \
+				drivers/microchip/otp/otp.c		\
+				drivers/microchip/trng/lan966x_trng.c	\
 				drivers/microchip/tz_matrix/tz_matrix.c	\
 				plat/microchip/common/fw_config.c	\
 				plat/microchip/common/plat_crypto.c	\
 				plat/microchip/common/plat_tbbr.c
 
-BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S		\
-				plat/common/aarch64/platform_up_stack.S	\
-				${LAN969X_PLAT_COMMON}/lan969x_bl1_setup.c
+BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S			\
+				${LAN969X_PLAT_COMMON}/lan969x_bl1_setup.c	\
+				plat/common/aarch64/platform_up_stack.S		\
+				plat/microchip/common/lan966x_sjtag.c
 
 BL2_SOURCES		+=	common/desc_image_load.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_mem_params_desc.c \
+				${LAN969X_PLAT_COMMON}/lan969x_bl2_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_image_load.c	\
-				${LAN969X_PLAT_COMMON}/lan969x_bl2_setup.c
+				plat/microchip/common/lan966x_sjtag.c
 
 COLD_BOOT_SINGLE_CPU		:= 1
 

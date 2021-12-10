@@ -13,6 +13,7 @@
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
+#include <plat/microchip/common/lan966x_sjtag.h>
 
 #include "lan969x_private.h"
 #include "lan969x_regs.h"
@@ -114,4 +115,7 @@ void bl2_platform_setup(void)
 {
 	/* IO */
 	lan969x_io_setup();
+
+	/* SJTAG: Freeze mode and configuration */
+	lan966x_sjtag_configure();
 }
