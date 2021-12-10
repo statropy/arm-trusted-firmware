@@ -148,7 +148,7 @@ ifneq (${BL2_AT_EL3}, 0)
 endif
 
 ifneq (${ENABLE_STACK_PROTECTOR},0)
-PLAT_BL_COMMON_SOURCES  +=      plat/microchip/lan966x/common/lan966x_stack_protector.c
+PLAT_BL_COMMON_SOURCES  +=      plat/microchip/common/lan966x_stack_protector.c
 endif
 
 # Generate binary FW configuration data for inclusion in the FIPs FW_CONFIG

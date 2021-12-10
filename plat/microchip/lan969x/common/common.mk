@@ -72,6 +72,15 @@ COLD_BOOT_SINGLE_CPU		:= 1
 
 CRASH_REPORTING			:= 1
 
+TRNG_SUPPORT			:= 1
+
+# Enable stack protection
+ENABLE_STACK_PROTECTOR	 	:= strong
+
+ifneq (${ENABLE_STACK_PROTECTOR},0)
+PLAT_BL_COMMON_SOURCES  +=      plat/microchip/common/lan966x_stack_protector.c
+endif
+
 # Tune compiler for Cortex-A53
 ifeq ($(notdir $(CC)),armclang)
     TF_CFLAGS_aarch64	+=	-mcpu=cortex-a53
