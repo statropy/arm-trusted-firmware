@@ -38,10 +38,10 @@ lan966x_fw_config_t lan966x_fw_config = {
 		LAN969X_DEV_SIZE,					\
 		MT_DEVICE | MT_RW | MT_SECURE)
 
-#define LAN969X_MAP_BL32					\
+#define LAN969X_MAP_BL31					\
 	MAP_REGION_FLAT(					\
-		BL32_BASE,					\
-		BL32_SIZE,					\
+		BL31_BASE,					\
+		BL31_SIZE,					\
 		MT_MEMORY | MT_RW | MT_SECURE)
 
 #define LAN969X_MAP_USB						\
@@ -62,7 +62,7 @@ const mmap_region_t plat_arm_mmap[] = {
 const mmap_region_t plat_arm_mmap[] = {
 	LAN969X_MAP_QSPI0,
 	LAN969X_MAP_AXI,
-	LAN969X_MAP_BL32,
+	LAN969X_MAP_BL31,
 	//LAN969X_MAP_USB,
 	{0}
 };

@@ -5,9 +5,7 @@
 #
 
 include lib/xlat_tables_v2/xlat_tables.mk
-
-# We have/require TBB
-TRUSTED_BOARD_BOOT		:= 1
+include drivers/arm/gic/v2/gicv2.mk
 include drivers/microchip/crypto/lan966x_crypto.mk
 
 # MCHP SOC family
@@ -20,11 +18,6 @@ LAN969X_PLAT_COMMON	:=	${LAN969X_PLAT}/common
 PLAT_INCLUDES		:=	-Iinclude/plat/microchip/common			\
 				-Iinclude/drivers/microchip/			\
 				-I${LAN969X_PLAT}/include
-
-GIC_SOURCES		:=	drivers/arm/gic/common/gic_common.c		\
-				drivers/arm/gic/v2/gicv2_main.c			\
-				drivers/arm/gic/v2/gicv2_helpers.c		\
-				plat/common/plat_gicv2.c
 
 LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/io/io_encrypted.c				\
@@ -67,6 +60,17 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_image_load.c	\
 				plat/microchip/common/lan966x_sjtag.c
+
+BL31_SOURCES		+=	${GICV2_SOURCES}				\
+				${LAN969X_PLAT_COMMON}/lan969x_bl31_setup.c	\
+				${LAN969X_PLAT_COMMON}/lan969x_pm.c		\
+				${LAN969X_PLAT_COMMON}/lan969x_topology.c	\
+				lib/cpus/aarch64/cortex_a53.S			\
+				plat/common/plat_psci_common.c			\
+				plat/common/plat_gicv2.c
+
+# We have/require TBB
+TRUSTED_BOARD_BOOT		:= 1
 
 COLD_BOOT_SINGLE_CPU		:= 1
 
