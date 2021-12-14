@@ -66,6 +66,19 @@ def run_to(debugger, address):
     finally:
         print("Stopped in BL2");
 
+def target_is_laguna(debugger):
+    debugger.getCurrentExecutionContext().getExecutionService().stop()
+    ec = debugger.getCurrentExecutionContext()
+    return ec.getRegisterService().getSize("PC") == 64
+
+def abs_addr(debugger, addr):
+    prefix = ""
+    if target_is_laguna(debugger):
+        prefix = "EL3"
+    else:
+        prefix = "S"
+    return "{}:{}".format(prefix,tohex(addr))
+
 def target_is_fpga(debugger):
     baddr = "S:0xE00C0080"
     debugger.getCurrentExecutionContext().getExecutionService().stop()
