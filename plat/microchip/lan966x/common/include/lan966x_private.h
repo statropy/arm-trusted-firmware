@@ -68,8 +68,6 @@ void lan966x_usb_register_console(void);
 void lan966x_validate_strapping(void);
 void lan966x_crash_console(console_t *console);
 
-void plat_lan966x_gic_driver_init(void);
-void plat_lan966x_gic_init(void);
 void lan966x_mmc_plat_config(boot_source_type boot_source);
 
 uint32_t Crc32c(uint32_t crc, const void *data, size_t size);

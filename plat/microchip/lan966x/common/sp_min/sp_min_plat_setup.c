@@ -11,6 +11,7 @@
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
+#include <plat/microchip/common/lan966x_gic.h>
 
 #include "lan966x_private.h"
 

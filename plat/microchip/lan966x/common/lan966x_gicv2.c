@@ -12,8 +12,6 @@
 
 #include <platform_def.h>
 
-#include "lan966x_private.h"
-
 /*
  * Define a list of Group 0 interrupts.
  */

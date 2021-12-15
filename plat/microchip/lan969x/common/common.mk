@@ -66,8 +66,9 @@ BL31_SOURCES		+=	${GICV2_SOURCES}				\
 				${LAN969X_PLAT_COMMON}/lan969x_pm.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_topology.c	\
 				lib/cpus/aarch64/cortex_a53.S			\
+				plat/common/plat_gicv2.c			\
 				plat/common/plat_psci_common.c			\
-				plat/common/plat_gicv2.c
+				plat/microchip/lan966x/common/lan966x_gicv2.c
 
 # We have/require TBB
 TRUSTED_BOARD_BOOT		:= 1
