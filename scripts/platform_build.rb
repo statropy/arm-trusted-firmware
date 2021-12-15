@@ -30,11 +30,9 @@ end.order!
 def build_variants(platform)
     v = []
     case platform
-    when :lan966x_evb
-    when :lan966x_sr
     when :lan966x_b0
         v = %I[bl2normal bl2noop bl2noop_otp]
-    when :lan969x_sr
+    when :lan966x_evb, :lan966x_sr, :lan969x_sr
         v = %I[bl2normal]
     else
         raise "Unknown platform: #{platform}"
@@ -72,7 +70,6 @@ pre_build
 build_platforms.each do |bp|
   build_types.each do |bt|
     build_variants(bp).each do |bv|
-      next if (bv == :bl2noop || bv == :bl2noop_otp) && bp != :lan966x_b0 # NOOP builds must be b0
       build_authentifications.each do |ba|
         dst = "#{bp}-#{bt}-#{bv}-#{ba}"
         artifacts = [
