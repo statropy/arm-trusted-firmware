@@ -34,11 +34,15 @@ architectures = {
         :bsp_arch => "arm",
         :tc_dir   => "arm-cortex_a8-linux-gnueabihf",
         :tc_prf   => "arm-cortex_a8-linux-gnueabihf",
+        :rom_sz   => 80 * 1024,
+        :sram_sz  => 128 * 1024,
         :atf_arch => "aarch32", ],
     "arm64" => Hash[
         :bsp_arch => "arm64",
         :tc_dir   => "arm64-armv8_a-linux-gnu",
         :tc_prf   => "aarch64-armv8_a-linux-gnu",
+        :rom_sz   => 128 * 1024,
+        :sram_sz  => 2 * 1024 * 1024,
         :atf_arch => "aarch64", ],
 }
 
@@ -350,7 +354,7 @@ if $option[:ramusage]
         d2 = usage['bl2']
         sram = d2[0] + d2[1] + d2[2]
         printf "BL2: %dK - %d bytes spare. Code %d, data %d, bss %d\n",
-               sram / 1024, (128 * 1024) - sram, d2[0], d2[1], d2[2]
+               sram / 1024, $arch[:sram_sz] - sram, d2[0], d2[1], d2[2]
     else
         d1 = usage['bl1']
         d2 = usage['bl2']
@@ -360,8 +364,8 @@ if $option[:ramusage]
         rom = d1[0]
         printf "BL1: Code %d, data %d, bss %d\n", d1[0], d1[1], d1[2]
         printf "BL2: Code %d, data %d, bss %d\n", d2[0], d2[1], d2[2]
-        printf "ROM: %dK - %d bytes spare\n", rom / 1024, (80 * 1024) - rom
-        printf "SRAM: %dK - %d bytes spare\n", sram / 1024, (128 * 1024) - sram
+        printf "ROM: %dK - %d bytes spare\n", rom / 1024, $arch[:rom_sz] - rom
+        printf "SRAM: %dK - %d bytes spare\n", sram / 1024, $arch[:sram_sz] - sram
     end
 end
 
