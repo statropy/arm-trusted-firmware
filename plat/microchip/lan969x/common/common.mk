@@ -56,6 +56,7 @@ BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S			\
 				plat/microchip/common/lan966x_sjtag.c
 
 BL2_SOURCES		+=	common/desc_image_load.c			\
+				drivers/arm/tzc/tzc400.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_mem_params_desc.c \
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_image_load.c	\

@@ -7,6 +7,7 @@
 #include <assert.h>
 
 #include <common/bl_common.h>
+#include <drivers/arm/tzc400.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/microchip/otp.h>
 #include <lib/mmio.h>
@@ -111,8 +112,17 @@ void bl2_el3_plat_arch_setup(void)
 	bl2_plat_arch_setup();
 }
 
+void bl2_tzc_configure(void)
+{
+	tzc400_init(LAN969X_TZC_MAIN_HSS_BASE);
+	tzc400_disable_filters();
+}
+
 void bl2_platform_setup(void)
 {
+	/* TZC */
+	bl2_tzc_configure();
+
 	/* IO */
 	lan969x_io_setup();
 
