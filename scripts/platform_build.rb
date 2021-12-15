@@ -4,10 +4,10 @@
 
 require 'fileutils'
 require 'optparse'
+require 'pp'
 
-build_platforms         = %I[lan966x_evb lan966x_sr lan966x_b0]
+build_platforms         = %I[lan966x_evb lan966x_sr lan966x_b0 lan969x_sr]
 build_types             = %I[debug release]
-build_variants          = %I[bl2normal bl2noop bl2noop_otp]
 build_authentifications = %I[auth ssk bssk]
 
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp' }
@@ -27,6 +27,21 @@ OptionParser.new do |opts|
   end
 end.order!
 
+def build_variants(platform)
+    v = []
+    case platform
+    when :lan966x_evb
+    when :lan966x_sr
+    when :lan966x_b0
+        v = %I[bl2normal bl2noop bl2noop_otp]
+    when :lan969x_sr
+        v = %I[bl2normal]
+    else
+        raise "Unknown platform: #{platform}"
+    end
+    return v
+end
+
 def banner(artifacts, cmd)
   5.times { puts }
   puts '#' * 80
@@ -40,6 +55,7 @@ def cleanup(do_exit = false)
   files = Dir.glob('*.bl1') + Dir.glob('*.bin') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt') + Dir.glob('*.dump')
   FileUtils.rm_f(files, verbose: true)
   FileUtils.rm_rf('build', verbose: true)
+  FileUtils.rm_rf('artifacts', verbose: true)
   exit(0) if do_exit
 end
 
@@ -55,7 +71,7 @@ cleanup(true) if option[:clean]
 pre_build
 build_platforms.each do |bp|
   build_types.each do |bt|
-    build_variants.each do |bv|
+    build_variants(bp).each do |bv|
       next if (bv == :bl2noop || bv == :bl2noop_otp) && bp != :lan966x_b0 # NOOP builds must be b0
       build_authentifications.each do |ba|
         dst = "#{bp}-#{bt}-#{bv}-#{ba}"
@@ -80,6 +96,8 @@ build_platforms.each do |bp|
         system(cmd_clean)
         system(cmd)
         artifacts.each do |from, to|
+          to = "artifacts/#{bp}/#{to}"
+          FileUtils.mkdir_p(File.dirname(to))
           FileUtils.mv(from, to, verbose: true) if !File.exist?(to) && File.exist?(from)
         end
       end
