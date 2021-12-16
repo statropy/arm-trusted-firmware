@@ -299,7 +299,7 @@ uint8_t lan966x_get_strapping(void)
 	return strapping;
 }
 
-void lan966x_set_strapping(uint8_t value)
+void plat_bootstrap_set_strapping(uint8_t value)
 {
 
 	/* To override strapping previous boot src must be 'none' */

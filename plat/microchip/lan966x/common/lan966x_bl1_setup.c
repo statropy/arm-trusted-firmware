@@ -15,6 +15,7 @@
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/lan966x_sjtag.h>
+#include <plat/microchip/common/plat_bootstrap.h>
 
 #include "lan966x_private.h"
 #include "lan966x_memmap.h"
@@ -118,7 +119,7 @@ static bool lan966x_bootable_source(void)
 	return false;
 }
 
-void lan966x_bl1_trigger_fwu(void)
+void plat_bootstrap_trigger_fwu(void)
 {
 	is_fwu_needed = true;
 }
@@ -147,7 +148,7 @@ void bl1_platform_setup(void)
 
 	/* Strapped for boot monitor? */
 	if (lan966x_monitor_enabled()) {
-		lan966x_bootstrap_monitor();
+		plat_bl1_bootstrap_monitor();
 	}
 
 	/* IO again - boot src may be overridden */

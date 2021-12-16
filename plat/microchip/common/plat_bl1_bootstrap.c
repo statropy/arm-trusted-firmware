@@ -14,8 +14,7 @@
 #include <plat/common/platform.h>
 #include <plat/microchip/common/lan966x_sjtag.h>
 #include <plat/microchip/common/lan966x_bootstrap.h>
-
-#include "lan966x_private.h"
+#include <plat/microchip/common/plat_bootstrap.h>
 
 /* Max OTP data to write in one req */
 #define MAX_OTP_DATA	1024
@@ -33,7 +32,7 @@ static void handle_read_rom_version(const bootstrap_req_t *req)
 static void handle_strap(const bootstrap_req_t *req)
 {
 	bootstrap_TxAck();
-	lan966x_set_strapping(req->arg0);
+	plat_bootstrap_set_strapping(req->arg0);
 }
 
 static void handle_otp_data(bootstrap_req_t *req)
@@ -135,7 +134,7 @@ static int handle_auth(const bootstrap_req_t *req)
 
 	if (rc == 0) {
 		bootstrap_TxAck();
-		lan966x_bl1_trigger_fwu();
+		plat_bootstrap_trigger_fwu();
 	} else {
 		bootstrap_TxNack_rc("Authenticate fails", rc);
 	}
@@ -205,7 +204,7 @@ static void handle_send_data(const bootstrap_req_t *req)
 	received_code_status.length = length;
 
 	/* Inform IO layer of the FIP */
-	lan966x_bl1_io_enable_ram_fip(start, length);
+	plat_bootstrap_io_enable_ram_fip(start, length);
 
 	INFO("Received %d bytes\n", length);
 }
@@ -216,12 +215,11 @@ static void handle_trace_lvl(const bootstrap_req_t *req)
 	tf_log_set_max_level(req->arg0);
 }
 
-void lan966x_bootstrap_monitor(void)
+void plat_bl1_bootstrap_monitor(void)
 {
 	bootstrap_req_t req;
 	bool exit_monitor = false;
 
-	lan966x_reset_max_trace_level();
 	INFO("*** ENTERING BOOTSTRAP MONITOR ***\n");
 
 	while (!exit_monitor) {
@@ -262,5 +260,4 @@ void lan966x_bootstrap_monitor(void)
 	}
 
 	INFO("*** EXITING BOOTSTRAP MONITOR ***\n");
-	lan966x_set_max_trace_level();
 }

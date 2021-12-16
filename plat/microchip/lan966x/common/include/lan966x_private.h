@@ -49,17 +49,14 @@ typedef enum {
 
 void lan966x_init_strapping(void);
 uint8_t lan966x_get_strapping(void);
-void lan966x_set_strapping(uint8_t value);
 bool lan966x_monitor_enabled(void);
 void lan966x_set_max_trace_level(void);
 void lan966x_reset_max_trace_level(void);
 
-void lan966x_bootstrap_monitor(void);
 void lan966x_console_init(void);
 void lan966x_timer_init(void);
 void lan966x_io_bootsource_init(void);
 void lan966x_io_setup(void);
-void lan966x_bl1_io_enable_ram_fip(size_t offset, size_t length);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 void lan966x_pcie_init(void);
@@ -81,8 +78,6 @@ void lan966x_crypto_tests(void);
 void lan966x_crypto_ecdsa_tests(void);
 
 void lan966x_mbed_heap_set(shared_memory_desc_t *d);
-
-void lan966x_bl1_trigger_fwu(void);
 
 #if defined(LAN966X_EMMC_TESTS)
 void lan966x_emmc_tests(void);
