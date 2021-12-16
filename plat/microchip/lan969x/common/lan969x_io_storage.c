@@ -365,7 +365,7 @@ static int lan969x_set_fip_addr(unsigned int image_id, const char *name)
 
 static io_block_spec_t ram_fip_spec;
 
-void lan969x_bl1_io_enable_ram_fip(size_t offset, size_t length)
+void plat_bootstrap_io_enable_ram_fip(size_t offset, size_t length)
 {
 	ram_fip_spec.offset = offset;
 	ram_fip_spec.length = length;

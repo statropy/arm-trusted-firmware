@@ -164,7 +164,7 @@ soc_strapping lan969x_get_strapping(void)
 	return strapping;
 }
 
-void lan969x_set_strapping(soc_strapping value)
+void plat_bootstrap_set_strapping(soc_strapping value)
 {
 
 	/* To override strapping previous boot src must be 'none' */
@@ -203,6 +203,14 @@ boot_source_type lan969x_get_boot_source(void)
         }
 
         return boot_source;
+}
+
+bool lan969x_monitor_enabled(void)
+{
+        soc_strapping strapping = lan969x_get_strapping();
+
+	return (strapping == LAN969X_STRAP_TFAMON_FC ||
+		strapping == LAN969X_STRAP_TFAMON_USB);
 }
 
 unsigned int plat_get_syscnt_freq2(void)

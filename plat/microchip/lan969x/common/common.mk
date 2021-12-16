@@ -52,8 +52,11 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 
 BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl1_setup.c	\
+				plat/microchip/common/lan966x_crc32.c		\
 				plat/common/aarch64/platform_up_stack.S		\
-				plat/microchip/common/lan966x_sjtag.c
+				plat/microchip/common/lan966x_bootstrap.c	\
+				plat/microchip/common/lan966x_sjtag.c		\
+				plat/microchip/common/plat_bl1_bootstrap.c
 
 BL2_SOURCES		+=	common/desc_image_load.c			\
 				drivers/arm/tzc/tzc400.c			\

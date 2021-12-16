@@ -18,6 +18,7 @@
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/lan966x_sjtag.h>
+#include <plat/microchip/common/plat_bootstrap.h>
 
 #include "lan969x_private.h"
 
@@ -113,10 +114,20 @@ void bl1_platform_setup(void)
 
 	/* SJTAG: Configure challenge, no freeze */
 	lan966x_sjtag_configure();
+
+	/* Strapped for boot monitor? */
+	if (lan969x_monitor_enabled()) {
+		plat_bl1_bootstrap_monitor();
+	}
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)
 {
+}
+
+void plat_bootstrap_trigger_fwu(void)
+{
+	is_fwu_needed = true;
 }
 
 /*******************************************************************************
@@ -125,5 +136,5 @@ void bl1_plat_prepare_exit(entry_point_info_t *ep_info)
  ******************************************************************************/
 unsigned int bl1_plat_get_next_image_id(void)
 {
-	return  is_fwu_needed ? NS_BL1U_IMAGE_ID : BL2_IMAGE_ID;
+	return is_fwu_needed ? NS_BL1U_IMAGE_ID : BL2_IMAGE_ID;
 }
