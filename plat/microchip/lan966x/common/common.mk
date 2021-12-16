@@ -91,19 +91,19 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/microchip/tz_matrix/tz_matrix.c			\
 				lib/cpus/aarch32/cortex_a7.S				\
 				plat/microchip/common/fw_config.c			\
+				plat/microchip/common/lan966x_crc32.c			\
 				plat/microchip/common/plat_crypto.c			\
 				plat/microchip/common/plat_tbbr.c			\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
-				plat/microchip/lan966x/common/lan966x_crc32.c		\
 				drivers/microchip/trng/lan966x_trng.c
 
 BL1_SOURCES		+=	\
+				plat/microchip/common/lan966x_bootstrap.c		\
 				plat/microchip/common/lan966x_sjtag.c			\
 				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_pcie.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c	\
-				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_tbbr.c
 
 BL2_SOURCES		+=	\

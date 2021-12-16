@@ -6,8 +6,8 @@
 
 #include <assert.h>
 
-#include "lan966x_bootstrap.h"
-#include "lan966x_private.h"
+#include <plat/microchip/common/lan966x_bootstrap.h>
+#include <plat/microchip/common/lan966x_crc32.h>
 
 static uint8_t bootstrap_req_flags;
 

@@ -70,7 +70,6 @@ void lan966x_crash_console(console_t *console);
 
 void lan966x_mmc_plat_config(boot_source_type boot_source);
 
-uint32_t Crc32c(uint32_t crc, const void *data, size_t size);
 boot_source_type lan966x_get_boot_source(void);
 void lan966x_fwconfig_apply(void);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
