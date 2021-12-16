@@ -13,9 +13,9 @@
 #include <errno.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/lan966x_sjtag.h>
+#include <plat/microchip/common/lan966x_bootstrap.h>
 
 #include "lan966x_private.h"
-#include "lan966x_bootstrap.h"
 
 /* Max OTP data to write in one req */
 #define MAX_OTP_DATA	1024
