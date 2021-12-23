@@ -31,18 +31,9 @@ node('blademaster') {
         throw error
     } finally {
         echo "Branch is: ${env.BRANCH_NAME}"
-        if (env.BRANCH_NAME =~ /\.b0/) {
-            stage("Archiving Boot ROM results") {
-                    archive 'artifacts/lan966x_b0-*.bl1'
-                    archive 'artifacts/lan966x_sr-*.bl1'
-                    archive 'artifacts/*b0-release-bl2normal-auth-bl1.dump'
-                    archive 'artifacts/*sr-*-bl2normal-auth-bl1.dump'
-            }
-        } else {
-            stage("Archiving FIP results") {
-                    archive 'artifacts/**'
-                    archive 'keys/*'
-            }
-        }
+	stage("Archiving FIP results") {
+		archive 'artifacts/**'
+		archive 'keys/*'
+	}
     }
 }

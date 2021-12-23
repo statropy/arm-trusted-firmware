@@ -81,11 +81,7 @@ build_platforms.each do |bp|
         ]
         # Limit the BL1 image artifacts
         dst = "#{bp}-#{bt}"
-        if bp == :lan966x_sr && bv == :bl2normal && ba == :auth
-          artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
-        elsif bp == :lan966x_b0 && bt == :release && bv == :bl2normal && ba == :auth
-          artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
-        end
+        artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
         cargs = "--#{bt} --gptimg --norimg #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
         cmd_clean = 'ruby scripts/build.rb distclean'
