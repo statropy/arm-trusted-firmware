@@ -14,4 +14,9 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 		    unsigned int iv_len, const void *tag,
 		    unsigned int tag_len);
 
+int aes_gcm_encrypt(void *data_ptr, size_t len,
+		    const void *key, unsigned int key_len,
+		    const void *iv, unsigned int iv_len,
+		    void *tag, unsigned int tag_len);
+
 #endif  /* MICROCHIP_AES */

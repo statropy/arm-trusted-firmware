@@ -83,8 +83,8 @@ void aes_init(void)
 	mmio_write_32(AES_AES_CR(base), AES_AES_CR_SWRST(1));
 }
 
-static int aes_setkey(const unsigned char *key, unsigned int keylen,
-		      const unsigned char *iv)
+static int aes_setkey(bool cipher, const unsigned char *key,
+		      unsigned int keylen, const unsigned char *iv)
 {
 	int kc, kw, i;
 
@@ -104,7 +104,7 @@ static int aes_setkey(const unsigned char *key, unsigned int keylen,
 
 	mmio_write_32(AES_AES_MR(base),
 		      AES_AES_MR_SMOD(0) | /* Manual start */
-		      AES_AES_MR_CIPHER(0) | /* Decrypt */
+		      AES_AES_MR_CIPHER(cipher) | /* Decrypt = 0 / Encrypt = 1 */
 		      AES_AES_MR_KEYSIZE(kc) |
 		      AES_AES_MR_OPMOD(AES_OPMOD_GCM) |
 		      AES_AES_MR_GTAGEN(1));
@@ -125,7 +125,7 @@ static int aes_setkey(const unsigned char *key, unsigned int keylen,
 	return CRYPTO_SUCCESS;
 }
 
-static void aes_decrypt(uint8_t *data, size_t len)
+static void aes_process(uint8_t *data, size_t len)
 {
 	size_t nb;
 	int nw, i;
@@ -155,18 +155,30 @@ static void aes_decrypt(uint8_t *data, size_t len)
 	}
 }
 
-static int aes_check_tag(const uint8_t *tag, size_t tag_len)
+static int aes_get_tag(uint8_t *tag, size_t tag_len)
 {
-	int i, diff, rc;
-	uint8_t tag_buf[AES_BLOCK_LEN];
+	int i;
+
+	if (tag_len != AES_BLOCK_LEN)
+		return CRYPTO_ERR_DECRYPTION;
 
 	VERBOSE("AES: get tag - %d bytes\n", tag_len);
 	(void) aes_wait_flag(AES_AES_ISR_TAGRDY_ISR(1));
 	for (i = 0; i < 4; i++) {
 		uint32_t w = mmio_read_32(AES_AES_TAGR(base, i));
 
-		unaligned_put32(tag_buf + (i * 4), w);
+		unaligned_put32(tag + (i * 4), w);
 	}
+
+	return 0;
+}
+
+static int aes_check_tag(const uint8_t *tag, size_t tag_len)
+{
+	int i, diff, rc;
+	uint8_t tag_buf[AES_BLOCK_LEN];
+
+	(void) aes_get_tag(tag_buf, sizeof(tag_buf));
 
 	/* Check tag in "constant-time" */
 	for (diff = 0, i = 0; i < tag_len; i++) {
@@ -179,6 +191,31 @@ static int aes_check_tag(const uint8_t *tag, size_t tag_len)
 	return rc;
 }
 
+int aes_setup(bool encrypt, size_t len,
+	      const void *key, unsigned int key_len,
+	      const void *iv, unsigned int iv_len)
+{
+	int rc;
+
+	/* NIST recommendation: 96 bits/12 bytes */
+	if (iv_len != AES_IV_LEN) {
+		return CRYPTO_ERR_DECRYPTION;
+	}
+
+	/* Reset state */
+	mmio_write_32(AES_AES_CR(base), AES_AES_CR_SWRST(1));
+
+	rc = aes_setkey(encrypt, key, key_len, iv);
+	if (rc != 0)
+		return CRYPTO_ERR_DECRYPTION;
+
+	/* Set AADLEN, CLEN */
+	mmio_write_32(AES_AES_AADLENR(base), 0);
+	mmio_write_32(AES_AES_CLENR(base), len);
+
+	return 0;
+}
+
 int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 		    unsigned int key_len, const void *iv,
 		    unsigned int iv_len, const void *tag,
@@ -186,34 +223,41 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 {
 	int rc;
 
-	VERBOSE("aes-gcm: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
+	VERBOSE("aes-gcm-decrypt: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
 		len, key_len, iv_len, tag_len);
 
-	/* NIST recommendation: 96 bits/12 bytes */
-	if (iv_len != AES_IV_LEN) {
-		rc = CRYPTO_ERR_DECRYPTION;
-		goto exit_gcm;
-	}
-
-	/* Reset state */
-	mmio_write_32(AES_AES_CR(base), AES_AES_CR_SWRST(1));
-
-	rc = aes_setkey(key, key_len, iv);
-	if (rc != 0) {
-		rc = CRYPTO_ERR_DECRYPTION;
-		goto exit_gcm;
-	}
-
-	/* Set AADLEN, CLEN */
-	mmio_write_32(AES_AES_AADLENR(base), 0);
-	mmio_write_32(AES_AES_CLENR(base), len);
+	rc = aes_setup(false, len, key, key_len, iv, iv_len);
+	if (rc)
+		return rc;
 
 	/* Now run data through decrypt */
-	aes_decrypt(data_ptr, len);
+	aes_process(data_ptr, len);
 
 	/* Check GTAG */
 	rc = aes_check_tag(tag, tag_len);
 
-exit_gcm:
+	return rc;
+}
+
+int aes_gcm_encrypt(void *data_ptr, size_t len,
+		    const void *key, unsigned int key_len,
+		    const void *iv, unsigned int iv_len,
+		    void *tag, unsigned int tag_len)
+{
+	int rc;
+
+	VERBOSE("aes-gcm-encrypt: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
+		len, key_len, iv_len, tag_len);
+
+	rc = aes_setup(true, len, key, key_len, iv, iv_len);
+	if (rc)
+		return rc;
+
+	/* Now run data through encrypt */
+	aes_process(data_ptr, len);
+
+	/* Get auth tag as well */
+	rc = aes_get_tag(tag, tag_len);
+
 	return rc;
 }
