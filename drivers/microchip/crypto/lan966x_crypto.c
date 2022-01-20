@@ -246,6 +246,10 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	mbedtls_ecp_keypair kp;
 	mbedtls_mpi r, s;
 
+#if defined(MCHP_SOC_LAN969X)
+	return CRYPTO_SUCCESS;	/* XXX chip issue wrt PKCL */
+#endif
+
 	/* Verify the signature algorithm */
 	/* Get pointers to signature OID and parameters */
 	p = sig_alg;
