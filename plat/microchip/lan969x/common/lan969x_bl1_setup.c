@@ -75,10 +75,6 @@ void bl1_early_platform_setup(void)
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN969X_SRAM_BASE;
 	bl1_tzram_layout.total_size = LAN969X_SRAM_SIZE;
-
-	INFO("Init DDR\n");
-	extern void lan966x_ddr_init(void);
-	lan966x_ddr_init();
 }
 
 void bl1_plat_arch_setup(void)

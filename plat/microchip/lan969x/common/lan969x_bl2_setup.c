@@ -28,10 +28,12 @@ static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 					LAN969X_SRAM_SIZE, 		\
 					MT_MEMORY | MT_RW | MT_SECURE)
 
+#if 0
 #define MAP_BL2_TOTAL		MAP_REGION_FLAT(			\
 					bl2_tzram_layout.total_base,	\
 					bl2_tzram_layout.total_size,	\
 					MT_MEMORY | MT_RW | MT_SECURE)
+#endif
 
 #if SEPARATE_CODE_AND_RODATA
 #define ARM_MAP_BL_RO			MAP_REGION_FLAT(			\
@@ -66,7 +68,7 @@ void bl2_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
 		MAP_SHARED_HEAP,
-		MAP_BL2_TOTAL,
+//		MAP_BL2_TOTAL,
 		MAP_PKCL_CODE,
 		MAP_PKCL_DATA,
 		ARM_MAP_BL_RO,
@@ -127,5 +129,7 @@ void bl2_platform_setup(void)
 	lan969x_io_setup();
 
 	/* SJTAG: Freeze mode and configuration */
-	lan966x_sjtag_configure();
+	//lan966x_sjtag_configure();
+
+	lan966x_ddr_init();
 }

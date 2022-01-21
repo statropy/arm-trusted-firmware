@@ -40,4 +40,5 @@ void lan969x_mmc_plat_config(boot_source_type boot_source);
 
 void lan966x_bootstrap_monitor(void);
 
+void lan966x_ddr_init(void);
 #endif /* LAN969X_PRIVATE_H */
