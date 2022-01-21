@@ -32,11 +32,41 @@ static entry_point_info_t bl33_image_ep_info;
 void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 				u_register_t arg2, u_register_t arg3)
 {
+	void *from_bl2 = (void *) arg0;
+
 	/* Enable arch timer */
 	generic_delay_timer_init();
 
 	/* Console */
 	lan969x_console_init();
+
+	/*
+	 * Check params passed from BL2 should not be NULL,
+	 */
+	bl_params_t *params_from_bl2 = (bl_params_t *)from_bl2;
+
+	assert(params_from_bl2 != NULL);
+	assert(params_from_bl2->h.type == PARAM_BL_PARAMS);
+	assert(params_from_bl2->h.version >= VERSION_2);
+
+	bl_params_node_t *bl_params = params_from_bl2->head;
+
+	/*
+	 * Copy BL33 and BL32 (if present), entry point information.
+	 * They are stored in Secure RAM, in BL2's address space.
+	 */
+	while (bl_params) {
+		if (bl_params->image_id == BL32_IMAGE_ID)
+			bl32_image_ep_info = *bl_params->ep_info;
+
+		if (bl_params->image_id == BL33_IMAGE_ID)
+			bl33_image_ep_info = *bl_params->ep_info;
+
+		bl_params = bl_params->next_params_info;
+	}
+
+	if (bl33_image_ep_info.pc == 0)
+		panic();
 }
 
 void bl31_plat_arch_setup(void)

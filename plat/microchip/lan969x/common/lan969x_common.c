@@ -44,26 +44,33 @@ lan966x_fw_config_t lan966x_fw_config = {
 		BL31_SIZE,					\
 		MT_MEMORY | MT_RW | MT_SECURE)
 
-#define LAN969X_MAP_USB						\
+#define LAN969X_MAP_NS_MEM					\
 	MAP_REGION_FLAT(					\
-		LAN969X_USB_BASE,				\
-		LAN969X_USB_SIZE,				\
-		MT_DEVICE | MT_RW | MT_SECURE)
+		PLAT_LAN969X_NS_IMAGE_BASE,			\
+		PLAT_LAN969X_NS_IMAGE_SIZE,			\
+		MT_MEMORY | MT_RW | MT_NS)
 
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
 	LAN969X_MAP_QSPI0,
 	LAN969X_MAP_AXI,
-	//LAN969X_MAP_USB,
 	{0}
 };
 #endif
-#if defined(IMAGE_BL2) || defined(IMAGE_BL2U) || defined(IMAGE_BL31)
+#if defined(IMAGE_BL2) || defined(IMAGE_BL2U)
 const mmap_region_t plat_arm_mmap[] = {
 	LAN969X_MAP_QSPI0,
 	LAN969X_MAP_AXI,
 	LAN969X_MAP_BL31,
-	//LAN969X_MAP_USB,
+	LAN969X_MAP_NS_MEM,
+	{0}
+};
+#endif
+#ifdef IMAGE_BL31
+const mmap_region_t plat_arm_mmap[] = {
+	LAN969X_MAP_QSPI0,
+	LAN969X_MAP_AXI,
+	LAN969X_MAP_BL31,
 	{0}
 };
 #endif

@@ -110,7 +110,7 @@
 #if defined(IMAGE_BL1)
 #define MAX_XLAT_TABLES			3
 #elif defined(IMAGE_BL2) || defined(IMAGE_BL2U)
-#define MAX_XLAT_TABLES			3
+#define MAX_XLAT_TABLES			4
 #elif defined(IMAGE_BL31)
 #define MAX_XLAT_TABLES			8
 #endif
