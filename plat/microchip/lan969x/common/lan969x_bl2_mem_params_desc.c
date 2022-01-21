@@ -58,7 +58,7 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
 		.image_info.image_base = PLAT_LAN969X_NS_IMAGE_BASE,
 		.image_info.image_max_size = PLAT_LAN969X_NS_IMAGE_SIZE,
 #endif /* PRELOADED_BL33_BASE */
-
+                .ep_info.spsr = SPSR_64(MODE_EL1, MODE_SP_ELX, DISABLE_ALL_EXCEPTIONS),
 		.next_handoff_image_id = INVALID_IMAGE_ID,
 	},
 #if LAN969X_DIRECT_LINUX_BOOT
