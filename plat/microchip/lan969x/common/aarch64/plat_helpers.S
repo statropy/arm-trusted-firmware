@@ -75,9 +75,10 @@ func plat_report_exception
 	mov	x8, x30
 
 	mrs	x2, currentel
-	and	x2, x2, #0xc0
+	ubfx    x2, x2, #MODE_EL_SHIFT, #MODE_EL_WIDTH
+
 	/* Check EL1 */
-	cmp	x2, #0x04
+	cmp	x2, #MODE_EL1
 	beq	plat_report_el1
 
 	adr	x4, plat_err_str
