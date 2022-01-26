@@ -49,6 +49,7 @@
 
 /* Data structure which holds the extents of the trusted SRAM for BL1*/
 static meminfo_t bl1_tzram_layout;
+static meminfo_t bl2_tzram_layout;
 
 /* Boolean variable to hold condition whether firmware update needed or not */
 static bool is_fwu_needed;
@@ -137,4 +138,38 @@ void plat_bootstrap_trigger_fwu(void)
 unsigned int bl1_plat_get_next_image_id(void)
 {
 	return is_fwu_needed ? NS_BL1U_IMAGE_ID : BL2_IMAGE_ID;
+}
+
+/*
+ * Cannot use default weak implementation in bl1_main.c because the
+ * location of the 'bl2_secram_layout' structure at start of
+ * memory. We place BL2 itself here, so we must explicitly allocate
+ * the bl2 meminfo_t structure.
+ */
+int bl1_plat_handle_post_image_load(unsigned int image_id)
+{
+	image_desc_t *image_desc;
+	entry_point_info_t *ep_info;
+
+	if (image_id != BL2_IMAGE_ID)
+		return 0;
+
+	/* Get the image descriptor */
+	image_desc = bl1_plat_get_image_desc(BL2_IMAGE_ID);
+	assert(image_desc != NULL);
+
+	/* Get the entry point info */
+	ep_info = &image_desc->ep_info;
+
+	bl2_tzram_layout.total_base = BL2_BASE;
+	bl2_tzram_layout.total_size = BL2_SIZE;
+
+	flush_dcache_range((uintptr_t)&bl2_tzram_layout, sizeof(meminfo_t));
+
+	ep_info->args.arg1 = (uintptr_t)&bl2_tzram_layout;
+
+	VERBOSE("BL1: BL2 memory layout address = %p\n",
+		(void *)&bl2_tzram_layout);
+
+	return 0;
 }
