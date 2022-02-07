@@ -150,7 +150,7 @@ static const unsigned int TAAC_TimeMant[16] =
 static void lan966x_mmc_reset(void)
 {
 	unsigned int timeout;
-	unsigned int state;
+	uint8_t state;
 
 	VERBOSE("MMC: Software reset \n");
 
@@ -160,7 +160,7 @@ static void lan966x_mmc_reset(void)
 		     (SDMMC_SRR_SWRSTCMD | SDMMC_SRR_SWRSTDAT));
 	do {
 		if (timeout > 0) {
-			state = (unsigned int)mmio_read_8(reg_base + SDMMC_SRR);
+			state = mmio_read_8(reg_base + SDMMC_SRR);
 			timeout--;
 			udelay(10);
 		} else {
@@ -181,9 +181,9 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 					  unsigned int sd_src_clk)
 {
 	unsigned int timeout;
-	unsigned short new_ccr, old_ccr;
-	unsigned int clk_div, base_clock, mult_clock;
-	unsigned int state;
+	uint16_t new_ccr, old_ccr;
+	uint32_t clk_div, base_clock, mult_clock;
+	uint32_t state;
 
 	timeout = EMMC_POLLING_VALUE;
 	do {
@@ -252,7 +252,7 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 	timeout = EMMC_POLLING_VALUE;
 	do {
 		if (timeout > 0) {
-			state = (unsigned int)mmio_read_16(reg_base + SDMMC_CCR);
+			state = mmio_read_16(reg_base + SDMMC_CCR);
 			timeout--;
 			udelay(10);
 		} else {
@@ -273,7 +273,7 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
 static int lan966x_host_init(void)
 {
 	unsigned int timeout;
-	unsigned int state;
+	uint32_t state;
 
 	lan966x_params.clk_rate = 0u;
 
@@ -296,7 +296,7 @@ static int lan966x_host_init(void)
 	timeout = 0xFFFF;
 	do {
 		if (timeout > 0) {
-			state = (unsigned int)mmio_read_8(reg_base + SDMMC_SRR);
+			state = mmio_read_8(reg_base + SDMMC_SRR);
 			timeout--;
 			udelay(10);
 		} else {
@@ -361,12 +361,12 @@ static void lan966x_get_cid_register(void)
 
 static void lan966x_get_csd_register(void)
 {
-	unsigned int m, e;
-	unsigned int csd_struct;
-	volatile const unsigned int *p_resp;
+	uint32_t m, e;
+	uint32_t csd_struct;
+	uint32_t *p_resp;
 
 	/* Initialize pointer to response register RR[0] */
-	p_resp = (unsigned int *)(reg_base + SDMMC_RR0);
+	p_resp = (uint32_t *)(reg_base + SDMMC_RR0);
 
 	/* Retrieve version of CSD structure information */
 	csd_struct = get_CSD_field(p_resp, 126, 2);
@@ -869,7 +869,7 @@ static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size)
 static int lan966x_mmc_read(int lba, uintptr_t buf, size_t size)
 {
 	unsigned int i;
-	unsigned int *pExtBuffer = (unsigned int *)buf;
+	uint32_t *pExtBuffer = (__typeof(pExtBuffer)) buf;
 
 	VERBOSE("MMC: ATF CB read() \n");
 
@@ -885,8 +885,7 @@ static int lan966x_mmc_read(int lba, uintptr_t buf, size_t size)
 	}
 
 	for (i = 0; i < (size / 4); i++) {
-		*pExtBuffer = mmio_read_32(reg_base + SDMMC_BDPR);
-		pExtBuffer++;
+		*pExtBuffer++ = mmio_read_32(reg_base + SDMMC_BDPR);
 	}
 
 	if (lan966x_emmc_poll(SDMMC_NISTR_TRFC)) {
