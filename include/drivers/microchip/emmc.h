@@ -148,21 +148,21 @@ typedef struct lan966x_mmc_params {
 } lan966x_mmc_params_t;
 
 typedef struct _card {
-	unsigned char card_type;
-	unsigned char card_capacity;
-	unsigned int card_taac_ns;
-	unsigned int card_nsac;
-	unsigned char card_r2w_factor;
-	unsigned char card_max_rd_blk_len;
-	unsigned char card_phy_spec_rev;
+	uint8_t card_type;
+	uint8_t card_capacity;
+	uint32_t card_taac_ns;
+	uint32_t card_nsac;
+	uint8_t card_r2w_factor;
+	uint8_t card_max_rd_blk_len;
+	uint8_t card_phy_spec_rev;
 } card;
 
-static inline unsigned int get_CSD_field(volatile const unsigned int *p_resp,
-					 unsigned int index, unsigned int size)
+static inline uint32_t get_CSD_field(const uint32_t *p_resp,
+				     uint32_t index, uint32_t size)
 {
-	unsigned int shift;
-	unsigned int res;
-	unsigned int off;
+	uint32_t shift;
+	uint32_t res;
+	uint32_t off;
 
 	index -= 8;		//Remove CRC section
 	shift = index % 32;
