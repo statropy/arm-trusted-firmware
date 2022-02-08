@@ -63,6 +63,7 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_mem_params_desc.c \
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_ddr.c		\
+				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_image_load.c	\
 				plat/microchip/common/lan966x_sjtag.c
 
