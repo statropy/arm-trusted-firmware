@@ -115,3 +115,9 @@ ERRATA_A53_855873		:= 1
 ERRATA_A53_1530924		:= 1
 
 WORKAROUND_CVE_2017_5715	:= 0
+
+# ASM impl of various (memset)
+OVERRIDE_LIBC			:= 1
+ifeq (${OVERRIDE_LIBC},1)
+    include lib/libc/libc_asm.mk
+endif
