@@ -121,5 +121,5 @@ void bl2_platform_setup(void)
 	lan966x_ddr_init();
 
 	/* Init tzpm */
-	lan969x_tz_init();
+	//lan969x_tz_init();
 }
