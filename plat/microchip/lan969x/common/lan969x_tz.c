@@ -22,8 +22,10 @@ static bool use_css = true;
 
 static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 {
+	/* Allow S+NS access to these devices */
 	mmio_write_32(GPV_SECURITY_CPU_REGS(gpv), true);
 	mmio_write_32(GPV_SECURITY_CSR_REGS(gpv), true);
+	mmio_write_32(GPV_SECURITY_DDR_CSS(gpv), true);
 
 	/* Magic key to unlock protection */
 	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0x12AC4B5D);
@@ -62,8 +64,8 @@ void lan969x_tzc_configure(uintptr_t tzc_base)
 		PLAT_ARM_TZC_NS_DEV_ACCESS); /* NS = RDWR */
 #else
 
-	/* Allow Secure and Non-secure access to DRAM for EL3 payloads */
-	tzc400_configure_region0(TZC_REGION_S_RDWR, PLAT_ARM_TZC_NS_DEV_ACCESS);
+	/* Allow only Non-secure access to DRAM for EL3 payloads */
+	tzc400_configure_region0(TZC_REGION_S_NONE, PLAT_ARM_TZC_NS_DEV_ACCESS);
 
 #endif
 

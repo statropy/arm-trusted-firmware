@@ -486,14 +486,12 @@ void lan969x_io_bootsource_init(void)
 				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
 				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
 
-#if defined(LAN969X_TZ)
 		/* Enable QSPI0 for NS access */
 		matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
 						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
 						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
 						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
 						MATRIX_LANSECH_NS(0));
-#endif
 	default:
 		break;
 	}
