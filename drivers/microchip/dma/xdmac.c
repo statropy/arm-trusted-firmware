@@ -33,7 +33,7 @@ static uint32_t cc_memcpy =
 	XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_INCREMENTED_AM)	|
 	XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN);
 
-#define MAX_TIMEOUT_US	(10 * 1000U)	/* 10ms */
+#define MAX_TIMEOUT_US	(20 * 1000U)	/* 20ms */
 
 static void xdmac_channel_clear(uint8_t ch)
 {
