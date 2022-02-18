@@ -7,7 +7,7 @@
 #ifndef MICROCHIP_XDMAC
 #define MICROCHIP_XDMAC
 
-void xdmac_init(void);
+void xdmac_show_version(void);
 
 void *xdmac_memset(void *dst, int val, size_t count);
 void *xdmac_memcpy(void *dst, const void *src, size_t len);

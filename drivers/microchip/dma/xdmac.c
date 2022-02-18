@@ -33,15 +33,53 @@ static uint32_t cc_memcpy =
 	XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_INCREMENTED_AM)	|
 	XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN);
 
-#define MAX_TIMOUT	5
+#define MAX_TIMEOUT_US	(10 * 1000U)	/* 10ms */
 
 static void xdmac_channel_clear(uint8_t ch)
 {
+	/* Disable channel by Global Channel Disable Register */
+       mmio_write_32(XDMAC_XDMAC_GD(base), BIT(ch));
+       /* Clear pending irq(s) by reading channel status register */
+       (void) mmio_read_32(XDMAC_XDMAC_CIS_CH0(CH_OFF(base, ch)));
+}
+
+static int xdmac_exec(uint8_t ch)
+{
+	uint64_t timeout;
 	uint32_t w;
 
-	mmio_write_32(XDMAC_XDMAC_GD(base), BIT(ch));
+	/* Enable Block End Interrupt */
+	mmio_setbits_32(XDMAC_XDMAC_CIE_CH0(CH_OFF(base, ch)), AT_XDMAC_CIE_BIE);
+	/* Enable GIE channel Interrupt */
+	mmio_setbits_32(XDMAC_XDMAC_GIE(base), BIT(ch));
+	/* Enable Channel: GE */
+	mmio_setbits_32(XDMAC_XDMAC_GE(base), BIT(ch));
+
+	/* Wait not busy */
+	timeout = timeout_init_us(MAX_TIMEOUT_US);
+	while (true) {
+		w = mmio_read_32(XDMAC_XDMAC_GS(base));
+		VERBOSE("XDMAC: GS: %08x\n", w);
+		if ((w & BIT(ch)) == 0)
+			break;	/* Not busy, continue */
+		if (timeout_elapsed(timeout)) {
+			ERROR("XDMAC: Timout awaiting GS_STX(%d) clear, 0x%08x\n", ch, w);
+			return -1;
+		}
+	}
+
+	/* Check channel status */
 	w = mmio_read_32(XDMAC_XDMAC_CIS_CH0(CH_OFF(base, ch)));
-	INFO("CH%d: CIS = %08x\n", ch, w);
+	VERBOSE("XDMAC: CIS(%d): %08x\n", ch, w);
+	if (w & AT_XDMAC_CIS_BIS)
+		return 0;	/* Block End Irq: We're done */
+	if (w & AT_XDMAC_CIS_ERROR) {
+		ERROR("XDMAC(%d): Transfer error: %08x\n", ch, w);
+		return -1;
+	}
+
+	ERROR("XDMAC(%d): Channel has no status: %08x\n", ch, w);
+	return -1;
 }
 
 static int xdmac_go(uint8_t ch,
@@ -49,8 +87,7 @@ static int xdmac_go(uint8_t ch,
 		    uint32_t cc, uint32_t cds_msp,
 		    uint32_t align, uint32_t len)
 {
-	int i;
-	uint32_t w, dwidth, cubc;
+	uint32_t dwidth, cubc;
 
 	/* Determine data width */
 	dwidth = xdmac_align_width(align);
@@ -60,7 +97,7 @@ static int xdmac_go(uint8_t ch,
 	cubc = len >> dwidth;
 	assert(cubc <= AT_XDMAC_MBR_UBC_UBLEN_MAX);
 
-	INFO("DMA %d algn %x => dwidth %d bytes cubc %d blks, cc = 0x%08x\n", len, align, 1 << dwidth, cubc, cc);
+	VERBOSE("DMA %d algn %x => dwidth %d bytes cubc %d blks, cc = 0x%08x\n", len, align, 1 << dwidth, cubc, cc);
 
 	/* Clear channel */
 	xdmac_channel_clear(ch);
@@ -72,48 +109,7 @@ static int xdmac_go(uint8_t ch,
 	mmio_write_32(XDMAC_XDMAC_CUBC_CH0(CH_OFF(base, ch)), cubc);
 	mmio_write_32(XDMAC_XDMAC_CC_CH0(CH_OFF(base, ch)), cc);
 
-	/* Enable Block End Interrupt */
-	mmio_setbits_32(XDMAC_XDMAC_CIE_CH0(CH_OFF(base, ch)), AT_XDMAC_CIE_BIE);
-	/* Enable GIE channel Interrupt */
-	mmio_setbits_32(XDMAC_XDMAC_GIE(base), BIT(ch));
-	/* Enable Channel: GE */
-	mmio_setbits_32(XDMAC_XDMAC_GE(base), BIT(ch));
-
-	/* Wait not busy */
-	i = 0;
-	while (true) {
-		w = mmio_read_32(XDMAC_XDMAC_GS(base));
-		INFO("XDMAC: GS: %08x\n", w);
-		if ((w & BIT(ch)) == 0)
-			break;	/* Not busy, continue */
-		if (++i == MAX_TIMOUT) {
-			ERROR("XDMAC: Timout awaiting GS_STX\n");
-			return -1;
-		}
-		/* Continue polling */
-		udelay(1);
-	}
-
-	/* Wait EOL/error */
-	i = 0;
-	while (true) {
-		w = mmio_read_32(XDMAC_XDMAC_CIS_CH0(CH_OFF(base, ch)));
-		INFO("XDMAC: CIS(%d): %08x\n", ch, w);
-		if (w & AT_XDMAC_CIS_LIS)
-			break;
-		if (w & AT_XDMAC_CIS_ERROR) {
-			ERROR("XDMAC: Copy error: %08x\n", w);
-			return -1;
-		}
-		if (++i == MAX_TIMOUT) {
-			ERROR("XDMAC: Timout awaiting CIS_LIS\n");
-			return -1;
-		}
-		/* Continue polling */
-		udelay(1);
-	}
-
-	return 0;
+	return xdmac_exec(ch);
 }
 
 void *xdmac_memset(void *_dst, int val, size_t len)
@@ -157,7 +153,7 @@ void *xdmac_memcpy(void *_dst, const void *_src, size_t len)
 			(src | dst | len), len) ? NULL : _dst;
 }
 
-void xdmac_init(void)
+void xdmac_show_version(void)
 {
 	uint32_t w = mmio_read_32(XDMAC_XDMAC_VERSION(base));
 	INFO("XDMAC: version 0x%lx, mfn %ld\n",

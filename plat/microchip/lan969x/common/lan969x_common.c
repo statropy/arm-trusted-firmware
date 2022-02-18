@@ -234,6 +234,9 @@ void lan969x_timer_init(void)
 	mmio_write_32(CPU_SYSCNT_CNTCVU(syscnt), 0);	/* High */
 	mmio_write_32(CPU_SYSCNT_CNTCR(syscnt),
 		      CPU_SYSCNT_CNTCR_CNTCR_EN(1));	/*Enable */
+
+        /* Program the counter frequency */
+        write_cntfrq_el0(plat_get_syscnt_freq2());
 }
 
 /*******************************************************************************
