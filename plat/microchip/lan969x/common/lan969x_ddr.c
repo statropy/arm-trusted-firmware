@@ -85,13 +85,53 @@ static inline void wr_reg_rev(uintptr_t addr, uint32_t val)
 #define rd_fld_r(tgt,grp,reg,fld) \
     rd_fld_s(rd_reg(tgt,grp,reg),tgt,grp,reg,fld)
 
+void ddr_sanity(void)
+{
+  uint32_t *var_ptr;
+  uint32_t var_check[4];
+
+  //Test starts here
+  // pointer to DDR base address
+  var_ptr  = (uint32_t *)(VTSS_MASERATI_DDR);
+
+  // write single word (16bytes) to DDR
+  //*var_ptr = 0x0F0E0D0C0B0A09080706050403020100;
+  const uint32_t pat[4] = { 0x03020100, 0x07060504, 0x0B0A0908, 0x0F0E0D0C};
+
+  *var_ptr++ = pat[0];
+  *var_ptr++ = pat[1];
+  *var_ptr++ = pat[2];
+  *var_ptr++ = pat[3];
+
+  // wait for data write
+  my_wait(1000,0xC0); // 1us
+
+  // Read single word (16bytes) from DDR
+  var_ptr  = (uint32_t *)(VTSS_MASERATI_DDR);
+
+  var_check[0]  = *var_ptr++;
+  var_check[1]  = *var_ptr++;
+  var_check[2]  = *var_ptr++;
+  var_check[3]  = *var_ptr++;
+
+  // check for read data correctness
+  if (var_check[3] == pat[3] &&
+      var_check[2] == pat[2] &&
+      var_check[1] == pat[1] &&
+      var_check[0] == pat[0]) {
+	  NOTICE("DDR INIT PASS\n");
+  } else {
+	  int i;
+	  ERROR("DDR INIT FAILURE\n");
+	  for(i = 0; i < 4; i++)
+		  ERROR("%d: Expect %08x got %08x\n", i, pat[i], var_check[i]);
+  }
+}
+
 void lan966x_ddr_init(void)
 {
   uint32_t var, stat;
-  uint32_t var_check[4];
   int32_t timeout;
-
-  uint32_t *var_ptr;
 
   var = rd_reg(     CPU, DDRCTRL, DDRCTRL_CLK);
 
@@ -860,40 +900,5 @@ void lan966x_ddr_init(void)
 
    my_wait(1000,0xC4); // 1us
 
-   //Test starts here
-   // pointer to DDR base address
-   var_ptr  = (uint32_t *)(VTSS_MASERATI_DDR);
-
-   // write single word (16bytes) to DDR
-   //*var_ptr = 0x0F0E0D0C0B0A09080706050403020100;
-   const uint32_t pat[4] = { 0x03020100, 0x07060504, 0x0B0A0908, 0x0F0E0D0C};
-
-   *var_ptr++ = pat[0];
-   *var_ptr++ = pat[1];
-   *var_ptr++ = pat[2];
-   *var_ptr++ = pat[3];
-
-   // wait for data write
-   my_wait(1000,0xC0); // 1us
-
-   // Read single word (16bytes) from DDR
-   var_ptr  = (uint32_t *)(VTSS_MASERATI_DDR);
-
-   var_check[0]  = *var_ptr++;
-   var_check[1]  = *var_ptr++;
-   var_check[2]  = *var_ptr++;
-   var_check[3]  = *var_ptr++;
-
-  // check for read data correctness
-  if (var_check[3] == pat[3] &&
-      var_check[2] == pat[2] &&
-      var_check[1] == pat[1] &&
-      var_check[0] == pat[0]) {
-	  ERROR("DDR INIT PASS\n");
-  } else {
-	  int i;
-	  ERROR("DDR INIT FAILURE\n");
-	  for(i = 0; i < 4; i++)
-		  ERROR("%d: Expect %08x got %08x\n", i, pat[i], var_check[i]);
-  }
+   ddr_sanity();
 }
