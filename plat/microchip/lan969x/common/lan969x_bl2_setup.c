@@ -118,8 +118,9 @@ void bl2_platform_setup(void)
 	/* SJTAG: Freeze mode and configuration */
 	//lan966x_sjtag_configure();
 
-	lan966x_ddr_init();
-
 	/* Init tzpm */
 	lan969x_tz_init();
+
+	/* Init DDR */
+	lan966x_ddr_init();
 }
