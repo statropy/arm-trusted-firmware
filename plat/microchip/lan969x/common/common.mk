@@ -47,6 +47,7 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				drivers/microchip/otp/otp.c		\
 				drivers/microchip/trng/lan966x_trng.c	\
 				drivers/microchip/tz_matrix/tz_matrix.c	\
+				plat/microchip/common/duff_memcpy.c	\
 				plat/microchip/common/fw_config.c	\
 				plat/microchip/common/plat_crypto.c	\
 				plat/microchip/common/plat_tbbr.c
