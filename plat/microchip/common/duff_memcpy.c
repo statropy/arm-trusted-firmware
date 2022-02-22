@@ -51,22 +51,22 @@ void *duff_memcpy(void *dst, const void *src, size_t bytes)
 	uintptr_t alignment = ((uintptr_t) dst) | ((uintptr_t) src);
 	void *d = dst;
 
-	if ((alignment & 0x1F) == 0 && bytes >= sizeof(uint128_t)) {
+	if ((alignment & (sizeof(uint128_t) - 1)) == 0 && bytes >= sizeof(uint128_t)) {
 		size_t copied = duff_qword_copy(dst, src, bytes / sizeof(uint128_t));
 		bytes -= copied;
 		dst += copied;
 		src +=  copied;
-	} else if ((alignment & 0xF) == 0 && bytes >= sizeof(uint64_t)) {
+	} else if ((alignment & (sizeof(uint64_t) - 1)) == 0 && bytes >= sizeof(uint64_t)) {
 		size_t copied = duff_dword_copy(dst, src, bytes / sizeof(uint64_t));
 		bytes -= copied;
 		dst += copied;
 		src +=  copied;
-	} else if ((alignment & 0x3) == 0 && bytes >= sizeof(uint32_t)) {
+	} else if ((alignment & (sizeof(uint32_t) - 1)) == 0 && bytes >= sizeof(uint32_t)) {
 		size_t copied = duff_word_copy(dst, src, bytes / sizeof(uint32_t));
 		bytes -= copied;
 		dst += copied;
 		src +=  copied;
-	} else if ((alignment & 0x1) == 0 && bytes >= sizeof(uint16_t)) {
+	} else if ((alignment & (sizeof(uint16_t) - 1)) == 0 && bytes >= sizeof(uint16_t)) {
 		size_t copied = duff_hword_copy(dst, src, bytes / sizeof(uint16_t));
 		bytes -= copied;
 		dst += copied;
