@@ -21,6 +21,11 @@
 	}							\
 	return nelms * sizeof(elmtype)
 
+size_t duff_qword_copy(uint128_t *dst_typed, const uint128_t *src_typed, size_t qword_count)
+{
+	DUFF_BODY(uint128_t, qword_count);
+}
+
 size_t duff_dword_copy(uint64_t *dst_typed, const uint64_t *src_typed, size_t dword_count)
 {
 	DUFF_BODY(uint64_t, dword_count);
@@ -46,7 +51,12 @@ void *duff_memcpy(void *dst, const void *src, size_t bytes)
 	uintptr_t alignment = ((uintptr_t) dst) | ((uintptr_t) src);
 	void *d = dst;
 
-	if ((alignment & 0xF) == 0 && bytes >= sizeof(uint64_t)) {
+	if ((alignment & 0x1F) == 0 && bytes >= sizeof(uint128_t)) {
+		size_t copied = duff_qword_copy(dst, src, bytes / sizeof(uint128_t));
+		bytes -= copied;
+		dst += copied;
+		src +=  copied;
+	} else if ((alignment & 0xF) == 0 && bytes >= sizeof(uint64_t)) {
 		size_t copied = duff_dword_copy(dst, src, bytes / sizeof(uint64_t));
 		bytes -= copied;
 		dst += copied;
