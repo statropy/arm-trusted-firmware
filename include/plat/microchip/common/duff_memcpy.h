@@ -11,7 +11,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(__aarch64__)
 size_t duff_qword_copy(uint128_t *dst_typed, const uint128_t *src_typed, size_t qword_count);
+#endif
 size_t duff_dword_copy(uint64_t *dst_typed, const uint64_t *src_typed, size_t dword_count);
 size_t duff_word_copy(uint32_t *dst_typed, const uint32_t *src_typed, size_t word_count);
 size_t duff_hword_copy(uint16_t *dst_typed, const uint16_t *src_typed, size_t hword_count);

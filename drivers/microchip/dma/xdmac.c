@@ -13,7 +13,11 @@
 #include "lan966x_regs.h"
 #include "xdmac_priv.h"
 
+#if defined(LAN966X_XDMAC_BASE)
+static uintptr_t base = LAN966X_XDMAC_BASE;
+#elif defined(LAN969X_XDMAC_BASE)
 static uintptr_t base = LAN969X_XDMAC_BASE;
+#endif
 
 #define CH_SZ		(XDMAC_XDMAC_CIE_CH1(0) - XDMAC_XDMAC_CIE_CH0(0))
 #define CH_OFF(b, c)	(b + (c * CH_SZ))
@@ -120,8 +124,8 @@ void *xdmac_memset(void *_dst, int val, size_t len)
 	/* Cache cleaning, XDMAC is *not* cache aware */
 	inv_dcache_range((uintptr_t) _dst, len);
 
-	/* Convert args from 64 bit */
-	dst = (uint64_t) _dst;
+	/* Convert args to 32bit */
+	dst = (uintptr_t) _dst;
 
 	/* Pattern */
 	msp = b | (b << 8) | (b << 16) | (b << 24);
@@ -143,8 +147,8 @@ void *xdmac_memcpy(void *_dst, const void *_src, size_t len)
 	inv_dcache_range((uintptr_t) _dst, len);
 
 	/* Convert args from 64 bit */
-	src = (uint64_t) _src;
-	dst = (uint64_t) _dst;
+	src = (uintptr_t) _src;
+	dst = (uintptr_t) _dst;
 
 	/* Start the operation */
 	return xdmac_go(ch,
@@ -156,7 +160,7 @@ void *xdmac_memcpy(void *_dst, const void *_src, size_t len)
 void xdmac_show_version(void)
 {
 	uint32_t w = mmio_read_32(XDMAC_XDMAC_VERSION(base));
-	INFO("XDMAC: version 0x%lx, mfn %ld\n",
-	     XDMAC_XDMAC_VERSION_VERSION_X(w),
-	     XDMAC_XDMAC_VERSION_MFN_X(w));
+	INFO("XDMAC: version 0x%x, mfn %d\n",
+	     (uint32_t) XDMAC_XDMAC_VERSION_VERSION_X(w),
+	     (uint32_t) XDMAC_XDMAC_VERSION_MFN_X(w));
 }
