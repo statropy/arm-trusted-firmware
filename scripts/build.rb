@@ -9,22 +9,21 @@ require 'pp'
 platforms = {
     "lan966x_sr"	=> Hash[
         :arch  => "arm",
-        :uboot =>  "u-boot-lan966x_sr_atf.bin",
+        :uboot =>  "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_sr_atf.bin",
         :dtb   =>  "lan966x-sr.dtb",
         :bl2_at_el3 => false ],
     "lan966x_evb"	=> Hash[
         :arch  => "arm",
-        :uboot =>  "u-boot-lan966x_evb_atf.bin",
+        :uboot =>  "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
         :dtb   =>  "lan966x_pcb8291.dtb",
         :bl2_at_el3 => true  ],
     "lan966x_b0"	=> Hash[
         :arch  => "arm",
-        :uboot =>  "u-boot-lan966x_evb_atf.bin",
+        :uboot =>  "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
         :dtb   =>  "lan966x_pcb8291.dtb",
         :bl2_at_el3 => false ],
     "lan969x_sr"	=> Hash[
         :arch  => "arm64",
-        :uboot =>  nil,
         :dtb   =>  nil,
         :bl2_at_el3 => false ],
 }
@@ -34,6 +33,7 @@ architectures = {
         :bsp_arch => "arm",
         :tc_dir   => "arm-cortex_a8-linux-gnueabihf",
         :tc_prf   => "arm-cortex_a8-linux-gnueabihf",
+        :linux	  => "/arm-cortex_a8-linux-gnu/standalone/release/",
         :rom_sz   => 80 * 1024,
         :sram_sz  => 128 * 1024,
         :atf_arch => "aarch32", ],
@@ -41,6 +41,7 @@ architectures = {
         :bsp_arch => "arm64",
         :tc_dir   => "arm64-armv8_a-linux-gnu",
         :tc_prf   => "aarch64-armv8_a-linux-gnu",
+        :linux	  => "/arm64-armv8_a-linux-gnu/standalone/release/",
         :rom_sz   => 128 * 1024,
         :sram_sz  => 2 * 1024 * 1024,
         :atf_arch => "aarch64", ],
@@ -60,7 +61,7 @@ $option = { :platform	=> "lan966x_sr",
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2021.02-602",
+             :sdk	=> "2021.02.7-667",
              :norimg	=> true,
              :gptimg	=> false,
              :ramusage	=> true,
@@ -108,6 +109,10 @@ OptionParser.new do |opts|
     end
     opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP") do |v|
         $option[:gptimg] = v
+    end
+    opts.on("--gpt-data <file>", "Add GPT payload") do |f|
+        $option[:gptimg] = true
+        $option[:gpt_data] = f
     end
     opts.on("-c", "--clean", "Do a 'make clean' instead of normal build") do |v|
         $option[:clean] = true
@@ -185,8 +190,8 @@ tc_conf = YAML::load( File.open( sdk_dir + "/.mscc-version" ) )
 install_toolchain(tc_conf["toolchain"])
 
 if $option[:linux_boot]
-    kernel = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/mscc-linux-kernel.bin"
-    dtb = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/" + pdef[:dtb]
+    kernel = sdk_dir + $arch[:linux] + "mscc-linux-kernel.bin"
+    dtb = sdk_dir + $arch[:linux] + pdef[:dtb]
     dtb_new = build + "/lan966x.dtb"
     dtb_overlay = "#{build}/lan966x_overlay.dtbo"
     do_cmd("dtc -q -o #{dtb_overlay} scripts/lan966x_overlay.dtso || /bin/true")
@@ -194,10 +199,11 @@ if $option[:linux_boot]
     args += "BL33=#{kernel} LAN966X_DIRECT_LINUX_BOOT=1 NT_FW_CONFIG=#{dtb_new} "
 else
     if pdef[:uboot]
-        uboot = sdk_dir + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x/" + pdef[:uboot]
+        uboot = sdk_dir + "/" + pdef[:uboot]
         args += "BL33=#{uboot} "
     else
-        args += "BL33=/dev/null "
+        uboot = "bin/#{$option[:platform]}/u-boot.bin"
+        args += "BL33=#{uboot} "
     end
 end
 
@@ -300,6 +306,14 @@ if $option[:gptimg]
             root_blocks = (256 * 1024 * 1024) / 512
             total_blocks += root_blocks
         end
+        if $option[:gpt_data]
+            data_size = File.size?($option[:gpt_data])
+            # Convert size to sectors
+            data_blocks = (data_size / 512.0).ceil();
+            # Align partitions to multiple of 2048
+            data_blocks = (data_blocks / 2048.0).ceil() * 2048;
+            total_blocks += data_blocks
+        end
         # Create partition file of appropriate size
         do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=#{total_blocks}")
         do_cmd("parted -s #{gptfile} mktable gpt")
@@ -317,12 +331,20 @@ if $option[:gptimg]
         do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
         if $option[:linux_boot]
             # Add root partition
-            p_start += fip_blocks
-            p_end += root_blocks
+            p_start = p_end + 1
+            p_end = p_start + root_blocks -1
             do_cmd("parted -s #{gptfile} mkpart root #{p_start}s #{p_end}s")
             # Inject data
-            root = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/rootfs.ext4"
+            root = sdk_dir + $arch[:linux] + "rootfs.ext4"
             do_cmd("dd status=none if=#{root} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        end
+        if $option[:gpt_data]
+            # Add data partition
+            p_start = p_end + 1
+            p_end = p_start + data_blocks - 1
+            do_cmd("parted -s #{gptfile} mkpart data #{p_start}s #{p_end}s")
+            # Inject data
+            do_cmd("dd status=none if=#{$option[:gpt_data]} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
         end
     end
     do_cmd("gdisk -l #{gptfile}")
