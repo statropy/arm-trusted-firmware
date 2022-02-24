@@ -31,6 +31,7 @@ void lan969x_set_strapping(soc_strapping value);
 boot_source_type lan969x_get_boot_source(void);
 bool lan969x_monitor_enabled(void);
 void lan969x_fwconfig_apply(void);
+void lan969x_set_max_trace_level(void);
 
 void lan969x_console_init(void);
 void lan969x_timer_init(void);

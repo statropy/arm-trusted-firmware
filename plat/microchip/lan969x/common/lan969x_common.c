@@ -220,6 +220,14 @@ bool lan969x_monitor_enabled(void)
 		strapping == LAN969X_STRAP_TFAMON_USB);
 }
 
+void lan969x_set_max_trace_level(void)
+{
+#if !DEBUG
+	/* Reduce logging */
+	tf_log_set_max_level(LOG_LEVEL_ERROR);
+#endif
+}
+
 unsigned int plat_get_syscnt_freq2(void)
 {
 	return SYS_COUNTER_FREQ_IN_TICKS;

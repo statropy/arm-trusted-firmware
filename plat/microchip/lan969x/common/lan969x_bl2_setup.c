@@ -88,6 +88,9 @@ static void bl2_early_platform_setup(void)
 	/* Enable arch timer */
 	generic_delay_timer_init();
 
+	/* Set logging level */
+	lan969x_set_max_trace_level();
+
 	/* Console */
 	lan969x_console_init();
 

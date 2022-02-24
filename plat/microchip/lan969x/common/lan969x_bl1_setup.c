@@ -64,6 +64,9 @@ void bl1_early_platform_setup(void)
 	/* Strapping */
 	lan969x_init_strapping();
 
+	/* Set logging level */
+	lan969x_set_max_trace_level();
+
 	/* Console */
 	lan969x_console_init();
 
