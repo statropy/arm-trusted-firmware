@@ -33,7 +33,7 @@ Build Procedure
 
    .. code:: shell
 
-       ruby scripts/build.rb -p lan966x_evb
+       ruby scripts/build.rb -p lan966x_a0
 
 The build script will ensure the SDK and toolchain is installed, or it
 will install the appropriate version required. U-Boot (BL33) will be
@@ -44,7 +44,7 @@ Deploy TF-A Images
 ~~~~~~~~~~~~~~~~~~
 
 TF-A binary bl2.bin, fip.bin and U-Boot is combined to form a flash
-image called "lan966x_evb.img". This binary image should be flashed
+image called "lan966x_a0.img". This binary image should be flashed
 into the device NOR, and the board strapping be set to "1" in order to
 boot from NOR flash.
 

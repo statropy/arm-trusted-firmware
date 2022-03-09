@@ -11,7 +11,7 @@ platforms = {
         :uboot =>  "u-boot-lan966x_sr_atf.bin",
         :dtb   =>  "lan966x-sr.dtb",
         :bl2_at_el3 => false ],
-    "lan966x_evb"	=> Hash[
+    "lan966x_a0"	=> Hash[
         :uboot =>  "u-boot-lan966x_evb_atf.bin",
         :dtb   =>  "lan966x_pcb8291.dtb",
         :bl2_at_el3 => true  ],
@@ -78,7 +78,7 @@ OptionParser.new do |opts|
     opts.on("--release", "Disable DEBUG") do
         $option[:debug] = false
     end
-    opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP (lan966x_evb only)") do |v|
+    opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP (lan966x_a0 only)") do |v|
         $option[:norimg] = v
     end
     opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP") do |v|

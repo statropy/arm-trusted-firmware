@@ -1,4 +1,4 @@
-PLAT_VARIANT			:=	lan966x_evb
+PLAT_VARIANT			:=	lan966x_a0
 
 # Non-volatile counter values
 TFW_NVCTR_VAL			:=	2
