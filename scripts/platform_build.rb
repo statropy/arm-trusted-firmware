@@ -7,8 +7,8 @@ require 'optparse'
 
 build_platforms         = %I[lan966x_evb lan966x_sr lan966x_b0]
 build_types             = %I[debug release]
-build_variants          = %I[bl2normal bl2noop bl2noop_otp]
-build_authentifications = %I[auth ssk bssk]
+build_variants          = %I[bl2normal]
+build_authentifications = %I[auth]
 
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp' }
 build_auth_args         = { auth: '',

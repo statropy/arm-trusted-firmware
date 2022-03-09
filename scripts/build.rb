@@ -78,7 +78,7 @@ OptionParser.new do |opts|
     opts.on("--release", "Disable DEBUG") do
         $option[:debug] = false
     end
-    opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP") do |v|
+    opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP (lan966x_evb only)") do |v|
         $option[:norimg] = v
     end
     opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP") do |v|
@@ -225,25 +225,22 @@ do_cmd cmd
 
 exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
 
-if $option[:norimg]
+lsargs = %w(bin)
+
+if $option[:norimg] && pdef[:bl2_at_el3]
     img = build + "/" + $option[:platform] + ".img"
-    if pdef[:bl2_at_el3]
-        # BL2 placed in the start of FLASH
-        b = "#{build}/bl2.bin"
-        FileUtils.cp(b, img)
-        tsize = 80
-        do_cmd("truncate --size=#{tsize}k #{img}")
-        # Reserve UBoot env 2 * 256k
-        tsize += 512
-        do_cmd("truncate --size=#{tsize}k #{img}")
-        # Lastly, the FIP
-        do_cmd("cat #{build}/fip.bin >> #{img}")
-    else
-        # BL2 is in FIP, FIP start at 0
-        FileUtils.cp("#{build}/fip.bin", img)
-    end
+    # BL2 placed in the start of FLASH
+    b = "#{build}/bl2.bin"
+    FileUtils.cp(b, img)
+    tsize = 80
+    do_cmd("truncate --size=#{tsize}k #{img}")
+    # Reserve UBoot env 2 * 256k
+    tsize += 512
+    do_cmd("truncate --size=#{tsize}k #{img}")
+    # Lastly, the FIP
+    do_cmd("cat #{build}/fip.bin >> #{img}")
     # List binaries
-    do_cmd("ls -l #{build}/*.bin #{build}/*.img")
+    lsargs << "img"
 end
 
 if $option[:gptimg]
@@ -292,7 +289,12 @@ if $option[:gptimg]
         end
     end
     do_cmd("gdisk -l #{gptfile}")
+    # List binaries
+    lsargs << "gpt"
 end
+
+# List binaries
+do_cmd("ls -l " + lsargs.map{|s| "#{build}/*.#{s}"}.join(" "))
 
 if $option[:coverity]
     do_cmd("cov-analyze -dir #{$cov_dir} --jobs auto")
