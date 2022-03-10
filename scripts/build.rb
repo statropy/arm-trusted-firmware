@@ -258,6 +258,9 @@ if $option[:gptimg]
         # reserve last 64 blocks for backup partition table
         back_partsize = 64
         total_blocks = (fip_blocks * 2) + main_partsize + back_partsize
+	# Add env partition, 1MB
+	env_blocks = (1024 * 1024) / 512
+	total_blocks += env_blocks
         if $option[:linux_boot]
             # 256M root
             root_blocks = (256 * 1024 * 1024) / 512
@@ -278,9 +281,13 @@ if $option[:gptimg]
         do_cmd("parted -s #{gptfile} mkpart fip.bak #{p_start}s #{p_end}s")
         # Inject data
         do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        # Add U-Boot environment partition
+        p_start = p_end + 1
+        p_end += env_blocks
+        do_cmd("parted -s #{gptfile} mkpart Env #{p_start}s #{p_end}s")
         if $option[:linux_boot]
             # Add root partition
-            p_start += fip_blocks
+            p_start = p_end + 1
             p_end += root_blocks
             do_cmd("parted -s #{gptfile} mkpart root #{p_start}s #{p_end}s")
             # Inject data
