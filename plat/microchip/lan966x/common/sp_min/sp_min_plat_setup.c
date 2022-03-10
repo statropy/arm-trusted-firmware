@@ -155,6 +155,12 @@ static void configure_sram(void)
 					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128K),
 					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_128K),
 					MATRIX_LANSECH_NS(0));
+	/* Enable QSPI0 for NS access */
+	matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
+					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+					MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
+					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
+					MATRIX_LANSECH_NS(0));
 	/* Enable USB for NS access.
 	 * Has two RAMs, MAP:128K + xHCI:512K
 	 */
