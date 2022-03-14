@@ -3,6 +3,7 @@
 require 'pp'
 require 'io/console'
 require 'digest/crc32'
+require 'socket'
 require 'optparse'
 
 CMD_SOF  = '>'
@@ -108,8 +109,15 @@ OptionParser.new do |opts|
     opts.version = 0.1
 
     opts.on('-d', '--device <name>', 'Use device for communication') do |name|
-      STDOUT.reopen(name, 'wb')
-      STDIN.reopen(name, 'rb')
+        s = name.split(":")
+        if s.length > 1
+            s = TCPSocket.open(s[0], s[1])
+            STDOUT.reopen(s)
+            STDIN.reopen(s)
+        else
+            STDOUT.reopen(name, 'wb')
+            STDIN.reopen(name, 'rb')
+        end
     end
 
     opts.on('-l', '--logfile <filename>', 'Use file for logging') do |filename|
