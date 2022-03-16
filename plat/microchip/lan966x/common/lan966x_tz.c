@@ -157,6 +157,10 @@ void lan966x_tz_init(void)
 	mmio_write_32(GPV_SECURITY_DDR_MAIN(LAN966X_GPV_BASE),
 		      GPV_SECURITY_DDR_MAIN_SECURITY_DDR_MAIN(1));
 
+	/* Configure SECURITY_CuPHY for Non-Secure */
+	mmio_write_32(GPV_SECURITY_CuPHY(LAN966X_GPV_BASE),
+		      GPV_SECURITY_CuPHY_SECURITY_CuPHY(1));
+
 	/* Configure Misc AHB for Non-Secure */
 	mmio_write_32(GPV_SECURITY_APB_MAIN3(LAN966X_GPV_BASE),
 		      BIT(4) |	/* Timers */
