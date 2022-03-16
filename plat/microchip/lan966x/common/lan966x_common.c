@@ -12,6 +12,7 @@
 #include <drivers/microchip/lan966x_clock.h>
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/tz_matrix.h>
+#include <drivers/microchip/usb.h>
 #include <drivers/microchip/vcore_gpio.h>
 #include <fw_config.h>
 #include <lib/libc/errno.h>
