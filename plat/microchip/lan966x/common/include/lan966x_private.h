@@ -60,8 +60,6 @@ void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 void lan966x_pcie_init(void);
-void lan966x_usb_init(uint32_t bias, uint32_t rbias);
-void lan966x_usb_register_console(void);
 void lan966x_validate_strapping(void);
 void lan966x_crash_console(console_t *console);
 

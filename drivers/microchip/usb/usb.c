@@ -14,9 +14,9 @@
 #include <lib/mmio.h>
 #include <string.h>
 
+#include <drivers/microchip/usb.h>
+
 #include "lan966x_regs.h"
-#include "lan966x_targets.h"
-#include "lan966x_private.h"
 
 #define CDC_DEV_DESC_CLASS 0x02
 #define CDC_DEV_DESC_SUBCLASS 0x00
