@@ -32,7 +32,7 @@ static const lan969x_tcreg_t css_rules[] = {
 };
 
 /* Only NS access by default */
-static const lan969x_tcreg_t hss_rules[] __used = { /* XXX __used XXX */
+static const lan969x_tcreg_t hss_rules[] = {
 	{ 0, TZC_REGION_S_NONE, PLAT_ARM_TZC_NS_DEV_ACCESS, }
 };
 
@@ -61,13 +61,16 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0);
 }
 
-void lan969x_tzc_configure(uintptr_t tzc_base, const lan969x_tcreg_t *regions, size_t nregs)
+void lan969x_tzc_configure(uintptr_t tzc_base, int filters, const lan969x_tcreg_t *regions, size_t nregs)
 {
 	const lan969x_tcreg_t *reg;
 	int i;
 
 	VERBOSE("Configuring TZC@%08lx\n", tzc_base);
 	tzc400_init(tzc_base);
+	if (filters)
+		/* Override # of filters */
+		tzc400_configure_filter_count(filters);
 	tzc400_disable_filters();
 
 	for (i = 0, reg = regions; i < nregs; i++, reg++) {
@@ -107,10 +110,8 @@ void lan969x_tz_init(void)
 	setup_ns_access(LAN969X_GPV_BASE, LAN969X_TZPM_BASE);
 
 	/* TZC: DDR accesess through CSS (128bit) */
-	lan969x_tzc_configure(LAN969X_TZC_CSS_BASE, css_rules, ARRAY_SIZE(css_rules));
+	lan969x_tzc_configure(LAN969X_TZC_CSS_BASE, 0, css_rules, ARRAY_SIZE(css_rules));
 
 	/* TZC: DDR access through HSS/HMATRIX (64bit) */
-	// NB. Disabled for now as tzc400_enable_filters() will hang, probably due to the default
-	// config set up by backend in order to debug the system. XXX MUST BE FIXED XXX
-	//lan969x_tzc_configure(LAN969X_TZC_MAIN_HSS_BASE, hss_rules, ARRAY_SIZE(hss_rules));
+	lan969x_tzc_configure(LAN969X_TZC_MAIN_HSS_BASE, 2, hss_rules, ARRAY_SIZE(hss_rules));
 }
