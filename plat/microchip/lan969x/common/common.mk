@@ -69,6 +69,8 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_image_load.c	\
 				plat/microchip/common/lan966x_sjtag.c
 
+BL2U_SOURCES		+=	${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c
+
 BL31_SOURCES		+=	${GICV2_SOURCES}				\
 				${LAN969X_PLAT_COMMON}/lan969x_bl31_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_pm.c		\
