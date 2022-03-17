@@ -218,9 +218,12 @@ void plat_bootstrap_set_strapping(soc_strapping value)
 		/* And new strapping should be limited as below */
 		if (value == LAN969X_STRAP_BOOT_MMC ||
 		    value == LAN969X_STRAP_BOOT_QSPI ||
-		    value == LAN969X_STRAP_BOOT_SD) {
+		    value == LAN969X_STRAP_BOOT_SD ||
+		    value == LAN969X_STRAP_PCIE_ENDPOINT) {
 			NOTICE("OVERRIDE strapping = 0x%08x\n", value);
 			mmio_write_32(CPU_GPR(LAN969X_CPU_BASE, 0), GPR0_STRAPPING_SET | value);
+			/* Do initialization according to new source */
+			lan969x_io_bootsource_init();
 		} else {
 			ERROR("Strap override %d illegal\n", value);
 		}

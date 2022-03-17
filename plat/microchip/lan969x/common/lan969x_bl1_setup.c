@@ -97,24 +97,17 @@ void bl1_plat_arch_setup(void)
 #endif /* __aarch64__ */
 }
 
-static void bl1_io_setup(void)
-{
-	static bool is_initialized;
-	if (!is_initialized) {
-		if (lan969x_get_boot_source() != BOOT_SOURCE_NONE) {
-			lan969x_io_setup();
-			/* Prepare fw_config from applicable boot source */
-			lan966x_load_fw_config(FW_CONFIG_ID);
-			lan969x_fwconfig_apply();
-			is_initialized = true;
-		}
-	}
-}
-
 void bl1_platform_setup(void)
 {
 	/* IO */
-	bl1_io_setup();
+	lan969x_io_setup();
+
+	/* Load fw_config */
+	if (lan969x_get_boot_source() != BOOT_SOURCE_NONE) {
+		/* Prepare fw_config from applicable boot source */
+		lan966x_load_fw_config(FW_CONFIG_ID);
+		lan969x_fwconfig_apply();
+	}
 
 	/* SJTAG: Configure challenge, no freeze */
 	//lan966x_sjtag_configure();
