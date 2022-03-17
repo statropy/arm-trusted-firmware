@@ -89,11 +89,15 @@ static uint32_t MON_PUT_Data(const void *buffer, uint32_t length, uint32_t crc)
 
 static void bootstrap_RxPayload(uint8_t *data, bootstrap_req_t *req)
 {
+	int datasize = req->len;
+
 	if (req->flags & BSTRAP_REQ_FLAG_BINARY) {
-		MON_GET_Data((char*)data, req->len);
+		uint8_t *ptr = data;
+
+		while (datasize--)
+			*ptr++ = (uint8_t) MON_GET();
 		req->crc = Crc32c(req->crc, data, req->len);
 	} else {
-		int datasize = req->len;
 		char in[2];
 
 		while (datasize--) {
