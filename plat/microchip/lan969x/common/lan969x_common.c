@@ -11,6 +11,7 @@
 #include <drivers/microchip/flexcom_uart.h>
 #include <drivers/microchip/lan966x_clock.h>
 #include <drivers/microchip/qspi.h>
+#include <drivers/microchip/usb.h>
 #include <drivers/microchip/vcore_gpio.h>
 #include <fw_config.h>
 #include <lib/mmio.h>
@@ -18,6 +19,7 @@
 
 #include "lan969x_regs.h"
 #include "lan969x_private.h"
+#include "plat_otp.h"
 
 /* Define global fw_config, set default MMC settings */
 lan966x_fw_config_t lan966x_fw_config = {
@@ -134,7 +136,44 @@ void lan969x_console_init(void)
 {
 	//vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
-	lan969x_flexcom_init(FLEXCOM0);
+	switch (lan969x_get_strapping()) {
+	case LAN969X_STRAP_BOOT_MMC_FC:
+	case LAN969X_STRAP_BOOT_QSPI_FC:
+	case LAN969X_STRAP_BOOT_SD_FC:
+	case LAN969X_STRAP_BOOT_MMC_TFAMON_FC:
+	case LAN969X_STRAP_BOOT_QSPI_TFAMON_FC:
+	case LAN969X_STRAP_BOOT_SD_TFAMON_FC:
+		lan969x_flexcom_init(FC_DEFAULT);
+		break;
+	case LAN969X_STRAP_TFAMON_FC0:
+		lan969x_flexcom_init(FLEXCOM0);
+		break;
+	case LAN969X_STRAP_TFAMON_FC2:
+		lan969x_flexcom_init(FLEXCOM2);
+		break;
+	case LAN969X_STRAP_TFAMON_FC3:
+		lan969x_flexcom_init(FLEXCOM3);
+		break;
+	case LAN969X_STRAP_TFAMON_FC4:
+		lan969x_flexcom_init(FLEXCOM4);
+		break;
+	case LAN969X_STRAP_TFAMON_USB:
+		if (0) {
+			uint32_t bias, rbias;
+
+			bias = otp_read_com_bias_bg_mag_trim();
+			rbias = otp_read_com_rbias_mag_trim();
+			lan966x_usb_init(bias, rbias);
+			lan966x_usb_register_console();
+		} else {
+			ERROR("USB not yet available on LAN969X\n");
+			panic();
+		}
+		break;
+	default:
+		/* No console */
+		break;
+	}
 }
 
 uintptr_t plat_get_ns_image_entrypoint(void)
@@ -192,32 +231,49 @@ void plat_bootstrap_set_strapping(soc_strapping value)
 
 boot_source_type lan969x_get_boot_source(void)
 {
-        boot_source_type boot_source;
+	boot_source_type boot_source;
 
-        switch (lan969x_get_strapping()) {
-        case LAN969X_STRAP_BOOT_MMC:
-                boot_source = BOOT_SOURCE_EMMC;
-                break;
-        case LAN969X_STRAP_BOOT_QSPI:
-                boot_source = BOOT_SOURCE_QSPI;
-                break;
-        case LAN969X_STRAP_BOOT_SD:
-                boot_source = BOOT_SOURCE_SDMMC;
-                break;
-        default:
-                boot_source = BOOT_SOURCE_NONE;
-                break;
-        }
+	switch (lan969x_get_strapping()) {
+	case LAN969X_STRAP_BOOT_MMC:
+	case LAN969X_STRAP_BOOT_MMC_FC:
+	case LAN969X_STRAP_BOOT_MMC_TFAMON_FC:
+		boot_source = BOOT_SOURCE_EMMC;
+		break;
+	case LAN969X_STRAP_BOOT_QSPI:
+	case LAN969X_STRAP_BOOT_QSPI_FC:
+	case LAN969X_STRAP_BOOT_QSPI_TFAMON_FC:
+		boot_source = BOOT_SOURCE_QSPI;
+		break;
+	case LAN969X_STRAP_BOOT_SD:
+	case LAN969X_STRAP_BOOT_SD_FC:
+	case LAN969X_STRAP_BOOT_SD_TFAMON_FC:
+		boot_source = BOOT_SOURCE_SDMMC;
+		break;
+	default:
+		boot_source = BOOT_SOURCE_NONE;
+		break;
+	}
 
-        return boot_source;
+	return boot_source;
 }
 
 bool lan969x_monitor_enabled(void)
 {
-        soc_strapping strapping = lan969x_get_strapping();
+	switch (lan969x_get_strapping()) {
+	case LAN969X_STRAP_BOOT_MMC_TFAMON_FC:
+	case LAN969X_STRAP_BOOT_QSPI_TFAMON_FC:
+	case LAN969X_STRAP_BOOT_SD_TFAMON_FC:
+	case LAN969X_STRAP_TFAMON_FC0:
+	case LAN969X_STRAP_TFAMON_FC2:
+	case LAN969X_STRAP_TFAMON_FC3:
+	case LAN969X_STRAP_TFAMON_FC4:
+	case LAN969X_STRAP_TFAMON_USB:
+		return true;
+	default:
+		break;
+	}
 
-	return (strapping == LAN969X_STRAP_TFAMON_FC ||
-		strapping == LAN969X_STRAP_TFAMON_USB);
+	return false;
 }
 
 void lan969x_set_max_trace_level(void)
