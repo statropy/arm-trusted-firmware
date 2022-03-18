@@ -10,6 +10,7 @@
 
 #include <assert.h>
 #include <drivers/console.h>
+#include <drivers/delay_timer.h>
 #include <errno.h>
 #include <lib/mmio.h>
 #include <string.h>
@@ -17,6 +18,8 @@
 #include "lan966x_regs.h"
 #include "lan966x_targets.h"
 #include "lan966x_private.h"
+
+#define TIMEOUT_US_1S		U(1000000)
 
 #define CDC_DEV_DESC_CLASS 0x02
 #define CDC_DEV_DESC_SUBCLASS 0x00
@@ -352,14 +355,6 @@ static uint8_t usb_other_speed_config[] = {
 	0x40, 0x00, /* wMaxPacketSize = 64 */
 	0 /* Must be 0 for full-speed bulk endpoints */
 };
-
-static void lan966x_usb_pause(uint32_t val)
-{
-	register int idx = 0;
-
-	for (idx = 0; idx < val; ++idx)
-		asm volatile("nop;");
-}
 
 static bool lan966x_usb_epts_up(struct cdc *cdc)
 {
@@ -923,7 +918,7 @@ static void lan966x_usb_device_init(struct cdc *cdc)
 	/* Reset of ULPI bridge */
 	mmio_write_32(CPU_ULPI_RST(cdc->cpubase), CPU_ULPI_RST_ULPI_RST(0));
 	/* Wait for UTMI clock to be stable */
-	lan966x_usb_pause(150);
+	mdelay(1);
 	/* Disable endpoint interrupts 0-15 */
 	mmio_clrsetbits_32(UDPHS0_UDPHS_IEN(cdc->base),
 			   UDPHS0_UDPHS_IEN_EPT_M, UDPHS0_UDPHS_IEN_EPT(0));
@@ -932,17 +927,20 @@ static void lan966x_usb_device_init(struct cdc *cdc)
 
 static void lan966x_apply_trim(uintptr_t cpubase, uint32_t bias, uint32_t rbias)
 {
-	mmio_write_32(CPU_USB_BIAS_MAG(cpubase),
-		      CPU_USB_BIAS_MAG_TRIM(bias));
-	mmio_write_32(CPU_USB_RBIAS_MAG(cpubase),
-		      CPU_USB_RBIAS_MAG_TRIM(rbias));
+	/* NB: Only aply non-zero values as OTP may be uninitialized */
+	if (bias)
+		mmio_write_32(CPU_USB_BIAS_MAG(cpubase),
+			      CPU_USB_BIAS_MAG_TRIM(bias));
+	if (rbias)
+		mmio_write_32(CPU_USB_RBIAS_MAG(cpubase),
+			      CPU_USB_RBIAS_MAG_TRIM(rbias));
 }
 
 void lan966x_usb_init(uint32_t bias, uint32_t rbias)
 {
 	struct cdc *cdc = &setup_cdc;
 	union usb_request *req = &setup_payload;
-	uint32_t timeout = (75 << 20); /* Approx. 1 minute */
+	uint64_t timeout = timeout_init_us(TIMEOUT_US_1S);
 
 	VERBOSE("lan966x: %s\n", __func__);
 	memset(cdc, 0x0, sizeof(struct cdc));
@@ -967,7 +965,7 @@ void lan966x_usb_init(uint32_t bias, uint32_t rbias)
 
 	while (!setup_cdc.current_connection || !setup_cdc.set_line) {
 		lan966x_usb_is_configured(&setup_cdc);
-		if (--timeout == 0) {
+		if (timeout_elapsed(timeout)) {
 			VERBOSE("lan966x: %s, timeout\n", __func__);
 			goto byebye;
 		}
