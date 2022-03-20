@@ -124,24 +124,16 @@ void plat_bootstrap_trigger_fwu(void)
 	is_fwu_needed = true;
 }
 
-static void bl1_io_setup(void)
-{
-	static bool is_initialized;
-	if (!is_initialized) {
-		if (lan966x_bootable_source()) {
-			lan966x_io_setup();
-			/* Prepare fw_config from applicable boot source */
-			lan966x_load_fw_config(FW_CONFIG_ID);
-			lan966x_fwconfig_apply();
-			is_initialized = true;
-		}
-	}
-}
-
 void bl1_platform_setup(void)
 {
 	/* IO */
-	bl1_io_setup();
+	lan966x_io_setup();
+
+	/* Prepare fw_config from applicable boot source */
+	if (lan966x_bootable_source()) {
+		lan966x_load_fw_config(FW_CONFIG_ID);
+		lan966x_fwconfig_apply();
+	}
 
 	/* SJTAG: Configure challenge, no freeze */
 	lan966x_sjtag_configure();
@@ -150,9 +142,6 @@ void bl1_platform_setup(void)
 	if (lan966x_monitor_enabled()) {
 		plat_bl1_bootstrap_monitor();
 	}
-
-	/* IO again - boot src may be overridden */
-	bl1_io_setup();
 }
 
 void bl1_plat_prepare_exit(entry_point_info_t *ep_info)

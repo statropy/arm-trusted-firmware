@@ -12,7 +12,7 @@ platforms = {
         :uboot =>  "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_sr_atf.bin",
         :dtb   =>  "lan966x-sr.dtb",
         :bl2_at_el3 => false ],
-    "lan966x_evb"	=> Hash[
+    "lan966x_a0"	=> Hash[
         :arch  => "arm",
         :uboot =>  "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
         :dtb   =>  "lan966x_pcb8291.dtb",
@@ -61,7 +61,7 @@ $option = { :platform	=> "lan966x_sr",
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2021.02.7-667",
+             :sdk	=> "2021.02.7-686",
              :norimg	=> true,
              :gptimg	=> false,
              :ramusage	=> true,
@@ -104,7 +104,7 @@ OptionParser.new do |opts|
     opts.on("--release", "Disable DEBUG") do
         $option[:debug] = false
     end
-    opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP") do |v|
+    opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP (lan966x_a0 only)") do |v|
         $option[:norimg] = v
     end
     opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP") do |v|
@@ -265,25 +265,22 @@ do_cmd cmd
 
 exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
 
-if $option[:norimg]
+lsargs = %w(bin)
+
+if $option[:norimg] && pdef[:bl2_at_el3]
     img = build + "/" + $option[:platform] + ".img"
-    if pdef[:bl2_at_el3]
-        # BL2 placed in the start of FLASH
-        b = "#{build}/bl2.bin"
-        FileUtils.cp(b, img)
-        tsize = 80
-        do_cmd("truncate --size=#{tsize}k #{img}")
-        # Reserve UBoot env 2 * 256k
-        tsize += 512
-        do_cmd("truncate --size=#{tsize}k #{img}")
-        # Lastly, the FIP
-        do_cmd("cat #{build}/fip.bin >> #{img}")
-    else
-        # BL2 is in FIP, FIP start at 0
-        FileUtils.cp("#{build}/fip.bin", img)
-    end
+    # BL2 placed in the start of FLASH
+    b = "#{build}/bl2.bin"
+    FileUtils.cp(b, img)
+    tsize = 80
+    do_cmd("truncate --size=#{tsize}k #{img}")
+    # Reserve UBoot env 2 * 256k
+    tsize += 512
+    do_cmd("truncate --size=#{tsize}k #{img}")
+    # Lastly, the FIP
+    do_cmd("cat #{build}/fip.bin >> #{img}")
     # List binaries
-    do_cmd("ls -l #{build}/*.bin #{build}/*.img")
+    lsargs << "img"
 end
 
 if $option[:gptimg]
@@ -301,6 +298,9 @@ if $option[:gptimg]
         # reserve last 64 blocks for backup partition table
         back_partsize = 64
         total_blocks = (fip_blocks * 2) + main_partsize + back_partsize
+	# Add env partition, 1MB
+	env_blocks = (1024 * 1024) / 512
+	total_blocks += env_blocks
         if $option[:linux_boot]
             # 256M root
             root_blocks = (256 * 1024 * 1024) / 512
@@ -329,10 +329,14 @@ if $option[:gptimg]
         do_cmd("parted -s #{gptfile} mkpart fip.bak #{p_start}s #{p_end}s")
         # Inject data
         do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        # Add U-Boot environment partition
+        p_start = p_end + 1
+        p_end += env_blocks
+        do_cmd("parted -s #{gptfile} mkpart Env #{p_start}s #{p_end}s")
         if $option[:linux_boot]
             # Add root partition
             p_start = p_end + 1
-            p_end = p_start + root_blocks -1
+            p_end += root_blocks
             do_cmd("parted -s #{gptfile} mkpart root #{p_start}s #{p_end}s")
             # Inject data
             root = sdk_dir + $arch[:linux] + "rootfs.ext4"
@@ -348,7 +352,12 @@ if $option[:gptimg]
         end
     end
     do_cmd("gdisk -l #{gptfile}")
+    # List binaries
+    lsargs << "gpt"
 end
+
+# List binaries
+do_cmd("ls -l " + lsargs.map{|s| "#{build}/*.#{s}"}.join(" "))
 
 if $option[:coverity]
     do_cmd("cov-analyze -dir #{$cov_dir} --jobs auto")

@@ -1,13 +1,11 @@
-PLAT_VARIANT			:=	lan966x_evb
+PLAT_VARIANT			:=	lan966x_a0
 
 # Non-volatile counter values
 TFW_NVCTR_VAL			:=	2
 NTFW_NVCTR_VAL			:=	3
 
 # Build variant that has OTP emulation data in the FW_CONFIG and a noop BL2
-ifeq (${BL2_VARIANT},NOOP_OTP)
 LAN966X_OTP_DATA		:=	scripts/otp_data.yaml
-endif
 
 include plat/microchip/lan966x/common/common.mk
 

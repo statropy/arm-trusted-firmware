@@ -23,12 +23,24 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0x12AC4B5D);
 	mmio_setbits_32(TZPM_TZPCTL0(tzpm),
 			TZPM_TZPCTL0_QSPI0(1) |
+			TZPM_TZPCTL0_QSPI2(1) |
+			TZPM_TZPCTL0_MCAN0(1) |
+			TZPM_TZPCTL0_MCAN1(1) |
+			TZPM_TZPCTL0_UDPHS0(1) |
 			TZPM_TZPCTL0_SDMMC(1));
 	mmio_setbits_32(TZPM_TZPCTL1(tzpm),
 			TZPM_TZPCTL1_FLEXCOM0(1) |
 			TZPM_TZPCTL1_FLEXCOM1(1) |
 			TZPM_TZPCTL1_FLEXCOM2(1) |
-			TZPM_TZPCTL1_FLEXCOM3(1));
+			TZPM_TZPCTL1_FLEXCOM3(1) |
+			TZPM_TZPCTL1_FLEXCOM4(1) |
+			TZPM_TZPCTL1_SHA(1) |
+			TZPM_TZPCTL1_XDMA(1) |
+			TZPM_TZPCTL1_QSPI1(1) |
+			TZPM_TZPCTL1_AES(1) |
+			TZPM_TZPCTL1_TRNG(1));
+	mmio_setbits_32(TZPM_TZPCTL2(tzpm),
+			TZPM_TZPCTL2_PKCC(1));
 	mmio_setbits_32(TZPM_TZPCTL3(tzpm),
 			TZPM_TZPCTL3_RTE(1) |
 			TZPM_TZPCTL3_FDMA(1));
@@ -141,6 +153,19 @@ void lan966x_tz_init(void)
 	/* Configure SECURITY_DDR_CSS for Non-Secure */
 	mmio_write_32(GPV_SECURITY_DDR_CSS(LAN966X_GPV_BASE),
 		      GPV_SECURITY_DDR_CSS_SECURITY_DDR_CSS(1));
+
+	/* Configure SECURITY_DDR_MAIN for Non-Secure */
+	mmio_write_32(GPV_SECURITY_DDR_MAIN(LAN966X_GPV_BASE),
+		      GPV_SECURITY_DDR_MAIN_SECURITY_DDR_MAIN(1));
+
+	/* Configure SECURITY_CuPHY for Non-Secure */
+	mmio_write_32(GPV_SECURITY_CuPHY(LAN966X_GPV_BASE),
+		      GPV_SECURITY_CuPHY_SECURITY_CuPHY(1));
+
+	/* Configure Misc AHB for Non-Secure */
+	mmio_write_32(GPV_SECURITY_APB_MAIN3(LAN966X_GPV_BASE),
+		      BIT(4) |	/* Timers */
+		      BIT(5));	/* WDT */
 
 	/* NS periph access */
 	setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);

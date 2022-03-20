@@ -1,14 +1,15 @@
 #!/bin/env ruby
 # The BL1 binary is controlled by the BL2_AT_EL3 flag
-# in plat/microchip/lan966x/lan966x_evb/platform.mk
+# in plat/microchip/lan966x/lan966x_a0/platform.mk
 
 require 'fileutils'
 require 'optparse'
 require 'pp'
 
-build_platforms         = %I[lan966x_evb lan966x_sr lan966x_b0 lan969x_sr]
+build_platforms         = %I[lan966x_a0 lan966x_sr lan966x_b0 lan969x_sr]
 build_types             = %I[debug release]
 build_authentifications = %I[auth ssk bssk]
+build_variants          = %I[bl2normal]
 
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp' }
 build_auth_args         = { auth: '',
@@ -27,19 +28,6 @@ OptionParser.new do |opts|
   end
 end.order!
 
-def build_variants(platform)
-    v = []
-    case platform
-    when :lan966x_b0
-        v = %I[bl2normal bl2noop bl2noop_otp]
-    when :lan966x_evb, :lan966x_sr, :lan969x_sr
-        v = %I[bl2normal]
-    else
-        raise "Unknown platform: #{platform}"
-    end
-    return v
-end
-
 def banner(artifacts, cmd)
   5.times { puts }
   puts '#' * 80
@@ -50,7 +38,7 @@ def banner(artifacts, cmd)
 end
 
 def cleanup(do_exit = false)
-  files = Dir.glob('*.bl1') + Dir.glob('*.bin') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt') + Dir.glob('*.dump')
+  files = Dir.glob('*.bl1') + Dir.glob('*.bin') + Dir.glob('*.bl1.hex') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt') + Dir.glob('*.dump')
   FileUtils.rm_f(files, verbose: true)
   FileUtils.rm_rf('build', verbose: true)
   FileUtils.rm_rf('artifacts', verbose: true)
@@ -69,19 +57,23 @@ cleanup(true) if option[:clean]
 pre_build
 build_platforms.each do |bp|
   build_types.each do |bt|
-    build_variants(bp).each do |bv|
+    build_variants.each do |bv|
       build_authentifications.each do |ba|
         dst = "#{bp}-#{bt}-#{bv}-#{ba}"
         artifacts = [
           ["build/#{bp}/#{bt}/fip.bin",      "#{dst}.fip"],
           ["build/#{bp}/#{bt}/fip.gpt",      "#{dst}.gpt"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
-          ["build/#{bp}/#{bt}/bl1/bl1.dump", "#{dst}-bl1.dump"],
-          ["build/#{bp}/#{bt}/bl2/bl2.dump", "#{dst}-bl2.dump"]
         ]
         # Limit the BL1 image artifacts
-        dst = "#{bp}-#{bt}"
-        artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
+        # dst = "#{bp}-#{bt}"
+        # if bp == :lan966x_sr && bv == :bl2normal && ba == :auth
+        #   artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
+        #   artifacts << ["build/#{bp}/#{bt}/bl1.hex",      "#{dst}.bl1.hex"]
+        # elsif bp == :lan966x_b0 && bt == :release && bv == :bl2normal && ba == :auth
+        #   artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
+        #   artifacts << ["build/#{bp}/#{bt}/bl1.hex",      "#{dst}.bl1.hex"]
+        # end
         cargs = "--#{bt} --gptimg --norimg #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
         cmd_clean = 'ruby scripts/build.rb distclean'

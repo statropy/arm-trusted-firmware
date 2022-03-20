@@ -312,6 +312,8 @@ void plat_bootstrap_set_strapping(uint8_t value)
 		    value == LAN966X_STRAP_PCIE_ENDPOINT) {
 			NOTICE("OVERRIDE strapping = 0x%08x\n", value);
 			mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), GPR0_STRAPPING_SET | value);
+			/* Do initialization according to new source */
+			lan966x_io_bootsource_init();
 		} else {
 			ERROR("Strap override %d illegal\n", value);
 		}

@@ -13,6 +13,8 @@
 #include <platform_def.h>
 #include <sha.h>
 
+#include "aes.h"
+
 #if defined(LAN966X_AES_TESTS)
 #define AES_TEST_MAXBUF	64
 static const struct {
@@ -74,6 +76,7 @@ static void aes_run_tests(void)
 {
 	int i, rc;
 	uint8_t buf[AES_TEST_MAXBUF];
+	uint8_t tag[16];
 
 	for (i = 0; i < ARRAY_SIZE(test_data); i++) {
 		assert(test_data[i].ct_len <= AES_TEST_MAXBUF);
@@ -91,14 +94,34 @@ static void aes_run_tests(void)
 			WARN("test(%d): decrypt failed: %d\n", i, rc);
 			assert(0);
 		} else {
+			if (memcmp(buf, test_data[i].pt, test_data[i].ct_len)) {
+				WARN("test(%d): decrypt data compare fails\n", i);
+				assert(0);
+			}
 			WARN("test(%d): decrypt succeeded: %d\n", i, rc);
 		}
-		if (memcmp(buf, test_data[i].pt, test_data[i].ct_len)) {
-			WARN("test(%d): data compare fails\n", i);
+
+		/* Now encrypt */
+		memcpy(buf, test_data[i].pt, test_data[i].ct_len);
+		rc = aes_gcm_encrypt(buf, test_data[i].ct_len,
+				     test_data[i].key, sizeof(test_data[i].key),
+				     test_data[i].iv, sizeof(test_data[i].iv),
+				     tag, sizeof(tag));
+		if (rc) {
+			WARN("test(%d): encrypt failed: %d\n", i, rc);
 			assert(0);
+		} else {
+			if (memcmp(buf, test_data[i].ct, test_data[i].ct_len)) {
+				WARN("test(%d): encrypt data compare fails\n", i);
+				assert(0);
+			}
+			if (memcmp(tag, test_data[i].tag, sizeof(tag))) {
+				WARN("test(%d): encrypt tag compare fails\n", i);
+				assert(0);
+			}
+			WARN("test(%d): encrypt succeeded: %d\n", i, rc);
 		}
 	}
-
 }
 #endif
 
