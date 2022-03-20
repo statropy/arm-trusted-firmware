@@ -223,7 +223,7 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 {
 	int rc;
 
-	VERBOSE("aes-gcm-decrypt: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
+	VERBOSE("aes-gcm-decrypt: data_len %zd, key_len %d, iv_len %d, tag_len %d\n",
 		len, key_len, iv_len, tag_len);
 
 	rc = aes_setup(false, len, key, key_len, iv, iv_len);
@@ -246,7 +246,7 @@ int aes_gcm_encrypt(void *data_ptr, size_t len,
 {
 	int rc;
 
-	VERBOSE("aes-gcm-encrypt: data_len %d, key_len %d, iv_len %d, tag_len %d\n",
+	VERBOSE("aes-gcm-encrypt: data_len %zd, key_len %d, iv_len %d, tag_len %d\n",
 		len, key_len, iv_len, tag_len);
 
 	rc = aes_setup(true, len, key, key_len, iv, iv_len);
