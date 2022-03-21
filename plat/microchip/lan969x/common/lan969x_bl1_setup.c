@@ -61,6 +61,12 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 
 void bl1_early_platform_setup(void)
 {
+	/* Timer */
+	lan969x_timer_init();
+
+	/* Enable arch timer */
+	generic_delay_timer_init();
+
 	/* Strapping */
 	lan969x_init_strapping();
 
@@ -69,12 +75,6 @@ void bl1_early_platform_setup(void)
 
 	/* Console */
 	lan969x_console_init();
-
-	/* Timer */
-	lan969x_timer_init();
-
-	/* Enable arch timer */
-	generic_delay_timer_init();
 
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN969X_SRAM_BASE;
