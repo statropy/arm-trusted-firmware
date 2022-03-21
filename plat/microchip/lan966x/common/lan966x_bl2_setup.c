@@ -93,11 +93,11 @@ static void bl2_early_platform_setup(void)
 	lan966x_timer_init();
 #endif
 
-	/* Limit trace level if needed */
-	lan966x_set_max_trace_level();
-
 	/* Enable arch timer */
 	generic_delay_timer_init();
+
+	/* Limit trace level if needed */
+	lan966x_set_max_trace_level();
 
 	/* Console */
 	lan966x_console_init();
