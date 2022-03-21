@@ -10,8 +10,7 @@ debugger = Debugger()
 debugger.getCurrentExecutionContext().getExecutionService().stop()
 
 # Run until BL2
-addr = lan966x.abs_addr(debugger, 0x100000)
-lan966x.run_to(debugger, addr)
+lan966x.run_to(debugger, "bl2")
 
 build = lan966x.get_build_path()
 

@@ -9,7 +9,7 @@ debugger = Debugger()
 # Ensure target is stopped
 debugger.getCurrentExecutionContext().getExecutionService().stop()
 
-addr = lan966x.abs_addr(debugger, 0x00100000)
+addr = lan966x.start_addr(debugger, "bl2")
 
 # Set PC, Clear old breakpoints
 debugger.getCurrentExecutionContext().getExecutionService().setExecutionAddress(addr)

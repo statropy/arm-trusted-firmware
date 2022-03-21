@@ -10,7 +10,7 @@ debugger = Debugger()
 debugger.getCurrentExecutionContext().getExecutionService().stop()
 
 # Run until BL33
-lan966x.run_to(debugger, "N:0x60200000")
+lan966x.run_to(debugger, "bl33")
 
 bin = "/opt/mscc/mscc-brsdk-arm-2021.02-608/arm-cortex_a8-linux-gnu/bootloaders/lan966x/"
 if lan966x.target_is_fpga(debugger):

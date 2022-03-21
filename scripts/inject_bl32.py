@@ -10,7 +10,7 @@ debugger = Debugger()
 debugger.getCurrentExecutionContext().getExecutionService().stop()
 
 # Run until BL32
-lan966x.run_to(debugger, "S:0x60000000")
+lan966x.run_to(debugger, "bl32")
 
 build = lan966x.get_build_path()
 

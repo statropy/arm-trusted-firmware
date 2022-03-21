@@ -53,8 +53,8 @@ def load_stage(debugger, stage, elf, bin):
     load_stage_binary(debugger, stage, bin)
     print("{} image loadeded - set breakpoints and/or continue".format(stage));
 
-def run_to(debugger, address):
-    debugger.setHardwareAddressBreakpoint(address, True)
+def run_to(debugger, context):
+    debugger.setHardwareAddressBreakpoint(start_addr(debugger, context), True)
     try:
         debugger.run()
         debugger.waitForStop(60000)
@@ -71,13 +71,27 @@ def target_is_laguna(debugger):
     ec = debugger.getCurrentExecutionContext()
     return ec.getRegisterService().getSize("PC") == 64
 
-def abs_addr(debugger, addr):
-    prefix = ""
+def start_addr(debugger, context):
+    addr = ""
     if target_is_laguna(debugger):
-        prefix = "EL3"
+        if context == "bl1":
+            addr = "EL3:0"
+        elif context == "bl2":
+            addr = "EL1S:0x00100000"
+        elif context == "bl31":
+            addr = "EL3:0x000120000"
+        elif context == "bl33":
+            addr = "EL1N:0x60000000"
     else:
-        prefix = "S"
-    return "{}:{}".format(prefix,tohex(addr))
+        if context == "bl1":
+            addr = "S:0"
+        elif context == "bl2":
+            addr = "S:0x00100000"
+        elif context == "bl32":
+            addr = "S:0x60000000"
+        elif context == "bl33":
+            addr = "N:0x60200000"
+    return addr
 
 def target_is_fpga(debugger):
     baddr = "S:0xE00C0080"
