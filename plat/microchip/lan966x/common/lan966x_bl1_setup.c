@@ -59,6 +59,12 @@ struct meminfo *bl1_plat_sec_mem_layout(void)
 
 void bl1_early_platform_setup(void)
 {
+	/* Timer */
+	lan966x_timer_init();
+
+	/* Enable arch timer */
+	generic_delay_timer_init();
+
 	/* Strapping */
 	lan966x_init_strapping();
 
@@ -67,12 +73,6 @@ void bl1_early_platform_setup(void)
 
 	/* Console */
 	lan966x_console_init();
-
-	/* Timer */
-	lan966x_timer_init();
-
-	/* Enable arch timer */
-	generic_delay_timer_init();
 
 	/* Check bootstrap mask: this may abort */
 	lan966x_validate_strapping();
