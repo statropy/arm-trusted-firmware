@@ -161,6 +161,18 @@ void lan966x_tz_init(void)
 	mmio_write_32(GPV_SECURITY_CuPHY(LAN966X_GPV_BASE),
 		      GPV_SECURITY_CuPHY_SECURITY_CuPHY(1));
 
+	/* Configure SECURITY_PCIE_OB for Non-secure */
+	mmio_write_32(GPV_SECURITY_PCIE_OB(LAN966X_GPV_BASE),
+		      GPV_SECURITY_PCIE_OB_SECURITY_PCIE_OB(1));
+
+	/* Configure SECURITY_PCIE_DBI for Non-secure */
+	mmio_write_32(GPV_SECURITY_PCIE_DBI(LAN966X_GPV_BASE),
+		      GPV_SECURITY_PCIE_DBI_SECURITY_PCIE_DBI(1));
+
+	/* Configure SECURITY_PCIE_CFG for Non-secure */
+	mmio_write_32(GPV_SECURITY_PCIE_CFG(LAN966X_GPV_BASE),
+		      GPV_SECURITY_PCIE_CFG_SECURITY_PCIE_CFG(1));
+
 	/* Configure Misc AHB for Non-Secure */
 	mmio_write_32(GPV_SECURITY_APB_MAIN3(LAN966X_GPV_BASE),
 		      BIT(4) |	/* Timers */
