@@ -15,42 +15,38 @@
 
 static void plat_lan969x_pinConfig(boot_source_type mode)
 {
-#if 0
-	/* No GPIO yet */
-
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
 	switch (mode) {
 	case BOOT_SOURCE_EMMC:
-		vcore_gpio_set_alt(67, 1);	//PIO_67_SDMMC0_CMD
-		vcore_gpio_set_alt(68, 1);	//PIO_68_SDMMC0_CK
-		vcore_gpio_set_alt(69, 1);	//PIO_69_SDMMC0_DAT0
-		vcore_gpio_set_alt(70, 1);	//PIO_70_SDMMC0_DAT1
-		vcore_gpio_set_alt(71, 1);	//PIO_71_SDMMC0_DAT2
-		vcore_gpio_set_alt(72, 1);	//PIO_72_SDMMC0_DAT3
-		vcore_gpio_set_alt(73, 1);	//PIO_73_SDMMC0_DAT4
-		vcore_gpio_set_alt(74, 1);	//PIO_74_SDMMC0_DAT5
-		vcore_gpio_set_alt(75, 1);	//PIO_75_SDMMC0_DAT6
-		vcore_gpio_set_alt(76, 1);	//PIO_76_SDMMC0_DAT7
-		vcore_gpio_set_alt(77, 1);	//PIO_77_SDMMC0_RSTN
+		vcore_gpio_set_alt(14, 1);	//SDMMC0_CMD
+		vcore_gpio_set_alt(15, 1);	//SDMMC0_CK
+		vcore_gpio_set_alt(16, 1);	//SDMMC0_DAT0
+		vcore_gpio_set_alt(17, 1);	//SDMMC0_DAT1
+		vcore_gpio_set_alt(18, 1);	//SDMMC0_DAT2
+		vcore_gpio_set_alt(19, 1);	//SDMMC0_DAT3
+		vcore_gpio_set_alt(20, 1);	//SDMMC0_DAT4
+		vcore_gpio_set_alt(21, 1);	//SDMMC0_DAT5
+		vcore_gpio_set_alt(22, 1);	//SDMMC0_DAT6
+		vcore_gpio_set_alt(23, 1);	//SDMMC0_DAT7
+		vcore_gpio_set_alt(24, 1);	//SDMMC0_RSTN
 		break;
 	case BOOT_SOURCE_SDMMC:
-		vcore_gpio_set_alt(67, 1);	//PIO_67_SDMMC0_CMD
-		vcore_gpio_set_alt(68, 1);	//PIO_68_SDMMC0_CK
-		vcore_gpio_set_alt(69, 1);	//PIO_69_SDMMC0_DAT0
-		vcore_gpio_set_alt(70, 1);	//PIO_70_SDMMC0_DAT1
-		vcore_gpio_set_alt(71, 1);	//PIO_71_SDMMC0_DAT2
-		vcore_gpio_set_alt(72, 1);	//PIO_72_SDMMC0_DAT3
-		vcore_gpio_set_alt(73, 4);	//PIO_73_SDMMC0_1V8SEL
-		vcore_gpio_set_alt(74, 4);	//PIO_74_SDMMC0_WP
-		vcore_gpio_set_alt(75, 4);	//PIO_75_SDMMC0_CD
-		vcore_gpio_set_alt(76, 4);	//PIO_76_SDMMC0_LED (unused)
+		vcore_gpio_set_alt(16, 1);	//SDMMC0_CMD
+		vcore_gpio_set_alt(17, 1);	//SDMMC0_CK
+		vcore_gpio_set_alt(18, 1);	//SDMMC0_DAT0
+		vcore_gpio_set_alt(19, 1);	//SDMMC0_DAT1
+		vcore_gpio_set_alt(20, 1);	//SDMMC0_DAT2
+		vcore_gpio_set_alt(21, 1);	//SDMMC0_DAT3
+		vcore_gpio_set_alt(22, 1);	//SDMMC0_1V8SEL
+		vcore_gpio_set_alt(23, 1);	//SDMMC0_WP
+		vcore_gpio_set_alt(25, 1);	//SDMMC0_CD
+		//vcore_gpio_set_alt(xx, 4);	//SDMMC0_LED (unused)
 		break;
 	default:
 		ERROR("BL1: Not supported pin config mode: %d\n", mode);
 		break;
 	}
-#endif
 }
 
 void lan969x_mmc_plat_config(boot_source_type boot_source)

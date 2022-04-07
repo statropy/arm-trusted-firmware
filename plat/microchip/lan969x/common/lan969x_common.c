@@ -92,19 +92,22 @@ static struct lan969x_flexcom_args {
 	unsigned int clk_id;
 	int rx_gpio;
 	int tx_gpio;
+	int gpio_alt;
 } lan969x_flexcom_map[] = {
 	[FLEXCOM0] = {
-		LAN969X_FLEXCOM_0_BASE, LAN966X_CLK_ID_FLEXCOM0, 25, 26
+		LAN969X_FLEXCOM_0_BASE, LAN966X_CLK_ID_FLEXCOM0, 3, 4, 1
 	},
-	[FLEXCOM1] = { 0 },
+	[FLEXCOM1] = {
+		LAN969X_FLEXCOM_1_BASE, LAN966X_CLK_ID_FLEXCOM1, 28, 29, 2
+	},
 	[FLEXCOM2] = {
-		LAN969X_FLEXCOM_2_BASE, LAN966X_CLK_ID_FLEXCOM2, 44, 45
+		LAN969X_FLEXCOM_2_BASE, LAN966X_CLK_ID_FLEXCOM2, 65, 66, 1
 	},
 	[FLEXCOM3] = {
-		LAN969X_FLEXCOM_3_BASE, LAN966X_CLK_ID_FLEXCOM3, 52, 53
+		LAN969X_FLEXCOM_3_BASE, LAN966X_CLK_ID_FLEXCOM3, 55, 56, 2
 	},
 	[FLEXCOM4] = {
-		LAN969X_FLEXCOM_4_BASE, LAN966X_CLK_ID_FLEXCOM4, 57, 58
+		//LAN969X_FLEXCOM_4_BASE, LAN966X_CLK_ID_FLEXCOM4, 57, 58
 	},
 };
 
@@ -121,8 +124,8 @@ static void lan969x_flexcom_init(int idx)
 		return;
 
 	/* GPIOs for RX and TX */
-	//vcore_gpio_set_alt(fc->rx_gpio, 1);
-	//vcore_gpio_set_alt(fc->tx_gpio, 1);
+	vcore_gpio_set_alt(fc->rx_gpio, fc->gpio_alt);
+	vcore_gpio_set_alt(fc->tx_gpio, fc->gpio_alt);
 
 	/* Initialize the console to provide early debug support */
 	console_flexcom_register(&lan969x_console,
@@ -134,7 +137,7 @@ static void lan969x_flexcom_init(int idx)
 
 void lan969x_console_init(void)
 {
-	//vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
+	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
 	switch (lan969x_get_strapping()) {
 	case LAN969X_STRAP_BOOT_MMC_FC:

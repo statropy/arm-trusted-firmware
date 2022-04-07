@@ -19,6 +19,10 @@ PLAT_INCLUDES		:=	-Iinclude/plat/microchip/common			\
 				-Iinclude/drivers/microchip/			\
 				-I${LAN969X_PLAT}/include
 
+LAN969X_CONSOLE_SOURCES	:=	drivers/gpio/gpio.c					\
+				drivers/microchip/flexcom_uart/aarch64/flexcom_console.S \
+				drivers/microchip/gpio/vcore_gpio.c
+
 LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/io/io_encrypted.c				\
 				drivers/io/io_fip.c					\
@@ -31,19 +35,17 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/partition/partition.c				\
 				plat/microchip/lan969x/common/lan969x_io_storage.c	\
 				plat/microchip/lan969x/common/lan969x_mmc.c
-# Disabled
-#				drivers/microchip/gpio/vcore_gpio.s
 
 PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				${LAN969X_PLAT_COMMON}/aarch64/plat_helpers.S \
 				${LAN969X_PLAT_COMMON}/lan969x_common.c \
 				${LAN969X_PLAT_COMMON}/lan969x_tbbr.c	\
+				${LAN969X_CONSOLE_SOURCES}		\
 				${LAN969X_STORAGE_SOURCES}		\
 				drivers/delay_timer/delay_timer.c	\
 				drivers/delay_timer/generic_delay_timer.c \
 				drivers/microchip/clock/lan966x_clock.c \
 				drivers/microchip/dma/xdmac.c		\
-				drivers/microchip/flexcom_uart/aarch64/flexcom_console.S \
 				drivers/microchip/otp/otp.c		\
 				drivers/microchip/trng/lan966x_trng.c	\
 				drivers/microchip/tz_matrix/tz_matrix.c	\
