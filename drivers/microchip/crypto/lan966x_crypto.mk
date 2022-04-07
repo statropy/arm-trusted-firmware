@@ -4,7 +4,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+ifeq (${LAN966X_HW_CRYPTO},)
 LAN966X_HW_CRYPTO	:=	yes
+endif
 
 LAN966X_CRYPTO_TEST	:=	no
 
@@ -12,12 +14,12 @@ LAN966X_CRYPTO_TEST	:=	no
 AUTH_SOURCES	:=	drivers/auth/auth_mod.c				\
 			drivers/auth/crypto_mod.c			\
 			drivers/microchip/crypto/aes.c			\
-			drivers/microchip/crypto/pkcl.c			\
 			drivers/microchip/crypto/lan966x_sha.c		\
 			drivers/auth/img_parser_mod.c
 
 ifeq (${LAN966X_HW_CRYPTO},yes)
 AUTH_SOURCES	+= drivers/microchip/crypto/lan966x_crypto.c
+AUTH_SOURCES	+= drivers/microchip/crypto/pkcl.c
 else
 CRYPTO_LIB_MK := drivers/auth/mbedtls/mbedtls_crypto.mk
 $(info Including ${CRYPTO_LIB_MK})
