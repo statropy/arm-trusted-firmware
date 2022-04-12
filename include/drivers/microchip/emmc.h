@@ -157,6 +157,12 @@ typedef struct _card {
 	unsigned char card_phy_spec_rev;
 } card;
 
+typedef enum {
+	SDMMC_SW_RST_ALL = 0,
+	SDMMC_SW_RST_CMD_LINE,
+	SDMMC_SW_RST_DATA_CMD_LINES
+} lan966x_reset_type;
+
 static inline unsigned int get_CSD_field(volatile const unsigned int *p_resp,
 					 unsigned int index, unsigned int size)
 {

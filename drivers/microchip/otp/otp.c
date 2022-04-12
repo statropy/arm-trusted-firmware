@@ -270,6 +270,12 @@ int otp_commit_emulation(void)
 	return rc;
 }
 
+/* Bl2U only - for diagnostics */
+int otp_read_bytes_raw(unsigned int offset, unsigned int nbytes, uint8_t *dst)
+{
+	return otp_hw_read_bytes(offset, nbytes, dst);
+}
+
 int otp_write_regions(void)
 {
 	struct {

@@ -32,16 +32,17 @@ struct plat_io_policy {
 	int (*check)(const uintptr_t spec);
 };
 
-static const io_dev_connector_t *fip_dev_con;
 static const io_dev_connector_t *mmc_dev_con;
-static const io_dev_connector_t *memmap_dev_con;
 static uintptr_t fip_dev_handle;
 static uintptr_t mmc_dev_handle;
 static uintptr_t memmap_dev_handle;
-static const io_dev_connector_t *enc_dev_con;
 static uintptr_t enc_dev_handle;
 
-#if defined(IMAGE_BL2)
+static const io_dev_connector_t *fip_dev_con;
+static const io_dev_connector_t *memmap_dev_con;
+static const io_dev_connector_t *enc_dev_con;
+
+#if defined(IMAGE_BL2) || defined(IMAGE_BL2U)
 static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
 #endif
 
@@ -49,7 +50,7 @@ static const io_block_dev_spec_t mmc_dev_spec = {
 	.buffer = {
 #if defined(IMAGE_BL1)
 		.offset = (uintptr_t) BL1_MMC_BUF_BASE,
-#elif defined(IMAGE_BL2)
+#elif defined(IMAGE_BL2) || defined(IMAGE_BL2U)
 		.offset = (uintptr_t) mmc_buf,
 #endif
 		.length = MMC_BUF_SIZE,

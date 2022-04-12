@@ -105,7 +105,10 @@ BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_tz.c
 
 BL2U_SOURCES		+=	\
-				plat/microchip/lan966x/common/lan966x_bl2u_setup.c
+				plat/microchip/lan966x/common/lan966x_bl2u_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\
+				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_ddr.c
 
 ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
 override BL2_SOURCES		:=	\

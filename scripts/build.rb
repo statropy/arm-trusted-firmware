@@ -215,7 +215,7 @@ args += "LOG_LEVEL=#{$option[:loglevel]} " if $option[:loglevel]
 if ARGV.length > 0
     targets = ARGV.join(" ")
 else
-    targets = "all fip"
+    targets = "all fip fwu_fip"
 end
 
 cmd = "make #{args} #{targets}"
