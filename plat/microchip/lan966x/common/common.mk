@@ -69,7 +69,6 @@ LAN966X_STORAGE_SOURCES	:=	\
 				drivers/mmc/mmc.c					\
 				drivers/partition/gpt.c					\
 				drivers/partition/partition.c				\
-				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_mmc.c
 
 PLAT_BL_COMMON_SOURCES	+=	\
@@ -90,6 +89,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/microchip/lan966x/common/lan966x_trng.c
 
 BL1_SOURCES		+=	\
+				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_pcie.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c	\
@@ -97,6 +97,7 @@ BL1_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_sjtag.c
 
 BL2_SOURCES		+=	\
+				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
 				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c		\
@@ -106,6 +107,7 @@ BL2_SOURCES		+=	\
 
 BL2U_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl2u_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_bl2u_io.c		\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c

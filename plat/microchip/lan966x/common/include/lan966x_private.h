@@ -82,6 +82,7 @@ void lan966x_bootstrap_monitor(void);
 void lan966x_console_init(void);
 void lan966x_timer_init(void);
 void lan966x_io_bootsource_init(void);
+void lan966x_io_init_dev(boot_source_type boot_source);
 void lan966x_io_setup(void);
 void lan966x_bl1_io_enable_ram_fip(size_t offset, size_t length);
 void lan966x_ddr_init(void);

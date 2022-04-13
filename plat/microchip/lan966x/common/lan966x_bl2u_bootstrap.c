@@ -422,6 +422,9 @@ static void handle_write_image(const bootstrap_req_t * req)
 		return;
 	}
 
+	/* Init IO layer */
+	lan966x_io_init_dev(BOOT_SOURCE_EMMC);
+
 	/* Write Flash */
 	if (emmc_write(req->arg0, fip_base_addr, data_rcv_length))
 		bootstrap_TxAck();
@@ -432,6 +435,7 @@ static void handle_write_image(const bootstrap_req_t * req)
 /* This routine will write the previous encrypted FIP data to the flash device */
 static void handle_write_fip(const bootstrap_req_t * req)
 {
+	boot_source_type boot_source = BOOT_SOURCE_EMMC;
 	int ret = 0;
 
 	VERBOSE("BL2U handle write data\n");
@@ -440,6 +444,13 @@ static void handle_write_fip(const bootstrap_req_t * req)
 		bootstrap_TxNack("FIP Image not loaded");
 		return;
 	}
+
+	/* Generic IO init */
+	lan966x_io_setup();
+
+	/* Init IO layer, explicit source */
+	if (boot_source != lan966x_get_boot_source())
+		lan966x_io_init_dev(boot_source);
 
 	/* Init GPT */
 	partition_init(GPT_IMAGE_ID);
