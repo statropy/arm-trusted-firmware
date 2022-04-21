@@ -178,6 +178,11 @@ void lan966x_tz_init(void)
 		      BIT(4) |	/* Timers */
 		      BIT(5));	/* WDT */
 
+
+	/* Configure OTP for Non-Secure */
+	mmio_write_32(GPV_SECURITY_APB_CSS2(LAN966X_GPV_BASE),
+		      BIT(0));
+
 	/* NS periph access */
 	setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
 }
