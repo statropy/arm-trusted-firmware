@@ -137,7 +137,7 @@ static void lan969x_flexcom_init(int idx)
 
 void lan969x_console_init(void)
 {
-	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
+	//vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
 	switch (lan969x_get_strapping()) {
 	case LAN969X_STRAP_BOOT_MMC_FC:
@@ -339,4 +339,9 @@ void lan969x_fwconfig_apply(void)
 	default:
 		break;
 	}
+}
+
+void vcore_gpio_set_alt(int gpio, int f)
+{
+	/* Current NOP - FPGA issue */
 }

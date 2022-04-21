@@ -49,7 +49,7 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_setbits_32(TZPM_TZPCTL0(tzpm),
 			TZPM_TZPCTL0_QSPI0(1) |
 			TZPM_TZPCTL0_QSPI2(1) |
-			TZPM_TZPCTL0_SDMMC(1));
+			TZPM_TZPCTL0_SDMMC0(1));
 	mmio_setbits_32(TZPM_TZPCTL1(tzpm),
 			TZPM_TZPCTL1_XDMA(1) |
 			TZPM_TZPCTL1_FLEXCOM0(1) |

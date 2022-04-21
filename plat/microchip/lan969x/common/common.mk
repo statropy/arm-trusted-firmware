@@ -19,9 +19,9 @@ PLAT_INCLUDES		:=	-Iinclude/plat/microchip/common			\
 				-Iinclude/drivers/microchip/			\
 				-I${LAN969X_PLAT}/include
 
-LAN969X_CONSOLE_SOURCES	:=	drivers/gpio/gpio.c					\
-				drivers/microchip/flexcom_uart/aarch64/flexcom_console.S \
-				drivers/microchip/gpio/vcore_gpio.c
+# notused: drivers/gpio/gpio.c
+# defunct: drivers/microchip/gpio/vcore_gpio.c
+LAN969X_CONSOLE_SOURCES	:=	drivers/microchip/flexcom_uart/aarch64/flexcom_console.S
 
 LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/io/io_encrypted.c				\
