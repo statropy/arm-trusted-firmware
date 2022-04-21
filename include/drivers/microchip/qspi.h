@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 
+int qspi_write(uint32_t offset, const void *buf, size_t len);
 void qspi_init(uintptr_t base);
 void qspi_reinit(void);
 

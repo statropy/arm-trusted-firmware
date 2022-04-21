@@ -54,6 +54,12 @@ lan966x_fw_config_t lan966x_fw_config = {
 		LAN966X_QSPI0_RANGE,					\
 		MT_MEMORY | MT_RO | MT_SECURE)
 
+#define LAN966X_MAP_QSPI0_RW						\
+	MAP_REGION_FLAT(						\
+		LAN966X_QSPI0_MMAP,					\
+		LAN966X_QSPI0_RANGE,					\
+		MT_DEVICE | MT_RW | MT_SECURE)
+
 #define LAN966X_MAP_AXI							\
 	MAP_REGION_FLAT(						\
 		LAN966X_DEV_BASE,					\
@@ -86,9 +92,19 @@ const mmap_region_t plat_arm_mmap[] = {
 	{0}
 };
 #endif
-#if defined(IMAGE_BL2) || defined(IMAGE_BL2U)
+#if defined(IMAGE_BL2)
 const mmap_region_t plat_arm_mmap[] = {
 	LAN966X_MAP_QSPI0,
+	LAN966X_MAP_AXI,
+	LAN966X_MAP_BL32,
+	LAN966X_MAP_NS_MEM,
+	LAN966X_MAP_USB,
+	{0}
+};
+#endif
+#if defined(IMAGE_BL2U)
+const mmap_region_t plat_arm_mmap[] = {
+	LAN966X_MAP_QSPI0_RW,
 	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_NS_MEM,
@@ -259,6 +275,9 @@ void lan966x_timer_init(void)
 	mmio_write_32(CPU_SYSCNT_CNTCVU(syscnt), 0);	/* High */
 	mmio_write_32(CPU_SYSCNT_CNTCR(syscnt),
 		      CPU_SYSCNT_CNTCR_CNTCR_EN(1));	/*Enable */
+
+        /* Program the counter frequency */
+        write_cntfrq_el0(plat_get_syscnt_freq2());
 }
 
 unsigned int plat_get_syscnt_freq2(void)
