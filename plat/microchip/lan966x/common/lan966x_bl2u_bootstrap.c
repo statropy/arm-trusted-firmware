@@ -8,6 +8,7 @@
 #include <common/debug.h>
 #include <drivers/auth/crypto_mod.h>
 #include <drivers/io/io_storage.h>
+#include <drivers/microchip/qspi.h>
 #include <drivers/mmc.h>
 #include <drivers/partition/partition.h>
 #include <endian.h>
@@ -372,7 +373,7 @@ static uint32_t single_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_
 	return written;
 }
 
-static bool emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length)
+static int emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length)
 {
 	uint32_t round_len, lba, written;
 
@@ -392,10 +393,10 @@ static bool emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length)
 
 	VERBOSE("Written 0x%0x of the requested 0x%0x bytes\n", written, round_len);
 
-	return written == round_len;
+	return written == round_len ? 0 : -EIO;
 }
 
-static bool fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
+static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
 {
 	const partition_entry_t *entry = get_partition_entry(name);
 
@@ -409,12 +410,23 @@ static bool fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
 	}
 
 	NOTICE("Partition %s not found\n", name);
+	return -ENOENT;
+}
+
+static bool valid_write_dev(boot_source_type dev)
+{
+	if (dev == BOOT_SOURCE_EMMC ||
+	    dev == BOOT_SOURCE_QSPI)
+		return true;
+
 	return false;
 }
 
 /* This routine will write the image data flash device */
 static void handle_write_image(const bootstrap_req_t * req)
 {
+	int ret;
+
 	VERBOSE("BL2U handle write image\n");
 
 	if (data_rcv_length == 0) {
@@ -422,21 +434,36 @@ static void handle_write_image(const bootstrap_req_t * req)
 		return;
 	}
 
+	if (!valid_write_dev(req->arg0)) {
+		bootstrap_TxNack("Unsupported target device");
+		return;
+	}
+
 	/* Init IO layer */
-	lan966x_io_init_dev(BOOT_SOURCE_EMMC);
+	lan966x_io_init_dev(req->arg0);
 
 	/* Write Flash */
-	if (emmc_write(req->arg0, fip_base_addr, data_rcv_length))
-		bootstrap_TxAck();
-	else
+	switch (req->arg0) {
+	case BOOT_SOURCE_EMMC:
+		ret = emmc_write(0, fip_base_addr, data_rcv_length);
+		break;
+	case BOOT_SOURCE_QSPI:
+		ret = qspi_write(0, (void*) fip_base_addr, data_rcv_length);
+		break;
+	default:
+		ret = -ENOTSUP;
+	}
+
+	if (ret)
 		bootstrap_TxNack("Image write failed");
+	else
+		bootstrap_TxAck();
 }
 
 /* This routine will write the previous encrypted FIP data to the flash device */
 static void handle_write_fip(const bootstrap_req_t * req)
 {
-	boot_source_type boot_source = BOOT_SOURCE_EMMC;
-	int ret = 0;
+	int ret;
 
 	VERBOSE("BL2U handle write data\n");
 
@@ -445,31 +472,56 @@ static void handle_write_fip(const bootstrap_req_t * req)
 		return;
 	}
 
+	if (!valid_write_dev(req->arg0)) {
+		bootstrap_TxNack("Unsupported target device");
+		return;
+	}
+
 	/* Generic IO init */
 	lan966x_io_setup();
 
 	/* Init IO layer, explicit source */
-	if (boot_source != lan966x_get_boot_source())
-		lan966x_io_init_dev(boot_source);
+	if (req->arg0 != lan966x_get_boot_source())
+		lan966x_io_init_dev(req->arg0);
 
-	/* Init GPT */
-	partition_init(GPT_IMAGE_ID);
+	/* Write Flash */
+	switch (req->arg0) {
+	case BOOT_SOURCE_EMMC:
+		INFO("Write FIP %d bytes to eMMC\n", data_rcv_length);
 
-	/* Update primary FIP */
-	if (!fip_update(FW_PARTITION_NAME, fip_base_addr, data_rcv_length))
-		ret++;
+		/* Init GPT */
+		partition_init(GPT_IMAGE_ID);
 
-	/* Update backup FIP */
-	if (!fip_update(FW_BACKUP_PARTITION_NAME, fip_base_addr, data_rcv_length))
-		ret++;
+		/* All OK to start */
+		ret = 0;
 
-	if (ret == 0)
-		bootstrap_TxAck();
+		/* Update primary FIP */
+		if (fip_update(FW_PARTITION_NAME, fip_base_addr, data_rcv_length))
+			ret++;
+
+		/* Update backup FIP */
+		if (fip_update(FW_BACKUP_PARTITION_NAME, fip_base_addr, data_rcv_length))
+			ret++;
+
+		break;
+
+	case BOOT_SOURCE_QSPI:
+		INFO("Write FIP %d bytes to QSPI NOR\n", data_rcv_length);
+		ret = qspi_write(0, (void*) fip_base_addr, data_rcv_length);
+		break;
+
+	default:
+		ret = -ENOTSUP;
+	}
+
+	if (ret < 0)
+		bootstrap_TxNack("Write FIP failed");
 	else if (ret == 1)
 		bootstrap_TxNack("One partition failed to update");
-	else
+	else if (ret == 2)
 		bootstrap_TxNack("Both partitions failed to update");
-
+	else
+		bootstrap_TxAck();
 }
 
 static void handle_bind(const bootstrap_req_t *req)
