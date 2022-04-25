@@ -26,6 +26,8 @@
 #include <tools_share/firmware_encrypted.h>
 #include <tools_share/firmware_image_package.h>
 
+#define MAX_OTP_DATA	1024
+
 static const uintptr_t fip_base_addr = DDR_BASE_ADDR;
 static const uintptr_t fip_max_size = DDR_MEM_SIZE;
 static uint32_t data_rcv_length;
@@ -296,6 +298,47 @@ static void handle_otp_read(bootstrap_req_t *req, bool raw)
 		} else
 			bootstrap_TxNack("OTP read illegal length");
 	}
+}
+
+static void handle_otp_data(bootstrap_req_t *req)
+{
+	uint8_t *ptr = (uint8_t *) BL2_BASE;
+
+	if (req->len > 0 && req->len < MAX_OTP_DATA &&
+	    bootstrap_RxDataCrc(req, ptr)) {
+		if (otp_write_bytes(req->arg0, req->len, ptr) == 0)
+			bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
+		else
+			bootstrap_TxNack("OTP program failed");
+		/* Wipe data */
+		memset(ptr, 0, req->len);
+	} else
+		bootstrap_TxNack("OTP rx data failed or illegal data size");
+}
+
+static void handle_otp_random(bootstrap_req_t *req)
+{
+	uint32_t datalen, *data = (uint32_t *) BL2_BASE;
+	int i;
+
+	if (req->len == sizeof(uint32_t) && bootstrap_RxDataCrc(req, (uint8_t *)&datalen)) {
+		datalen = __ntohl(datalen);
+		if (datalen > 0 &&
+		    datalen < MAX_OTP_DATA) {
+			/* Read TRNG data */
+			for (i = 0; i < div_round_up(datalen, sizeof(uint32_t)); i++)
+				data[i] = lan966x_trng_read();
+			/* Write to OTP */
+			if (otp_write_bytes(req->arg0, datalen, (uint8_t *)data) == 0)
+				bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
+			else
+				bootstrap_TxNack("OTP program random failed");
+			/* Wipe data */
+			memset(data, 0, datalen);
+		} else
+			bootstrap_TxNack("OTP random data illegal length");
+	} else
+		bootstrap_TxNack("OTP random data illegal req length length");
 }
 
 static void handle_read_rom_version(const bootstrap_req_t *req)
@@ -574,6 +617,10 @@ void lan966x_bl2u_bootstrap_monitor(void)
 			handle_write_fip(&req);
 		else if (is_cmd(&req, BOOTSTRAP_BIND))		// B - FW binding operation (decrypt and encrypt)
 			handle_bind(&req);
+		else if (is_cmd(&req, BOOTSTRAP_OTPD))
+			handle_otp_data(&req);
+		else if (is_cmd(&req, BOOTSTRAP_OTPR))
+			handle_otp_random(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTP_READ_EMU))	// L - Read OTP data
 			handle_otp_read(&req, false);
 		else if (is_cmd(&req, BOOTSTRAP_OTP_READ_RAW))	// l - Read RAW OTP data
