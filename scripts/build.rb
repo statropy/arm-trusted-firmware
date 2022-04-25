@@ -261,6 +261,15 @@ if $option[:gptimg]
 	# Add env partition, 1MB
 	env_blocks = (1024 * 1024) / 512
 	total_blocks += env_blocks
+	# Add linux partition, 32MB
+	linux_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += linux_blocks
+	# Add linux bk partition, 32MB
+	linux_bk_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += linux_bk_blocks
+	# Add data partition, 32MB
+	data_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += data_blocks
         if $option[:linux_boot]
             # 256M root
             root_blocks = (256 * 1024 * 1024) / 512
@@ -285,6 +294,19 @@ if $option[:gptimg]
         p_start = p_end + 1
         p_end += env_blocks
         do_cmd("parted -s #{gptfile} mkpart Env #{p_start}s #{p_end}s")
+        # Add linux partiton
+        p_start = p_end + 1
+        p_end += linux_blocks
+        do_cmd("parted -s #{gptfile} mkpart Boot0 #{p_start}s #{p_end}s")
+        # Add linux backup partition
+        p_start = p_end + 1
+        p_end += linux_bk_blocks
+        do_cmd("parted -s #{gptfile} mkpart Boot1 #{p_start}s #{p_end}s")
+        # Add data partition
+        p_start = p_end + 1
+        p_end += data_blocks
+        do_cmd("parted -s #{gptfile} mkpart Data #{p_start}s #{p_end}s")
+        # Add Linux partition
         if $option[:linux_boot]
             # Add root partition
             p_start = p_end + 1
