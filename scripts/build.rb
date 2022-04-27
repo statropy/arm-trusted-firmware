@@ -225,7 +225,13 @@ do_cmd cmd
 
 exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
 
-lsargs = %w(bin)
+lsargs = %w(bin gz)
+
+# produce GZIP FIP
+fip = "#{build}/fip.bin"
+if File.exist?(fip)
+    do_cmd("gzip -c #{fip} > #{fip}.gz")
+end
 
 if $option[:norimg] && pdef[:bl2_at_el3]
     img = build + "/" + $option[:platform] + ".img"
@@ -238,7 +244,7 @@ if $option[:norimg] && pdef[:bl2_at_el3]
     tsize += 512
     do_cmd("truncate --size=#{tsize}k #{img}")
     # Lastly, the FIP
-    do_cmd("cat #{build}/fip.bin >> #{img}")
+    do_cmd("cat #{fip} >> #{img}")
     # List binaries
     lsargs << "img"
 end
@@ -246,7 +252,6 @@ end
 if $option[:gptimg]
     gptfile = "#{build}/fip.gpt"
     begin
-        fip = "#{build}/fip.bin"
         # Get size of FIP
         size = File.size?(fip)
         # Convert size to sectors
@@ -283,13 +288,13 @@ if $option[:gptimg]
         p_end = p_start + fip_blocks -1
         do_cmd("parted -s #{gptfile} mkpart fip #{p_start}s #{p_end}s")
         # Inject data
-        do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
         # Add second backup partition
         p_start += fip_blocks
         p_end += fip_blocks
         do_cmd("parted -s #{gptfile} mkpart fip.bak #{p_start}s #{p_end}s")
         # Inject data
-        do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
         # Add U-Boot environment partition
         p_start = p_end + 1
         p_end += env_blocks
@@ -318,8 +323,7 @@ if $option[:gptimg]
         end
     end
     do_cmd("gdisk -l #{gptfile}")
-    # List binaries
-    lsargs << "gpt"
+    do_cmd("gzip -f #{gptfile}")
 end
 
 # List binaries

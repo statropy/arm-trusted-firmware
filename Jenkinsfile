@@ -45,7 +45,7 @@ node('blademaster') {
                     archive 'lan966x_sr-*.bl1'
                     archive '*.fip'
                     archive '*.bin'
-                    archive '*.gpt'
+                    archive '*.gz'
                     archive '*.img'
                     archive '*bl2.dump'
                     archive 'keys/*'

@@ -38,6 +38,7 @@ $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,LAN966x_MAX_PE_PER_CPU))
 
 include lib/xlat_tables_v2/xlat_tables.mk
+include lib/zlib/zlib.mk
 
 $(info Including platform TBBR)
 include plat/microchip/lan966x/common/plat_tbbr.mk
@@ -106,6 +107,7 @@ BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_tz.c
 
 BL2U_SOURCES		+=	\
+				$(ZLIB_SOURCES)						\
 				plat/microchip/lan966x/common/lan966x_bl2u_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl2u_io.c		\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\

@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
+#include <tf_gunzip.h>
 
 #include "lan966x_private.h"
 #include "lan966x_bootstrap.h"
@@ -27,6 +28,8 @@
 #include <tools_share/firmware_image_package.h>
 
 #define MAX_OTP_DATA	1024
+
+#define PAGE_ALIGN(x, a)	(((x) + (a) - 1) & ~((a) - 1))
 
 static const uintptr_t fip_base_addr = DDR_BASE_ADDR;
 static const uintptr_t fip_max_size = DDR_MEM_SIZE;
@@ -385,13 +388,34 @@ static void handle_load_data(const bootstrap_req_t *req)
 	data_rcv_length = length;
 
 	VERBOSE("Received %d bytes\n", length);
-}
 
-static int handle_load_data_chunk(const bootstrap_req_t * req)
-{
-	VERBOSE("BL2U handle load data chunk, not supported yet!\n");
-	bootstrap_TxAck();
-	return 0;
+	/* See if this is compressed data */
+	ptr = (uint8_t *)fip_base_addr;
+	if (ptr[0] == 0x1f && ptr[1] == 0x8b) {
+		uintptr_t in_buf, work_buf, out_buf, out_start;
+		size_t in_len, work_len, out_len;
+
+		/* GZIP 'magic' seen, try to decompress */
+		INFO("Looks like GZIP data\n");
+
+		/* Set up decompress params */
+		in_buf = fip_base_addr;
+		in_len = data_rcv_length;
+		work_buf = in_buf + PAGE_ALIGN(data_rcv_length, SIZE_M(1));
+		work_len = SIZE_M(16);
+		out_start = out_buf = work_buf + work_len;
+		out_len = fip_max_size - (out_buf - in_buf);
+		VERBOSE("gunzip(%p, %zd, %p, %zd, %p, %zd)\n",
+			(void*) in_buf, in_len, (void*) work_buf, work_len, (void*) out_buf, out_len);
+		if (gunzip(&in_buf, in_len, &out_buf, out_len, work_buf, work_len) == 0) {
+			out_len = out_buf - out_start;
+			memmove((void *)fip_base_addr, (const void *) out_start, out_len);
+			data_rcv_length = out_len;
+			INFO("Unzipped data, length now %zd bytes\n", data_rcv_length);
+		} else {
+			INFO("Non-zipped data, length %zd bytes\n", data_rcv_length);
+		}
+	}
 }
 
 /*
@@ -459,6 +483,7 @@ static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
 static bool valid_write_dev(boot_source_type dev)
 {
 	if (dev == BOOT_SOURCE_EMMC ||
+	    dev == BOOT_SOURCE_SDMMC ||
 	    dev == BOOT_SOURCE_QSPI)
 		return true;
 
@@ -488,6 +513,7 @@ static void handle_write_image(const bootstrap_req_t * req)
 	/* Write Flash */
 	switch (req->arg0) {
 	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
 		ret = emmc_write(0, fip_base_addr, data_rcv_length);
 		break;
 	case BOOT_SOURCE_QSPI:
@@ -520,6 +546,11 @@ static void handle_write_fip(const bootstrap_req_t * req)
 		return;
 	}
 
+	if (!is_valid_fip_hdr((const fip_toc_header_t *)fip_base_addr)) {
+		bootstrap_TxNack("Data is not a valid FIP");
+		return;
+	}
+
 	/* Generic IO init */
 	lan966x_io_setup();
 
@@ -530,7 +561,8 @@ static void handle_write_fip(const bootstrap_req_t * req)
 	/* Write Flash */
 	switch (req->arg0) {
 	case BOOT_SOURCE_EMMC:
-		INFO("Write FIP %d bytes to eMMC\n", data_rcv_length);
+	case BOOT_SOURCE_SDMMC:
+		INFO("Write FIP %d bytes to %s\n", data_rcv_length, req->arg0 == BOOT_SOURCE_EMMC ? "eMMC" : "SD");
 
 		/* Init GPT */
 		partition_init(GPT_IMAGE_ID);
@@ -609,8 +641,6 @@ void lan966x_bl2u_bootstrap_monitor(void)
 			handle_read_rom_version(&req);
 		else if (is_cmd(&req, BOOTSTRAP_SEND))		// S - Load data file
 			handle_load_data(&req);
-		else if (is_cmd(&req, BOOTSTRAP_DATA))          // U - Load data chunk
-			handle_load_data_chunk(&req);
 		else if (is_cmd(&req, BOOTSTRAP_IMAGE))		// I - Copy uploaded raw image from DDR memory to flash device
 			handle_write_image(&req);
 		else if (is_cmd(&req, BOOTSTRAP_WRITE))		// W - Copy uploaded fip from DDR memory to flash device
