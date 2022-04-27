@@ -305,43 +305,61 @@ static void handle_otp_read(bootstrap_req_t *req, bool raw)
 
 static void handle_otp_data(bootstrap_req_t *req)
 {
-	uint8_t *ptr = (uint8_t *) BL2_BASE;
+	uint8_t data[MAX_OTP_DATA];
 
 	if (req->len > 0 && req->len < MAX_OTP_DATA &&
-	    bootstrap_RxDataCrc(req, ptr)) {
-		if (otp_write_bytes(req->arg0, req->len, ptr) == 0)
+	    bootstrap_RxDataCrc(req, data)) {
+		if (otp_write_bytes(req->arg0, req->len, data) == 0)
 			bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 		else
 			bootstrap_TxNack("OTP program failed");
+
 		/* Wipe data */
-		memset(ptr, 0, req->len);
+		memset(data, 0, req->len);
 	} else
 		bootstrap_TxNack("OTP rx data failed or illegal data size");
 }
 
 static void handle_otp_random(bootstrap_req_t *req)
 {
-	uint32_t datalen, *data = (uint32_t *) BL2_BASE;
+	/* Note: We keep work buffers on stack - must be large enough */
+	uint32_t datalen, data[MAX_OTP_DATA / 4], cur_data[MAX_OTP_DATA / 4];
 	int i;
 
 	if (req->len == sizeof(uint32_t) && bootstrap_RxDataCrc(req, (uint8_t *)&datalen)) {
 		datalen = __ntohl(datalen);
 		if (datalen > 0 &&
 		    datalen < MAX_OTP_DATA) {
+			if (otp_read_bytes_raw(req->arg0, datalen, (uint8_t *)cur_data) != 0) {
+				bootstrap_TxNack("Unable to read OTP data");
+				return;
+			}
+
+			if (!otp_all_zero((uint8_t*) cur_data, datalen)) {
+				bootstrap_TxNack("OTP data already non-zero");
+				goto wipe_cur;
+			}
+
 			/* Read TRNG data */
 			for (i = 0; i < div_round_up(datalen, sizeof(uint32_t)); i++)
 				data[i] = lan966x_trng_read();
+
 			/* Write to OTP */
+			INFO("Write OTP\n");
 			if (otp_write_bytes(req->arg0, datalen, (uint8_t *)data) == 0)
 				bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 			else
 				bootstrap_TxNack("OTP program random failed");
+
 			/* Wipe data */
 			memset(data, 0, datalen);
+		wipe_cur:
+			memset(cur_data, 0, datalen);
 		} else
 			bootstrap_TxNack("OTP random data illegal length");
 	} else
 		bootstrap_TxNack("OTP random data illegal req length length");
+
 }
 
 static void handle_read_rom_version(const bootstrap_req_t *req)
