@@ -47,6 +47,7 @@ node('blademaster') {
                     archive '*.bin'
                     archive '*.gz'
                     archive '*.img'
+                    archive '*.html'
                     archive '*bl2.dump'
                     archive 'keys/*'
             }
