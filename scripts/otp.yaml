@@ -151,6 +151,7 @@
   size: 8
   emu: false
   address: 0x30
+  accessor: true
   desc:
   fields:
   - name: UVOV_GPIOB_TRIM

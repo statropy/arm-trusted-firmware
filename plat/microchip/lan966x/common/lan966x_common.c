@@ -183,16 +183,26 @@ static void lan966x_flexcom_init(int idx)
 	lan966x_crash_console(&lan966x_console);
 }
 
-void lan966x_usb_get_trim_values(uint32_t *bias, uint32_t *rbias)
+void lan966x_usb_get_trim_values(struct usb_trim *trim)
 {
-	*bias = otp_read_com_bias_bg_mag_trim();
-	*rbias = otp_read_com_rbias_mag_trim();
+	uint8_t trim_data[TRIM_SIZE];
+
+	memset(trim, 0, sizeof(*trim));
+
+	if (otp_read_trim(trim_data, sizeof(trim_data)) < 0)
+		return;		/* OTP read error? */
+
+	if (otp_all_zero(trim_data, sizeof(trim_data)))
+		return;		/* Nothing set */
+
+	trim->valid = true;
+	trim->bias = otp_read_com_bias_bg_mag_trim();
+	trim->rbias = otp_read_com_rbias_mag_trim();
 }
 
 void lan966x_console_init(void)
 {
-	uint32_t bias;
-	uint32_t rbias;
+	struct usb_trim trim;
 
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
@@ -218,8 +228,8 @@ void lan966x_console_init(void)
 		lan966x_flexcom_init(FLEXCOM4);
 		break;
 	case LAN966X_STRAP_TFAMON_USB:
-		lan966x_usb_get_trim_values(&bias, &rbias);
-		lan966x_usb_init(bias, rbias);
+		lan966x_usb_get_trim_values(&trim);
+		lan966x_usb_init(&trim);
 		lan966x_usb_register_console();
 		break;
 	default:

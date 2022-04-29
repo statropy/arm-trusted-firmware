@@ -220,6 +220,7 @@ otp_accessor_group_read(otp_read_serial_number, SERIAL_NUMBER);
 otp_accessor_read_bool(otp_read_jtag_disable, SECURE_JTAG, JTAG_DISABLE);
 otp_accessor_read_field(otp_read_jtag_mode, SECURE_JTAG, JTAG_MODE);
 otp_accessor_group_read(otp_read_jtag_uuid, JTAG_UUID);
+otp_accessor_group_read(otp_read_trim, TRIM);
 otp_accessor_read_field(otp_read_uvov_gpiob_trim, TRIM, UVOV_GPIOB_TRIM);
 otp_accessor_read_field(otp_read_uvov_boot_trim, TRIM, UVOV_BOOT_TRIM);
 otp_accessor_read_field(otp_read_uvov_rgmii_trim, TRIM, UVOV_RGMII_TRIM);
