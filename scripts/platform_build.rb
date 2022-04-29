@@ -40,6 +40,7 @@ def cleanup(do_exit = false)
   files = Dir.glob('*.bl1') + Dir.glob('*.bin') + Dir.glob('*.bl1.hex') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt') + Dir.glob('*.dump')
   FileUtils.rm_f(files, verbose: true)
   FileUtils.rm_rf('build', verbose: true)
+  FileUtils.rm_rf('artifacts')
   exit(0) if do_exit
 end
 
@@ -81,7 +82,9 @@ build_platforms.each do |bp|
         banner(artifacts, cmd)
         system(cmd_clean)
         system(cmd)
+        FileUtils.mkdir_p("artifacts")
         artifacts.each do |from, to|
+          to = "artifacts/" + to
           FileUtils.mv(from, to, verbose: true) if !File.exist?(to) && File.exist?(from)
         end
       end

@@ -42,13 +42,7 @@ node('blademaster') {
             }
         } else {
             stage("Archiving FIP results") {
-                    archive 'lan966x_sr-*.bl1'
-                    archive '*.fip'
-                    archive '*.bin'
-                    archive '*.gz'
-                    archive '*.img'
-                    archive '*.html'
-                    archive '*bl2.dump'
+                    archive 'artifacts/*'
                     archive 'keys/*'
             }
         }
