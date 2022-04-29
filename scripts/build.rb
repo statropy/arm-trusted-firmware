@@ -326,6 +326,10 @@ if $option[:gptimg]
     do_cmd("gzip -f #{gptfile}")
 end
 
+# Build FWU
+lsargs << "html"
+do_cmd("./scripts/html_inline.rb ./scripts/fwu/serial.html > #{build}/fwu.html")
+
 # List binaries
 do_cmd("ls -l " + lsargs.map{|s| "#{build}/*.#{s}"}.join(" "))
 

@@ -64,6 +64,7 @@ build_platforms.each do |bp|
           ["build/#{bp}/#{bt}/fip.bin.gz",   "#{dst}.fip.gz"],
           ["build/#{bp}/#{bt}/fip.gpt.gz",   "#{dst}.gpt.gz"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
+          ["build/#{bp}/#{bt}/fwu.html",     "fwu.html"],
         ]
         # Limit the BL1 image artifacts
         # dst = "#{bp}-#{bt}"
