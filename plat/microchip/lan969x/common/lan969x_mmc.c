@@ -15,7 +15,7 @@
 
 static void plat_lan969x_pinConfig(boot_source_type mode)
 {
-	//vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
+	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
 	switch (mode) {
 	case BOOT_SOURCE_EMMC:
