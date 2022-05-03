@@ -110,7 +110,7 @@ void bl1_platform_setup(void)
 	}
 
 	/* SJTAG: Configure challenge, no freeze */
-	//lan966x_sjtag_configure();
+	lan966x_sjtag_configure();
 
 	/* Strapped for boot monitor? */
 	if (lan969x_monitor_enabled()) {

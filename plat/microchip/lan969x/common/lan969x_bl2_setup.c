@@ -119,7 +119,7 @@ void bl2_platform_setup(void)
 	lan969x_io_setup();
 
 	/* SJTAG: Freeze mode and configuration */
-	//lan966x_sjtag_configure();
+	lan966x_sjtag_configure();
 
 	/* Init tzpm */
 	lan969x_tz_init();
