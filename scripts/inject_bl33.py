@@ -18,4 +18,4 @@ if lan966x.target_is_fpga(debugger):
 else:
     bin += "u-boot-lan966x_evb_atf.bin"
 
-lan966x.load_stage_binary(debugger, "BL33", bin)
+lan966x.load_stage_binary(debugger, "BL33", "/home/lpovlsen/project/maserati-uboot/u-boot.bin")

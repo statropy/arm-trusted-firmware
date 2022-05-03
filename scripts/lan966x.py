@@ -79,7 +79,7 @@ def start_addr(debugger, context):
         elif context == "bl2":
             addr = "EL1S:0x00100000"
         elif context == "bl31":
-            addr = "EL3:0x000120000"
+            addr = "EL3:0x000140000"
         elif context == "bl33":
             addr = "EL1N:0x60000000"
     else:
