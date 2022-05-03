@@ -99,12 +99,11 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/microchip/trng/lan966x_trng.c
 
 BL1_SOURCES		+=	\
-				plat/microchip/common/plat_bl1_bootstrap.c		\
 				plat/microchip/common/lan966x_bootstrap.c		\
 				plat/microchip/common/lan966x_sjtag.c			\
-				plat/microchip/lan966x/common/lan966x_io_storage.c	\
-				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
+				plat/microchip/common/plat_bl1_bootstrap.c		\
 				plat/microchip/lan966x/common/lan966x_bl1_pcie.c	\
+				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c	\
 				plat/microchip/lan966x/common/lan966x_tbbr.c
 
@@ -120,10 +119,10 @@ BL2_SOURCES		+=	\
 
 BL2U_SOURCES		+=	\
 				$(ZLIB_SOURCES)						\
+				plat/microchip/common/lan966x_bootstrap.c		\
 				plat/microchip/lan966x/common/lan966x_bl2u_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl2u_io.c		\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\
-				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c
 
 ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)

@@ -7,7 +7,13 @@
 #ifndef _DRIVERS_USB_H
 #define _DRIVERS_USB_H
 
-void lan966x_usb_init(uint32_t bias, uint32_t rbias);
+struct usb_trim {
+	bool valid;
+	uint32_t bias;
+	uint32_t rbias;
+};
+
+void lan966x_usb_init(const struct usb_trim *trim);
 void lan966x_usb_register_console(void);
 
 #endif	/* _DRIVERS_USB_H */

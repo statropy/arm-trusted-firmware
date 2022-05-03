@@ -12,6 +12,7 @@
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
+#include <plat/microchip/common/fw_config.h>
 
 #include "lan966x_private.h"
 #include "lan966x_regs.h"

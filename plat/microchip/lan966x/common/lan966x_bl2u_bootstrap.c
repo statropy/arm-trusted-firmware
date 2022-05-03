@@ -8,6 +8,7 @@
 #include <common/debug.h>
 #include <drivers/auth/crypto_mod.h>
 #include <drivers/io/io_storage.h>
+#include <drivers/microchip/lan966x_trng.h>
 #include <drivers/microchip/qspi.h>
 #include <drivers/mmc.h>
 #include <drivers/partition/partition.h>

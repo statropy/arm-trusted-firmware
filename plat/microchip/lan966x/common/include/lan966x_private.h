@@ -47,12 +47,6 @@ typedef enum {
 	BOOT_SOURCE_NONE
 } boot_source_type;
 
-struct usb_trim {
-	bool valid;
-	uint32_t bias;
-	uint32_t rbias;
-};
-
 void lan966x_init_strapping(void);
 uint8_t lan966x_get_strapping(void);
 bool lan966x_monitor_enabled(void);
@@ -67,8 +61,6 @@ void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 void lan966x_pcie_init(void);
-void lan966x_usb_init(const struct usb_trim *trim);
-void lan966x_usb_register_console(void);
 void lan966x_validate_strapping(void);
 void lan966x_crash_console(console_t *console);
 

@@ -860,16 +860,10 @@ int qspi_write(uint32_t offset, const void *buf, size_t len)
 	return ret;
 }
 
-void qspi_init(uintptr_t base)
-{
-	int ret;
-	uint8_t clk = 0;
-	uint32_t ifr, iar;
->>>>>>> origin/lan966x-v0
-
 void qspi_init(void)
 {
 	int ret;
+	uint32_t ifr, iar;
 
 	/* Already initialized? */
 	if (qspi_init_done) {

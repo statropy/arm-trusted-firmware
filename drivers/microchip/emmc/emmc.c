@@ -325,7 +325,7 @@ static int lan966x_host_init(void)
 	}
 
 	/* Check if sd-card is physically present */
-	if (boot_source == BOOT_SOURCE_SDMMC) {
+	if (lan966x_params.mmc_dev_type == MMC_IS_SD) {
 		/* Set debounce value register and check if sd-card is inserted */
 		mmc_setbits_8(reg_base + SDMMC_DEBR, SDMMC_DEBR_CDDVAL(3));
 
@@ -666,7 +666,7 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 
 	/* When using eMMC, the FCD (Force Card Detect) bit will be set to 1 to bypass the card
 	 * detection procedure by using the SDMMC_CD signal */
-	if (lan966x_get_boot_source() == BOOT_SOURCE_EMMC) {
+	if (lan966x_params.mmc_dev_type == MMC_IS_EMMC) {
 		mc1r_reg_value |= SDMMC_MC1R_FCD;
 	}
 
@@ -857,6 +857,7 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 		 * Set clock value as requested. */
 		clock = clk;
 	}
+#endif
 
 	INFO("MMC: Set mmc clk_freq to: %d\n", clock);
 	if (lan966x_set_clk_freq(clock, SDMMC_CLK_CTRL_PROG_MODE)) {
