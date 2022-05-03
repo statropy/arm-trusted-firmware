@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Secure Boot Management</title>
+  <script src="crc32c.js"></script>
+  <script src="sha256.js"></script>
+  <script src="fwu.js"></script>
+  <script src="fwu_app_lan966x_b0.js"></script>
+    <style>
+	.wrapper {
+	    padding: 2px;
+	    margin: 2px 2px;
+	}
+	img#settings {
+	    position: absolute;
+	    top: 2px;
+	    right: 60px;
+	}
+	img#active {
+	    position: absolute;
+	    top: 2px;
+	    right: 2px;
+	}
+	textarea {
+	    font-size: 12px;
+	    width: 100%;
+	}
+	table {
+	    width: 100%;
+	    table-layout: fixed;
+	}
+	table.settings td {
+	    border: 1px solid;
+	    padding: 5px;
+	}
+	.feedback {
+	    font-style: italic;
+	}
+    </style>
+</head>
+<body onload="startSerial()">
+  <h1>LAN966x Secure boot management</h1>
+  <img id="settings" width="20" height="20" src="settings.jpg">
+  <img id="active" width="30" height="30" src="activity.gif" style="display:none">
+  <div id="connect">
+    <h2>Select communication port</h2>
+    <p>
+      First you need to connect your device to you computer, using an
+      USB or RS-232 port as defined by you PC and the device you want
+      to manage.
+    </p>
+    <p>
+      You should also make sure your browser support HTML5 and has
+      JavaScript enabled. Crome or MS Edge is recommended.
+    </p>
+    <p>
+      You may also wish to enable the JavaScript console for detailed
+      insight into device interaction.
+    </p>
+    <button type="button" id="port_select">Connect device</button>
+  </div>
+  <div id="bl1" style="display:none">
+    <h2>BL1 bootstrap</h2>
+    <p>
+      You are now in the built-in <i>BL1</i> context, and you may
+      select the functions supported here.
+    </p>
+    <p>
+      To perform firmware upgrade, and other funtions such as device
+      firmware encryption you should change to the <i>BL2U</i>
+      context. This implies uploading the associated
+      BL2U <samp>fwu_fip</samp> which will then be replacing BL1
+      temporarily.
+    </p>
+    <p>
+      Once you have performed the operations desired, you may
+      select <samp>Continue Boot</samp> to continue normal system
+      boot. Notice however, that to ensure normal boot (next time) you
+      need to physically change the device strap settings as desired.
+    </p>
+    <table>
+      <tr>
+	<td>
+	  <button type="button" id="bl1_download">Download BL2U</button>
+	</td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl1_sjtag_challenge">SJTAG Get Challenge</button>
+	</td>
+	<td id="bl1_sjtag_challenge_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl1_sjtag_unlock">SJTAG Unlock</button>
+	  Key <input id="bl1_sjtag_unlock_key" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	</td>
+	<td id="bl1_sjtag_unlock_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl1_otp_set_rnd">OTP Random</button>
+	  <select id="bl1_otp_set_rnd_fld"></select>
+	</td>
+	<td id="bl1_otp_set_rnd_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl1_otp_set_data">OTP Set</button>
+	  <select id="bl1_otp_set_data_fld"></select>
+	  Data <input id="bl1_otp_set_data_buf" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	</td>
+	<td id="bl1_otp_set_data_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl1_continue">Continue Boot</button>
+	</td>
+      </tr>
+    </table>
+  </div>
+  <div id="bl2u" style="display:none">
+    <h2>BL2U bootstrap</h2>
+    <p>
+      You are now in the built-in <i>BL2U</i> context, which enables
+      firmware associated functions and OTP reading.
+    </p>
+    <p>
+      For firmware update you should start by uploading
+      either the <samp>FIP</samp> with a firmware upgrade, or a full
+      Flash image.
+    </p>
+    <p>
+      <ul>
+	<li>
+	  When updating NOR flash there is no distinction between FIP
+	  or Flash image. The FIP <i>is</i> the Flash image.
+	</li>
+	<li>For eMMC/SD the Flash image is a GPT image.</li>
+	<li>
+	  You may upload <samp>GZIP</samp>'ed files, and they will
+	  automatically be unzipped when received.
+	</li>
+      </ul>
+    </p>
+    <table>
+      <tr>
+	<td>
+	  <input type="file" id="file_select">
+	</td>
+      </tr>
+      <tr>
+	<td>
+	<button type="button" id="bl2u_upload">Upload file</button>
+	<input type="checkbox" id="binary" checked> Use binary upload
+	</td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl2u_bind">Bind FIP (BSSK Re-encrypt)</button>
+	</td>
+	<td id="bl2u_bind_fip_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl2u_write_fip">Write FIP Image</button>
+	  <select id="bl2u_write_fip_device">
+	    <option value="0">eMMC</option>
+	    <option value="1">NOR Flash</option>
+	    <option value="2">SD Card</option>
+	  </select>
+	</td>
+	<td id="bl2u_write_fip_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl2u_write_image">Write Flash Image</button>
+	  <select id="bl2u_write_image_device">
+	    <option value="0">eMMC</option>
+	    <option value="1">NOR Flash</option>
+	    <option value="2">SD Card</option>
+	  </select>
+	</td>
+	<td id="bl2u_write_image_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl2u_otp_read">OTP Read</button>
+	  <select id="bl2u_otp_read_type">
+	    <option>Raw</option>
+	    <option>Emu</option>
+	  </select>
+	  <select id="bl2u_otp_read_fld"></select>
+	</td>
+	<td id="bl2u_otp_read_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl2u_otp_set_rnd">OTP Random</button>
+	  <select id="bl2u_otp_set_rnd_fld"></select>
+	</td>
+	<td id="bl2u_otp_set_rnd_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl2u_otp_set_data">OTP Set</button>
+	  <select id="bl2u_otp_set_data_fld"></select>
+	  Data <input id="bl2u_otp_set_data_buf" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	</td>
+	<td id="bl2u_otp_set_data_feedback" class="feedback"></td>
+      </tr>
+      <tr>
+	<td>
+	  <button type="button" id="bl2u_reset">Reset to BL1</button>
+	</td>
+      </tr>
+    </table>
+  </div>
+  <div id="booting" style="display:none">
+    <h2>Booting</h2>
+    <p>The device is now booting.  Remember to reset device strappings
+      for automatic boot at next reset if so desired.
+    </p>
+  </div>
+  <div id="adv_settings" style="display:none">
+    <h2>Advanced settings</h2>
+    <p>
+      These settings are mostly useable for advanced users. Use at own risk.
+    </p>
+    <table class="settings">
+      <tr>
+	<td width="20%">
+	  Enable trace <input type="checkbox" id="enable_trace">
+	</td>
+	<td>
+	  Enabling this will add detailed trace output of all messages
+	  beween the managed device in the <i>JavaScript</i> console
+	  of your browser. This is typically found in
+	  <samp>Settings|Developer Tools</samp> (or F-12 on MS Edge).
+	</td>
+      </tr>
+    </table>
+    <p>
+      <button id="settings_back">Done</button>
+    </p>
+  </div>
+  <h3>Status:
+    <span id="status">Disconnected</span>
+  </h3>
+  <p>Log:</p>
+  <div class="wrapper">
+    <textarea cols="30" rows="15" id="log"></textarea>
+  </div>
+</body>
+</html>

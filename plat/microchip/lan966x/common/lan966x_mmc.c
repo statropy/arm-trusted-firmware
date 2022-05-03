@@ -89,8 +89,8 @@ void lan966x_mmc_plat_config(boot_source_type boot_source)
 		 * with the default loaded mmc settings.*/
 		return;
 
-#elif defined(IMAGE_BL2)
-		/* In case of BL2, the default settings are overwritten by the
+#elif defined(IMAGE_BL2) || defined(IMAGE_BL2U)
+		/* In case of BL2 or BL2U, the default settings are overwritten by the
 		 * BL1. Therefore, the mmc configuration settings needs to be
 		 * loaded again. Call lan966x_mmc_init() afterwards. */
 		params.clk_rate = MMC_DEFAULT_SPEED;

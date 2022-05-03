@@ -46,6 +46,12 @@ lan966x_fw_config_t lan966x_fw_config = {
 		LAN966X_QSPI0_RANGE,					\
 		MT_MEMORY | MT_RO | MT_SECURE)
 
+#define LAN966X_MAP_QSPI0_RW						\
+	MAP_REGION_FLAT(						\
+		LAN966X_QSPI0_MMAP,					\
+		LAN966X_QSPI0_RANGE,					\
+		MT_DEVICE | MT_RW | MT_SECURE)
+
 #define LAN966X_MAP_AXI							\
 	MAP_REGION_FLAT(						\
 		LAN966X_DEV_BASE,					\
@@ -78,9 +84,19 @@ const mmap_region_t plat_arm_mmap[] = {
 	{0}
 };
 #endif
-#if defined(IMAGE_BL2) || defined(IMAGE_BL2U)
+#if defined(IMAGE_BL2)
 const mmap_region_t plat_arm_mmap[] = {
 	LAN966X_MAP_QSPI0,
+	LAN966X_MAP_AXI,
+	LAN966X_MAP_BL32,
+	LAN966X_MAP_NS_MEM,
+	LAN966X_MAP_USB,
+	{0}
+};
+#endif
+#if defined(IMAGE_BL2U)
+const mmap_region_t plat_arm_mmap[] = {
+	LAN966X_MAP_QSPI0_RW,
 	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_NS_MEM,
@@ -159,16 +175,26 @@ static void lan966x_flexcom_init(int idx)
 	lan966x_crash_console(&lan966x_console);
 }
 
-void lan966x_usb_get_trim_values(uint32_t *bias, uint32_t *rbias)
+void lan966x_usb_get_trim_values(struct usb_trim *trim)
 {
-	*bias = otp_read_com_bias_bg_mag_trim();
-	*rbias = otp_read_com_rbias_mag_trim();
+	uint8_t trim_data[TRIM_SIZE];
+
+	memset(trim, 0, sizeof(*trim));
+
+	if (otp_read_trim(trim_data, sizeof(trim_data)) < 0)
+		return;		/* OTP read error? */
+
+	if (otp_all_zero(trim_data, sizeof(trim_data)))
+		return;		/* Nothing set */
+
+	trim->valid = true;
+	trim->bias = otp_read_com_bias_bg_mag_trim();
+	trim->rbias = otp_read_com_rbias_mag_trim();
 }
 
 void lan966x_console_init(void)
 {
-	uint32_t bias;
-	uint32_t rbias;
+	struct usb_trim trim;
 
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
@@ -194,8 +220,8 @@ void lan966x_console_init(void)
 		lan966x_flexcom_init(FLEXCOM4);
 		break;
 	case LAN966X_STRAP_TFAMON_USB:
-		lan966x_usb_get_trim_values(&bias, &rbias);
-		lan966x_usb_init(bias, rbias);
+		lan966x_usb_get_trim_values(&trim);
+		lan966x_usb_init(&trim);
 		lan966x_usb_register_console();
 		break;
 	default:
@@ -204,10 +230,8 @@ void lan966x_console_init(void)
 	}
 }
 
-void lan966x_io_bootsource_init(void)
+void lan966x_io_init_dev(boot_source_type boot_source)
 {
-	boot_source_type boot_source = lan966x_get_boot_source();
-
 	switch (boot_source) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
@@ -229,14 +253,12 @@ void lan966x_io_bootsource_init(void)
 				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
 				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
 
-#if defined(LAN966X_TZ)
 		/* Enable QSPI0 for NS access */
 		matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
 						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
 						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
 						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
 						MATRIX_LANSECH_NS(0));
-#endif
 	default:
 		break;
 	}
@@ -256,6 +278,11 @@ void plat_qspi_init_clock(void)
 	lan966x_clk_enable(LAN966X_CLK_ID_QSPI0);
 }
 
+void lan966x_io_bootsource_init(void)
+{
+	lan966x_io_init_dev(lan966x_get_boot_source());
+}
+
 void lan966x_timer_init(void)
 {
 	uintptr_t syscnt = LAN966X_CPU_SYSCNT_BASE;
@@ -264,6 +291,9 @@ void lan966x_timer_init(void)
 	mmio_write_32(CPU_SYSCNT_CNTCVU(syscnt), 0);	/* High */
 	mmio_write_32(CPU_SYSCNT_CNTCR(syscnt),
 		      CPU_SYSCNT_CNTCR_CNTCR_EN(1));	/*Enable */
+
+        /* Program the counter frequency */
+        write_cntfrq_el0(plat_get_syscnt_freq2());
 }
 
 unsigned int plat_get_syscnt_freq2(void)

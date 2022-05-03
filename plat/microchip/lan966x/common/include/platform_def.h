@@ -117,7 +117,7 @@
 #elif defined(IMAGE_BL2)
 # define PLATFORM_STACK_SIZE		UL(0x1000)
 #elif defined(IMAGE_BL2U)
-# define PLATFORM_STACK_SIZE		UL(0x400)
+# define PLATFORM_STACK_SIZE		UL(0x1000)
 #elif defined(IMAGE_BL31)
 #  define PLATFORM_STACK_SIZE		UL(0x800)
 #elif defined(IMAGE_BL32)

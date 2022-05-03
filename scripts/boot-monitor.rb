@@ -22,6 +22,8 @@ CMD_SJTAG_WR = 'A'
 CMD_ACK  = 'a'
 CMD_NACK = 'n'
 CMD_TRACE = 'T'
+CMD_WRITE = 'W'
+CMD_BIND = 'B'
 
 def read_resp(fd)
     buf = ""
@@ -161,8 +163,16 @@ OptionParser.new do |opts|
         end
     end
 
+    opts.on("-w", "--write", "Do command for writing data to flash") do
+        rsp = do_cmd(fmt_req(CMD_WRITE))
+    end
+
     opts.on("-a", "--authenticate", "Do auth/execute command") do
         rsp = do_cmd(fmt_req(CMD_AUTH))
+    end
+
+    opts.on("-B", "--binding", "Do binding command") do
+        rsp = do_cmd(fmt_req(CMD_BIND))
     end
 
     opts.on("-c", "--continue", "Do continue command") do

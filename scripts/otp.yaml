@@ -151,24 +151,29 @@
   size: 8
   emu: false
   address: 0x30
+  accessor: true
   desc:
   fields:
   - name: UVOV_GPIOB_TRIM
     width: 6
     desc: Trimming value for UVOV_GPIOB. Corresponding register = UVOV:UVOV_CFG[0]
     offset: 37
+    accessor: true
   - name: UVOV_BOOT_TRIM
     width: 6
     desc: Trimming value for UVOV_BOOT. Corresponding register = UVOV:UVOV_CFG[1]
     offset: 31
+    accessor: true
   - name: UVOV_RGMII_TRIM
     width: 6
     desc: Trimming value for UVOV_RGMII. Corresponding register = UVOV:UVOV_CFG[4]
     offset: 25
+    accessor: true
   - name: UVOV_GPIOA_TRIM
     width: 6
     desc: Trimming value for UVOV_GPIOA. Corresponding register = UVOV:UVOV_CFG[5]
     offset: 19
+    accessor: true
   - name: COM_BIAS_BG_TC_TRIM
     width: 5
     desc: USB AFE bias TC trim value (common for all units (bench characterization))

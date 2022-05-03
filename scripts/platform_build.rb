@@ -62,8 +62,10 @@ build_platforms.each do |bp|
         dst = "#{bp}-#{bt}-#{bv}-#{ba}"
         artifacts = [
           ["build/#{bp}/#{bt}/fip.bin",      "#{dst}.fip"],
-          ["build/#{bp}/#{bt}/fip.gpt",      "#{dst}.gpt"],
+          ["build/#{bp}/#{bt}/fip.bin.gz",   "#{dst}.fip.gz"],
+          ["build/#{bp}/#{bt}/fip.gpt.gz",   "#{dst}.gpt.gz"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
+          ["build/#{bp}/#{bt}/fwu.html",     "fwu.html"],
         ]
         # Limit the BL1 image artifacts
         # dst = "#{bp}-#{bt}"
@@ -80,6 +82,7 @@ build_platforms.each do |bp|
         banner(artifacts, cmd)
         system(cmd_clean)
         system(cmd)
+        FileUtils.mkdir_p("artifacts")
         artifacts.each do |from, to|
           to = "artifacts/#{bp}/#{to}"
           FileUtils.mkdir_p(File.dirname(to))

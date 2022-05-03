@@ -61,7 +61,7 @@ $option = { :platform	=> "lan966x_sr",
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2021.02.7-688",
+             :sdk	=> "2022.02-705",
              :norimg	=> true,
              :gptimg	=> false,
              :ramusage	=> true,
@@ -255,7 +255,7 @@ args += "LOG_LEVEL=#{$option[:loglevel]} " if $option[:loglevel]
 if ARGV.length > 0
     targets = ARGV.join(" ")
 else
-    targets = "all fip"
+    targets = "all fip fwu_fip"
 end
 
 cmd = "make #{args} #{targets}"
@@ -265,7 +265,13 @@ do_cmd cmd
 
 exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
 
-lsargs = %w(bin)
+lsargs = %w(bin gz)
+
+# produce GZIP FIP
+fip = "#{build}/fip.bin"
+if File.exist?(fip)
+    do_cmd("gzip -c #{fip} > #{fip}.gz")
+end
 
 if $option[:norimg] && pdef[:bl2_at_el3]
     img = build + "/" + $option[:platform] + ".img"
@@ -278,7 +284,7 @@ if $option[:norimg] && pdef[:bl2_at_el3]
     tsize += 512
     do_cmd("truncate --size=#{tsize}k #{img}")
     # Lastly, the FIP
-    do_cmd("cat #{build}/fip.bin >> #{img}")
+    do_cmd("cat #{fip} >> #{img}")
     # List binaries
     lsargs << "img"
 end
@@ -286,7 +292,6 @@ end
 if $option[:gptimg]
     gptfile = "#{build}/fip.gpt"
     begin
-        fip = "#{build}/fip.bin"
         # Get size of FIP
         size = File.size?(fip)
         # Convert size to sectors
@@ -301,6 +306,15 @@ if $option[:gptimg]
 	# Add env partition, 1MB
 	env_blocks = (1024 * 1024) / 512
 	total_blocks += env_blocks
+	# Add linux partition, 32MB
+	linux_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += linux_blocks
+	# Add linux bk partition, 32MB
+	linux_bk_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += linux_bk_blocks
+	# Add data partition, 32MB
+	data_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += data_blocks
         if $option[:linux_boot]
             # 256M root
             root_blocks = (256 * 1024 * 1024) / 512
@@ -322,17 +336,30 @@ if $option[:gptimg]
         p_end = p_start + fip_blocks -1
         do_cmd("parted -s #{gptfile} mkpart fip #{p_start}s #{p_end}s")
         # Inject data
-        do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
         # Add second backup partition
         p_start += fip_blocks
         p_end += fip_blocks
         do_cmd("parted -s #{gptfile} mkpart fip.bak #{p_start}s #{p_end}s")
         # Inject data
-        do_cmd("dd status=none if=#{build}/fip.bin of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
         # Add U-Boot environment partition
         p_start = p_end + 1
         p_end += env_blocks
         do_cmd("parted -s #{gptfile} mkpart Env #{p_start}s #{p_end}s")
+        # Add linux partiton
+        p_start = p_end + 1
+        p_end += linux_blocks
+        do_cmd("parted -s #{gptfile} mkpart Boot0 #{p_start}s #{p_end}s")
+        # Add linux backup partition
+        p_start = p_end + 1
+        p_end += linux_bk_blocks
+        do_cmd("parted -s #{gptfile} mkpart Boot1 #{p_start}s #{p_end}s")
+        # Add data partition
+        p_start = p_end + 1
+        p_end += data_blocks
+        do_cmd("parted -s #{gptfile} mkpart Data #{p_start}s #{p_end}s")
+        # Add Linux partition
         if $option[:linux_boot]
             # Add root partition
             p_start = p_end + 1
@@ -352,9 +379,12 @@ if $option[:gptimg]
         end
     end
     do_cmd("gdisk -l #{gptfile}")
-    # List binaries
-    lsargs << "gpt"
+    do_cmd("gzip -f #{gptfile}")
 end
+
+# Build FWU
+lsargs << "html"
+do_cmd("ruby ./scripts/html_inline.rb ./scripts/fwu/serial.html > #{build}/fwu.html")
 
 # List binaries
 do_cmd("ls -l " + lsargs.map{|s| "#{build}/*.#{s}"}.join(" "))

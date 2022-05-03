@@ -27,12 +27,24 @@
 #define BOOTSTRAP_OTPC         'M'
 // Program OTP regions
 #define BOOTSTRAP_OTP_REGIONS  'G'
+// Read OTP data (normal)
+#define BOOTSTRAP_OTP_READ_EMU 'L' /* BL2U */
+// Read RAW OTP data
+#define BOOTSTRAP_OTP_READ_RAW 'l' /* BL2U */
 // Continue boot
 #define BOOTSTRAP_CONT         'C'
 // SJTAG Read Challenge
 #define BOOTSTRAP_SJTAG_RD     'Q'
 // SJTAG Write Resonse
 #define BOOTSTRAP_SJTAG_WR     'A'
+// Write FIP data to eMMC/SD/NOR (BL2U)
+#define BOOTSTRAP_WRITE        'W'
+// Write raw image to eMMC/SD/NOR (BL2U)
+#define BOOTSTRAP_IMAGE        'I'
+// Binding operation for decrypt/encrypt (BL2U)
+#define BOOTSTRAP_BIND         'B'
+// Reset (BL2U)
+#define BOOTSTRAP_RESET        'e'
 // ACK
 #define BOOTSTRAP_ACK          'a'
 // NACK

@@ -21,11 +21,17 @@ void plat_flush_next_bl_params(void)
 {
 	uint32_t regions;
 
+	/* Flush BL params, as this hook normally does */
 	flush_bl_params_desc();
-	VERBOSE("Protect OTP, just before BL2 is done\n");
+
 	/* Protect OTP section 4 - Keys */
+	VERBOSE("Protect OTP, just before BL2 is done\n");
 	regions = BIT(4);
 	mmio_write_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), regions);
+
+        /* Zero out PKCL to ensure not leaking data */
+        VERBOSE("Zero PKCL RAM, just before BL2 is done\n");
+        memset((void*) LAN966X_PKCL_RAM_BASE, 0, LAN966X_PKCL_RAM_SIZE);
 }
 
 /*******************************************************************************

@@ -41,6 +41,7 @@ $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,LAN966x_MAX_PE_PER_CPU))
 
 include lib/xlat_tables_v2/xlat_tables.mk
+include lib/zlib/zlib.mk
 
 $(info Including platform TBBR)
 include drivers/microchip/crypto/lan966x_crypto.mk
@@ -76,7 +77,6 @@ LAN966X_STORAGE_SOURCES	:=	\
 				drivers/mmc/mmc.c					\
 				drivers/partition/gpt.c					\
 				drivers/partition/partition.c				\
-				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_mmc.c
 
 PLAT_BL_COMMON_SOURCES	+=	\
@@ -102,12 +102,15 @@ BL1_SOURCES		+=	\
 				plat/microchip/common/plat_bl1_bootstrap.c		\
 				plat/microchip/common/lan966x_bootstrap.c		\
 				plat/microchip/common/lan966x_sjtag.c			\
+				plat/microchip/lan966x/common/lan966x_io_storage.c	\
+				plat/microchip/lan966x/common/lan966x_bl1_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_pcie.c	\
 				plat/microchip/lan966x/common/lan966x_bl1_setup.c	\
 				plat/microchip/lan966x/common/lan966x_tbbr.c
 
 BL2_SOURCES		+=	\
 				plat/microchip/common/lan966x_sjtag.c			\
+				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
 				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c		\
@@ -116,7 +119,12 @@ BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_tz.c
 
 BL2U_SOURCES		+=	\
-				plat/microchip/lan966x/common/lan966x_bl2u_setup.c
+				$(ZLIB_SOURCES)						\
+				plat/microchip/lan966x/common/lan966x_bl2u_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_bl2u_io.c		\
+				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\
+				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_ddr.c
 
 ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
 override BL2_SOURCES		:=	\

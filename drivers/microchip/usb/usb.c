@@ -925,18 +925,17 @@ static void lan966x_usb_device_init(struct cdc *cdc)
 	VERBOSE("lan966x: %s - Done\n", __func__);
 }
 
-static void lan966x_apply_trim(uintptr_t cpubase, uint32_t bias, uint32_t rbias)
+static void lan966x_apply_trim(uintptr_t cpubase, const struct usb_trim *trim)
 {
-	/* NB: Only aply non-zero values as OTP may be uninitialized */
-	if (bias)
+	if (trim->valid) {
 		mmio_write_32(CPU_USB_BIAS_MAG(cpubase),
-			      CPU_USB_BIAS_MAG_TRIM(bias));
-	if (rbias)
+			      CPU_USB_BIAS_MAG_TRIM(trim->bias));
 		mmio_write_32(CPU_USB_RBIAS_MAG(cpubase),
-			      CPU_USB_RBIAS_MAG_TRIM(rbias));
+			      CPU_USB_RBIAS_MAG_TRIM(trim->rbias));
+	}
 }
 
-void lan966x_usb_init(uint32_t bias, uint32_t rbias)
+void lan966x_usb_init(const struct usb_trim *trim)
 {
 	struct cdc *cdc = &setup_cdc;
 	union usb_request *req = &setup_payload;
@@ -952,7 +951,7 @@ void lan966x_usb_init(uint32_t bias, uint32_t rbias)
 	cdc->current_configuration = 0;
 	cdc->current_connection = 0;
 	cdc->set_line = 0;
-	lan966x_apply_trim(cdc->cpubase, bias, rbias);
+	lan966x_apply_trim(cdc->cpubase, trim);
 	if (lan966x_usb_epts_up(&setup_cdc)) {
 		VERBOSE("lan966x: %s: epts are up\n", __func__);
 		setup_cdc.current_configuration = 1;

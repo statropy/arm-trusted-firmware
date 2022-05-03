@@ -19,6 +19,7 @@
 #include "lan966x_private.h"
 #include "lan966x_regs.h"
 #include "lan966x_memmap.h"
+#include "plat_otp.h"
 
 /* Data structure which holds the extents of the trusted SRAM for BL2 */
 static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
@@ -92,8 +93,10 @@ static void bl2_early_platform_setup(void)
 #if BL2_AT_EL3
 	/* BL1 was not there */
 	lan966x_init_strapping();
-	lan966x_timer_init();
 #endif
+
+	/* Must ensure timer is setup */
+	lan966x_timer_init();
 
 	/* Enable arch timer */
 	generic_delay_timer_init();
@@ -143,6 +146,39 @@ void bl2_el3_plat_arch_setup(void)
 	bl2_plat_arch_setup();
 }
 
+void lan966x_uvov_configure(void)
+{
+	uint32_t v;
+
+	/* 42:37 UVOV_GPIOB_TRIM => CFG[0] */
+	v = otp_read_uvov_gpiob_trim();
+	VERBOSE("UVOV: gpiob_trim = %d\n", v);
+	mmio_clrsetbits_32(UVOV_UVOV_CFG0(LAN966X_UVOV_BASE, 0),
+			   UVOV_UVOV_CFG0_TUNE_M_M,
+			   UVOV_UVOV_CFG0_TUNE_M(v));
+
+	/* 36:31 UVOV_BOOT_TRIM => CFG[1] */
+	v = otp_read_uvov_boot_trim();
+	VERBOSE("UVOV: boot_trim = %d\n", v);
+	mmio_clrsetbits_32(UVOV_UVOV_CFG0(LAN966X_UVOV_BASE, 1),
+			   UVOV_UVOV_CFG0_TUNE_M_M,
+			   UVOV_UVOV_CFG0_TUNE_M(v));
+
+	/* 30:25 UVOV_RGMII_TRIM => CFG[4] */
+	v = otp_read_uvov_rgmii_trim();
+	VERBOSE("UVOV: rgmii_trim = %d\n", v);
+	mmio_clrsetbits_32(UVOV_UVOV_CFG0(LAN966X_UVOV_BASE, 4),
+			   UVOV_UVOV_CFG0_TUNE_M_M,
+			   UVOV_UVOV_CFG0_TUNE_M(v));
+
+	/* 24:19 UVOV_GPIOA_TRIM => CFG[5] */
+	v = otp_read_uvov_gpioa_trim();
+	VERBOSE("UVOV: gpioa_trim = %d\n", v);
+	mmio_clrsetbits_32(UVOV_UVOV_CFG0(LAN966X_UVOV_BASE, 5),
+			   UVOV_UVOV_CFG0_TUNE_M_M,
+			   UVOV_UVOV_CFG0_TUNE_M(v));
+}
+
 void bl2_platform_setup(void)
 {
 	/* IO */
@@ -160,6 +196,9 @@ void bl2_platform_setup(void)
 
 	/* SJTAG: Freeze mode and configuration */
 	lan966x_sjtag_configure();
+
+	/* UVOV OTP */
+	lan966x_uvov_configure();
 
 	/* Initialize DDR for loading BL32/BL33 */
 	lan966x_ddr_init();

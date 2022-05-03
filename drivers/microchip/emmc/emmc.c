@@ -24,7 +24,10 @@
 #define  SDMMC_ARG1R	0x08	/* uint32_t */
 /* -------- SDMMC_TMR : (SDMMC Offset: 0x0C) Transfer Mode Register ------- */
 #define SDMMC_TMR	0x0C	/* uint16_t */
-#define   SDMMC_TMR_DTDSEL_READ (0x1u << 4)	/* Reads data from the device to the SDMMC */
+#define   SDMMC_TMR_DTDSEL (0x1u << 4)	/* Data Transfer Direction Selection */
+#define   SDMMC_TMR_DTDSEL_WRITE (0x0u << 4)	/* Writes data from the SDMMC to the device. */
+#define   SDMMC_TMR_DTDSEL_READ (0x1u << 4)	/* Reads data from the device to the SDMMC. */
+#define   SDMMC_TMR_MSBSEL (0x1u << 5)	/* Multi/Single Block Selection */
 /* -------- SDMMC_CR : (SDMMC Offset: 0x0E) Command Register -------- */
 #define SDMMC_CR	0x0E	/* uint16_t */
 #define   SDMMC_CR_RESPTYP_Pos 0
@@ -52,7 +55,10 @@
 #define SDMMC_PSR	0x24	/* uint32_t */
 #define   SDMMC_PSR_CMDINHC (0x1u << 0)	/* Command Inhibit (CMD) */
 #define   SDMMC_PSR_CMDINHD (0x1u << 1)	/* Command Inhibit (DAT) */
-#define   SDMMC_PSR_CARDINS (0x1u << 16)/* Card Inserted */
+#define   SDMMC_PSR_WTACT (0x1u << 8)	/* Write Transfer Active */
+#define   SDMMC_PSR_BUFWREN (0x1u << 10)	/* Buffer Write Enable */
+#define   SDMMC_PSR_BUFRDEN (0x1u << 11)	/* Buffer Read Enable */
+#define   SDMMC_PSR_CARDINS (0x1u << 16)	/* Card Inserted */
 #define   SDMMC_PSR_CARDSS (0x1u << 17)	/* Card State Stable */
 #define   SDMMC_PSR_DATLL_Pos 20
 #define   SDMMC_PSR_DATLL_Msk (0xfu << SDMMC_PSR_DATLL_Pos)	/* DAT[3:0] Line Level */
@@ -101,6 +107,7 @@
 #define SDMMC_NISTER	0x34	/* uint16_t */
 #define   SDMMC_NISTER_CMDC (0x1u << 0)	/* Command Complete Status Enable */
 #define   SDMMC_NISTER_TRFC (0x1u << 1)	/* Transfer Complete Status Enable */
+#define   SDMMC_NISTER_BWRRDY (0x1u << 4)	/* Buffer Write Ready Status Enable */
 #define   SDMMC_NISTER_BRDRDY (0x1u << 5)	/* Buffer Read Ready Status Enable */
 /* -------- SDMMC_EISTER : (SDMMC Offset: 0x36) Error Interrupt Status Enable Register -------- */
 #define SDMMC_EISTER	0x36	/* uint16_t */
@@ -132,9 +139,9 @@
 #define   SDMMC_MC1R_OPD (0x1u << 4)	/* e.MMC Open Drain Mode */
 #define   SDMMC_MC1R_FCD (0x1u << 7)	/* e.MMC Force Card Detect */
 /* -------- SDMMC_DEBR : (SDMMC Offset: 0x207) Debounce Register -------- */
-#define SDMMC_DEBR	0x207 /* uint8_t */
+#define SDMMC_DEBR	0x207	/* uint8_t */
 #define SDMMC_DEBR_CDDVAL_Pos 0
-#define SDMMC_DEBR_CDDVAL_Msk (0x3u << SDMMC_DEBR_CDDVAL_Pos) /*(SDMMC_DEBR) Card Detect Debounce Value */
+#define SDMMC_DEBR_CDDVAL_Msk (0x3u << SDMMC_DEBR_CDDVAL_Pos)	/*(SDMMC_DEBR) Card Detect Debounce Value */
 #define SDMMC_DEBR_CDDVAL(value) ((SDMMC_DEBR_CDDVAL_Msk & ((value) << SDMMC_DEBR_CDDVAL_Pos)))
 
 static card p_card;
@@ -147,17 +154,29 @@ static const unsigned int TAAC_TimeExp[8] =
 static const unsigned int TAAC_TimeMant[16] =
 	{ 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80 };
 
-static void lan966x_mmc_reset(void)
+static void lan966x_mmc_reset(lan966x_reset_type type)
 {
-	unsigned int timeout;
-	uint8_t state;
+	unsigned int timeout = 0xFFFF;
+	unsigned int state;
 
-	VERBOSE("MMC: Software reset \n");
+	VERBOSE("MMC: Software reset type: %d\n", type);
 
-	/* Reset CMD and DATA lines */
-	timeout = 0x10000;
-	mmio_write_8(reg_base + SDMMC_SRR,
-		     (SDMMC_SRR_SWRSTCMD | SDMMC_SRR_SWRSTDAT));
+	switch (type) {
+	case SDMMC_SW_RST_ALL:
+		mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTALL);
+		break;
+	case SDMMC_SW_RST_CMD_LINE:
+		mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTCMD);
+		break;
+	case SDMMC_SW_RST_DATA_CMD_LINES:
+		mmio_write_8(reg_base + SDMMC_SRR, (SDMMC_SRR_SWRSTCMD | SDMMC_SRR_SWRSTDAT));
+		break;
+	default:
+		ERROR("MMC: NOT supported reset type %d \n", type);
+		timeout = 0;
+		break;
+	}
+
 	do {
 		if (timeout > 0) {
 			state = mmio_read_8(reg_base + SDMMC_SRR);
@@ -165,6 +184,7 @@ static void lan966x_mmc_reset(void)
 			udelay(10);
 		} else {
 			state = 0;
+			ERROR("MMC: Reset timeout expired !\n");
 		}
 	} while (state);
 }
@@ -172,13 +192,11 @@ static void lan966x_mmc_reset(void)
 static void lan966x_clock_delay(unsigned int sd_clock_cycles)
 {
 	unsigned int usec;
-	usec = DIV_ROUND_UP_2EVAL(sd_clock_cycles * 1000000u,
-				  lan966x_params.clk_rate);
+	usec = DIV_ROUND_UP_2EVAL(sd_clock_cycles * 1000000u, lan966x_params.clk_rate);
 	udelay(usec);
 }
 
-static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq,
-					  unsigned int sd_src_clk)
+static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq, unsigned int sd_src_clk)
 {
 	unsigned int timeout;
 	uint16_t new_ccr, old_ccr;
@@ -290,25 +308,14 @@ static int lan966x_host_init(void)
 	lan966x_clk_set_rate(LAN966X_CLK_ID_SDMMC0, LAN966X_CLK_FREQ_SDMMC);
 	lan966x_clk_enable(LAN966X_CLK_ID_SDMMC0);
 
-	/* Reset Data and CMD line */
-	mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTALL);
-
-	timeout = 0xFFFF;
-	do {
-		if (timeout > 0) {
-			state = mmio_read_8(reg_base + SDMMC_SRR);
-			timeout--;
-			udelay(10);
-		} else {
-			return -1;
-		}
-	} while (state & SDMMC_SRR_SWRSTALL);
+	/* Reset entire SDMMC host hardware */
+	lan966x_mmc_reset(SDMMC_SW_RST_ALL);
 
 	/* "SD Bus Power" init. */
 	mmc_setbits_8(reg_base + SDMMC_PCR, SDMMC_PCR_SDBPWR);
 
-	/* Reset of the MMC CMD and DATn lines */
-	lan966x_mmc_reset();
+	/* Reset the SDMMC CMD and DATn lines */
+	lan966x_mmc_reset(SDMMC_SW_RST_DATA_CMD_LINES);
 
 	/* Set host controller data bus width to 1 bit */
 	mmc_setbits_8(reg_base + SDMMC_HC1R, SDMMC_HC1R_DW_1_BIT);
@@ -318,8 +325,8 @@ static int lan966x_host_init(void)
 	}
 
 	/* Check if sd-card is physically present */
-	if (lan966x_params.mmc_dev_type == MMC_IS_SD) {
-		/* Set debounce value register and check if sd-card is inserted*/
+	if (boot_source == BOOT_SOURCE_SDMMC) {
+		/* Set debounce value register and check if sd-card is inserted */
 		mmc_setbits_8(reg_base + SDMMC_DEBR, SDMMC_DEBR_CDDVAL(3));
 
 		/* Wait for sd-card stable present bit */
@@ -385,11 +392,9 @@ static void lan966x_get_csd_register(void)
 
 		if (p_card.card_type == MMC_CARD) {
 			if (get_CSD_field(p_resp, 122, 4) == 4) {
-				p_card.card_phy_spec_rev =
-				    MMC_CARD_PHY_SPEC_4_X;
+				p_card.card_phy_spec_rev = MMC_CARD_PHY_SPEC_4_X;
 			} else {
-				p_card.card_phy_spec_rev =
-				    MMC_CARD_PHY_SPEC_OLD;
+				p_card.card_phy_spec_rev = MMC_CARD_PHY_SPEC_OLD;
 			}
 		}
 
@@ -464,8 +469,7 @@ static void lan966x_set_data_timeout(unsigned int trans_type)
 	mmc_clrbits_16(reg_base + SDMMC_EISIER, SDMMC_EISIER_DATTEO);
 
 	if (p_card.card_type == MMC_CARD
-	    || (p_card.card_type == SD_CARD
-		&& p_card.card_capacity == SD_CARD_SDSC)) {
+	    || (p_card.card_type == SD_CARD && p_card.card_capacity == SD_CARD_SDSC)) {
 		/* Set base clock frequency in MHz */
 		clock_frequency =
 		    (mmio_read_32(reg_base + SDMMC_CA0R) &
@@ -475,8 +479,7 @@ static void lan966x_set_data_timeout(unsigned int trans_type)
 		    ((mmio_read_16(reg_base + SDMMC_CCR) &
 		      SDMMC_CCR_SDCLKFSEL_Msk) >> SDMMC_CCR_SDCLKFSEL_Pos) |
 		    (((mmio_read_16(reg_base + SDMMC_CCR) &
-		       SDMMC_CCR_USDCLKFSEL_Msk) >> SDMMC_CCR_USDCLKFSEL_Pos) <<
-		     8);
+		       SDMMC_CCR_USDCLKFSEL_Msk) >> SDMMC_CCR_USDCLKFSEL_Pos) << 8);
 
 		/* Convert base clock frequency into sd clock frequency in KHz */
 		clock_frequency = (clock_frequency * 1000) / (2 * clock_div);
@@ -506,8 +509,7 @@ static void lan966x_set_data_timeout(unsigned int trans_type)
 		}
 	}
 
-	if (p_card.card_type == SD_CARD
-	    && p_card.card_capacity == SD_CARD_SDHC_SDXC) {
+	if (p_card.card_type == SD_CARD && p_card.card_capacity == SD_CARD_SDHC_SDXC) {
 		if (trans_type == SD_DATA_WRITE) {
 			/* Write timeout is 500ms for SDHC and SDXC */
 			timeout_val = TIME_MSEC(500);
@@ -520,8 +522,7 @@ static void lan966x_set_data_timeout(unsigned int trans_type)
 	/* Convert timeout_val from micro seconds into ms */
 	timeout_val = timeout_val / 1000;
 
-	if ((mmio_read_32(reg_base + SDMMC_CA0R) & SDMMC_CA0R_TEOCLKU) ==
-	    SDMMC_CA0R_TEOCLKU) {
+	if ((mmio_read_32(reg_base + SDMMC_CA0R) & SDMMC_CA0R_TEOCLKU) == SDMMC_CA0R_TEOCLKU) {
 		/* Set value of 1000, because "timeout_val" is in ms */
 		timeout_freq_fact = 1000u;
 	} else {
@@ -547,8 +548,8 @@ static void lan966x_set_data_timeout(unsigned int trans_type)
 
 static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 {
-	unsigned short emmcRegVal, cmdRegVal;
-	unsigned int is_busy_resp, timeout, not_ready;
+	unsigned short mc1r_reg_value, cr_reg_value;
+	unsigned int timeout, not_ready;
 	unsigned int op;
 	unsigned int state;
 
@@ -572,7 +573,6 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 		op = SDMMC_MMC_CMD6;
 		break;
 	case 7:
-		lan966x_set_data_timeout(SD_DATA_WRITE);
 		op = SDMMC_MMC_CMD7;
 		break;
 	case 8:
@@ -596,6 +596,12 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 	case 18:
 		op = SDMMC_MMC_CMD18;
 		break;
+	case 24:
+		op = SDMMC_MMC_CMD24;
+		break;
+	case 25:
+		op = SDMMC_MMC_CMD25;
+		break;
 	case 41:
 		op = SDMMC_SD_ACMD41;
 		break;
@@ -611,13 +617,10 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 		break;
 	}
 
-	cmdRegVal = op & 0xFFFF;
-	is_busy_resp =
-	    ((cmdRegVal & SDMMC_CR_RESPTYP_Msk) == SDMMC_CR_RESPTYP_RL48BUSY);
+	cr_reg_value = op & 0xFFFF;
 
 	/* Configure Normal and Error Interrupt Status Enable Registers */
-	mmc_setbits_16(reg_base + SDMMC_NISTER,
-		       (SDMMC_NISTER_CMDC | SDMMC_NISTER_TRFC));
+	mmc_setbits_16(reg_base + SDMMC_NISTER, (SDMMC_NISTER_CMDC | SDMMC_NISTER_TRFC));
 	mmio_write_16(reg_base + SDMMC_EISTER, ALL_FLAGS);
 
 	/* Clear all the Normal/Error Interrupt Status Register flags */
@@ -626,7 +629,8 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 
 	/* Prepare masks */
 	not_ready = SDMMC_PSR_CMDINHC;
-	if ((cmdRegVal & SDMMC_CR_DPSEL) || is_busy_resp) {
+	if (((cr_reg_value & SDMMC_CR_DPSEL) == SDMMC_CR_DPSEL) ||
+	    (cr_reg_value & SDMMC_CR_RESPTYP_Msk) == SDMMC_CR_RESPTYP_RL48BUSY) {
 		not_ready |= SDMMC_PSR_CMDINHD;
 	}
 
@@ -643,25 +647,44 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 		}
 	} while (state & not_ready);
 
+	/* Set timeout value, transmission direction and clear accordingly buffer ready bits */
+	if (op == SDMMC_MMC_CMD7 || op == SDMMC_MMC_CMD24 || op == SDMMC_MMC_CMD25) {
+		lan966x_set_data_timeout(SD_DATA_WRITE);
+		mmc_clrbits_16(reg_base + SDMMC_TMR, SDMMC_TMR_DTDSEL_READ);
+		mmc_setbits_16(reg_base + SDMMC_NISTER, SDMMC_NISTER_BWRRDY);
+
+	} else {
+		lan966x_set_data_timeout(SD_DATA_READ);
+		mmc_setbits_16(reg_base + SDMMC_TMR, SDMMC_TMR_DTDSEL_READ);
+		mmc_setbits_16(reg_base + SDMMC_NISTER, SDMMC_NISTER_BRDRDY);
+	}
+
 	/* Send command */
-	emmcRegVal = mmio_read_8(reg_base + SDMMC_MC1R);
-	emmcRegVal &= ~(SDMMC_MC1R_CMDTYP_Msk | SDMMC_MC1R_OPD);	//Clear MMC command type and Open Drain fields
-	emmcRegVal |= ((op >> 16) & 0xFFFF);
+	mc1r_reg_value = mmio_read_8(reg_base + SDMMC_MC1R);
+	mc1r_reg_value &= ~(SDMMC_MC1R_CMDTYP_Msk | SDMMC_MC1R_OPD);	// Clear MMC command type and Open Drain fields
+	mc1r_reg_value |= ((op >> 16) & 0xFFFF);
 
 	/* When using eMMC, the FCD (Force Card Detect) bit will be set to 1 to bypass the card
 	 * detection procedure by using the SDMMC_CD signal */
-	if (lan966x_params.mmc_dev_type == MMC_IS_EMMC) {
-		emmcRegVal |= SDMMC_MC1R_FCD;
+	if (lan966x_get_boot_source() == BOOT_SOURCE_EMMC) {
+		mc1r_reg_value |= SDMMC_MC1R_FCD;
 	}
 
-	mmio_write_8(reg_base + SDMMC_MC1R, emmcRegVal);
+#if defined(LAN966X_EMMC_TESTS) || defined(IMAGE_BL2U)
+	/* When e.g the EVB board is used and LAN966X_EMMC_TESTS is enabled,
+	 * the previously called lan966x_get_boot_source() function will
+	 * return BOOT_SOURCE_QSPI. Since this is a special test mode,
+	 * the value for the FCD needs to be set accordingly */
+	mc1r_reg_value |= SDMMC_MC1R_FCD;
+#endif
+
+	mmio_write_8(reg_base + SDMMC_MC1R, mc1r_reg_value);
 	mmio_write_32(reg_base + SDMMC_ARG1R, cmd->cmd_arg);
-	mmio_write_16(reg_base + SDMMC_CR, cmdRegVal);
+	mmio_write_16(reg_base + SDMMC_CR, cr_reg_value);
 
 	/* Poll Interrupt Status Register, wait for command completion */
 	if (lan966x_emmc_poll(SDMMC_NISTR_CMDC)) {
-		ERROR("Command completion of CMD: %d failed !!! \n",
-		      cmd->cmd_idx);
+		ERROR("Command completion of CMD: %d failed !!! \n", cmd->cmd_idx);
 		return 1;
 	}
 
@@ -673,8 +696,7 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 	case 1:
 		cmd->resp_data[0] = mmio_read_32(reg_base + SDMMC_RR0);
 
-		if ((cmd->resp_data[0] & MMC_CARD_POWER_UP_STATUS) ==
-						MMC_CARD_POWER_UP_STATUS) {
+		if ((cmd->resp_data[0] & MMC_CARD_POWER_UP_STATUS) == MMC_CARD_POWER_UP_STATUS) {
 			p_card.card_type = MMC_CARD;
 
 			if ((cmd->resp_data[0] & MMC_CARD_ACCESS_MODE_msk) ==
@@ -698,6 +720,8 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 	case 13:
 	case 17:
 	case 18:
+	case 24:
+	case 25:
 	case 51:
 	case 55:
 		cmd->resp_data[0] = mmio_read_32(reg_base + SDMMC_RR0);
@@ -718,8 +742,7 @@ static int lan966x_mmc_send_cmd(struct mmc_cmd *cmd)
 	case 41:
 		cmd->resp_data[0] = mmio_read_32(reg_base + SDMMC_RR0);
 
-		if ((cmd->resp_data[0] & SD_CARD_CCS_STATUS) ==
-						SD_CARD_HCS_HIGH) {
+		if ((cmd->resp_data[0] & SD_CARD_CCS_STATUS) == SD_CARD_HCS_HIGH) {
 			p_card.card_capacity = SD_CARD_SDHC_SDXC;
 			VERBOSE("SDHC/SDXC (HIGH/EXTENDED CAPACITY) SDMMC\n");
 		} else {
@@ -741,17 +764,10 @@ static int lan966x_recover_error(unsigned int error_int_status)
 	struct mmc_cmd cmd;
 	unsigned int sd_status;
 
-	VERBOSE("MMC: recover from error() \n");
+	NOTICE("MMC: recover from error() \n");
 
-	/* Perform software reset CMD */
-	mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTCMD);
-	/* Wait for command reset done */
-	while (mmio_read_8(reg_base + SDMMC_SRR) & SDMMC_SRR_SWRSTCMD) ;
-
-	/* Perform software reset DAT */
-	mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTDAT);
-	/* Wait for data reset done */
-	while (mmio_read_8(reg_base + SDMMC_SRR) & SDMMC_SRR_SWRSTDAT) ;
+	/* Perform software reset CMD and DATn lines */
+	lan966x_mmc_reset(SDMMC_SW_RST_DATA_CMD_LINES);
 
 	/* Set data timeout */
 	lan966x_set_data_timeout(SD_DATA_WRITE);
@@ -765,26 +781,22 @@ static int lan966x_recover_error(unsigned int error_int_status)
 		/* No response from SD card to CMD12 */
 		if (eistr & SDMMC_EISTR_CMDTEO) {
 			/* Perform software reset */
-			mmc_setbits_8(reg_base + SDMMC_SRR, SDMMC_SRR_SWRSTCMD);
-			/* Wait till reset is done */
-			while (mmio_read_8(reg_base + SDMMC_SRR) &
-			       SDMMC_SRR_SWRSTCMD) ;
+			lan966x_mmc_reset(SDMMC_SW_RST_CMD_LINE);
 
 			sd_status = mmio_read_32(reg_base + SDMMC_RR0);
 
 			if ((sd_status & SD_STATUS_CURRENT_STATE) !=
 			    STATUS_CURRENT_STATE(MMC_STATE_TRAN)) {
-				ERROR("Unrecoverable error : SDMMC_Error_Status = %d\n ",sd_status);
+				ERROR("Unrecoverable error: SDMMC_Error_Status = %d\n ", sd_status);
 				return 1;
 			} else {
-				ERROR("Unrecoverable error : SDMMC_Error_Status = %d\n ",sd_status);
+				ERROR("Unrecoverable error: SDMMC_Error_Status = %d\n ", sd_status);
 				return 1;
 			}
 		}
 	}
 
-	if ((mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_DATLL_Msk) !=
-	    SDMMC_PSR_DATLL_Msk) {
+	if ((mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_DATLL_Msk) != SDMMC_PSR_DATLL_Msk) {
 		return 1;
 	}
 
@@ -793,33 +805,32 @@ static int lan966x_recover_error(unsigned int error_int_status)
 
 static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 {
-	uint8_t busWidth = 0u;
+	uint8_t bus_width = 0u;
 	uint32_t clock = 0u;
 
 	VERBOSE("MMC: ATF CB set_ios() \n");
 
 	switch (width) {
 	case MMC_BUS_WIDTH_1:
-		busWidth = SDMMC_HC1R_DW_1_BIT;
+		bus_width = SDMMC_HC1R_DW_1_BIT;
 		break;
 	case MMC_BUS_WIDTH_4:
-		busWidth = SDMMC_HC1R_DW_4_BIT;
+		bus_width = SDMMC_HC1R_DW_4_BIT;
 		break;
 	case MMC_BUS_WIDTH_8:
 		/* Check if hardware supports 8-bit bus width capabilities */
-		if ((mmio_read_32(reg_base + SDMMC_CA0R) &
-		     SDMMC_CA0R_ED8SUP) == SDMMC_CA0R_ED8SUP) {
-			busWidth = SDMMC_HC1R_EXTDW;
+		if ((mmio_read_32(reg_base + SDMMC_CA0R) & SDMMC_CA0R_ED8SUP) == SDMMC_CA0R_ED8SUP) {
+			bus_width = SDMMC_HC1R_EXTDW;
 		}
 		break;
 	default:
-		ERROR("Unsupported emmc bus width of %d \n", width);
+		ERROR("Unsupported mmc bus width of %d \n", width);
 		assert(false);
 		break;
 	}
 
 	INFO("MMC: Set mmc bus_width to: %d\n", width);
-	mmc_setbits_8(reg_base + SDMMC_HC1R, busWidth);
+	mmc_setbits_8(reg_base + SDMMC_HC1R, bus_width);
 
 	/* Mainly, the desired clock rate should be adjusted by the fw_config
 	 * parameter. This check prevents that the maximum allowed clock
@@ -837,6 +848,15 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 			clock = clk;
 		}
 	}
+#if defined(LAN966X_EMMC_TESTS) || defined(IMAGE_BL2U)
+	else {
+		/* When the EVB board is used and LAN966X_EMMC_TESTS is enabled,
+		 * the previously called lan966x_get_boot_source() function will
+		 * return BOOT_SOURCE_QSPI. Since this is a special test mode,
+		 * this boot_source is not considered and supported here.
+		 * Set clock value as requested. */
+		clock = clk;
+	}
 
 	INFO("MMC: Set mmc clk_freq to: %d\n", clock);
 	if (lan966x_set_clk_freq(clock, SDMMC_CLK_CTRL_PROG_MODE)) {
@@ -848,13 +868,29 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 
 static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size)
 {
+	size_t blocks;
+	size_t blocksize;
+
 	VERBOSE("MMC: ATF CB prepare() \n");
 
-	lan966x_set_data_timeout(SD_DATA_READ);
+	/* Check preconditions for block size and block count */
+	if (size < 512) {
+		blocksize = size;
+		blocks = 1u;
+	} else {
+		blocksize = MMC_BLOCK_SIZE;
+		blocks = size / blocksize;
+		if (size % blocksize != 0)
+			blocks++;
+	}
 
-	mmio_write_16(reg_base + SDMMC_TMR, SDMMC_TMR_DTDSEL_READ);
-	mmio_write_16(reg_base + SDMMC_BSR, SDMMC_BSR_BLKSIZE(size));
-	mmc_setbits_16(reg_base + SDMMC_NISTER, SDMMC_NISTER_BRDRDY);
+	/* Setup hardware according identified values */
+	if (blocks > 1) {
+		mmc_setbits_16(reg_base + SDMMC_TMR, SDMMC_TMR_MSBSEL);
+	}
+
+	mmio_write_16(reg_base + SDMMC_BSR, SDMMC_BSR_BLKSIZE(blocksize));
+	mmio_write_16(reg_base + SDMMC_BCR, blocks);
 
 	mmc_setbits_16(reg_base + SDMMC_EISTER, SDMMC_EISTER_DATTEO);
 	mmc_setbits_16(reg_base + SDMMC_EISIER, SDMMC_EISIER_DATTEO);
@@ -884,8 +920,9 @@ static int lan966x_mmc_read(int lba, uintptr_t buf, size_t size)
 		return 1;
 	}
 
-	for (i = 0; i < (size / 4); i++) {
-		*pExtBuffer++ = mmio_read_32(reg_base + SDMMC_BDPR);
+	for (i = 0; i < (size / sizeof(uint32_t)); i++) {
+		*pExtBuffer = mmio_read_32(reg_base + SDMMC_BDPR);
+		pExtBuffer++;
 	}
 
 	if (lan966x_emmc_poll(SDMMC_NISTR_TRFC)) {
@@ -898,7 +935,26 @@ static int lan966x_mmc_read(int lba, uintptr_t buf, size_t size)
 
 static int lan966x_mmc_write(int lba, uintptr_t buf, size_t size)
 {
-	VERBOSE("MMC: ATF CB write() not implemented \n");
+	uint32_t i;
+	uint32_t *pExtBuffer = (unsigned int *)buf;
+
+	VERBOSE("MMC: ATF CB write() \n");
+
+	if ((mmio_read_32(reg_base + SDMMC_PSR) & SDMMC_PSR_BUFWREN) == SDMMC_PSR_BUFWREN) {
+
+		for (i = 0; i < (size / sizeof(uint32_t)); i++) {
+			mmio_write_32(reg_base + SDMMC_BDPR, *pExtBuffer);
+			pExtBuffer++;
+		}
+
+		if (lan966x_emmc_poll(SDMMC_NISTR_TRFC)) {
+			lan966x_recover_error(eistr);
+			return 1;
+		}
+	} else {
+		ERROR("MMC write buffer not ready \n");
+		return 1;
+	}
 
 	return 0;
 }
@@ -913,8 +969,7 @@ static const struct mmc_ops lan966x_ops = {
 	.write = lan966x_mmc_write,
 };
 
-void lan966x_mmc_init(lan966x_mmc_params_t * params,
-		      struct mmc_device_info *info)
+void lan966x_mmc_init(lan966x_mmc_params_t * params, struct mmc_device_info *info)
 {
 	int retVal;
 
@@ -943,8 +998,7 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 	lan966x_params.mmc_dev_type = info->mmc_dev_type;
 	reg_base = lan966x_params.reg_base;
 
-	retVal = mmc_init(&lan966x_ops, params->clk_rate, params->bus_width,
-			  params->flags, info);
+	retVal = mmc_init(&lan966x_ops, params->clk_rate, params->bus_width, params->flags, info);
 
 	if (retVal != 0) {
 		ERROR("MMC initialization phase with default parameters failed!\n");
