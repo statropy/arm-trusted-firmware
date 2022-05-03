@@ -212,12 +212,6 @@ void tzc400_init(uintptr_t base)
 					BUILD_CONFIG_NR_MASK) + 1U;
 }
 
-void tzc400_configure_filter_count(int filters)
-{
-	assert(filters > 0 && filters <= tzc400.num_filters);
-	tzc400.num_filters = filters;
-}
-
 /*
  * `tzc400_configure_region0` is used to program region 0 into the TrustZone
  * controller. Region 0 covers the whole address space that is not mapped

@@ -101,7 +101,6 @@
  * Function & variable prototypes
  ******************************************************************************/
 void tzc400_init(uintptr_t base);
-void tzc400_configure_filter_count(int filters);
 void tzc400_configure_region0(unsigned int sec_attr,
 			   unsigned int ns_device_access);
 void tzc400_configure_region(unsigned int filters,
