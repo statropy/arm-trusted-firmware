@@ -49,7 +49,8 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_setbits_32(TZPM_TZPCTL0(tzpm),
 			TZPM_TZPCTL0_QSPI0(1) |
 			TZPM_TZPCTL0_QSPI2(1) |
-			TZPM_TZPCTL0_SDMMC(1));
+			TZPM_TZPCTL0_SDMMC0(1) |
+			TZPM_TZPCTL0_SDMMC1(1));
 	mmio_setbits_32(TZPM_TZPCTL1(tzpm),
 			TZPM_TZPCTL1_XDMA(1) |
 			TZPM_TZPCTL1_FLEXCOM0(1) |
@@ -62,16 +63,13 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0);
 }
 
-void lan969x_tzc_configure(uintptr_t tzc_base, int filters, const lan969x_tcreg_t *regions, size_t nregs)
+void lan969x_tzc_configure(uintptr_t tzc_base, const lan969x_tcreg_t *regions, size_t nregs)
 {
 	const lan969x_tcreg_t *reg;
 	int i;
 
 	VERBOSE("Configuring TZC@%08lx\n", tzc_base);
 	tzc400_init(tzc_base);
-	if (filters)
-		/* Override # of filters */
-		tzc400_configure_filter_count(filters);
 	tzc400_disable_filters();
 
 	for (i = 0, reg = regions; i < nregs; i++, reg++) {
@@ -118,8 +116,8 @@ void lan969x_tz_init(void)
 					MATRIX_LANSECH_NS(0));
 
 	/* TZC: DDR accesess through CSS (128bit) */
-	lan969x_tzc_configure(LAN969X_TZC_CSS_BASE, 0, css_rules, ARRAY_SIZE(css_rules));
+	lan969x_tzc_configure(LAN969X_TZC_CSS_BASE, css_rules, ARRAY_SIZE(css_rules));
 
 	/* TZC: DDR access through HSS/HMATRIX (64bit) */
-	lan969x_tzc_configure(LAN969X_TZC_MAIN_HSS_BASE, 2, hss_rules, ARRAY_SIZE(hss_rules));
+	lan969x_tzc_configure(LAN969X_TZC_MAIN_HSS_BASE, hss_rules, ARRAY_SIZE(hss_rules));
 }
