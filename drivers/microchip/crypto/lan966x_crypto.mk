@@ -48,8 +48,7 @@ BL1_SOURCES	+=	${AUTH_SOURCES}					\
 
 BL2_SOURCES	+=	${AUTH_SOURCES}
 
-BL2U_SOURCES	+=	${AUTH_SOURCES}					\
-			plat/microchip/lan966x/common/lan966x_tbbr.c
+BL2U_SOURCES	+=	${AUTH_SOURCES}
 
 IMG_PARSER_LIB_MK := drivers/auth/mbedtls/mbedtls_x509.mk
 
