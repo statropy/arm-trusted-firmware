@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <plat_crypto.h>
+#include <plat_common.h>
 
 typedef struct {
 	void *fw_config;
@@ -17,9 +18,6 @@ typedef struct {
 } shared_memory_desc_t;
 
 extern shared_memory_desc_t shared_memory_desc;
-
-#define FW_PARTITION_NAME		"fip"
-#define FW_BACKUP_PARTITION_NAME	"fip.bak"
 
 enum {
 	LAN966X_STRAP_BOOT_MMC_FC = 0,
@@ -40,13 +38,6 @@ enum {
 	LAN966X_STRAP_SPI_SLAVE = 15,
 };
 
-typedef enum {
-	BOOT_SOURCE_EMMC = 0,
-	BOOT_SOURCE_QSPI,
-	BOOT_SOURCE_SDMMC,
-	BOOT_SOURCE_NONE
-} boot_source_type;
-
 void lan966x_init_strapping(void);
 uint8_t lan966x_get_strapping(void);
 bool lan966x_monitor_enabled(void);
@@ -56,8 +47,6 @@ void lan966x_reset_max_trace_level(void);
 void lan966x_console_init(void);
 void lan966x_timer_init(void);
 void lan966x_io_bootsource_init(void);
-void lan966x_io_init_dev(boot_source_type boot_source);
-void lan966x_io_setup(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 void lan966x_pcie_init(void);
@@ -66,7 +55,6 @@ void lan966x_crash_console(console_t *console);
 
 void lan966x_mmc_plat_config(boot_source_type boot_source);
 
-boot_source_type lan966x_get_boot_source(void);
 void lan966x_fwconfig_apply(void);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
 

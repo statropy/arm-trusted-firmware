@@ -7,6 +7,7 @@
 include lib/xlat_tables_v2/xlat_tables.mk
 include drivers/arm/gic/v2/gicv2.mk
 include drivers/microchip/crypto/lan966x_crypto.mk
+include lib/zlib/zlib.mk
 
 # MCHP SOC family
 $(eval $(call add_define,MCHP_SOC_LAN969X))
@@ -71,7 +72,10 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_image_load.c	\
 				plat/microchip/common/lan966x_sjtag.c
 
-BL2U_SOURCES		+=	${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c
+BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
+				${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c	\
+				plat/microchip/common/lan966x_bootstrap.c	\
+				plat/microchip/common/plat_bl2u_bootstrap.c
 
 BL31_SOURCES		+=	${GICV2_SOURCES}				\
 				${LAN969X_PLAT_COMMON}/lan969x_bl31_setup.c	\

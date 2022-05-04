@@ -13,11 +13,12 @@
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/fw_config.h>
+#include <plat/common/platform.h>
+#include <plat_bl2u_bootstrap.h>
 
 #include "lan966x_private.h"
 #include "lan966x_regs.h"
 #include "lan966x_memmap.h"
-#include "lan966x_bl2u_bootstrap.h"
 
 #define MAP_BL2U_TOTAL		MAP_REGION_FLAT(			\
 					BL2U_BASE,			\

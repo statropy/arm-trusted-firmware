@@ -18,11 +18,12 @@
 #include <platform_def.h>
 #include <tf_gunzip.h>
 
-#include "lan966x_private.h"
+#include <plat_common.h>
+#include <plat_bl2u_bootstrap.h>
+
 #include "lan966x_bootstrap.h"
-#include "lan966x_bl2u_bootstrap.h"
+#include "lan966x_regs.h"
 #include "aes.h"
-#include "ddr.h"
 #include "otp.h"
 
 #include <tools_share/firmware_encrypted.h>
@@ -32,8 +33,8 @@
 
 #define PAGE_ALIGN(x, a)	(((x) + (a) - 1) & ~((a) - 1))
 
-static const uintptr_t fip_base_addr = DDR_BASE_ADDR;
-static const uintptr_t fip_max_size = DDR_MEM_SIZE;
+static const uintptr_t fip_base_addr = LAN966X_DDR_BASE;
+static const uintptr_t fip_max_size = LAN966X_DDR_SIZE;
 static uint32_t data_rcv_length;
 
 static inline int is_valid_fip_hdr(const fip_toc_header_t *header)
@@ -244,7 +245,7 @@ static const char *handle_bind_parse_fip(void)
 	toc_end_addr = fip_base_addr + toc_entry->offset_address;
 
 	/* Iterate now over all ToC Entries in the FIP file */
-	while ((uint32_t)toc_entry < toc_end_addr) {
+	while (((uintptr_t)toc_entry) < toc_end_addr) {
 
 		/* If ToC End Marker is found (zero terminated), exit parsing loop */
 		if (memcmp(&toc_entry->uuid, &uuid_null, sizeof(uuid_t)) == 0) {
@@ -430,9 +431,9 @@ static void handle_load_data(const bootstrap_req_t *req)
 			out_len = out_buf - out_start;
 			memmove((void *)fip_base_addr, (const void *) out_start, out_len);
 			data_rcv_length = out_len;
-			INFO("Unzipped data, length now %zd bytes\n", data_rcv_length);
+			INFO("Unzipped data, length now %d bytes\n", data_rcv_length);
 		} else {
-			INFO("Non-zipped data, length %zd bytes\n", data_rcv_length);
+			INFO("Non-zipped data, length %d bytes\n", data_rcv_length);
 		}
 	}
 }
@@ -644,7 +645,6 @@ void lan966x_bl2u_bootstrap_monitor(void)
 	bool exit_monitor = false;
 	bootstrap_req_t req = { 0 };
 
-	lan966x_reset_max_trace_level();
 	INFO("*** ENTERING BL2U BOOTSTRAP MONITOR ***\n");
 
 	while (!exit_monitor) {
@@ -679,5 +679,4 @@ void lan966x_bl2u_bootstrap_monitor(void)
 	}
 
 	INFO("*** EXITING BL2U BOOTSTRAP MONITOR ***\n");
-	lan966x_set_max_trace_level();
 }
