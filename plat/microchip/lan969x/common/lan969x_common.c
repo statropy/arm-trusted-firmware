@@ -135,8 +135,27 @@ static void lan969x_flexcom_init(int idx)
 			  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
 }
 
+void lan969x_usb_get_trim_values(struct usb_trim *trim)
+{
+	uint8_t trim_data[TRIM_SIZE];
+
+	memset(trim, 0, sizeof(*trim));
+
+	if (otp_read_trim(trim_data, sizeof(trim_data)) < 0)
+		return;		/* OTP read error? */
+
+	if (otp_all_zero(trim_data, sizeof(trim_data)))
+		return;		/* Nothing set */
+
+	trim->valid = true;
+	trim->bias = otp_read_com_bias_bg_mag_trim();
+	trim->rbias = otp_read_com_rbias_mag_trim();
+}
+
 void lan969x_console_init(void)
 {
+	struct usb_trim trim;
+
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
 	switch (lan969x_get_strapping()) {
@@ -162,11 +181,8 @@ void lan969x_console_init(void)
 		break;
 	case LAN969X_STRAP_TFAMON_USB:
 		if (0) {
-			uint32_t bias, rbias;
-
-			bias = otp_read_com_bias_bg_mag_trim();
-			rbias = otp_read_com_rbias_mag_trim();
-			lan966x_usb_init(bias, rbias);
+			lan969x_usb_get_trim_values(&trim);
+			lan966x_usb_init(&trim);
 			lan966x_usb_register_console();
 		} else {
 			ERROR("USB not yet available on LAN969X\n");
