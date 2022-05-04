@@ -802,11 +802,11 @@ int qspi_write_data_page(uint32_t offset, const void *buf, size_t len)
 	if (ret)
 		goto fail;
 
-	VERBOSE("qspi: Write %d bytes succeeds\n", len);
+	VERBOSE("qspi: Write %zd bytes succeeds\n", len);
 	return 0;
 
 fail:
-	NOTICE("qspi: Write %d bytes fail: %d\n", len, ret);
+	NOTICE("qspi: Write %zd bytes fail: %d\n", len, ret);
 	return ret;
 }
 
@@ -819,7 +819,7 @@ int qspi_write_data(uint32_t offset, const void *buf, size_t len)
 		return -EINVAL;
 
 	for (addr = offset; addr < (offset + len); addr += WRITE_BLOCK_SIZE, buf += WRITE_BLOCK_SIZE) {
-		uint32_t block = MIN(WRITE_BLOCK_SIZE, len);
+		uint32_t block = MIN((size_t) WRITE_BLOCK_SIZE, len);
 
 		ret = qspi_write_data_page(addr, buf, block);
 		if (ret)
