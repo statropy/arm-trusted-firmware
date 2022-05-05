@@ -6,7 +6,7 @@
 
 include lib/xlat_tables_v2/xlat_tables.mk
 include drivers/arm/gic/v2/gicv2.mk
-include drivers/microchip/crypto/lan966x_crypto.mk
+include drivers/microchip/crypto/lan969x_crypto.mk
 include lib/zlib/zlib.mk
 
 # MCHP SOC family
@@ -35,6 +35,7 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/partition/gpt.c					\
 				drivers/partition/partition.c				\
 				plat/microchip/lan969x/common/lan969x_io_storage.c	\
+				plat/microchip/common/lan96xx_mmc.c			\
 				plat/microchip/lan969x/common/lan969x_mmc.c
 
 PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
@@ -52,6 +53,8 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				drivers/microchip/tz_matrix/tz_matrix.c	\
 				plat/microchip/common/duff_memcpy.c	\
 				plat/microchip/common/fw_config.c	\
+				plat/microchip/common/lan966x_crc32.c	\
+				plat/microchip/common/lan96xx_common.c	\
 				plat/microchip/common/plat_crypto.c	\
 				plat/microchip/common/plat_tbbr.c
 
@@ -59,7 +62,6 @@ BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl1_setup.c	\
 				plat/common/aarch64/platform_up_stack.S		\
 				plat/microchip/common/lan966x_bootstrap.c	\
-				plat/microchip/common/lan966x_crc32.c		\
 				plat/microchip/common/lan966x_sjtag.c		\
 				plat/microchip/common/plat_bl1_bootstrap.c
 
@@ -74,6 +76,7 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 
 BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c	\
+				${LAN969X_PLAT_COMMON}/lan969x_ddr.c		\
 				plat/microchip/common/lan966x_bootstrap.c	\
 				plat/microchip/common/plat_bl2u_bootstrap.c
 

@@ -18,7 +18,7 @@
 #include <platform_def.h>
 #include <tf_gunzip.h>
 
-#include <plat_common.h>
+#include <lan96xx_common.h>
 #include <plat_bl2u_bootstrap.h>
 
 #include "lan966x_bootstrap.h"

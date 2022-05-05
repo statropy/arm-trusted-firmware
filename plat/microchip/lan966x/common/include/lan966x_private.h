@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 #include <plat_crypto.h>
-#include <plat_common.h>
+#include <lan96xx_common.h>
 
 typedef struct {
 	void *fw_config;
@@ -19,43 +19,17 @@ typedef struct {
 
 extern shared_memory_desc_t shared_memory_desc;
 
-enum {
-	LAN966X_STRAP_BOOT_MMC_FC = 0,
-	LAN966X_STRAP_BOOT_QSPI_FC = 1,
-	LAN966X_STRAP_BOOT_SD_FC = 2,
-	LAN966X_STRAP_BOOT_MMC = 3,
-	LAN966X_STRAP_BOOT_QSPI = 4,
-	LAN966X_STRAP_BOOT_SD = 5,
-	LAN966X_STRAP_PCIE_ENDPOINT = 6,
-	LAN966X_STRAP_BOOT_MMC_TFAMON_FC = 7,
-	LAN966X_STRAP_BOOT_QSPI_TFAMON_FC = 8,
-	LAN966X_STRAP_BOOT_SD_TFAMON_FC = 9,
-	LAN966X_STRAP_TFAMON_FC0 = 10,
-	LAN966X_STRAP_TFAMON_FC2 = 11,
-	LAN966X_STRAP_TFAMON_FC3 = 12,
-	LAN966X_STRAP_TFAMON_FC4 = 13,
-	LAN966X_STRAP_TFAMON_USB = 14,
-	LAN966X_STRAP_SPI_SLAVE = 15,
-};
-
-void lan966x_init_strapping(void);
-uint8_t lan966x_get_strapping(void);
-bool lan966x_monitor_enabled(void);
 void lan966x_set_max_trace_level(void);
 void lan966x_reset_max_trace_level(void);
 
 void lan966x_console_init(void);
 void lan966x_timer_init(void);
-void lan966x_io_bootsource_init(void);
 void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 void lan966x_pcie_init(void);
 void lan966x_validate_strapping(void);
 void lan966x_crash_console(console_t *console);
 
-void lan966x_mmc_plat_config(boot_source_type boot_source);
-
-void lan966x_fwconfig_apply(void);
 int lan966x_set_fip_addr(unsigned int image_id, const char *name);
 
 #if defined(LAN966X_AES_TESTS)

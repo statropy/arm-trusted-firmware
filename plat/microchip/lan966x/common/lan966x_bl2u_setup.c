@@ -13,8 +13,8 @@
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/fw_config.h>
-#include <plat/common/platform.h>
 #include <plat_bl2u_bootstrap.h>
+#include <lan96xx_common.h>
 
 #include "lan966x_private.h"
 #include "lan966x_regs.h"
@@ -29,22 +29,6 @@
 						BL_CODE_BASE,			\
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
-
-static bool lan966x_bootable_source(void)
-{
-	boot_source_type boot_source = lan966x_get_boot_source();
-
-	switch (boot_source) {
-	case BOOT_SOURCE_QSPI:
-	case BOOT_SOURCE_EMMC:
-	case BOOT_SOURCE_SDMMC:
-		return true;
-	default:
-		break;
-	}
-
-	return false;
-}
 
 void bl2u_platform_setup(void)
 {

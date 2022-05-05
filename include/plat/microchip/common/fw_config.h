@@ -38,6 +38,7 @@ extern lan966x_fw_config_t lan966x_fw_config;
 
 int lan966x_load_fw_config(unsigned int image_id);
 int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
+void lan966x_fwconfig_apply(void);
 int lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst);
 int lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst);
 int lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst);

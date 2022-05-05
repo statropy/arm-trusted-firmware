@@ -465,45 +465,14 @@ static int check_error(const uintptr_t spec)
 	return -1;
 }
 
-void lan969x_io_bootsource_init(void)
-{
-	boot_source_type boot_source = lan969x_get_boot_source();
-
-	switch (boot_source) {
-	case BOOT_SOURCE_EMMC:
-	case BOOT_SOURCE_SDMMC:
-		/* Setup MMC */
-		lan969x_mmc_plat_config(boot_source);
-		break;
-
-	case BOOT_SOURCE_QSPI:
-		/* Init QSPI */
-		qspi_init();
-		break;
-
-	default:
-		break;
-	}
-
-	/*
-	 * Note: QSPI access is granted even though we don't boot from it
-	 */
-
-	/* Ensure we have ample reach on QSPI mmap area */
-	/* 16M should be more than adequate - EVB/SVB have 2M */
-	matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
-			       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
-			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
-}
-
-void lan969x_io_setup(void)
+void lan966x_io_setup(void)
 {
 	int result;
 
 	/* Use default FIP from boot source */
 	fip_select = FIP_SELECT_DEFAULT;
 
-	lan969x_io_bootsource_init();
+	lan966x_io_bootsource_init();
 
 	result = register_io_dev_fip(&fip_dev_con);
 	assert(result == 0);
@@ -526,7 +495,7 @@ void lan969x_io_setup(void)
 	assert(result == 0);
 
 	/* Device specific operations */
-	switch (lan969x_get_boot_source()) {
+	switch (lan966x_get_boot_source()) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
 		result = register_io_dev_block(&mmc_dev_con);
@@ -596,7 +565,7 @@ static const struct plat_io_policy *current_fip_io_policy(void)
 	if (fip_select == FIP_SELECT_RAM_FIP)
 		return &boot_source_ram_fip;
 #endif
-	return &boot_source_policies[lan969x_get_boot_source()];
+	return &boot_source_policies[lan966x_get_boot_source()];
 }
 
 /* Return an IO device handle and specification which can be used to access

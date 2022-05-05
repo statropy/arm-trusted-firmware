@@ -8,7 +8,10 @@
 #include <common/debug.h>
 #include <drivers/io/io_storage.h>
 #include <fw_config.h>
+#include <lan96xx_common.h>
+#include <lan96xx_mmc.h>
 #include <plat/common/platform.h>
+#include <drivers/microchip/qspi.h>
 #include <stddef.h>
 
 int lan966x_load_fw_config_raw(unsigned int image_id)
@@ -83,6 +86,24 @@ int lan966x_load_fw_config(unsigned int image_id)
 	}
 
 	return result;
+}
+
+void lan966x_fwconfig_apply(void)
+{
+	boot_source_type boot_source = lan966x_get_boot_source();
+
+	/* Update storage drivers with new values from fw_config */
+	switch (boot_source) {
+	case BOOT_SOURCE_QSPI:
+		qspi_reinit();
+		break;
+	case BOOT_SOURCE_SDMMC:
+	case BOOT_SOURCE_EMMC:
+		lan966x_mmc_plat_config(boot_source);
+		break;
+	default:
+		break;
+	}
 }
 
 static int fw_config_read_bytes(unsigned int offset,

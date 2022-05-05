@@ -158,28 +158,28 @@ void lan969x_console_init(void)
 
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
-	switch (lan969x_get_strapping()) {
-	case LAN969X_STRAP_BOOT_MMC_FC:
-	case LAN969X_STRAP_BOOT_QSPI_FC:
-	case LAN969X_STRAP_BOOT_SD_FC:
-	case LAN969X_STRAP_BOOT_MMC_TFAMON_FC:
-	case LAN969X_STRAP_BOOT_QSPI_TFAMON_FC:
-	case LAN969X_STRAP_BOOT_SD_TFAMON_FC:
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_MMC_FC:
+	case LAN966X_STRAP_BOOT_QSPI_FC:
+	case LAN966X_STRAP_BOOT_SD_FC:
+	case LAN966X_STRAP_BOOT_MMC_TFAMON_FC:
+	case LAN966X_STRAP_BOOT_QSPI_TFAMON_FC:
+	case LAN966X_STRAP_BOOT_SD_TFAMON_FC:
 		lan969x_flexcom_init(FC_DEFAULT);
 		break;
-	case LAN969X_STRAP_TFAMON_FC0:
+	case LAN966X_STRAP_TFAMON_FC0:
 		lan969x_flexcom_init(FLEXCOM0);
 		break;
-	case LAN969X_STRAP_TFAMON_FC2:
+	case LAN966X_STRAP_TFAMON_FC2:
 		lan969x_flexcom_init(FLEXCOM2);
 		break;
-	case LAN969X_STRAP_TFAMON_FC3:
+	case LAN966X_STRAP_TFAMON_FC3:
 		lan969x_flexcom_init(FLEXCOM3);
 		break;
-	case LAN969X_STRAP_TFAMON_FC4:
+	case LAN966X_STRAP_TFAMON_FC4:
 		lan969x_flexcom_init(FLEXCOM4);
 		break;
-	case LAN969X_STRAP_TFAMON_USB:
+	case LAN966X_STRAP_TFAMON_USB:
 		if (0) {
 			lan969x_usb_get_trim_values(&trim);
 			lan966x_usb_init(&trim);
@@ -201,102 +201,6 @@ uintptr_t plat_get_ns_image_entrypoint(void)
 }
 
 #define GPR0_STRAPPING_SET	BIT(20) /* 0x100000 */
-
-/*
- * Read strapping into GPR(0) to allow override
- */
-void lan969x_init_strapping(void)
-{
-	uint32_t status;
-	uint8_t strapping;
-
-	status = mmio_read_32(CPU_GENERAL_STAT(LAN969X_CPU_BASE));
-	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
-	mmio_write_32(CPU_GPR(LAN969X_CPU_BASE, 0), GPR0_STRAPPING_SET | strapping);
-}
-
-soc_strapping lan969x_get_strapping(void)
-{
-	uint32_t status;
-	uint8_t strapping;
-
-	status = mmio_read_32(CPU_GPR(LAN969X_CPU_BASE, 0));
-	assert(status & GPR0_STRAPPING_SET);
-	strapping = CPU_GENERAL_STAT_VCORE_CFG_X(status);
-
-	VERBOSE("VCORE_CFG = %d\n", strapping);
-
-	return strapping;
-}
-
-void plat_bootstrap_set_strapping(soc_strapping value)
-{
-
-	/* To override strapping previous boot src must be 'none' */
-	if (lan969x_get_boot_source() == BOOT_SOURCE_NONE) {
-		/* And new strapping should be limited as below */
-		if (value == LAN969X_STRAP_BOOT_MMC ||
-		    value == LAN969X_STRAP_BOOT_QSPI ||
-		    value == LAN969X_STRAP_BOOT_SD ||
-		    value == LAN969X_STRAP_PCIE_ENDPOINT) {
-			NOTICE("OVERRIDE strapping = 0x%08x\n", value);
-			mmio_write_32(CPU_GPR(LAN969X_CPU_BASE, 0), GPR0_STRAPPING_SET | value);
-			/* Do initialization according to new source */
-			lan969x_io_bootsource_init();
-		} else {
-			ERROR("Strap override %d illegal\n", value);
-		}
-	} else {
-		ERROR("Strap override is illegal if boot source is already valid\n");
-	}
-}
-
-boot_source_type lan969x_get_boot_source(void)
-{
-	boot_source_type boot_source;
-
-	switch (lan969x_get_strapping()) {
-	case LAN969X_STRAP_BOOT_MMC:
-	case LAN969X_STRAP_BOOT_MMC_FC:
-	case LAN969X_STRAP_BOOT_MMC_TFAMON_FC:
-		boot_source = BOOT_SOURCE_EMMC;
-		break;
-	case LAN969X_STRAP_BOOT_QSPI:
-	case LAN969X_STRAP_BOOT_QSPI_FC:
-	case LAN969X_STRAP_BOOT_QSPI_TFAMON_FC:
-		boot_source = BOOT_SOURCE_QSPI;
-		break;
-	case LAN969X_STRAP_BOOT_SD:
-	case LAN969X_STRAP_BOOT_SD_FC:
-	case LAN969X_STRAP_BOOT_SD_TFAMON_FC:
-		boot_source = BOOT_SOURCE_SDMMC;
-		break;
-	default:
-		boot_source = BOOT_SOURCE_NONE;
-		break;
-	}
-
-	return boot_source;
-}
-
-bool lan969x_monitor_enabled(void)
-{
-	switch (lan969x_get_strapping()) {
-	case LAN969X_STRAP_BOOT_MMC_TFAMON_FC:
-	case LAN969X_STRAP_BOOT_QSPI_TFAMON_FC:
-	case LAN969X_STRAP_BOOT_SD_TFAMON_FC:
-	case LAN969X_STRAP_TFAMON_FC0:
-	case LAN969X_STRAP_TFAMON_FC2:
-	case LAN969X_STRAP_TFAMON_FC3:
-	case LAN969X_STRAP_TFAMON_FC4:
-	case LAN969X_STRAP_TFAMON_USB:
-		return true;
-	default:
-		break;
-	}
-
-	return false;
-}
 
 void lan969x_set_max_trace_level(void)
 {
@@ -337,22 +241,4 @@ const mmap_region_t *plat_arm_get_mmap(void)
 void plat_qspi_init_clock(void)
 {
 	INFO("QSPI: Platform clock init (TBD)\n");
-}
-
-void lan969x_fwconfig_apply(void)
-{
-	boot_source_type boot_source = lan969x_get_boot_source();
-
-	/* Update storage drivers with new values from fw_config */
-	switch (boot_source) {
-	case BOOT_SOURCE_QSPI:
-		qspi_reinit();
-		break;
-	case BOOT_SOURCE_SDMMC:
-	case BOOT_SOURCE_EMMC:
-		lan969x_mmc_plat_config(boot_source);
-		break;
-	default:
-		break;
-	}
 }

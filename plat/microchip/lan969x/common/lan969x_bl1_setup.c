@@ -68,7 +68,7 @@ void bl1_early_platform_setup(void)
 	generic_delay_timer_init();
 
 	/* Strapping */
-	lan969x_init_strapping();
+	lan966x_init_strapping();
 
 	/* Set logging level */
 	lan969x_set_max_trace_level();
@@ -100,20 +100,20 @@ void bl1_plat_arch_setup(void)
 void bl1_platform_setup(void)
 {
 	/* IO */
-	lan969x_io_setup();
+	lan966x_io_setup();
 
 	/* Load fw_config */
-	if (lan969x_get_boot_source() != BOOT_SOURCE_NONE) {
+	if (lan966x_get_boot_source() != BOOT_SOURCE_NONE) {
 		/* Prepare fw_config from applicable boot source */
 		lan966x_load_fw_config(FW_CONFIG_ID);
-		lan969x_fwconfig_apply();
+		lan966x_fwconfig_apply();
 	}
 
 	/* SJTAG: Configure challenge, no freeze */
 	lan966x_sjtag_configure();
 
 	/* Strapped for boot monitor? */
-	if (lan969x_monitor_enabled()) {
+	if (lan966x_monitor_enabled()) {
 		plat_bl1_bootstrap_monitor();
 	}
 }

@@ -77,6 +77,7 @@ LAN966X_STORAGE_SOURCES	:=	\
 				drivers/mmc/mmc.c					\
 				drivers/partition/gpt.c					\
 				drivers/partition/partition.c				\
+				plat/microchip/common/lan96xx_mmc.c			\
 				plat/microchip/lan966x/common/lan966x_mmc.c
 
 PLAT_BL_COMMON_SOURCES	+=	\
@@ -92,6 +93,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				lib/cpus/aarch32/cortex_a7.S				\
 				plat/microchip/common/fw_config.c			\
 				plat/microchip/common/lan966x_crc32.c			\
+				plat/microchip/common/lan96xx_common.c			\
 				plat/microchip/common/plat_crypto.c			\
 				plat/microchip/common/plat_tbbr.c			\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\

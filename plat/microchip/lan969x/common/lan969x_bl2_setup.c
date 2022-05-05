@@ -116,7 +116,7 @@ void bl2_el3_plat_arch_setup(void)
 void bl2_platform_setup(void)
 {
 	/* IO */
-	lan969x_io_setup();
+	lan966x_io_setup();
 
 	/* SJTAG: Freeze mode and configuration */
 	lan966x_sjtag_configure();

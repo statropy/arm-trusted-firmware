@@ -13,6 +13,9 @@
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
+#include <lan96xx_common.h>
+#include <fw_config.h>
+#include <plat_bl2u_bootstrap.h>
 
 #include "plat_otp.h"
 #include "lan969x_private.h"
@@ -29,29 +32,32 @@
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
 
-static void get_rotpk_info(void)
-{
-	uint8_t rotpk[OTP_TBBR_ROTPK_SIZE];
-	int ret;
-
-	INFO("Get ROTPK\n");
-	ret = otp_read_otp_tbbr_rotpk(rotpk, sizeof(rotpk));
-
-	if (ret < 0 || otp_all_zero(rotpk, sizeof(rotpk))) {
-		INFO("NO ROTPK\n");
-	} else {
-		INFO("Have ROTPK, len %zd, bytes %02x:%02x:%02x:%02x\n", sizeof(rotpk),
-		     rotpk[0], rotpk[1], rotpk[2], rotpk[3]);
-	}
-}
-
 void bl2u_platform_setup(void)
 {
-	get_rotpk_info();
+	/* IO */
+	lan966x_io_setup();
+
+	/* Initialize DDR */
+	lan966x_ddr_init();
+
+	/* Prepare fw_config from applicable boot source */
+	if (lan966x_bootable_source()) {
+		lan966x_load_fw_config(FW_CONFIG_ID);
+		lan966x_fwconfig_apply();
+	}
+
+	/* Call BL2U UART monitor */
+	lan966x_bl2u_bootstrap_monitor();
+
+	/* NOTREACHED */
+	assert(0);
 }
 
 void bl2u_early_platform_setup(struct meminfo *mem_layout, void *plat_info)
 {
+	/* Strapping */
+	lan966x_init_strapping();
+
 	/* Enable arch timer */
 	generic_delay_timer_init();
 

@@ -103,22 +103,6 @@ void bl1_plat_arch_setup(void)
 #endif /* __aarch64__ */
 }
 
-static bool lan966x_bootable_source(void)
-{
-	boot_source_type boot_source = lan966x_get_boot_source();
-
-	switch (boot_source) {
-	case BOOT_SOURCE_QSPI:
-	case BOOT_SOURCE_EMMC:
-	case BOOT_SOURCE_SDMMC:
-		return true;
-	default:
-		break;
-	}
-
-	return false;
-}
-
 void plat_bootstrap_trigger_fwu(void)
 {
 	is_fwu_needed = true;
