@@ -18,7 +18,6 @@
 
 #include "lan966x_private.h"
 #include "lan966x_regs.h"
-#include "lan966x_memmap.h"
 
 #define MAP_BL2U_TOTAL		MAP_REGION_FLAT(			\
 					BL2U_BASE,			\

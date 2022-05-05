@@ -34,6 +34,8 @@
 /* eMMC RPMB and eMMC User Data */
 #define MAX_IO_BLOCK_DEVICES		U(2)
 
+#define MMC_BUF_SIZE			512
+
 #define LAN969x_PRIMARY_CPU		0x0
 
 /*

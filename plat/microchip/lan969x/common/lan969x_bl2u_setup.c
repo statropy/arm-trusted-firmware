@@ -8,19 +8,16 @@
 
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
-#include <drivers/microchip/otp.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
+#include <plat_bl2u_bootstrap.h>
 #include <lan96xx_common.h>
 #include <fw_config.h>
-#include <plat_bl2u_bootstrap.h>
 
-#include "plat_otp.h"
 #include "lan969x_private.h"
 #include "lan969x_regs.h"
-//#include "lan966x_memmap.h"
 
 #define MAP_BL2U_TOTAL		MAP_REGION_FLAT(			\
 					BL2U_BASE,			\
@@ -57,6 +54,9 @@ void bl2u_early_platform_setup(struct meminfo *mem_layout, void *plat_info)
 {
 	/* Strapping */
 	lan966x_init_strapping();
+
+	/* Timer */
+	lan969x_timer_init();
 
 	/* Enable arch timer */
 	generic_delay_timer_init();

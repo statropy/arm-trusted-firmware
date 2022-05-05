@@ -82,8 +82,8 @@ static const io_block_spec_t fip_qspi_block_spec = {
 };
 
 static const io_block_spec_t mmc_gpt_spec = {
-	.offset	= LAN969X_GPT_BASE,
-	.length	= LAN969X_GPT_SIZE,
+	.offset	= LAN966X_GPT_BASE,
+	.length	= LAN966X_GPT_SIZE,
 };
 
 static const io_uuid_spec_t bl2_uuid_spec = {

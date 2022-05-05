@@ -34,7 +34,6 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/mmc/mmc.c					\
 				drivers/partition/gpt.c					\
 				drivers/partition/partition.c				\
-				plat/microchip/lan969x/common/lan969x_io_storage.c	\
 				plat/microchip/common/lan96xx_mmc.c			\
 				plat/microchip/lan969x/common/lan969x_mmc.c
 
@@ -63,7 +62,8 @@ BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S			\
 				plat/common/aarch64/platform_up_stack.S		\
 				plat/microchip/common/lan966x_bootstrap.c	\
 				plat/microchip/common/lan966x_sjtag.c		\
-				plat/microchip/common/plat_bl1_bootstrap.c
+				plat/microchip/common/plat_bl1_bootstrap.c	\
+				plat/microchip/lan969x/common/lan969x_io_storage.c
 
 BL2_SOURCES		+=	common/desc_image_load.c			\
 				drivers/arm/tzc/tzc400.c			\
@@ -72,11 +72,13 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_ddr.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_image_load.c	\
-				plat/microchip/common/lan966x_sjtag.c
+				plat/microchip/common/lan966x_sjtag.c		\
+				plat/microchip/lan969x/common/lan969x_io_storage.c
 
 BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_ddr.c		\
+				plat/microchip/common/lan966x_bl2u_io.c		\
 				plat/microchip/common/lan966x_bootstrap.c	\
 				plat/microchip/common/plat_bl2u_bootstrap.c
 

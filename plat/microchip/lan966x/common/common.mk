@@ -121,9 +121,9 @@ BL2_SOURCES		+=	\
 
 BL2U_SOURCES		+=	\
 				$(ZLIB_SOURCES)						\
+				plat/microchip/common/lan966x_bl2u_io.c			\
 				plat/microchip/common/lan966x_bootstrap.c		\
 				plat/microchip/common/plat_bl2u_bootstrap.c		\
-				plat/microchip/lan966x/common/lan966x_bl2u_io.c		\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\
 				plat/microchip/lan966x/common/lan966x_ddr.c
 

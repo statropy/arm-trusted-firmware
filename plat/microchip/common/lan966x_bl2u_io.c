@@ -14,7 +14,7 @@
 #include <drivers/partition/partition.h>
 #include <plat/common/platform.h>
 
-#include "lan966x_private.h"
+#include <lan96xx_common.h>
 
 struct plat_io_policy {
 	uintptr_t *dev_handle;
