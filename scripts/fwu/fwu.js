@@ -60,8 +60,21 @@ const otp_fields = [
 ]
 
 const platforms = {
-    "LAN966X B0": "v2.4(release):laguna-transplant-base-v0-23-g225acd2",
-    "LAN969X SR": "v2.6(debug):v2.6-578-gb8ba4e297b19-dirty",
+    "00000000": {		//  LAN966X B0 BL1 responds *without* chipid
+	"name":		"LAN966X B0",
+	"bl1_binary":	false,
+	"bl2u":		lan966x_b0_app,
+    },
+    "19660445": {		// LAN966X B0 BL2U responds with chipid
+	"name":		"LAN966X B0",
+	"bl1_binary":	false,
+	"bl2u":		lan966x_b0_app,
+    },
+    "f0281445": {
+	"name":		"LAN969X SR",
+	"bl1_binary":	true,
+	"bl2u":		lan969x_sr_app,
+    },
 };
 
 function validResponse(r)
@@ -132,9 +145,9 @@ class BootstrapRequestTransformer {
     }
 }
 
-function getKeyByValue(object, value)
+function getPlatform(value)
 {
-    return Object.keys(object).find(key => object[key] === value);
+    return platforms[value];
 }
 
 function fmtHex(arg)
@@ -504,11 +517,11 @@ window.addEventListener("load", (event) => {
 
 function startSerial()
 {
-    const app = atob(lan966x_b0_app.join(""));
     var port;
     var image;
     var sjtag_challenge;
     var settings_prev_stage;
+    var plf;
 
     document.getElementById("file_select").addEventListener("change", function () {
 	if (this.files && this.files[0]) {
@@ -624,7 +637,8 @@ function startSerial()
 	let s = disableButtons("bl1", true);
 	try {
 	    setStatus("Downloading BL2U applet");
-	    await downloadApp(port, app, false);
+	    const app = atob(plf["bl2u"].join(""));
+	    await downloadApp(port, app, plf["bl1_binary"]);
 	    await delaySkipInput(port, 2000);
 	    let auth = await completeRequest(port, fmtReq(CMD_AUTH, 0));
 	    setStatus("BL2U booting");
@@ -725,18 +739,23 @@ function startSerial()
 	try {
 	    setStatus("Identify platform...");
 	    var rspStruct = await completeRequest(port, fmtReq(CMD_VERS, 0));
-	    var plf = getKeyByValue(platforms, rspStruct["data"]);
+	    var chip = rspStruct["arg"].toString(16).padStart(8, "0");
+	    var version = rspStruct["data"];
+	    plf = getPlatform(chip);
 	    if (plf) {
-		setStatus("Identified device: " + plf);
-		addTrace("Please select a BL1 command - or upload BL2U for firmware update functions");
-		setStage("bl1");
+		setStatus("Identified device: " + plf["name"]);
+		if (version.match(/^BL2:/)) {
+		    addTrace("BL2U context detected");
+		    setStage("bl2u");
+		} else {
+		    addTrace("Please select a BL1 command - or upload BL2U for firmware update functions");
+		    setStage("bl1");
+		}
 	    } else {
-		setStatus("(Assume) BL2U operational");
 		addTrace("Unidentified device");
-		addTrace("Device: " + rspStruct["data"] + "\n" +
-			 "- which is not identified as a known boot ROM.\n" +
-			 "It is assumed that the active software is a BL2U version");
-		setStage("bl2u");
+		addTrace("Device: " + chip + ", " + version + "\n" +
+			 "- which is not identified as a known device.\n" +
+			 "Please reconnect.\n");
 	    }
 	} catch (e) {
 	    console.log("Connect failed: " + e);
