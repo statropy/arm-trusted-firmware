@@ -348,7 +348,6 @@ static void handle_otp_random(bootstrap_req_t *req)
 				data[i] = lan966x_trng_read();
 
 			/* Write to OTP */
-			INFO("Write OTP\n");
 			if (otp_write_bytes(req->arg0, datalen, (uint8_t *)data) == 0)
 				bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 			else
@@ -362,7 +361,6 @@ static void handle_otp_random(bootstrap_req_t *req)
 			bootstrap_TxNack("OTP random data illegal length");
 	} else
 		bootstrap_TxNack("OTP random data illegal req length length");
-
 }
 
 static void handle_read_rom_version(const bootstrap_req_t *req)

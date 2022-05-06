@@ -34,6 +34,12 @@ lan966x_fw_config_t lan966x_fw_config = {
 		LAN969X_QSPI0_RANGE,					\
 		MT_MEMORY | MT_RO | MT_SECURE)
 
+#define LAN969X_MAP_QSPI0_RW						\
+	MAP_REGION_FLAT(						\
+		LAN969X_QSPI0_MMAP,					\
+		LAN969X_QSPI0_RANGE,					\
+		MT_MEMORY | MT_RW | MT_SECURE)
+
 #define LAN969X_MAP_AXI							\
 	MAP_REGION_FLAT(						\
 		LAN969X_DEV_BASE,					\
@@ -59,9 +65,18 @@ const mmap_region_t plat_arm_mmap[] = {
 	{0}
 };
 #endif
-#if defined(IMAGE_BL2) || defined(IMAGE_BL2U)
+#if defined(IMAGE_BL2)
 const mmap_region_t plat_arm_mmap[] = {
 	LAN969X_MAP_QSPI0,
+	LAN969X_MAP_AXI,
+	LAN969X_MAP_BL31,
+	LAN969X_MAP_NS_MEM,
+	{0}
+};
+#endif
+#if defined(IMAGE_BL2U)
+const mmap_region_t plat_arm_mmap[] = {
+	LAN969X_MAP_QSPI0_RW,
 	LAN969X_MAP_AXI,
 	LAN969X_MAP_BL31,
 	LAN969X_MAP_NS_MEM,

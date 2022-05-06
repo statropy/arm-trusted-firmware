@@ -76,8 +76,10 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 				plat/microchip/lan969x/common/lan969x_io_storage.c
 
 BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
+				drivers/arm/tzc/tzc400.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_ddr.c		\
+				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
 				plat/microchip/common/lan966x_bl2u_io.c		\
 				plat/microchip/common/lan966x_bootstrap.c	\
 				plat/microchip/common/plat_bl2u_bootstrap.c

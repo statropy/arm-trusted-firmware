@@ -108,11 +108,6 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 	bl2_early_platform_setup();
 }
 
-void bl2_el3_plat_arch_setup(void)
-{
-	bl2_plat_arch_setup();
-}
-
 void bl2_platform_setup(void)
 {
 	/* IO */

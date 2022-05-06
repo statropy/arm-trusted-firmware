@@ -34,6 +34,9 @@ void bl2u_platform_setup(void)
 	/* IO */
 	lan966x_io_setup();
 
+	/* Init tzpm */
+	lan969x_tz_init();
+
 	/* Initialize DDR */
 	lan966x_ddr_init();
 
@@ -54,9 +57,6 @@ void bl2u_early_platform_setup(struct meminfo *mem_layout, void *plat_info)
 {
 	/* Strapping */
 	lan966x_init_strapping();
-
-	/* Timer */
-	lan969x_timer_init();
 
 	/* Enable arch timer */
 	generic_delay_timer_init();
