@@ -5,16 +5,20 @@
  */
 
 #include <assert.h>
+#include <string.h>
 
 #include <common/debug.h>
 #include <drivers/microchip/lan966x_trng.h>
 #include <drivers/microchip/otp.h>
 #include <endian.h>
 #include <errno.h>
+#include <lib/mmio.h>
 #include <plat/common/platform.h>
-#include <plat/microchip/common/lan966x_sjtag.h>
 #include <plat/microchip/common/lan966x_bootstrap.h>
+#include <plat/microchip/common/lan966x_sjtag.h>
 #include <plat/microchip/common/plat_bootstrap.h>
+
+#include <lan966x_regs.h>
 
 /* Max OTP data to write in one req */
 #define MAX_OTP_DATA	1024
@@ -25,8 +29,17 @@ static struct {
 
 static void handle_read_rom_version(const bootstrap_req_t *req)
 {
-	// Send Version
-	bootstrap_TxAckData(version_string, strlen(version_string));
+	char ident[256] = { "BL1:" };
+	uint32_t chip;
+
+	/* Add version */
+	strlcat(ident, version_string, sizeof(ident));
+
+	/* Get Chip */
+	chip = mmio_read_32(GCB_CHIP_ID(LAN966X_GCB_BASE));
+
+	/* Send response */
+	bootstrap_TxAckData_arg(ident, strlen(ident), chip);
 }
 
 static void handle_strap(const bootstrap_req_t *req)

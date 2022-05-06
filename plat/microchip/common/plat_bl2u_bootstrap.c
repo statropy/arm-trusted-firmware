@@ -14,6 +14,7 @@
 #include <drivers/partition/partition.h>
 #include <endian.h>
 #include <errno.h>
+#include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
 #include <tf_gunzip.h>
@@ -366,8 +367,17 @@ static void handle_otp_random(bootstrap_req_t *req)
 
 static void handle_read_rom_version(const bootstrap_req_t *req)
 {
-	VERBOSE("BL2U handle read rom version\n");
-	bootstrap_TxAckData(version_string, strlen(version_string));
+	char ident[256] = { "BL2:" };
+	uint32_t chip;
+
+	/* Add version */
+	strlcat(ident, version_string, sizeof(ident));
+
+	/* Get Chip */
+	chip = mmio_read_32(GCB_CHIP_ID(LAN966X_GCB_BASE));
+
+	/* Send response */
+	bootstrap_TxAckData_arg(ident, strlen(ident), chip);
 }
 
 static void handle_load_data(const bootstrap_req_t *req)
