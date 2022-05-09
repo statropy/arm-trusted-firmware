@@ -14,6 +14,10 @@
 #include "../hw/ba414/ba414_status.h"
 #include <internal.h>
 
+#include <platform_def.h>
+
+#define ADDR_BA414EP_REGS_BASE		LAN969X_SILEX_REGS_BASE
+#define ADDR_BA414EP_CRYPTORAM_BASE	LAN969X_SILEX_RAM_BASE
 
 #define NUM_PK_INST 1
 

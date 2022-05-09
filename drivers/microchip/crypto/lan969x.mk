@@ -36,6 +36,8 @@ BL1_SOURCES	+=	${AUTH_SOURCES}					\
 
 BL2_SOURCES	+=	${AUTH_SOURCES}
 
+BL2U_SOURCES	+=	${AUTH_SOURCES}
+
 LIBSILEX_SRCS 	:=	$(addprefix ${SILEX_DIR}/src/,	\
 				iomem.c			\
 				ed25519.c		\

@@ -65,8 +65,8 @@ void bl2_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
 		MAP_BL2_TOTAL,
-		MAP_PKCL_CODE,
-		MAP_PKCL_DATA,
+		MAP_SILEX_REGS,
+		MAP_SILEX_RAM,
 		ARM_MAP_BL_RO,
 #if USE_COHERENT_MEM
 		ARM_MAP_BL_COHERENT_RAM,

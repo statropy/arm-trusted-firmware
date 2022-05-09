@@ -21,6 +21,7 @@
 #include <plat/microchip/common/plat_bootstrap.h>
 
 #include "lan969x_private.h"
+#include "lan969x_memmap.h"
 
 #define MAP_BL1_TOTAL   MAP_REGION_FLAT(				\
 		bl1_tzram_layout.total_base,				\
@@ -85,6 +86,8 @@ void bl1_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
 		MAP_BL1_TOTAL,
+		MAP_SILEX_REGS,
+		MAP_SILEX_RAM,
 		MAP_BL1_RO,
 		{0}
 	};

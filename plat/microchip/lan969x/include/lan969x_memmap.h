@@ -9,14 +9,14 @@
 
 #include <lib/xlat_tables/xlat_tables_compat.h>
 
-#define MAP_PKCL_CODE		MAP_REGION_FLAT(			\
-					LAN969X_PKCL_ROM_BASE,		\
-					LAN969X_PKCL_ROM_SIZE,		\
-					MT_CODE | MT_SECURE)
+#define MAP_SILEX_REGS		MAP_REGION_FLAT(			\
+					LAN969X_SILEX_REGS_BASE,	\
+					LAN969X_SILEX_REGS_SIZE,	\
+					MT_DEVICE | MT_RW | MT_SECURE)
 
-#define MAP_PKCL_DATA		MAP_REGION_FLAT(			\
-					LAN969X_PKCL_RAM_BASE,		\
-					LAN969X_PKCL_RAM_SIZE,		\
+#define MAP_SILEX_RAM		MAP_REGION_FLAT(			\
+					LAN969X_SILEX_RAM_BASE,		\
+					LAN969X_SILEX_RAM_SIZE,		\
 					MT_DEVICE | MT_RW | MT_SECURE)
 
 #endif /* LAN969X_MEMMAP_H */
