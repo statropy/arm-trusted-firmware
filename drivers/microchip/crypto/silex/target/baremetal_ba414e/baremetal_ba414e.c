@@ -229,7 +229,7 @@ struct sx_pk_cnx *sx_pk_open(struct sx_pk_config *cfg)
       }
       sx_pk_wrreg(&cnx->instances[0].regs, PK_REG_OPSIZE, max_op_sz_to_max_op_ahb_sz(op_offset));
       sx_pk_wrreg(&cnx->instances[0].regs, PK_REG_MICROCODEOFFSET, SX_PK_MICROCODE_ADDRESS);
-      sx_pk_wrreg(&cnx->instances[0].regs, PK_REG_MEMOFFSET, (uint32_t) (cnx->instances[0].cryptoram));
+      sx_pk_wrreg(&cnx->instances[0].regs, PK_REG_MEMOFFSET, ((uintptr_t) cnx->instances[0].cryptoram));
    }
 
    /* CUSTOMIZATION: if extra initialization needed,

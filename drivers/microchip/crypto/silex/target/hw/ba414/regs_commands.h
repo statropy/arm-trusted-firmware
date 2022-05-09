@@ -20,7 +20,7 @@
  *
  * If unsure, always include this flag.
  */
-#define SX_PK_OP_FLAGS_RESQUARE_R (1 << 31)
+#define SX_PK_OP_FLAGS_RESQUARE_R (1U << 31)
 
 /** Big endian operands.
  *

@@ -48,7 +48,7 @@ int convert_ba414_status(int code)
 }
 
 #define BA414EP_PREDEFCURVES_MASK (0x0F << 20)
-#define BA414EP_CM_DISABLE  (1 << 31)
+#define BA414EP_CM_DISABLE  (1U << 31)
 
 void convert_ba414_capabilities(uint32_t ba414epfeatures,
       struct sx_pk_capabilities *caps)
