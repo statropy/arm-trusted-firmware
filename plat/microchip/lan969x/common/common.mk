@@ -6,7 +6,7 @@
 
 include lib/xlat_tables_v2/xlat_tables.mk
 include drivers/arm/gic/v2/gicv2.mk
-include drivers/microchip/crypto/lan969x_crypto.mk
+include drivers/microchip/crypto/lan969x.mk
 include lib/zlib/zlib.mk
 
 # MCHP SOC family
@@ -46,6 +46,7 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				drivers/delay_timer/delay_timer.c	\
 				drivers/delay_timer/generic_delay_timer.c \
 				drivers/microchip/clock/lan966x_clock.c \
+				drivers/microchip/crypto/lan966x_sha.c	\
 				drivers/microchip/dma/xdmac.c		\
 				drivers/microchip/otp/otp.c		\
 				drivers/microchip/trng/lan966x_trng.c	\
