@@ -25,7 +25,7 @@ extern "C" {
  * 0: little endian
  * 1: big endian
  */
-#define SX_PK_OP_DEFAULT_ENDIANNESS 1
+#define SX_PK_OP_DEFAULT_ENDIANNESS 0 /* Changed for MCHP */
 #endif
 
 struct sx_pk_cmd_def;

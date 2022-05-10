@@ -6,8 +6,10 @@
 
 include lib/xlat_tables_v2/xlat_tables.mk
 include drivers/arm/gic/v2/gicv2.mk
-include drivers/microchip/crypto/lan969x.mk
 include lib/zlib/zlib.mk
+
+$(info Including platform TBBR)
+include drivers/microchip/crypto/lan969x_crypto.mk
 
 # MCHP SOC family
 $(eval $(call add_define,MCHP_SOC_LAN969X))

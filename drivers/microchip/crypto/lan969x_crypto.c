@@ -36,84 +36,7 @@
 
 #define LIB_NAME		"LAN969X crypto core"
 
-#define SX_LITERAL_OP(str) (sx_op){sizeof(str)-1, str}
-
-int check_status(const char *name, int status, int expected)
-{
-	NOTICE("%s got:%d expected:%d\n", name, status, expected);
-	return status == expected;
-}
-
-static
-int check_raw(const char *name, const char *bytes,
-	      const char *expected, int sz)
-{
-	int e;
-
-	e = memcmp(bytes, expected, sz);
-	printf(" %s %s expectation\n", name, e ? "does NOT match" : "matches");
-
-	return !e;
-}
-
-static inline
-int check_result(const char *name, const struct sx_buf *r,
-                 const char *expected, size_t expected_sz)
-{
-	if (r->sz != expected_sz) {
-		ERROR("%s unexpected size !\n", name);
-		return 0;
-	}
-	return check_raw(name, r->bytes, expected, expected_sz);
-}
-
 struct sx_pk_cnx *gbl_cnx;
-
-int test_eckcdsa_ver(struct sx_pk_cnx *cnx)
-{
-   int validated = 1;
-   int status;
-   /* Test vector from section II.3.:
-    * www.tta.or.kr/include/Download.jsp?filename=stnfile/TTAK.KO-12.0015_R3.pdf
-    */
-   const sx_pk_affine_point q = {
-      .x = &SX_LITERAL_OP(
-         "\x14\x8E\xDD\xD3\x73\x4F\xD5\xF1\x59\x87\x57\x9F\x51\x60\x89\xA8"
-         "\xC9\xFE\xF4\xAB\x76\xB5\x9D\x7B\x8A\x01\xCD\xC5\x6C\x4E\xDF\xDF"),
-      .y = &SX_LITERAL_OP(
-         "\xA4\xE2\xE4\x2C\xB4\x37\x2A\x6F\x2F\x3F\x71\xA1\x49\x48\x15\x49"
-         "\xF6\x8D\x29\x63\x53\x9C\x85\x3E\x46\xB9\x46\x96\x56\x9E\x8D\x61")
-   };
-   const struct sx_buf r = SX_LITERAL_OP(
-      "\x0E\xDD\xF6\x80\x60\x12\x66\xEE\x1D\xA8\x3E\x55\xA6\xD9\x44\x5F"
-      "\xC7\x81\xDA\xEB\x14\xC7\x65\xE7\xE5\xD0\xCD\xBA\xF1\xF1\x4A\x68");
-   const struct sx_buf s = SX_LITERAL_OP(
-      "\x9B\x33\x34\x57\x66\x1C\x7C\xF7\x41\xBD\xDB\xC0\x83\x55\x53\xDF"
-      "\xBB\x37\xEE\x74\xF5\x3D\xB6\x99\xE0\xA1\x77\x80\xC7\xB6\xF1\xD0");
-   const struct sx_buf h = SX_LITERAL_OP(
-      "\x68\x1C\x8E\xD8\x9E\x8B\x0E\x1B\xC3\x69\xAA\x10\x6F\x6B\x98\x13"
-      "\xE6\x33\x8F\x0C\x54\xBE\x57\x7A\x87\x62\x34\x92\x52\xF9\xBE\xDF");
-
-   const char expected_wx[32] =
-      "\xEC\x38\x47\xB0\xCA\x52\x03\x8A\x82\x3D\x02\x30\x14\x54\x6B\x41"
-      "\x49\x46\xEF\x0A\x6E\xE0\x92\x28\x38\x94\x84\x59\x5F\x30\xE2\x6C";
-   const char expected_wy[32] =
-      "\x06\x40\x45\x1D\x36\x93\x24\x42\x4A\xBC\x68\x1D\x65\x65\x39\x86"
-      "\x6A\xD9\xC4\x94\xD2\x6F\xAC\x14\x69\xFC\x2A\x08\xD9\x45\xF1\x30";
-   char wxbuf[32];
-   struct sx_buf wx = {32, wxbuf};
-   char wybuf[32];
-   struct sx_buf wy = {32, wybuf};
-   sx_pk_affine_point w = {&wx, &wy};
-   const struct sx_pk_ecurve curve = sx_pk_get_curve_nistp256(cnx);
-
-   status = sx_eckcdsa_verify(&curve, &q, &r, &s, &h, &w);
-   validated &= check_status("sx_eckcdsa_verify", status, SX_OK);
-   validated &= check_result("sx_eckcdsa_verify generated verif wx", &wx, expected_wx, sizeof(expected_wx));
-   validated &= check_result("sx_eckcdsa_verify generated verif wy", &wy, expected_wy, sizeof(expected_wy));
-
-   return validated;
-}
 
 static void init(void)
 {
@@ -125,9 +48,6 @@ static void init(void)
 	/* Init Silex */
 	cfg.maxpending = 1;
 	gbl_cnx = sx_pk_open(&cfg);
-
-	/* Test */
-	test_eckcdsa_ver(gbl_cnx);
 }
 
 #define BYTES_TO_T_UINT_4(a, b, c, d)		\
