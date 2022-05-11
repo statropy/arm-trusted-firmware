@@ -4,26 +4,36 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <assert.h>
 #include <common/debug.h>
 #include <drivers/auth/crypto_mod.h>
 #include <drivers/microchip/silex_crypto.h>
 #include <silexpk/sxbuf/sxbufop.h>
 #include <silexpk/sxops/eccweierstrass.h>
+#include <silexpk/iomem.h>
 
 static struct sx_pk_cnx *gbl_cnx;
 static struct sx_pk_ecurve nistp256_curve;
 
-static void ntohl_sx(const sx_ecop *p)
+/** MPI 2 memory. mbedTLS use LE format */
+static void sx_pk_mpi2mem(const mbedtls_mpi *mpi, char *mem, int sz)
 {
-	uint8_t *front = (uint8_t *) p->bytes,
-		*back = (uint8_t *) p->bytes + p->sz - 1;
+	int cursz = mbedtls_mpi_size(mpi);
+	int diff = sz - cursz;
 
-	for (; front < back; front++, back--) {
-		uint8_t b = *front;
+	assert(cursz <= sz);
+	sx_clrpkmem(mem + cursz, diff);
 
-		*front = *back;
-		*back = b;
-	}
+	char *ptr = (char*) mpi->p;
+	/* NB: Copy backwards to convert LE -> BE */
+	for (int i = 0; i < cursz; i += 1)
+		mem[i] = ptr[cursz - i - 1];
+}
+
+static void sx_pk_kp2mem(const mbedtls_ecp_point *Q, char *mem_x, char * mem_y, int sz)
+{
+	sx_pk_mpi2mem(&Q->X, mem_x, sz);
+	sx_pk_mpi2mem(&Q->Y, mem_y, sz);
 }
 
 /** Asynchronous (non-blocking) ECDSA verification.
@@ -53,25 +63,7 @@ struct sx_pk_acq_req mbed_sx_async_ecdsa_verify_go(
 	struct sx_pk_acq_req pkreq;
 	struct sx_pk_inops_ecdsa_verify inputs;
 
-	sx_ecop sx_q_x = {
-		mbedtls_mpi_size(&kp->Q.X), (char*) kp->Q.X.p
-	}, sx_q_y = {
-		mbedtls_mpi_size(&kp->Q.Y), (char*) kp->Q.Y.p
-	}, sx_r = {
-		mbedtls_mpi_size(r), (char *) r->p
-	}, sx_s = {
-		mbedtls_mpi_size(s), (char *) s->p
-	}, sx_h = {
-		hash_len, (char*) hash
-	};
-	sx_pk_affine_point sx_q = { .x = &sx_q_x, .y = &sx_q_y };
-	/* The following data come from mbedTLS which use LE */
-	ntohl_sx(&sx_q_x);
-	ntohl_sx(&sx_q_y);
-	ntohl_sx(&sx_r);
-	ntohl_sx(&sx_s);
-	/* Hash already in correct order */
-	//ntohl_sx(&sx_h);
+	sx_ecop sx_h = { hash_len, (char*) hash };
 
 	pkreq = sx_pk_acquire_req(curve->cnx, SX_PK_CMD_ECDSA_VER);
 	if (pkreq.status)
@@ -83,9 +75,11 @@ struct sx_pk_acq_req mbed_sx_async_ecdsa_verify_go(
 	if (pkreq.status)
 		return pkreq;
 	int opsz = sx_pk_get_opsize(pkreq.req);
-	sx_pk_affpt2mem(&sx_q, inputs.qx.addr, inputs.qy.addr, opsz);
-	sx_pk_ecop2mem(&sx_r, inputs.r.addr, opsz);
-	sx_pk_ecop2mem(&sx_s, inputs.s.addr, opsz);
+
+	/* Some data come from mbedTLS which use LE */
+	sx_pk_kp2mem(&kp->Q, inputs.qx.addr, inputs.qy.addr, opsz);
+	sx_pk_mpi2mem(r, inputs.r.addr, opsz);
+	sx_pk_mpi2mem(s, inputs.s.addr, opsz);
 	sx_pk_ecop2mem(&sx_h, inputs.h.addr, opsz);
 
 	sx_pk_run(pkreq.req);
