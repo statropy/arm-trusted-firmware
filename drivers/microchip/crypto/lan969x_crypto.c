@@ -50,23 +50,6 @@ static void init(void)
 	gbl_cnx = sx_pk_open(&cfg);
 }
 
-#define BYTES_TO_T_UINT_4(a, b, c, d)		\
-	((mbedtls_mpi_uint) (a) <<  0) |	\
-	((mbedtls_mpi_uint) (b) <<  8) |	\
-	((mbedtls_mpi_uint) (c) << 16) |	\
-	((mbedtls_mpi_uint) (d) << 24)
-
-#define BYTES_TO_T_UINT_8(a, b, c, d, e, f, g, h)	\
-	BYTES_TO_T_UINT_4(a, b, c, d),			\
-	BYTES_TO_T_UINT_4(e, f, g, h)
-
-static const mbedtls_mpi_uint default_a[] = {
-	BYTES_TO_T_UINT_8(0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff),
-	BYTES_TO_T_UINT_8(0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00),
-	BYTES_TO_T_UINT_8(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
-	BYTES_TO_T_UINT_8(0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff),
-};
-
 static inline void ecp_mpi_load(mbedtls_mpi *X, const mbedtls_mpi_uint *p, size_t len)
 {
 	X->s = 1;
@@ -120,12 +103,14 @@ static int lan966x_use_ecparams(const mbedtls_asn1_buf *params, mbedtls_ecp_grou
 	if (grp->id != MBEDTLS_ECP_DP_NONE && grp->id != grp_id)
 		return MBEDTLS_ERR_PK_KEY_INVALID_FORMAT;
 
+	/* Load group */
 	ret = mbedtls_ecp_group_load(grp, grp_id);
 	if (ret != 0)
 		return ret;
 
-	if (grp->A.p == NULL)
-		ecp_mpi_load(&grp->A, default_a, sizeof(default_a));
+	/* Only allow SECP256R1 */
+	if (grp_id != MBEDTLS_ECP_DP_SECP256R1)
+		return MBEDTLS_ERR_PK_KEY_INVALID_FORMAT;
 
 	return 0;
 }
@@ -319,10 +304,22 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	}
 
 	if (lan966x_ecdsa_read_signature(signature.p, signature.len, &r, &s) == 0) {
-		ret = CRYPTO_ERR_SIGNATURE;
-		//ret = sx_eckcdsa_verify(&curve, &q, &r, &s, &h, &w);
-		//ret = pkcl_ecdsa_verify_signature(pk_alg, &kp, &r, &s,
-		//hash, mbedtls_md_get_size(md_info));
+		const struct sx_pk_ecurve curve = sx_pk_get_curve_nistp256(gbl_cnx);
+		sx_ecop sx_q_x = {
+			mbedtls_mpi_size(&kp.Q.X), (char*) kp.Q.X.p
+                }, sx_q_y = {
+			mbedtls_mpi_size(&kp.Q.Y), (char*) kp.Q.Y.p
+		}, sx_r = {
+			mbedtls_mpi_size(&r), (char *) r.p
+		}, sx_s = {
+			mbedtls_mpi_size(&s), (char *) s.p
+		}, sx_h = {
+			mbedtls_md_get_size(md_info), (char*) hash
+		};
+		sx_pk_affine_point sx_q = { .x = &sx_q_x, .y = &sx_q_y };
+		ret = sx_ecdsa_verify(&curve, &sx_q, &sx_r, &sx_s, &sx_h);
+		INFO("Verify Line %d, ret %d\n", __LINE__, ret);
+		ret = (ret == SX_OK) : CRYPTO_SUCCESS ? CRYPTO_ERR_SIGNATURE;
 	} else
 		ret = CRYPTO_ERR_SIGNATURE;
 
