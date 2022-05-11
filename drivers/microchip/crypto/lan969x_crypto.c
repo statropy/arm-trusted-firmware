@@ -228,6 +228,19 @@ static inline lan966x_sha_type_t lan966x_shatype(const mbedtls_md_info_t *md_inf
 	return -1;
 }
 
+static void ntohl_sx(const sx_ecop *p)
+{
+	uint8_t *front = (uint8_t *) p->bytes,
+		*back = (uint8_t *) p->bytes + p->sz - 1;
+
+	for (; front < back; front++, back--) {
+		uint8_t b = *front;
+
+		*front = *back;
+		*back = b;
+	}
+}
+
 /*
  * Verify a signature.
  *
@@ -317,9 +330,15 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 			mbedtls_md_get_size(md_info), (char*) hash
 		};
 		sx_pk_affine_point sx_q = { .x = &sx_q_x, .y = &sx_q_y };
+		/* The following data come from mbedTLS which use LE */
+		ntohl_sx(&sx_q_x);
+		ntohl_sx(&sx_q_y);
+		ntohl_sx(&sx_r);
+		ntohl_sx(&sx_s);
+		/* Hash already in correct order */
+		//ntohl_sx(&sx_h);
 		ret = sx_ecdsa_verify(&curve, &sx_q, &sx_r, &sx_s, &sx_h);
-		INFO("Verify Line %d, ret %d\n", __LINE__, ret);
-		ret = (ret == SX_OK) : CRYPTO_SUCCESS ? CRYPTO_ERR_SIGNATURE;
+		VERBOSE("sx_ecdsa_verify: ret %d\n", ret);
 	} else
 		ret = CRYPTO_ERR_SIGNATURE;
 
