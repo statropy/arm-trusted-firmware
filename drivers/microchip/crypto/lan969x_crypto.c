@@ -17,37 +17,18 @@
 #include <mbedtls/platform.h>
 #include <mbedtls/x509.h>
 
-#include <silexpk/sxbuf/sxbufop.h>
-#include <silexpk/core.h>
-#include <silexpk/ed25519.h>
-#include <silexpk/ed448.h>
-#include <silexpk/ec_curves.h>
-#include <silexpk/statuscodes.h>
-#include <silexpk/montgomery.h>
-#include <silexpk/sxops/rsa.h>
-#include <silexpk/sxops/dsa.h>
-#include <silexpk/sxops/srp.h>
-#include <silexpk/sxops/eccweierstrass.h>
-#include <silexpk/sxops/version.h>
-#include <silexpk/version.h>
+#include <drivers/microchip/silex_crypto.h>
 
 #include "sha.h"
 #include "aes.h"
 
 #define LIB_NAME		"LAN969X crypto core"
 
-struct sx_pk_cnx *gbl_cnx;
-
 static void init(void)
 {
-	struct sx_pk_config cfg = {0};
-
 	sha_init();
 	aes_init();
-
-	/* Init Silex */
-	cfg.maxpending = 1;
-	gbl_cnx = sx_pk_open(&cfg);
+	silex_init();
 }
 
 static inline void ecp_mpi_load(mbedtls_mpi *X, const mbedtls_mpi_uint *p, size_t len)
@@ -87,7 +68,6 @@ static int lan966x_get_pk_alg(unsigned char **p,
 
 static int lan966x_use_ecparams(const mbedtls_asn1_buf *params, mbedtls_ecp_group *grp)
 {
-	int ret;
 	mbedtls_ecp_group_id grp_id;
 
 	if (params->tag == MBEDTLS_ASN1_OID) {
@@ -104,15 +84,7 @@ static int lan966x_use_ecparams(const mbedtls_asn1_buf *params, mbedtls_ecp_grou
 		return MBEDTLS_ERR_PK_KEY_INVALID_FORMAT;
 
 	/* Load group */
-	ret = mbedtls_ecp_group_load(grp, grp_id);
-	if (ret != 0)
-		return ret;
-
-	/* Only allow SECP256R1 */
-	if (grp_id != MBEDTLS_ECP_DP_SECP256R1)
-		return MBEDTLS_ERR_PK_KEY_INVALID_FORMAT;
-
-	return 0;
+	return mbedtls_ecp_group_load(grp, grp_id);
 }
 
 static int lan966x_get_ecpubkey(unsigned char **p,
@@ -228,19 +200,6 @@ static inline lan966x_sha_type_t lan966x_shatype(const mbedtls_md_info_t *md_inf
 	return -1;
 }
 
-static void ntohl_sx(const sx_ecop *p)
-{
-	uint8_t *front = (uint8_t *) p->bytes,
-		*back = (uint8_t *) p->bytes + p->sz - 1;
-
-	for (; front < back; front++, back--) {
-		uint8_t b = *front;
-
-		*front = *back;
-		*back = b;
-	}
-}
-
 /*
  * Verify a signature.
  *
@@ -317,28 +276,9 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 	}
 
 	if (lan966x_ecdsa_read_signature(signature.p, signature.len, &r, &s) == 0) {
-		const struct sx_pk_ecurve curve = sx_pk_get_curve_nistp256(gbl_cnx);
-		sx_ecop sx_q_x = {
-			mbedtls_mpi_size(&kp.Q.X), (char*) kp.Q.X.p
-                }, sx_q_y = {
-			mbedtls_mpi_size(&kp.Q.Y), (char*) kp.Q.Y.p
-		}, sx_r = {
-			mbedtls_mpi_size(&r), (char *) r.p
-		}, sx_s = {
-			mbedtls_mpi_size(&s), (char *) s.p
-		}, sx_h = {
-			mbedtls_md_get_size(md_info), (char*) hash
-		};
-		sx_pk_affine_point sx_q = { .x = &sx_q_x, .y = &sx_q_y };
-		/* The following data come from mbedTLS which use LE */
-		ntohl_sx(&sx_q_x);
-		ntohl_sx(&sx_q_y);
-		ntohl_sx(&sx_r);
-		ntohl_sx(&sx_s);
-		/* Hash already in correct order */
-		//ntohl_sx(&sx_h);
-		ret = sx_ecdsa_verify(&curve, &sx_q, &sx_r, &sx_s, &sx_h);
-		VERBOSE("sx_ecdsa_verify: ret %d\n", ret);
+		ret = silex_crypto_ecdsa_verify_signature(pk_alg, &kp, &r, &s,
+							  hash, mbedtls_md_get_size(md_info));
+		VERBOSE("silex_crypto_ecdsa_verify_signature: ret %d\n", ret);
 	} else
 		ret = CRYPTO_ERR_SIGNATURE;
 

@@ -16,7 +16,8 @@ AUTH_SOURCES            :=      drivers/auth/auth_mod.c                 \
 				drivers/auth/img_parser_mod.c		\
 				drivers/auth/tbbr/tbbr_cot_common.c
 
-AUTH_SOURCES	+= drivers/microchip/crypto/lan969x_crypto.c
+AUTH_SOURCES	+= drivers/microchip/crypto/lan969x_crypto.c 		\
+			drivers/microchip/crypto/silex_crypto.c
 
 # Include the selected chain of trust sources.
 ifeq (${COT},tbbr)
