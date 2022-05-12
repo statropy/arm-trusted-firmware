@@ -13,6 +13,7 @@
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
+#include <plat/microchip/common/fw_config.h>
 #include <plat/microchip/common/lan966x_sjtag.h>
 
 #include "lan969x_private.h"
@@ -103,6 +104,9 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 {
 	/* Save memory layout */
 	bl2_tzram_layout = *(struct meminfo *) arg1;
+
+	/* Shared data */
+	memcpy(&lan966x_fw_config, (const void *) arg2, sizeof(lan966x_fw_config));
 
 	/* Common setup */
 	bl2_early_platform_setup();

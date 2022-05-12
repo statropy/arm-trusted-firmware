@@ -105,8 +105,8 @@ void bl1_platform_setup(void)
 	/* IO */
 	lan966x_io_setup();
 
-	/* Load fw_config */
-	if (lan966x_get_boot_source() != BOOT_SOURCE_NONE) {
+	/* Prepare fw_config from applicable boot source */
+	if (lan966x_bootable_source()) {
 		/* Prepare fw_config from applicable boot source */
 		lan966x_load_fw_config(FW_CONFIG_ID);
 		lan966x_fwconfig_apply();
@@ -167,8 +167,9 @@ int bl1_plat_handle_post_image_load(unsigned int image_id)
 
 	ep_info->args.arg1 = (uintptr_t)&bl2_tzram_layout;
 
-	VERBOSE("BL1: BL2 memory layout address = %p\n",
-		(void *)&bl2_tzram_layout);
+	/* Fwconfig memory info in arg2 */
+	ep_info->args.arg2 = (uintptr_t) &lan966x_fw_config;
+	flush_dcache_range(ep_info->args.arg2, sizeof(lan966x_fw_config));
 
 	return 0;
 }
