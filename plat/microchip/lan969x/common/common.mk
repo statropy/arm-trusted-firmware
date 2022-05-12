@@ -141,3 +141,22 @@ OVERRIDE_LIBC			:= 1
 ifeq (${OVERRIDE_LIBC},1)
     include lib/libc/libc_asm.mk
 endif
+
+# Generate binary FW configuration data for inclusion in the FIPs FW_CONFIG
+LAN969X_FW_PARAM	:=	${BUILD_PLAT}/fw_param.bin
+
+LAN969X_OTP_DATA	:=	plat/microchip/config/otp_data.yaml
+
+${LAN969X_FW_PARAM}: plat/microchip/config/fw_data_lan969x.yaml
+	$(info Generating binary FW configuration data)
+	$(Q)ruby scripts/otp_fw_data.rb $< $@
+
+# Generate the FIPs FW_CONFIG
+LAN969X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
+
+${LAN969X_FW_CONFIG}: ${LAN969X_OTP_DATA} ${LAN969X_FW_PARAM}
+	$(Q)ruby ./scripts/otpbin.rb $(if ${LAN969X_OTP_DATA},-y ${LAN969X_OTP_DATA}) -o $@
+	$(Q)cat ${LAN969X_FW_PARAM} >> $@
+
+# FW config
+$(eval $(call TOOL_ADD_PAYLOAD,${LAN969X_FW_CONFIG},--fw-config,${LAN969X_FW_CONFIG}))

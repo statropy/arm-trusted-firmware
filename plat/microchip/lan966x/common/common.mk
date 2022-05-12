@@ -163,7 +163,7 @@ endif
 # Generate binary FW configuration data for inclusion in the FIPs FW_CONFIG
 LAN966X_FW_PARAM	:=	${BUILD_PLAT}/fw_param.bin
 
-${LAN966X_FW_PARAM}: scripts/fw_data.yaml
+${LAN966X_FW_PARAM}: plat/microchip/config/fw_data_lan966x.yaml
 	$(info Generating binary FW configuration data)
 	$(Q)ruby scripts/otp_fw_data.rb $< $@
 
