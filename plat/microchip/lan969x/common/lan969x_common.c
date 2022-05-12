@@ -22,11 +22,11 @@
 #include "plat_otp.h"
 
 /* Define global fw_config, set default MMC settings */
-lan966x_fw_config_t lan966x_fw_config = {
+lan966x_fw_config_t lan966x_fw_config __aligned(CACHE_WRITEBACK_GRANULE) = {
 	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, MMC_DEFAULT_SPEED),
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_MMC_BUS_WIDTH, MMC_BUS_WIDTH_1),
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 25), /* 25Mhz */
-};
+} ;
 
 #define LAN969X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\

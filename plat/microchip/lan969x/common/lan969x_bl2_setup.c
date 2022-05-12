@@ -117,6 +117,9 @@ void bl2_platform_setup(void)
 	/* IO */
 	lan966x_io_setup();
 
+	/* OTP */
+	otp_emu_init();
+
 	/* SJTAG: Freeze mode and configuration */
 	lan966x_sjtag_configure();
 
