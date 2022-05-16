@@ -39,8 +39,6 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 			TZPM_TZPCTL1_QSPI1(1) |
 			TZPM_TZPCTL1_AES(1) |
 			TZPM_TZPCTL1_TRNG(1));
-	mmio_setbits_32(TZPM_TZPCTL2(tzpm),
-			TZPM_TZPCTL2_PKCC(1));
 	mmio_setbits_32(TZPM_TZPCTL3(tzpm),
 			TZPM_TZPCTL3_RTE(1) |
 			TZPM_TZPCTL3_FDMA(1));
