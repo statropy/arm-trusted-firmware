@@ -157,6 +157,9 @@ sdk_dir = install_sdk()
 tc_conf = YAML::load( File.open( sdk_dir + "/.mscc-version" ) )
 install_toolchain(tc_conf["toolchain"])
 
+# Use SDK tools first in PATH
+ENV['PATH'] = "#{sdk_dir}/arm-cortex_a8-linux-gnu/standalone/release/x86_64-linux/bin:" + ENV['PATH']
+
 if $option[:linux_boot]
     kernel = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/mscc-linux-kernel.bin"
     dtb = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/" + pdef[:dtb]
