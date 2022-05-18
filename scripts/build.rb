@@ -266,19 +266,20 @@ if $option[:gptimg]
 	# Add env partition, 1MB
 	env_blocks = (1024 * 1024) / 512
 	total_blocks += env_blocks
-	# Add linux partition, 32MB
-	linux_blocks = (32 * 1024 * 1024) / 512
-	total_blocks += linux_blocks
-	# Add linux bk partition, 32MB
-	linux_bk_blocks = (32 * 1024 * 1024) / 512
-	total_blocks += linux_bk_blocks
-	# Add data partition, 32MB
-	data_blocks = (32 * 1024 * 1024) / 512
-	total_blocks += data_blocks
         if $option[:linux_boot]
             # 256M root
             root_blocks = (256 * 1024 * 1024) / 512
             total_blocks += root_blocks
+        else
+	    # Add linux partition, 32MB
+	    linux_blocks = (32 * 1024 * 1024) / 512
+	    total_blocks += linux_blocks
+	    # Add linux bk partition, 32MB
+	    linux_bk_blocks = (32 * 1024 * 1024) / 512
+	    total_blocks += linux_bk_blocks
+	    # Add data partition, 32MB
+	    data_blocks = (32 * 1024 * 1024) / 512
+	    total_blocks += data_blocks
         end
         # Create partition file of appropriate size
         do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=#{total_blocks}")
@@ -299,18 +300,6 @@ if $option[:gptimg]
         p_start = p_end + 1
         p_end += env_blocks
         do_cmd("parted -s #{gptfile} mkpart Env #{p_start}s #{p_end}s")
-        # Add linux partiton
-        p_start = p_end + 1
-        p_end += linux_blocks
-        do_cmd("parted -s #{gptfile} mkpart Boot0 #{p_start}s #{p_end}s")
-        # Add linux backup partition
-        p_start = p_end + 1
-        p_end += linux_bk_blocks
-        do_cmd("parted -s #{gptfile} mkpart Boot1 #{p_start}s #{p_end}s")
-        # Add data partition
-        p_start = p_end + 1
-        p_end += data_blocks
-        do_cmd("parted -s #{gptfile} mkpart Data #{p_start}s #{p_end}s")
         # Add Linux partition
         if $option[:linux_boot]
             # Add root partition
@@ -320,10 +309,24 @@ if $option[:gptimg]
             # Inject data
             root = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/rootfs.ext4"
             do_cmd("dd status=none if=#{root} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        else
+            # Add linux partiton
+            p_start = p_end + 1
+            p_end += linux_blocks
+            do_cmd("parted -s #{gptfile} mkpart Boot0 #{p_start}s #{p_end}s")
+            # Add linux backup partition
+            p_start = p_end + 1
+            p_end += linux_bk_blocks
+            do_cmd("parted -s #{gptfile} mkpart Boot1 #{p_start}s #{p_end}s")
+            # Add data partition
+            p_start = p_end + 1
+            p_end += data_blocks
+            do_cmd("parted -s #{gptfile} mkpart Data #{p_start}s #{p_end}s")
         end
     end
     do_cmd("gdisk -l #{gptfile}")
-    do_cmd("gzip -f #{gptfile}")
+    do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
+    lsargs << "gpt"
 end
 
 # Build FWU
