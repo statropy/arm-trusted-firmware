@@ -192,7 +192,7 @@ tc_conf = YAML::load( File.open( sdk_dir + "/.mscc-version" ) )
 install_toolchain(tc_conf["toolchain"])
 
 # Use SDK tools first in PATH
-ENV['PATH'] = $bin + ":" + ENV['PATH']
+ENV['PATH'] = "#{sdk_dir}/#{$arch[:linux]}/x86_64-linux/bin:" + ENV['PATH']
 
 if $option[:linux_boot]
     kernel = sdk_dir + $arch[:linux] + "mscc-linux-kernel.bin"
