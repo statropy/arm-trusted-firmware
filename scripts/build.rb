@@ -61,7 +61,7 @@ $option = { :platform	=> "lan966x_sr",
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2022.02-720",
+             :sdk	=> "2022.02-723",
              :norimg	=> true,
              :gptimg	=> false,
              :ramusage	=> true,
@@ -176,6 +176,8 @@ raise "Unknown platform: #{$option[:platform]}" unless pdef
 $arch = architectures[pdef[:arch]]
 raise "Unknown architecture: #{pdef[:arch]}" unless $arch
 
+raise "No device-tree for #{$option[:platform]}" if $option[:linux_boot] && !pdef[:dtb]
+
 if $option[:debug]
     args += "DEBUG=1 "
     build = "build/#{$option[:platform]}/debug"
@@ -188,6 +190,9 @@ FileUtils.mkdir_p build
 sdk_dir = install_sdk()
 tc_conf = YAML::load( File.open( sdk_dir + "/.mscc-version" ) )
 install_toolchain(tc_conf["toolchain"])
+
+# Use SDK tools first in PATH
+ENV['PATH'] = $bin + ":" + ENV['PATH']
 
 if $option[:linux_boot]
     kernel = sdk_dir + $arch[:linux] + "mscc-linux-kernel.bin"
@@ -306,19 +311,20 @@ if $option[:gptimg]
 	# Add env partition, 1MB
 	env_blocks = (1024 * 1024) / 512
 	total_blocks += env_blocks
-	# Add linux partition, 32MB
-	linux_blocks = (32 * 1024 * 1024) / 512
-	total_blocks += linux_blocks
-	# Add linux bk partition, 32MB
-	linux_bk_blocks = (32 * 1024 * 1024) / 512
-	total_blocks += linux_bk_blocks
-	# Add data partition, 32MB
-	data_blocks = (32 * 1024 * 1024) / 512
-	total_blocks += data_blocks
         if $option[:linux_boot]
             # 256M root
             root_blocks = (256 * 1024 * 1024) / 512
             total_blocks += root_blocks
+        else
+	    # Add linux partition, 32MB
+	    linux_blocks = (32 * 1024 * 1024) / 512
+	    total_blocks += linux_blocks
+	    # Add linux bk partition, 32MB
+	    linux_bk_blocks = (32 * 1024 * 1024) / 512
+	    total_blocks += linux_bk_blocks
+	    # Add data partition, 32MB
+	    data_blocks = (32 * 1024 * 1024) / 512
+	    total_blocks += data_blocks
         end
         if $option[:gpt_data]
             data_size = File.size?($option[:gpt_data])
@@ -347,18 +353,6 @@ if $option[:gptimg]
         p_start = p_end + 1
         p_end += env_blocks
         do_cmd("parted -s #{gptfile} mkpart Env #{p_start}s #{p_end}s")
-        # Add linux partiton
-        p_start = p_end + 1
-        p_end += linux_blocks
-        do_cmd("parted -s #{gptfile} mkpart Boot0 #{p_start}s #{p_end}s")
-        # Add linux backup partition
-        p_start = p_end + 1
-        p_end += linux_bk_blocks
-        do_cmd("parted -s #{gptfile} mkpart Boot1 #{p_start}s #{p_end}s")
-        # Add data partition
-        p_start = p_end + 1
-        p_end += data_blocks
-        do_cmd("parted -s #{gptfile} mkpart Data #{p_start}s #{p_end}s")
         # Add Linux partition
         if $option[:linux_boot]
             # Add root partition
@@ -368,6 +362,19 @@ if $option[:gptimg]
             # Inject data
             root = sdk_dir + $arch[:linux] + "rootfs.ext4"
             do_cmd("dd status=none if=#{root} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        else
+            # Add linux partiton
+            p_start = p_end + 1
+            p_end += linux_blocks
+            do_cmd("parted -s #{gptfile} mkpart Boot0 #{p_start}s #{p_end}s")
+            # Add linux backup partition
+            p_start = p_end + 1
+            p_end += linux_bk_blocks
+            do_cmd("parted -s #{gptfile} mkpart Boot1 #{p_start}s #{p_end}s")
+            # Add data partition
+            p_start = p_end + 1
+            p_end += data_blocks
+            do_cmd("parted -s #{gptfile} mkpart Data #{p_start}s #{p_end}s")
         end
         if $option[:gpt_data]
             # Add data partition
@@ -379,7 +386,8 @@ if $option[:gptimg]
         end
     end
     do_cmd("gdisk -l #{gptfile}")
-    do_cmd("gzip -f #{gptfile}")
+    do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
+    lsargs << "gpt"
 end
 
 # Build FWU

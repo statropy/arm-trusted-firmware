@@ -9,9 +9,10 @@ require 'pp'
 build_platforms         = %I[lan966x_a0 lan966x_sr lan966x_b0 lan969x_sr]
 build_types             = %I[debug release]
 build_authentifications = %I[auth ssk bssk]
-build_variants          = %I[bl2normal]
+build_variants          = %I[bl2normal bl33linux]
 
-build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp' }
+build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp',
+                            bl33linux: '--linux-as-bl33' }
 build_auth_args         = { auth: '',
                             ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl32,bl33',
                             bssk: '--encrypt-bssk keys/huk.bin --encrypt-images bl2,bl32,bl33' }
@@ -63,6 +64,7 @@ build_platforms.each do |bp|
         artifacts = [
           ["build/#{bp}/#{bt}/fip.bin",      "#{dst}.fip"],
           ["build/#{bp}/#{bt}/fip.bin.gz",   "#{dst}.fip.gz"],
+          ["build/#{bp}/#{bt}/fip.gpt",      "#{dst}.gpt"],
           ["build/#{bp}/#{bt}/fip.gpt.gz",   "#{dst}.gpt.gz"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
           ["build/#{bp}/#{bt}/fwu.html",     "fwu.html"],
