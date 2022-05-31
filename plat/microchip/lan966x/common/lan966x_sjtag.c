@@ -19,6 +19,7 @@
 
 #define SJTAG_NREGS_KEY		(LAN966X_KEY32_LEN / 4)
 
+#if defined(IMAGE_BL1) || defined(IMAGE_BL2)
 void lan966x_sjtag_configure(void)
 {
 	uint32_t w;
@@ -63,11 +64,12 @@ void lan966x_sjtag_configure(void)
 
 #if defined(IMAGE_BL2)
 	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
-		INFO("SJTAG: Freeze mode enabled\n");
-		mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE), SJTAG_CTL_SJTAG_FREEZE(1));
+		INFO("SJTAG: Freeze NOT mode enabled (Linux unlock possible)\n");
+		//mmio_setbits_32(SJTAG_CTL(LAN966X_SJTAG_BASE), SJTAG_CTL_SJTAG_FREEZE(1));
 	}
 #endif
 }
+#endif /* defined(IMAGE_BL1) || defined(IMAGE_BL2) */
 
 int lan966x_sjtag_read_challenge(lan966x_key32_t *k)
 {
