@@ -33,6 +33,7 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 			TZPM_TZPCTL1_FLEXCOM2(1) |
 			TZPM_TZPCTL1_FLEXCOM3(1) |
 			TZPM_TZPCTL1_FLEXCOM4(1) |
+			TZPM_TZPCTL1_SHA(1) |
 			TZPM_TZPCTL1_XDMA(1) |
 			TZPM_TZPCTL1_QSPI1(1) |
 			TZPM_TZPCTL1_TRNG(1));
