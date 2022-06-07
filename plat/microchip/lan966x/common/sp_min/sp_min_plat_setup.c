@@ -13,6 +13,7 @@
 #include <plat/arm/common/plat_arm.h>
 
 #include "lan966x_private.h"
+#include "plat_otp.h"
 
 static entry_point_info_t bl33_ep_info;
 
@@ -41,13 +42,6 @@ static entry_point_info_t bl33_ep_info;
 						BL_CODE_BASE,			\
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
-#endif
-#if USE_COHERENT_MEM
-#define ARM_MAP_BL_COHERENT_RAM		MAP_REGION_FLAT(			\
-						BL_COHERENT_RAM_BASE,		\
-						BL_COHERENT_RAM_END		\
-							- BL_COHERENT_RAM_BASE, \
-						MT_DEVICE | MT_RW | MT_SECURE)
 #endif
 
 /*******************************************************************************
@@ -82,9 +76,14 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 	return next_image_info;
 }
 
+
 #pragma weak params_early_setup
 void params_early_setup(u_register_t plat_param_from_bl2)
 {
+	void *src_config = (void *) plat_param_from_bl2;
+
+	/* Get bl2 fw_config (OTP EMU) */
+	memcpy(&lan966x_fw_config, src_config, sizeof(lan966x_fw_config));
 }
 
 /*******************************************************************************
@@ -108,6 +107,9 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
  ******************************************************************************/
 void sp_min_platform_setup(void)
 {
+	/* otp emu init */
+	otp_emu_init();
+
 	/* Initialize the gic cpu and distributor interfaces */
 	plat_lan966x_gic_driver_init();
 	plat_lan966x_gic_init();
@@ -123,9 +125,6 @@ void sp_min_plat_arch_setup(void)
 		MAP_SRAM_TOTAL,
 		MAP_BL_SP_MIN_TOTAL,
 		ARM_MAP_BL_RO,
-#if USE_COHERENT_MEM
-		ARM_MAP_BL_COHERENT_RAM,
-#endif
 		{0}
 	};
 

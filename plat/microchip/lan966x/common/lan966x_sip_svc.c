@@ -9,9 +9,12 @@
 #include <common/debug.h>
 #include <common/runtime_svc.h>
 #include <tools_share/uuid.h>
+#include <drivers/microchip/sha.h>
+#include <platform_def.h>
 
 #include <lan966x_sip_svc.h>
 #include <lan966x_private.h>
+#include <lan966x_fw_bind.h>
 
 /* MCHP SiP Service UUID */
 DEFINE_SVC_UUID2(microchip_sip_svc_uid,
@@ -19,6 +22,18 @@ DEFINE_SVC_UUID2(microchip_sip_svc_uid,
 		 0x15, 0x5c, 0xe7, 0x50, 0xbb, 0xf3);
 
 static lan966x_key32_t sjtag_response_buffer;
+
+static bool is_ns_ddr(uint32_t size, uintptr_t addr)
+{
+	if (size > PLAT_LAN966X_NS_IMAGE_SIZE)
+		return false;
+	if (addr < PLAT_LAN966X_NS_IMAGE_BASE)
+		return false;
+	if (addr + size > PLAT_LAN966X_NS_IMAGE_LIMIT)
+		return false;
+
+	return true;
+}
 
 #pragma weak microchip_plat_sip_handler
 uintptr_t microchip_plat_sip_handler(uint32_t smc_fid,
@@ -73,17 +88,38 @@ static uintptr_t sip_sjtag_unlock(void *handle)
 	SMC_RET1(handle, ret ? SMC_UNK : SMC_OK);
 }
 
+static uintptr_t sip_fw_bind(uintptr_t fip, uint32_t size, void *handle)
+{
+	if (!is_ns_ddr(size, fip)) {
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+	} else {
+		lan966x_key32_t sha_in, sha_out;
+		fw_bind_res_t res;
+
+		sha_calc(SHA_MR_ALGO_SHA256, (void*) fip, size, sha_in.b);
+
+		res = lan966x_bind_fip(fip, size);
+		if (res) {
+			SMC_RET1(handle, -res);
+		} else {
+			sha_calc(SHA_MR_ALGO_SHA256, (void*) fip, size, sha_out.b);
+			flush_dcache_range(fip, size);
+			SMC_RET3(handle, SMC_ARCH_CALL_SUCCESS, sha_in.w[0], sha_out.w[0]);
+		}
+	}
+}
+
 /*
  * This function is responsible for handling all SiP calls from the NS world
  */
-uintptr_t sip_smc_handler(uint32_t smc_fid,
-			 u_register_t x1,
-			 u_register_t x2,
-			 u_register_t x3,
-			 u_register_t x4,
-			 void *cookie,
-			 void *handle,
-			 u_register_t flags)
+static uintptr_t sip_smc_handler(uint32_t smc_fid,
+				 u_register_t x1,
+				 u_register_t x2,
+				 u_register_t x3,
+				 u_register_t x4,
+				 void *cookie,
+				 void *handle,
+				 u_register_t flags)
 {
 	switch (smc_fid) {
 	case SIP_SVC_UID:
@@ -106,6 +142,10 @@ uintptr_t sip_smc_handler(uint32_t smc_fid,
 	case SIP_SVC_SJTAG_UNLOCK:
 		/* Perform unlock */
 		return sip_sjtag_unlock(handle);
+
+	case SIP_SVC_FW_BIND:
+		/* Handle bind firmware re-encryption with BSSK */
+		return sip_fw_bind(x1, x2, handle);
 
 	default:
 		return microchip_plat_sip_handler(smc_fid, x1, x2, x3, x4,

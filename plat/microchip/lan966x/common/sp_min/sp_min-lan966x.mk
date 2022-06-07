@@ -17,5 +17,8 @@ BL32_SOURCES            +=      ${GICV2_SOURCES}				\
 				plat/common/plat_gicv2.c			\
 				plat/microchip/lan966x/common/lan966x_gicv2.c
 
-BL32_SOURCES            +=      plat/microchip/lan966x/common/lan966x_sip_svc.c	\
-				plat/microchip/lan966x/common/lan966x_sjtag.c
+BL32_SOURCES            +=      drivers/microchip/crypto/aes.c			\
+				plat/microchip/lan966x/common/lan966x_fw_bind.c \
+				plat/microchip/lan966x/common/lan966x_sip_svc.c	\
+				plat/microchip/lan966x/common/lan966x_sjtag.c	\
+				plat/microchip/lan966x/common/lan966x_tbbr.c

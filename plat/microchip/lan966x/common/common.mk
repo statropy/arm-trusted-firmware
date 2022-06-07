@@ -31,6 +31,9 @@ WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 # Assume that BL33 isn't the Linux kernel by default
 LAN966X_DIRECT_LINUX_BOOT	:=	0
 
+# Set FIP alignment inside fiptool to 4 bytes
+FIP_ALIGN		:= 4
+
 # Pass LAN966x_MAX_CPUS_PER_CLUSTER to the build system.
 $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 
@@ -112,6 +115,7 @@ BL2U_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl2u_io.c		\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
+				plat/microchip/lan966x/common/lan966x_fw_bind.c		\
 				plat/microchip/lan966x/common/lan966x_ddr.c
 
 ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
