@@ -20,6 +20,7 @@ typedef enum {
 	FW_FIP_ALIGN,
 	FW_FIP_INCOMPLETE,
 	FW_TOC_TERM_MISSING,
+	FW_NOT_SSK_ENCRYPTED,
 	FW_SSK_FAILURE,
 	FW_DECRYPT,
 	FW_BSSK_FAILURE,
@@ -39,6 +40,8 @@ static inline const char *lan966x_bind_err2str(fw_bind_res_t err)
 		return "FIP is incomplete (truncated, garbled)";
 	case FW_TOC_TERM_MISSING:
 		return "FIP does not have a ToC terminator entry";
+	case FW_NOT_SSK_ENCRYPTED:
+		return "FIP must be encrypted with SSK";
 	case FW_SSK_FAILURE:
 		return "Failed to obtain SSK key";
 	case FW_DECRYPT:

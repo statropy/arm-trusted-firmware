@@ -119,8 +119,12 @@ fw_bind_res_t handle_bind_decrypt(const uintptr_t fip_base_addr,
 	if (is_enc_img_hdr(img_header)) {
 		VERBOSE("Decrypt(), found magic header\n");
 
+		/* Check its SSK encrypted */
+		if (img_header->flags != FW_ENC_WITH_SSK)
+			return FW_NOT_SSK_ENCRYPTED;
+
 		/* Retrieve key data (SSK) */
-		result = plat_get_enc_key_info(FW_ENC_WITH_SSK,
+		result = plat_get_enc_key_info(img_header->flags,
 					       key,
 					       &key_len,
 					       &key_flags,
