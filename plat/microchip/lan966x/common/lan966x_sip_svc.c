@@ -8,20 +8,20 @@
 
 #include <common/debug.h>
 #include <common/runtime_svc.h>
-#include <tools_share/uuid.h>
 #include <drivers/microchip/sha.h>
+#include <lib/mmio.h>
 #include <platform_def.h>
+#include <tools_share/uuid.h>
 
 #include <lan966x_sip_svc.h>
 #include <lan966x_private.h>
 #include <lan966x_fw_bind.h>
+#include <lan966x_regs.h>
 
 /* MCHP SiP Service UUID */
 DEFINE_SVC_UUID2(microchip_sip_svc_uid,
 		 0x10c149b6, 0xd31c, 0x4626, 0xaa, 0x79,
 		 0x15, 0x5c, 0xe7, 0x50, 0xbb, 0xf3);
-
-static lan966x_key32_t sjtag_response_buffer;
 
 static bool is_ns_ddr(uint32_t size, uintptr_t addr)
 {
@@ -49,43 +49,40 @@ uintptr_t microchip_plat_sip_handler(uint32_t smc_fid,
 	SMC_RET1(handle, SMC_UNK);
 }
 
-static uintptr_t sip_sjtag_get_challenge(u_register_t x1, void *handle)
+static uintptr_t sip_sjtag_get_challenge(uintptr_t challenge, size_t size, void *handle)
 {
 	lan966x_key32_t key;
 
-	if (x1 < ARRAY_SIZE(key.w)) {
+	if (!is_ns_ddr(size, challenge) ||
+	    size != ARRAY_SIZE(key.b)) {
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+	} else {
 		int ret = lan966x_sjtag_read_challenge(&key);
 		if (ret) {
 			/* SJTAG not enabled */
 			SMC_RET1(handle, SMC_ARCH_CALL_NOT_SUPPORTED);
 		} else {
-			/* Return all data in args */
-			SMC_RET2(handle, SMC_ARCH_CALL_SUCCESS, key.w[x1]);
+			/* Return data in provided buffer */
+			memcpy((void*) challenge, key.b, ARRAY_SIZE(key.b));
+			flush_dcache_range(challenge, size);
+			SMC_RET2(handle, SMC_ARCH_CALL_SUCCESS, challenge);
 		}
-	} else {
-		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
 	}
 }
 
-static uintptr_t sip_sjtag_set_response(u_register_t x1,
-					u_register_t x2,
-					void *handle)
+static uintptr_t sip_sjtag_unlock(uintptr_t response, size_t size, void *handle)
 {
-	int ret = SMC_OK;
+	if (!is_ns_ddr(size, response) ||
+	    size != LAN966X_KEY32_LEN) {
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+	} else {
+		int ret;
 
-	if (x1 < ARRAY_SIZE(sjtag_response_buffer.w))
-		sjtag_response_buffer.w[x1] = x2;
-	else
-		ret = SMC_ARCH_CALL_INVAL_PARAM;
+		inv_dcache_range(response, size);
+		ret = lan966x_sjtag_write_response((void*) response);
 
-	SMC_RET1(handle, ret);
-}
-
-static uintptr_t sip_sjtag_unlock(void *handle)
-{
-	int ret = lan966x_sjtag_write_response(&sjtag_response_buffer);
-
-	SMC_RET1(handle, ret ? SMC_UNK : SMC_OK);
+		SMC_RET1(handle, ret ? SMC_UNK : SMC_OK);
+	}
 }
 
 static uintptr_t sip_fw_bind(uintptr_t fip, uint32_t size, void *handle)
@@ -131,17 +128,24 @@ static uintptr_t sip_smc_handler(uint32_t smc_fid,
 		SMC_RET2(handle, SIP_SVC_VERSION_MAJOR,
 			 SIP_SVC_VERSION_MINOR);
 
-	case SIP_SVC_SJTAG_CHALLENGE:
-		/* Return challenge data word */
-		return sip_sjtag_get_challenge(x1, handle);
+	case SIP_SVC_SJTAG_STATUS:
+	{
+		uint32_t status, int_st;
 
-	case SIP_SVC_SJTAG_RESPONSE:
-		/* Set response data word */
-		return sip_sjtag_set_response(x1, x2, handle);
+		status = mmio_read_32(SJTAG_CTL(LAN966X_SJTAG_BASE));
+		int_st = mmio_read_32(SJTAG_INT_STATUS(LAN966X_SJTAG_BASE));
+
+		/* Return SJTAG status info */
+		SMC_RET3(handle, SMC_OK, status, int_st);
+	}
+
+	case SIP_SVC_SJTAG_CHALLENGE:
+		/* Return challenge data */
+		return sip_sjtag_get_challenge(x1, x2, handle);
 
 	case SIP_SVC_SJTAG_UNLOCK:
 		/* Perform unlock */
-		return sip_sjtag_unlock(handle);
+		return sip_sjtag_unlock(x1, x2, handle);
 
 	case SIP_SVC_FW_BIND:
 		/* Handle bind firmware re-encryption with BSSK */
