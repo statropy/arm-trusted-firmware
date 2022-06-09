@@ -5,7 +5,7 @@
 require 'fileutils'
 require 'optparse'
 
-build_platforms         = %I[lan966x_a0 lan966x_sr lan966x_b0]
+build_platforms         = %I[lan966x_b0]
 build_types             = %I[debug release]
 build_variants          = %I[bl2normal bl33linux]
 build_authentifications = %I[auth ssk bssk]
