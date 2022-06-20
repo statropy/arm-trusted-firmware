@@ -19,9 +19,9 @@ BL32_SOURCES            +=      ${GICV2_SOURCES}				\
 
 BL32_SOURCES            +=      drivers/microchip/crypto/aes.c			\
 				drivers/microchip/otp/otp_tags.c		\
-				plat/microchip/lan966x/common/lan966x_fw_bind.c \
-				plat/microchip/lan966x/common/lan966x_sip_svc.c	\
+				plat/microchip/common/lan966x_fw_bind.c		\
 				plat/microchip/common/lan966x_sjtag.c		\
+				plat/microchip/lan966x/common/lan966x_sip_svc.c	\
 				plat/microchip/lan966x/common/lan966x_tbbr.c
 
 include lib/libfit/libfit.mk

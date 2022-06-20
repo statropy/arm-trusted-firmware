@@ -27,7 +27,6 @@
 #include "lan966x_regs.h"
 #include "aes.h"
 
-#include "ddr.h"
 #include "otp.h"
 
 #define MAX_OTP_DATA	1024

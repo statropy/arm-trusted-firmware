@@ -85,6 +85,7 @@ BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
 				plat/microchip/common/lan966x_bl2u_io.c		\
 				plat/microchip/common/lan966x_bootstrap.c	\
+				plat/microchip/common/lan966x_fw_bind.c		\
 				plat/microchip/common/plat_bl2u_bootstrap.c
 
 BL31_SOURCES		+=	${GICV2_SOURCES}				\
