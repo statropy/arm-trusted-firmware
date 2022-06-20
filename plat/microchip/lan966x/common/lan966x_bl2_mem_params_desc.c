@@ -85,22 +85,6 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
 
 		.next_handoff_image_id = INVALID_IMAGE_ID,
 	},
-#if LAN966X_DIRECT_LINUX_BOOT
-	/* Fill BL33 NT_FW_CONFIG DT info */
-	{
-		.image_id = NT_FW_CONFIG_ID,
-
-		SET_STATIC_PARAM_HEAD(ep_info, PARAM_IMAGE_BINARY, VERSION_2,
-				      entry_point_info_t, NON_SECURE | NON_EXECUTABLE),
-		SET_STATIC_PARAM_HEAD(image_info, PARAM_IMAGE_BINARY, VERSION_2,
-				      image_info_t, 0),
-
-		.image_info.image_base = LAN966X_LINUX_DTB_BASE,
-		.image_info.image_max_size = SIZE_M(4),
-
-		.next_handoff_image_id = INVALID_IMAGE_ID,
-	},
-#endif
 };
 
 REGISTER_BL_IMAGE_DESCS(bl2_mem_params_descs)

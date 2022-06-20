@@ -16,3 +16,15 @@ BL32_SOURCES            +=      plat/common/${ARCH}/platform_mp_stack.S		\
 BL32_SOURCES            +=      ${GICV2_SOURCES}				\
 				plat/common/plat_gicv2.c			\
 				plat/microchip/lan966x/common/lan966x_gicv2.c
+
+BL32_SOURCES            +=      drivers/microchip/crypto/aes.c			\
+				drivers/microchip/otp/otp_tags.c		\
+				plat/microchip/lan966x/common/lan966x_fw_bind.c \
+				plat/microchip/lan966x/common/lan966x_sip_svc.c	\
+				plat/microchip/common/lan966x_sjtag.c		\
+				plat/microchip/lan966x/common/lan966x_tbbr.c
+
+include lib/libfit/libfit.mk
+include lib/libfdt/libfdt.mk
+
+${BUILD_PLAT}/bl32/bl32.elf: ${LIB_DIR}/libfit.a

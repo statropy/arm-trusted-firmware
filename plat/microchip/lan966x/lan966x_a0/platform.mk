@@ -16,6 +16,3 @@ ifeq (${LAN966X_EMMC_TEST},1)
 $(eval $(call add_define,LAN966X_EMMC_TESTS))
 BL2_SOURCES	+= plat/microchip/lan966x/common/lan966x_emmc_tests.c
 endif
-
-# Set FIP alignment inside fiptool to 4 bytes
-FIP_ALIGN		:= 4

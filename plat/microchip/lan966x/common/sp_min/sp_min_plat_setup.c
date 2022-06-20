@@ -8,13 +8,20 @@
 #include <common/desc_image_load.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/microchip/tz_matrix.h>
+#include <errno.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/microchip/common/lan966x_gic.h>
+#include <libfit.h>
 
-#include "lan966x_private.h"
+#include <lan966x_private.h>
+#include <fw_config.h>
+#include <otp_tags.h>
+#include <plat_crypto.h>
+#include <plat_otp.h>
 
+static image_info_t bl33_image_info;
 static entry_point_info_t bl33_ep_info;
 
 #define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
@@ -43,13 +50,8 @@ static entry_point_info_t bl33_ep_info;
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
 #endif
-#if USE_COHERENT_MEM
-#define ARM_MAP_BL_COHERENT_RAM		MAP_REGION_FLAT(			\
-						BL_COHERENT_RAM_BASE,		\
-						BL_COHERENT_RAM_END		\
-							- BL_COHERENT_RAM_BASE, \
-						MT_DEVICE | MT_RW | MT_SECURE)
-#endif
+
+static char fit_config[128], *fit_config_ptr;
 
 /*******************************************************************************
  * Return a pointer to the 'entry_point_info' structure of the next image for
@@ -58,34 +60,128 @@ static entry_point_info_t bl33_ep_info;
  ******************************************************************************/
 entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 {
-	entry_point_info_t *next_image_info;
+	const char *bootargs = "console=ttyS0,115200 root=/dev/mmcblk0p4 rw rootwait loglevel=8";
+	struct fit_context fit;
+	entry_point_info_t *next_image_info = &bl33_ep_info;
+	image_info_t *image = &bl33_image_info;
 
-	next_image_info = &bl33_ep_info;
-
-	if (next_image_info->pc == 0U) {
+	if (next_image_info->pc == 0U)
 		return NULL;
+
+	if (fit_init_context(&fit, image->image_base) == EXIT_SUCCESS) {
+		INFO("Unpacking FIT image @ %p\n", fit.fit);
+		if (fit_select(&fit, fit_config_ptr) == EXIT_SUCCESS &&
+		    fit_load(&fit, FITIMG_PROP_DT_TYPE) == EXIT_SUCCESS &&
+		    fit_load(&fit, FITIMG_PROP_KERNEL_TYPE) == EXIT_SUCCESS) {
+			/* Fixup DT, but allow to fail */
+			fit_fdt_update(&fit, PLAT_LAN966X_NS_IMAGE_BASE,
+				       PLAT_LAN966X_NS_IMAGE_SIZE,
+				       bootargs);
+			INFO("Preparing to boot 32-bit Linux kernel\n");
+			/*
+			 * According to the file ``Documentation/arm/Booting`` of the Linux
+			 * kernel tree, Linux expects:
+			 * r0 = 0
+			 * r1 = machine type number, optional in DT-only platforms (~0 if so)
+			 * r2 = Physical address of the device tree blob
+			 */
+			next_image_info->pc = fit.entry;
+			next_image_info->args.arg0 = 0U;
+			next_image_info->args.arg1 = ~0U;
+			next_image_info->args.arg2 = fit.dtb;
+		} else {
+			NOTICE("Unpacking FIT image for Linux failed\n");
+		}
+	} else {
+		INFO("Direct boot of BL33 binary image\n");
 	}
 
-#if LAN966X_DIRECT_LINUX_BOOT
-	/*
-	 * According to the file ``Documentation/arm/Booting`` of the Linux
-	 * kernel tree, Linux expects:
-	 * r0 = 0
-	 * r1 = machine type number, optional in DT-only platforms (~0 if so)
-	 * r2 = Physical address of the device tree blob
-	 */
-	INFO("lan966x: Preparing to boot 32-bit Linux kernel\n");
-	next_image_info->args.arg0 = 0U;
-	next_image_info->args.arg1 = ~0U;
-	next_image_info->args.arg2 = (u_register_t) LAN966X_LINUX_DTB_BASE;
-#endif
-
 	return next_image_info;
+}
+
+/*
+ * Override to ensure we're only accessing cached info. This function
+ * ensures we can hand off the OTP device itself to NS when
+ * dispatching BL33.
+ */
+int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
+{
+	int ret = -EIO;
+
+	if (offset < OTP_TBBR_ROTPK_ADDR ||
+	    offset > OTP_TBBR_TNVCT_ADDR) {
+		//INFO("OTP invalid read offset %d, %d bytes\n", offset, nbytes);
+		memset(dst, 0, nbytes);
+	} else {
+		offset -= OTP_TBBR_ROTPK_ADDR;
+		memcpy(dst, lan966x_fw_config.otp_emu_data + offset, nbytes);
+		ret = 0;
+	}
+
+	return ret;
+}
+
+static void otp_cache_data(unsigned int offset, unsigned int size, uint8_t *data)
+{
+	int i, emu_off = offset - OTP_TBBR_ROTPK_ADDR;
+
+	/* Read *raw* OTP bytes */
+	otp_read_bytes_raw(offset, size, data);
+	/* OR the data info the emulation data buffer */
+	for (i = 0; i < size; i++)
+		lan966x_fw_config.otp_emu_data[emu_off	+ i] |= data[i];
+}
+
+/*
+ * This function will cache the required OTP data in order to
+ * implement the SiP PSCI calls. This calls for the SSK and BSSK (HUK)
+ * key.
+ */
+static void otp_cache_init(void)
+{
+	lan966x_key32_t key;
+
+	if (!otp_in_emulation()) {
+		memset(lan966x_fw_config.otp_emu_data, 0, OTP_EMU_MAX_DATA);
+	}
+
+	/* Read out to cache these entities */
+	otp_cache_data(OTP_TBBR_HUK_ADDR, sizeof(key), key.b);
+	otp_cache_data(OTP_TBBR_SSK_ADDR, sizeof(key), key.b);
+
+	/* Read this up front to cache */
+	if (otp_tag_get_string(otp_tag_type_fit_config, fit_config, sizeof(fit_config)) > 0)
+		fit_config_ptr = fit_config;
+	else
+		fit_config_ptr = NULL;
 }
 
 #pragma weak params_early_setup
 void params_early_setup(u_register_t plat_param_from_bl2)
 {
+	void *src_config = (void *) plat_param_from_bl2;
+
+	/* Get bl2 fw_config (OTP EMU) */
+	memcpy(&lan966x_fw_config, src_config, sizeof(lan966x_fw_config));
+}
+
+static void lan966x_params_parse_helper(u_register_t param,
+					image_info_t *bl33_image_info_out,
+					entry_point_info_t *bl33_ep_info_out)
+{
+	bl_params_node_t *node;
+	bl_params_t *v2 = (void *)(uintptr_t)param;
+
+	assert(v2->h.version == PARAM_VERSION_2);
+	assert(v2->h.type == PARAM_BL_PARAMS);
+	for (node = v2->head; node != NULL; node = node->next_params_info) {
+		if (node->image_id == BL33_IMAGE_ID) {
+			if (bl33_image_info_out != NULL)
+				*bl33_image_info_out = *node->image_info;
+			if (bl33_ep_info_out != NULL)
+				*bl33_ep_info_out = *node->ep_info;
+		}
+	}
 }
 
 /*******************************************************************************
@@ -101,7 +197,8 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	/* Console */
 	lan966x_console_init();
 
-	bl31_params_parse_helper(arg0, NULL, &bl33_ep_info);
+	/* Get BL33 info for Linux booting */
+	lan966x_params_parse_helper(arg0, &bl33_image_info, &bl33_ep_info);
 }
 
 /*******************************************************************************
@@ -109,6 +206,12 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
  ******************************************************************************/
 void sp_min_platform_setup(void)
 {
+	/* otp emu init */
+	otp_emu_init();
+
+	/* BL32 cached otp interface */
+	otp_cache_init();
+
 	/* Initialize the gic cpu and distributor interfaces */
 	plat_lan966x_gic_driver_init();
 	plat_lan966x_gic_init();
@@ -124,9 +227,6 @@ void sp_min_plat_arch_setup(void)
 		MAP_SRAM_TOTAL,
 		MAP_BL_SP_MIN_TOTAL,
 		ARM_MAP_BL_RO,
-#if USE_COHERENT_MEM
-		ARM_MAP_BL_COHERENT_RAM,
-#endif
 		{0}
 	};
 

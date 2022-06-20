@@ -61,7 +61,7 @@ $option = { :platform	=> "lan966x_sr",
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2022.02-723",
+             :sdk	=> "2022.02.2-744",
              :norimg	=> true,
              :gptimg	=> false,
              :ramusage	=> true,
@@ -195,13 +195,8 @@ install_toolchain(tc_conf["toolchain"])
 ENV['PATH'] = "#{sdk_dir}/#{$arch[:linux]}/x86_64-linux/bin:" + ENV['PATH']
 
 if $option[:linux_boot]
-    kernel = sdk_dir + $arch[:linux] + "mscc-linux-kernel.bin"
-    dtb = sdk_dir + $arch[:linux] + pdef[:dtb]
-    dtb_new = build + "/lan966x.dtb"
-    dtb_overlay = "#{build}/lan966x_overlay.dtbo"
-    do_cmd("dtc -q -o #{dtb_overlay} scripts/lan966x_overlay.dtso || /bin/true")
-    do_cmd("fdtoverlay -i #{dtb} -o #{dtb_new} #{dtb_overlay}")
-    args += "BL33=#{kernel} LAN966X_DIRECT_LINUX_BOOT=1 NT_FW_CONFIG=#{dtb_new} "
+    kernel = sdk_dir + $arch[:linux] + "ext4-itb-bare.itb"
+    args += "BL33=#{kernel} "
 else
     if pdef[:uboot]
         uboot = sdk_dir + "/" + pdef[:uboot]

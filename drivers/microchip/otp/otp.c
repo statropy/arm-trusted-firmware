@@ -184,6 +184,11 @@ static uint8_t otp_emu_get_byte(unsigned int offset)
 	return 0;
 }
 
+/*
+ * Marking this interface as weak enables BL32 to replace it with an
+ * interface that passively serves data from a cached memory buffer.
+ */
+#pragma weak otp_read_bytes
 int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 {
 	int rc;

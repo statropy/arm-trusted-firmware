@@ -15,6 +15,7 @@
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/lan966x_sjtag.h>
+#include <common/desc_image_load.h>
 
 #include "lan966x_private.h"
 #include "lan966x_regs.h"
@@ -214,4 +215,24 @@ void bl2_platform_setup(void)
 #if defined(LAN966X_EMMC_TESTS)
 	lan966x_emmc_tests();
 #endif
+}
+
+int bl2_plat_handle_post_image_load(unsigned int image_id)
+{
+	int err = 0;
+	bl_mem_params_node_t *bl_mem_params = get_bl_mem_params_node(image_id);
+
+	assert(bl_mem_params);
+
+	switch (image_id) {
+	case BL32_IMAGE_ID:
+		//bl_mem_params->ep_info.args.arg0 = 0xdeadbeef;
+		bl_mem_params->ep_info.args.arg1 = (uintptr_t) &lan966x_fw_config;
+		break;
+	default:
+		/* Do nothing in default case */
+		break;
+	}
+
+	return err;
 }

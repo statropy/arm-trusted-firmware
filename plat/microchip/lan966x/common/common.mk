@@ -28,8 +28,8 @@ LOG_LEVEL := 40
 # Single-core system
 WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 
-# Assume that BL33 isn't the Linux kernel by default
-LAN966X_DIRECT_LINUX_BOOT	:=	0
+# Set FIP alignment inside fiptool to 4 bytes
+FIP_ALIGN		:= 4
 
 # Must be zero on aarch32
 ENABLE_SVE_FOR_NS		:=	0
@@ -65,7 +65,6 @@ LAN966X_CONSOLE_SOURCES	:=	\
 				drivers/microchip/qspi/qspi.c				\
 				drivers/microchip/flexcom_uart/aarch32/flexcom_console.S \
 				drivers/gpio/gpio.c					\
-				drivers/microchip/usb/usb.c
 
 LAN966X_STORAGE_SOURCES	:=	\
 				drivers/io/io_block.c					\
@@ -88,6 +87,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/delay_timer/delay_timer.c			\
 				drivers/delay_timer/generic_delay_timer.c		\
 				drivers/microchip/clock/lan966x_clock.c			\
+				drivers/microchip/crypto/lan966x_sha.c			\
 				drivers/microchip/otp/otp.c				\
 				drivers/microchip/tz_matrix/tz_matrix.c			\
 				lib/cpus/aarch32/cortex_a7.S				\
@@ -125,6 +125,7 @@ BL2U_SOURCES		+=	\
 				plat/microchip/common/lan966x_bootstrap.c		\
 				plat/microchip/common/plat_bl2u_bootstrap.c		\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\
+				plat/microchip/lan966x/common/lan966x_fw_bind.c		\
 				plat/microchip/lan966x/common/lan966x_ddr.c
 
 ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
@@ -176,12 +177,6 @@ ${LAN966X_FW_CONFIG}: ${LAN966X_OTP_DATA} ${LAN966X_FW_PARAM}
 
 # FW config
 $(eval $(call TOOL_ADD_PAYLOAD,${LAN966X_FW_CONFIG},--fw-config,${LAN966X_FW_CONFIG}))
-
-# Direct Linux boot
-$(eval $(call add_define,LAN966X_DIRECT_LINUX_BOOT))
-ifneq ($(NT_FW_CONFIG),)
-$(eval $(call TOOL_ADD_PAYLOAD,${NT_FW_CONFIG},--nt-fw-config,${NT_FW_CONFIG}))
-endif
 
 # Regenerate the header file from the YAML definition
 LAN966X_OTP_H = include/plat/microchip/common/plat_otp.h

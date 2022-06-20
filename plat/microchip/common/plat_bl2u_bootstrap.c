@@ -21,14 +21,14 @@
 
 #include <lan96xx_common.h>
 #include <plat_bl2u_bootstrap.h>
+#include <lan966x_fw_bind.h>
 
 #include "lan966x_bootstrap.h"
 #include "lan966x_regs.h"
 #include "aes.h"
-#include "otp.h"
 
-#include <tools_share/firmware_encrypted.h>
-#include <tools_share/firmware_image_package.h>
+#include "ddr.h"
+#include "otp.h"
 
 #define MAX_OTP_DATA	1024
 
@@ -37,253 +37,6 @@
 static const uintptr_t fip_base_addr = LAN966X_DDR_BASE;
 static const uintptr_t fip_max_size = LAN966X_DDR_SIZE;
 static uint32_t data_rcv_length;
-
-static inline int is_valid_fip_hdr(const fip_toc_header_t *header)
-{
-	if ((header->name == TOC_HEADER_NAME) && (header->serial_number != 0)) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-static inline int is_enc_img_hdr(struct fw_enc_hdr *header)
-{
-	if (header->magic == ENC_HEADER_MAGIC) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-static const char *handle_bind_encrypt(struct fw_enc_hdr *img_header, const fip_toc_entry_t *toc_entry)
-{
-	int result = 0;
-	uint16_t i;
-	uint32_t iv[IV_SIZE / sizeof(uint32_t)] = { 0 };
-	uint8_t tag[TAG_SIZE] = { 0 };
-	uint8_t key[KEY_SIZE] = { 0 };
-	size_t key_len = sizeof(key);
-	unsigned int key_flags;
-	uintptr_t fip_img_data;
-	const io_uuid_spec_t uuid_spec = { 0 };
-
-	VERBOSE("BL2U handle bind encrypt\n");
-
-	/* Check if magic header info is available */
-	if (is_enc_img_hdr(img_header)) {
-		VERBOSE("Encrypt(), found magic header\n");
-
-		/* Retrieve key data (BSSK) */
-		result = plat_get_enc_key_info(FW_ENC_WITH_BSSK,
-					       key,
-					       &key_len,
-					       &key_flags,
-					       (uint8_t *)&uuid_spec.uuid,
-					       sizeof(uuid_t));
-		if (result != 0) {
-			return "Failed to obtain BSSK key";
-		} else {
-			VERBOSE("Encryption key successfully retrieved\n");
-		}
-
-		/* Set pointer to the Data[] payload section of the current image */
-		fip_img_data =
-		    fip_base_addr + toc_entry->offset_address + sizeof(struct fw_enc_hdr);
-
-		/* Initialize iv array with random data */
-		for (i = 0; i < ARRAY_SIZE(iv); i++) {
-			iv[i] = lan966x_trng_read();
-		}
-
-		/* Encrypt image data on-the-fly in memory  */
-		result = aes_gcm_encrypt((uint8_t *)fip_img_data,
-					 (toc_entry->size - sizeof(struct fw_enc_hdr)),
-					 key,
-					 key_len,
-					 (uint8_t *)iv,
-					 sizeof(iv),
-					 tag,
-					 sizeof(tag));
-
-		/* Wipe out key data */
-		memset(key, 0, key_len);
-
-		if (result != 0) {
-			return "Failed to encrypt FIP image";
-		} else {
-			/* Update firmware image header data */
-			img_header->dec_algo = CRYPTO_GCM_DECRYPT;
-			img_header->flags |= FW_ENC_STATUS_FLAG_MASK;
-			memcpy(img_header->tag, tag, TAG_SIZE);
-			memcpy(img_header->iv, iv, IV_SIZE);
-
-			VERBOSE("Enryption of FIP image done\n");
-		}
-	} else {
-		VERBOSE("Found no image for encrypting\n");
-	}
-
-	return NULL;
-}
-
-static const char *handle_bind_decrypt(struct fw_enc_hdr *img_header, const fip_toc_entry_t * toc_entry)
-{
-	int result;
-	uint8_t key[KEY_SIZE] = { 0 };
-	size_t key_len = sizeof(key);
-	unsigned int key_flags;
-	uintptr_t fip_img_data;
-	const io_uuid_spec_t uuid_spec = { 0 };
-
-	VERBOSE("BL2U handle bind decrypt\n");
-
-	/* Check if magic header info is available */
-	if (is_enc_img_hdr(img_header)) {
-		VERBOSE("Decrypt(), found magic header\n");
-
-		/* Retrieve key data (SSK) */
-		result = plat_get_enc_key_info(FW_ENC_WITH_SSK,
-					       key,
-					       &key_len,
-					       &key_flags,
-					       (uint8_t *)&uuid_spec.uuid,
-					       sizeof(uuid_t));
-		if (result != 0) {
-			return "Failed to obtain SSK key";
-		} else {
-			VERBOSE("Decryption key successfully retrieved\n");
-		}
-
-		/* Set address to the Data[] payload section of the current image */
-		fip_img_data =
-		    fip_base_addr + toc_entry->offset_address + sizeof(struct fw_enc_hdr);
-
-		/* Decrypt image data on-the-fly in memory */
-		result = aes_gcm_decrypt((uint8_t *)fip_img_data,
-					 (toc_entry->size - sizeof(struct fw_enc_hdr)),
-					 key,
-					 key_len,
-					 img_header->iv,
-					 img_header->iv_len,
-					 img_header->tag,
-					 img_header->tag_len);
-
-		/* Wipe out key data */
-		memset(key, 0, key_len);
-
-		if (result != 0) {
-			return "Failed to decrypt FIP image";
-		} else {
-			VERBOSE("Decryption of FIP image done\n");
-		}
-
-	} else {
-		VERBOSE("Found no image for decrypting\n");
-	}
-
-	return NULL;
-}
-
-static const char *handle_bind_parse_fip(void)
-{
-	const fip_toc_header_t *toc_header;
-	const fip_toc_entry_t *toc_entry;
-	struct fw_enc_hdr *enc_img_hdr;
-	const uuid_t uuid_null = { 0 };
-	uintptr_t toc_end_addr;
-	bool exit_parsing = 0;
-	const char *result = NULL;
-
-	VERBOSE("BL2U handle parsing of fip\n");
-
-	/* The data offset value inside the ToC Entry 0, declares the start of the first image
-	 * payload (Data 0). Therefore, the memory area in between is used for the ToC Entry(s). We
-	 * will scan this region for all available ToC Entry(s), till the zero loaded ToC End Marker
-	 * is reached.
-	 *
-	 *  fip_base_addr --->  ------------------
-	 *                      | ToC Header     |
-	 *                      |----------------|
-	 *                      | ToC Entry 0    |
-	 *                      |----------------|
-	 *                      | ToC Entry 1    |
-	 *                      |----------------|
-	 *                      | ToC End Marker |
-	 *                      |----------------|
-	 *                      |                |
-	 *                      |     Data 0     |
-	 *                      |                |
-	 *                      |----------------|
-	 *                      |                |
-	 *                      |     Data 1     |
-	 *                      |                |
-	 *                      ------------------
-	 */
-
-
-	/* Setup reference pointer to ToC header */
-	toc_header = (fip_toc_header_t *)fip_base_addr;
-
-	/* Address ought to be 4-byte aligned */
-	assert((((uintptr_t)toc_header) & 3U) == 0U);
-
-	/* Setup reference pointer to ToC Entry 0 */
-	toc_entry = (fip_toc_entry_t *)(fip_base_addr + sizeof(fip_toc_header_t));
-
-	/* Address ought to be 4-byte aligned */
-	assert((((uintptr_t)toc_entry) & 3U) == 0U);
-
-	/* Check for valid FIP data */
-	if (!is_valid_fip_hdr(toc_header)) {
-		return "Header check of FIP failed";
-	} else {
-		VERBOSE("FIP header looks OK\n");
-	}
-
-	/* Set address to Data 0 element. This address is usually right after the last ToC (end)
-	 * marker and defines the end address of our parsing loop */
-	toc_end_addr = fip_base_addr + toc_entry->offset_address;
-
-	/* Iterate now over all ToC Entries in the FIP file */
-	while (((uintptr_t)toc_entry) < toc_end_addr) {
-
-		/* If ToC End Marker is found (zero terminated), exit parsing loop */
-		if (memcmp(&toc_entry->uuid, &uuid_null, sizeof(uuid_t)) == 0) {
-			exit_parsing = true;
-			break;
-		}
-
-		/* Map image pointer to encoded header structure for retrieving data */
-		enc_img_hdr = (struct fw_enc_hdr *) (fip_base_addr + (uint32_t) toc_entry->offset_address);
-
-		/* Address ought to be 4-byte aligned */
-		if ((((uintptr_t) enc_img_hdr) & 3U) != 0U)
-			return "FIP needs to be produced with FIP_ALIGN";
-
-		/* Decrypt image for upcoming encryption step */
-		result = handle_bind_decrypt(enc_img_hdr, toc_entry);
-		if (result) {
-			VERBOSE("Decryption of FIP failed: %s\n", result);
-			return result;
-		}
-
-		/* Encrypt previously decrypted image file */
-		result = handle_bind_encrypt(enc_img_hdr, toc_entry);
-		if (result) {
-			VERBOSE("Encryption of FIP failed: %s\n", result);
-			return result;
-		}
-
-		/* Increment pointer to next ToC entry */
-		toc_entry++;
-	}
-
-	if (!exit_parsing)
-		return "FIP does not have a ToC terminator entry";
-
-	return NULL;
-}
 
 static void handle_otp_read(bootstrap_req_t *req, bool raw)
 {
@@ -629,7 +382,7 @@ static void handle_write_fip(const bootstrap_req_t * req)
 
 static void handle_bind(const bootstrap_req_t *req)
 {
-	const char *result;
+	fw_bind_res_t result;
 
 	VERBOSE("BL2U handle bind operation\n");
 
@@ -639,9 +392,9 @@ static void handle_bind(const bootstrap_req_t *req)
 	}
 
 	/* Parse FIP for encrypted image files */
-	result = handle_bind_parse_fip();
+	result = lan966x_bind_fip(fip_base_addr, data_rcv_length);
 	if (result) {
-		bootstrap_TxNack(result);
+		bootstrap_TxNack(lan966x_bind_err2str(result));
 	} else {
 		VERBOSE("FIP image successfully accessed\n");
 		bootstrap_TxAck();
