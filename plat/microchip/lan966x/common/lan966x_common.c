@@ -78,17 +78,10 @@ lan966x_fw_config_t lan966x_fw_config = {
 		PLAT_LAN966X_NS_IMAGE_SIZE,			\
 		MT_MEMORY | MT_RW | MT_NS)
 
-#define LAN966X_MAP_USB						\
-	MAP_REGION_FLAT(					\
-		LAN966X_USB_BASE,				\
-		LAN966X_USB_SIZE,				\
-		MT_DEVICE | MT_RW | MT_SECURE)
-
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
 	LAN966X_MAP_QSPI0,
 	LAN966X_MAP_AXI,
-	LAN966X_MAP_USB,
 	{0}
 };
 #endif
@@ -98,7 +91,6 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_NS_MEM,
-	LAN966X_MAP_USB,
 	{0}
 };
 #endif
@@ -108,7 +100,6 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_NS_MEM,
-	LAN966X_MAP_USB,
 	{0}
 };
 #endif
@@ -118,7 +109,6 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN966X_MAP_AXI,
 	LAN966X_MAP_BL32,
 	LAN966X_MAP_NS_MEM,
-	LAN966X_MAP_USB,
 	{0}
 };
 #endif
@@ -184,27 +174,8 @@ static void lan966x_flexcom_init(int idx)
 	lan966x_crash_console(&lan966x_console);
 }
 
-void lan966x_usb_get_trim_values(struct usb_trim *trim)
-{
-	uint8_t trim_data[TRIM_SIZE];
-
-	memset(trim, 0, sizeof(*trim));
-
-	if (otp_read_trim(trim_data, sizeof(trim_data)) < 0)
-		return;		/* OTP read error? */
-
-	if (otp_all_zero(trim_data, sizeof(trim_data)))
-		return;		/* Nothing set */
-
-	trim->valid = true;
-	trim->bias = otp_read_com_bias_bg_mag_trim();
-	trim->rbias = otp_read_com_rbias_mag_trim();
-}
-
 void lan966x_console_init(void)
 {
-	struct usb_trim trim;
-
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN966X_GCB_BASE));
 
 	switch (lan966x_get_strapping()) {
@@ -227,11 +198,6 @@ void lan966x_console_init(void)
 		break;
 	case LAN966X_STRAP_TFAMON_FC4:
 		lan966x_flexcom_init(FLEXCOM4);
-		break;
-	case LAN966X_STRAP_TFAMON_USB:
-		lan966x_usb_get_trim_values(&trim);
-		lan966x_usb_init(&trim);
-		lan966x_usb_register_console();
 		break;
 	default:
 		/* No console */
@@ -357,7 +323,6 @@ bool lan966x_monitor_enabled(void)
 	case LAN966X_STRAP_TFAMON_FC2:
 	case LAN966X_STRAP_TFAMON_FC3:
 	case LAN966X_STRAP_TFAMON_FC4:
-	case LAN966X_STRAP_TFAMON_USB:
 		return true;
 	default:
 		break;
@@ -563,7 +528,6 @@ void lan966x_set_max_trace_level(void)
 	case LAN966X_STRAP_TFAMON_FC2:
 	case LAN966X_STRAP_TFAMON_FC3:
 	case LAN966X_STRAP_TFAMON_FC4:
-	case LAN966X_STRAP_TFAMON_USB:
 	case LAN966X_STRAP_SPI_SLAVE:
 		tf_log_set_max_level(LOG_LEVEL_ERROR);
 		break;
@@ -589,7 +553,6 @@ void lan966x_reset_max_trace_level(void)
 	case LAN966X_STRAP_TFAMON_FC2:
 	case LAN966X_STRAP_TFAMON_FC3:
 	case LAN966X_STRAP_TFAMON_FC4:
-	case LAN966X_STRAP_TFAMON_USB:
 	case LAN966X_STRAP_SPI_SLAVE:
 		tf_log_set_max_level(LOG_LEVEL);
 		break;

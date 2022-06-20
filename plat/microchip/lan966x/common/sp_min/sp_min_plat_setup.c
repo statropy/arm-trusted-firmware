@@ -12,10 +12,13 @@
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/plat_arm.h>
+#include <libfit.h>
 
 #include <lan966x_private.h>
 #include <plat_otp.h>
+#include <otp_tags.h>
 
+static image_info_t bl33_image_info;
 static entry_point_info_t bl33_ep_info;
 
 #define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
@@ -45,6 +48,8 @@ static entry_point_info_t bl33_ep_info;
 						MT_CODE | MT_SECURE)
 #endif
 
+static char fit_config[128], *fit_config_ptr;
+
 /*******************************************************************************
  * Return a pointer to the 'entry_point_info' structure of the next image for
  * the security state specified. BL33 corresponds to the non-secure image type.
@@ -52,27 +57,41 @@ static entry_point_info_t bl33_ep_info;
  ******************************************************************************/
 entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 {
-	entry_point_info_t *next_image_info;
+	const char *bootargs = "console=ttyS0,115200 root=/dev/mmcblk0p4 rw rootwait loglevel=8";
+	struct fit_context fit;
+	entry_point_info_t *next_image_info = &bl33_ep_info;
+	image_info_t *image = &bl33_image_info;
 
-	next_image_info = &bl33_ep_info;
-
-	if (next_image_info->pc == 0U) {
+	if (next_image_info->pc == 0U)
 		return NULL;
-	}
 
-#if LAN966X_DIRECT_LINUX_BOOT
-	/*
-	 * According to the file ``Documentation/arm/Booting`` of the Linux
-	 * kernel tree, Linux expects:
-	 * r0 = 0
-	 * r1 = machine type number, optional in DT-only platforms (~0 if so)
-	 * r2 = Physical address of the device tree blob
-	 */
-	INFO("lan966x: Preparing to boot 32-bit Linux kernel\n");
-	next_image_info->args.arg0 = 0U;
-	next_image_info->args.arg1 = ~0U;
-	next_image_info->args.arg2 = (u_register_t) LAN966X_LINUX_DTB_BASE;
-#endif
+	if (fit_init_context(&fit, image->image_base) == EXIT_SUCCESS) {
+		INFO("Unpacking FIT image @ %p\n", fit.fit);
+		if (fit_select(&fit, fit_config_ptr) == EXIT_SUCCESS &&
+		    fit_load(&fit, FITIMG_PROP_DT_TYPE) == EXIT_SUCCESS &&
+		    fit_load(&fit, FITIMG_PROP_KERNEL_TYPE) == EXIT_SUCCESS) {
+			/* Fixup DT, but allow to fail */
+			fit_fdt_update(&fit, PLAT_LAN966X_NS_IMAGE_BASE,
+				       PLAT_LAN966X_NS_IMAGE_SIZE,
+				       bootargs);
+			INFO("Preparing to boot 32-bit Linux kernel\n");
+			/*
+			 * According to the file ``Documentation/arm/Booting`` of the Linux
+			 * kernel tree, Linux expects:
+			 * r0 = 0
+			 * r1 = machine type number, optional in DT-only platforms (~0 if so)
+			 * r2 = Physical address of the device tree blob
+			 */
+			next_image_info->pc = fit.entry;
+			next_image_info->args.arg0 = 0U;
+			next_image_info->args.arg1 = ~0U;
+			next_image_info->args.arg2 = fit.dtb;
+		} else {
+			NOTICE("Unpacking FIT image for Linux failed\n");
+		}
+	} else {
+		INFO("Direct boot of BL33 binary image\n");
+	}
 
 	return next_image_info;
 }
@@ -126,6 +145,12 @@ static void otp_cache_init(void)
 	/* Read out to cache these entities */
 	otp_cache_data(OTP_TBBR_HUK_ADDR, sizeof(key), key.b);
 	otp_cache_data(OTP_TBBR_SSK_ADDR, sizeof(key), key.b);
+
+	/* Read this up front to cache */
+	if (otp_tag_get_string(otp_tag_type_fit_config, fit_config, sizeof(fit_config)) > 0)
+		fit_config_ptr = fit_config;
+	else
+		fit_config_ptr = NULL;
 }
 
 #pragma weak params_early_setup
@@ -135,6 +160,25 @@ void params_early_setup(u_register_t plat_param_from_bl2)
 
 	/* Get bl2 fw_config (OTP EMU) */
 	memcpy(&lan966x_fw_config, src_config, sizeof(lan966x_fw_config));
+}
+
+static void lan966x_params_parse_helper(u_register_t param,
+					image_info_t *bl33_image_info_out,
+					entry_point_info_t *bl33_ep_info_out)
+{
+	bl_params_node_t *node;
+	bl_params_t *v2 = (void *)(uintptr_t)param;
+
+	assert(v2->h.version == PARAM_VERSION_2);
+	assert(v2->h.type == PARAM_BL_PARAMS);
+	for (node = v2->head; node != NULL; node = node->next_params_info) {
+		if (node->image_id == BL33_IMAGE_ID) {
+			if (bl33_image_info_out != NULL)
+				*bl33_image_info_out = *node->image_info;
+			if (bl33_ep_info_out != NULL)
+				*bl33_ep_info_out = *node->ep_info;
+		}
+	}
 }
 
 /*******************************************************************************
@@ -150,7 +194,8 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	/* Console */
 	lan966x_console_init();
 
-	bl31_params_parse_helper(arg0, NULL, &bl33_ep_info);
+	/* Get BL33 info for Linux booting */
+	lan966x_params_parse_helper(arg0, &bl33_image_info, &bl33_ep_info);
 }
 
 /*******************************************************************************
