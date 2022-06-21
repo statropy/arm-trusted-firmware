@@ -121,9 +121,6 @@ static struct lan969x_flexcom_args {
 	[FLEXCOM3] = {
 		LAN969X_FLEXCOM_3_BASE, LAN966X_CLK_ID_FLEXCOM3, 55, 56, 2
 	},
-	[FLEXCOM4] = {
-		//LAN969X_FLEXCOM_4_BASE, LAN966X_CLK_ID_FLEXCOM4, 57, 58
-	},
 };
 
 static void lan969x_flexcom_init(int idx)
@@ -169,40 +166,20 @@ void lan969x_usb_get_trim_values(struct usb_trim *trim)
 
 void lan969x_console_init(void)
 {
-	struct usb_trim trim;
-
 	vcore_gpio_init(GCB_GPIO_OUT_SET(LAN969X_GCB_BASE));
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_BOOT_MMC_FC:
 	case LAN966X_STRAP_BOOT_QSPI_FC:
 	case LAN966X_STRAP_BOOT_SD_FC:
-	case LAN966X_STRAP_BOOT_MMC_TFAMON_FC:
-	case LAN966X_STRAP_BOOT_QSPI_TFAMON_FC:
-	case LAN966X_STRAP_BOOT_SD_TFAMON_FC:
+	case _LAN966X_STRAP_BOOT_MMC_FC_ALIAS:
+	case _LAN966X_STRAP_BOOT_QSPI_FC_ALIAS:
+	case _LAN966X_STRAP_BOOT_SD_FC_ALIAS:
 		lan969x_flexcom_init(FC_DEFAULT);
 		break;
 	case LAN966X_STRAP_TFAMON_FC0:
+	case LAN966X_STRAP_TFAMON_FC0_HS:
 		lan969x_flexcom_init(FLEXCOM0);
-		break;
-	case LAN966X_STRAP_TFAMON_FC2:
-		lan969x_flexcom_init(FLEXCOM2);
-		break;
-	case LAN966X_STRAP_TFAMON_FC3:
-		lan969x_flexcom_init(FLEXCOM3);
-		break;
-	case LAN966X_STRAP_TFAMON_FC4:
-		lan969x_flexcom_init(FLEXCOM4);
-		break;
-	case LAN966X_STRAP_TFAMON_USB:
-		if (0) {
-			lan969x_usb_get_trim_values(&trim);
-			lan966x_usb_init(&trim);
-			lan966x_usb_register_console();
-		} else {
-			ERROR("USB not yet available on LAN969X\n");
-			panic();
-		}
 		break;
 	default:
 		/* No console */
@@ -214,8 +191,6 @@ uintptr_t plat_get_ns_image_entrypoint(void)
 {
 	return PLAT_LAN969X_NS_IMAGE_BASE;
 }
-
-#define GPR0_STRAPPING_SET	BIT(20) /* 0x100000 */
 
 void lan969x_set_max_trace_level(void)
 {

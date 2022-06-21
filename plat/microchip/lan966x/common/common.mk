@@ -98,6 +98,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/microchip/common/plat_tbbr.c			\
 				plat/microchip/lan966x/common/${ARCH}/plat_helpers.S	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
+				plat/microchip/lan966x/common/lan966x_strapping.c	\
 				drivers/microchip/trng/lan966x_trng.c
 
 BL1_SOURCES		+=	\

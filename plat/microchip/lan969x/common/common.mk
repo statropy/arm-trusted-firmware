@@ -42,6 +42,7 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				${LAN969X_PLAT_COMMON}/aarch64/plat_helpers.S \
 				${LAN969X_PLAT_COMMON}/lan969x_common.c \
+				${LAN969X_PLAT_COMMON}/lan969x_strapping.c \
 				${LAN969X_PLAT_COMMON}/lan969x_tbbr.c	\
 				${LAN969X_CONSOLE_SOURCES}		\
 				${LAN969X_STORAGE_SOURCES}		\
