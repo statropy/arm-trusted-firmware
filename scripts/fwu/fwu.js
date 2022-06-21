@@ -363,6 +363,7 @@ function addTrace(s)
     var trc = document.getElementById('log');
     console.log(s);
     trc.textContent += s + '\n'
+    trc.scrollTop = trc.scrollHeight; // Scroll down
 }
 
 function setStatus(s, notrace)
