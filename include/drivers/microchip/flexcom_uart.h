@@ -14,11 +14,6 @@
 
 #include <drivers/console.h>
 
-/*
- * Calculate UART divisort, using rounding - the (_br / 2) part.
- */
-#define FLEXCOM_DIVISOR(_sck, _br) (((_sck / 16) + (_br / 2)) / _br)
-
 #ifndef __ASSEMBLER__
 
 #include <stdint.h>

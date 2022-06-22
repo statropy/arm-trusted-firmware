@@ -87,7 +87,7 @@
  * Flexcom UART related constants
  */
 #define FLEXCOM_BAUDRATE            UL(115200)
-#define FLEXCOM_UART_CLK_IN_HZ      UL(19200000)
+#define FLEXCOM_BAUDRATE_HS	    UL(921600)
 
 #if defined(LAN969X_ASIC)
 #define PERIPHERAL_CLK  UL(250000000) /* Peripheral CLK used on silicon */

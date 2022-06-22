@@ -123,7 +123,7 @@ static struct lan969x_flexcom_args {
 	},
 };
 
-static void lan969x_flexcom_init(int idx)
+static void lan969x_flexcom_init(int idx, int br)
 {
 	struct lan969x_flexcom_args *fc;
 
@@ -142,7 +142,7 @@ static void lan969x_flexcom_init(int idx)
 	/* Initialize the console to provide early debug support */
 	console_flexcom_register(&lan969x_console,
 				 fc->base + FLEXCOM_UART_OFFSET,
-				 FLEXCOM_DIVISOR(PERIPHERAL_CLK, FLEXCOM_BAUDRATE));
+				 FLEXCOM_DIVISOR(PERIPHERAL_CLK, br));
 	console_set_scope(&lan969x_console,
 			  CONSOLE_FLAG_BOOT | CONSOLE_FLAG_RUNTIME);
 }
@@ -175,11 +175,13 @@ void lan969x_console_init(void)
 	case _LAN966X_STRAP_BOOT_MMC_FC_ALIAS:
 	case _LAN966X_STRAP_BOOT_QSPI_FC_ALIAS:
 	case _LAN966X_STRAP_BOOT_SD_FC_ALIAS:
-		lan969x_flexcom_init(FC_DEFAULT);
+		lan969x_flexcom_init(FC_DEFAULT, FLEXCOM_BAUDRATE);
 		break;
 	case LAN966X_STRAP_TFAMON_FC0:
+		lan969x_flexcom_init(FLEXCOM0, FLEXCOM_BAUDRATE);
+		break;
 	case LAN966X_STRAP_TFAMON_FC0_HS:
-		lan969x_flexcom_init(FLEXCOM0);
+		lan969x_flexcom_init(FLEXCOM0, FLEXCOM_BAUDRATE_HS);
 		break;
 	default:
 		/* No console */
