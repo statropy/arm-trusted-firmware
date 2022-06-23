@@ -11,8 +11,8 @@ development platforms and should not be used (and are not supported).
 
 It is possible to build the software by following the normal TFA
 guidelines, but the (Ruby) wrapper `scripts/build.rb` script is
-offered to offer something that ensures using the proper options for
-the platform. Refer to the script help (`--help` option).
+offered as it ensures using the proper options for the platform. Refer
+to the script help (`--help` option).
 
 .. warning::
    The keys found in the `keys/` directory are *purely* for
