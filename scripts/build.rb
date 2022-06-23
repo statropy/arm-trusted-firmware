@@ -54,14 +54,14 @@ bssk_derive_key = [
 		0x94, 0xdd, 0x46, 0x2a, 0xcc, 0x61, 0xb5, 0x5d,
 ]
 
-$option = { :platform	=> "lan966x_sr",
+$option = { :platform	=> "lan966x_b0",
              :loglevel	=> 40,
              :encrypt	=> false,
              :debug	=> true,
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2022.02.2-744",
+             :sdk	=> "2022.02.2-755",
              :norimg	=> true,
              :gptimg	=> false,
              :ramusage	=> true,
