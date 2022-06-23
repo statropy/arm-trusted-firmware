@@ -25,7 +25,8 @@ with Armv7-A and Armv8-A TrustZone technology.
 Users are encouraged to do their own security validation, including penetration
 testing, on any secure world code derived from TF-A.
 
-Supported Platforms
+Microchip/UNG Trusted Firmware-A
+================================
 -------------------
 
 This software has been modified by Microchip Technology Inc. to add
