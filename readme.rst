@@ -1,3 +1,26 @@
+Microchip/UNG Trusted Firmware-A
+================================
+
+This software has been modified by Microchip Technology Inc. to add
+support for the following SoC:
+
+* `lan966x_b0`: LAN966X revision B - BL1 secure bootrom
+
+Specifically, the platforms `lan966x_a0` and `lan966x_sr` are internal
+development platforms and should not be used (and are not supported).
+
+It is possible to build the software by following the normal TFA
+guidelines, but the (Ruby) wrapper `scripts/build.rb` script is
+offered to offer something that ensures using the proper options for
+the platform. Refer to the script help (`--help` option).
+
+.. warning::
+   The keys found in the `keys/` directory are *purely* for
+   demonstration purposes and *must* be replaced with own keys before
+   software deployment.
+
+*Orignial TF-A Readme file below:*
+
 Trusted Firmware-A
 ==================
 
@@ -24,28 +47,6 @@ with Armv7-A and Armv8-A TrustZone technology.
 
 Users are encouraged to do their own security validation, including penetration
 testing, on any secure world code derived from TF-A.
-
-Microchip/UNG Trusted Firmware-A
-================================
--------------------
-
-This software has been modified by Microchip Technology Inc. to add
-support for the following SoC:
-
-* `lan966x_b0`: LAN966X revision B - BL1 secure bootrom
-
-Specifically, the platforms `lan966x_a0` and `lan966x_sr` are internal
-development platforms and should not be used (and are not supported).
-
-It is possible to build the software by following the normal TFA
-guidelines, but the (Ruby) wrapper `scripts/build.rb` script is
-offered to offer something that ensures using the proper options for
-the platform. Refer to the script help (`--help` option).
-
-.. warning::
-   The keys found in the `keys/` directory are *purely* for
-   demonstration purposes and *must* be replaced with own keys before
-   software deployment.
 
 More Info and Documentation
 ---------------------------
