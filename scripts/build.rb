@@ -389,8 +389,15 @@ end
 lsargs << "html"
 do_cmd("ruby ./scripts/html_inline.rb ./scripts/fwu/serial.html > #{build}/fwu.html")
 
+# DT's
+if File.exist? "#{build}/fdts/"
+    ls_fdt = " #{build}/fdts/*.dtb"
+else
+    ls_fdt = ""
+end
+
 # List binaries
-do_cmd("ls -l " + lsargs.map{|s| "#{build}/*.#{s}"}.join(" "))
+do_cmd("ls -l " + lsargs.map{|s| "#{build}/*.#{s}"}.join(" ") + ls_fdt)
 
 if $option[:coverity]
     do_cmd("cov-analyze -dir #{$cov_dir} --jobs auto")

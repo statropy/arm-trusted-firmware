@@ -49,8 +49,8 @@ void lan966x_mmc_plat_config(boot_source_type boot_source)
 	info.block_size = MMC_BLOCK_SIZE;
 
 	/* Update global lan966x_fw_config structure */
-	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_MMC_CLK_RATE, &clk_rate);
-	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_MMC_BUS_WIDTH, &bus_width);
+	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_MMC_CLK_RATE, &clk_rate, MMC_DEFAULT_SPEED);
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_MMC_BUS_WIDTH, &bus_width, MMC_BUS_WIDTH_1);
 
 	/* Check if special configuration mode is set */
 	if (clk_rate == 0u) {

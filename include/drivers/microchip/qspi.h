@@ -9,6 +9,9 @@
 
 #include <stdint.h>
 
+/* Default clock speed */
+#define QSPI_DEFAULT_SPEED_MHZ	25
+
 void qspi_init(void);
 void qspi_reinit(void);
 int qspi_write(uint32_t offset, const void *buf, size_t len);

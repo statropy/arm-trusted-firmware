@@ -31,7 +31,10 @@ typedef enum {
 
 typedef struct {
 	uint8_t otp_emu_data[OTP_EMU_MAX_DATA];
+#if !defined(FW_CONFIG_DT)
+	/* DT based fw_config use actual DT instead */
 	uint8_t config[FW_CONFIG_MAX_DATA];
+#endif
 } lan966x_fw_config_t;
 
 extern lan966x_fw_config_t lan966x_fw_config;
@@ -39,8 +42,8 @@ extern lan966x_fw_config_t lan966x_fw_config;
 int lan966x_load_fw_config(unsigned int image_id);
 int lan966x_get_fw_config_data(lan966x_fw_cfg_data id);
 void lan966x_fwconfig_apply(void);
-int lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst);
-int lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst);
-int lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst);
+void lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst, uint8_t defval);
+void lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst, uint16_t defval);
+void lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst, uint32_t defval);
 
 #endif /* FW_CONFIG_H */
