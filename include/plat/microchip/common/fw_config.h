@@ -17,6 +17,7 @@ typedef enum {
 	LAN966X_FW_CONF_NUM_OF_ITEMS
 } lan966x_fw_cfg_data;
 
+#if !defined(FW_CONFIG_DT)
 #define FW_CONFIG_INIT_8(offset, value)		\
 	.config[offset] = (uint8_t) (value)
 
@@ -26,13 +27,19 @@ typedef enum {
 	.config[offset + 2] = (uint8_t) ((value) >> 16),		\
 	.config[offset + 3] = (uint8_t) ((value) >> 24)
 
-#define OTP_EMU_MAX_DATA	384
 #define FW_CONFIG_MAX_DATA	128
+#endif	/* !defined(FW_CONFIG_DT) */
+
+#define OTP_EMU_MAX_DATA	384
 
 typedef struct {
 	uint8_t otp_emu_data[OTP_EMU_MAX_DATA];
-#if !defined(FW_CONFIG_DT)
+#if defined(FW_CONFIG_DT)
+#define MAX_FDT SIZE_K(4)
 	/* DT based fw_config use actual DT instead */
+	uint8_t fdt_buf[MAX_FDT];
+#else
+	/* simple byte array with offsets */
 	uint8_t config[FW_CONFIG_MAX_DATA];
 #endif
 } lan966x_fw_config_t;

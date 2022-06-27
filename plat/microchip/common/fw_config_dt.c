@@ -16,14 +16,57 @@
 #include <drivers/microchip/qspi.h>
 #include <stddef.h>
 
-#define MAX_FDT SIZE_K(4)
-
-static uint8_t fdt_buf[MAX_FDT];
 static bool fdt_valid;
 
 void *lan966x_get_dt(void)
 {
-	return fdt_buf;
+	return fdt_valid ? lan966x_fw_config.fdt_buf : NULL;
+}
+
+static int lan966x_fw_config_parse_dt(void *fdt)
+{
+	const fdt32_t *off;
+	int node, otp_node;
+
+	node = fdt_path_offset(fdt, "/otp");
+	if (node < 0) {
+		VERBOSE("No OTP emulation data found\n");
+		return -ENOENT;
+	}
+
+	fdt_for_each_subnode(otp_node, fdt, node) {
+		const char *name = fdt_get_name(fdt, otp_node, NULL);
+		int otp_offset, otp_len;
+		const void *data;
+
+		off = fdt_getprop(fdt, otp_node, "reg", NULL);
+		if (off == NULL) {
+			WARN("OTP emu: Skip node %s, no 'reg' property\n", name);
+			continue;
+		}
+
+		otp_offset = fdt32_to_cpu(*off);
+
+		data = fdt_getprop(fdt, otp_node, "data", &otp_len);
+		if (data) {
+			if (otp_offset >= 0 &&
+			    (otp_len > 0 && otp_len <= OTP_EMU_MAX_DATA) &&
+			    (otp_offset + otp_len) <= OTP_EMU_MAX_DATA) {
+				/* Copy emulation data */
+				VERBOSE("OTP emu: Copy %s: Off %d Len %d\n", name, otp_offset, otp_len);
+				memcpy(lan966x_fw_config.otp_emu_data + otp_offset,
+				       data, otp_len);
+			} else {
+				WARN("OTP emu: Skip malformed node %s: Off %d Len %d\n",
+				     name, otp_offset, otp_len);
+			}
+
+		} else {
+			WARN("OTP emu: OTP emulation at offset %d has no data\n", otp_offset);
+		}
+	}
+
+	return 0;
 }
 
 int lan966x_load_fw_config(unsigned int image_id)
@@ -37,8 +80,8 @@ int lan966x_load_fw_config(unsigned int image_id)
 		.h.attr = 0
 	};
 
-	config_image_info.image_base = (uintptr_t) fdt_buf;
-	config_image_info.image_max_size = sizeof(fdt_buf);
+	config_image_info.image_base = (uintptr_t) lan966x_fw_config.fdt_buf;
+	config_image_info.image_max_size = sizeof(lan966x_fw_config.fdt_buf);
 
 	result = load_auth_image(image_id, &config_image_info);
 	if (result != 0) {
@@ -47,6 +90,11 @@ int lan966x_load_fw_config(unsigned int image_id)
 		fdt_valid = true;
 	}
 #endif
+
+	/* Parse OTP emulation DT info */
+	if (result == 0) {
+		result = lan966x_fw_config_parse_dt(lan966x_fw_config.fdt_buf);
+	}
 
 	return result;
 }
@@ -96,7 +144,7 @@ int lan966x_fw_config_get_prop(void *fdt, unsigned int offset, uint32_t *dst)
 	int err;
 
 	if (!fdt_valid) {
-		WARN("fw_config: No DT for off %d\n", offset);
+		/* This occur at initial startup or if no DT is in FIP */
 		return -EINVAL;
 	}
 
@@ -127,9 +175,9 @@ int lan966x_fw_config_get_prop(void *fdt, unsigned int offset, uint32_t *dst)
 	}
 
 	if (err == 0)
-		INFO("fw_config: %d property = %u\n", offset, *dst);
+		VERBOSE("fw_config: %d property = %u\n", offset, *dst);
 	else
-		INFO("fw_config: %d property FAIL: %d\n", offset, err);
+		WARN("fw_config: %d property FAIL: %d\n", offset, err);
 
 	return err;
 }
@@ -139,7 +187,7 @@ void lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst, uint8_t def
 	int ret;
 	uint32_t val = 0;
 
-	ret = lan966x_fw_config_get_prop(fdt_buf, offset, &val);
+	ret = lan966x_fw_config_get_prop(lan966x_fw_config.fdt_buf, offset, &val);
 	if (ret == 0)
 		*dst = val;
 	else
@@ -151,7 +199,7 @@ void lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst, uint16_t 
 	int ret;
 	uint32_t val = 0;
 
-	ret = lan966x_fw_config_get_prop(fdt_buf, offset, &val);
+	ret = lan966x_fw_config_get_prop(lan966x_fw_config.fdt_buf, offset, &val);
 	if (ret == 0)
 		*dst = val;
 	else
@@ -160,6 +208,6 @@ void lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst, uint16_t 
 
 void lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst, uint32_t defval)
 {
-	if (lan966x_fw_config_get_prop(fdt_buf, offset, dst))
+	if (lan966x_fw_config_get_prop(lan966x_fw_config.fdt_buf, offset, dst))
 		*dst = defval;
 }
