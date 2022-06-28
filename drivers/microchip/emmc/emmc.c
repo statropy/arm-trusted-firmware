@@ -156,9 +156,11 @@ static const unsigned int TAAC_TimeExp[8] =
 static const unsigned int TAAC_TimeMant[16] =
 	{ 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80 };
 
+#define EMMC_RESET_TIMEOUT_US		(1000 * 500) /* 500 ms */
+
 static void lan966x_mmc_reset(lan966x_reset_type type)
 {
-	unsigned int timeout = 0xFFFF;
+	uint64_t timeout = timeout_init_us(EMMC_RESET_TIMEOUT_US);
 	unsigned int state;
 
 	VERBOSE("MMC: Software reset type: %d\n", type);
@@ -175,20 +177,19 @@ static void lan966x_mmc_reset(lan966x_reset_type type)
 		break;
 	default:
 		ERROR("MMC: NOT supported reset type %d \n", type);
-		timeout = 0;
-		break;
+		return;
 	}
 
 	do {
-		if (timeout > 0) {
-			state = (unsigned int)mmio_read_8(reg_base + SDMMC_SRR);
-			timeout--;
-			udelay(10);
+		if (timeout_elapsed(timeout)) {
+			ERROR("MMC: Reset timeout expired, type %d!\n", type);
+			break;
 		} else {
-			state = 0;
-			ERROR("MMC: Reset timeout expired !\n");
+			state = mmio_read_8(reg_base + SDMMC_SRR);
 		}
 	} while (state);
+
+	VERBOSE("MMC: Software reset done\n");
 }
 
 static void lan966x_clock_delay(unsigned int sd_clock_cycles)
