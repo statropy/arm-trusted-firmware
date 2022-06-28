@@ -53,7 +53,8 @@ static int lan966x_fw_config_parse_dt(void *fdt)
 			    (otp_len > 0 && otp_len <= OTP_EMU_MAX_DATA) &&
 			    (otp_offset + otp_len) <= OTP_EMU_MAX_DATA) {
 				/* Copy emulation data */
-				VERBOSE("OTP emu: Copy %s: Off %d Len %d\n", name, otp_offset, otp_len);
+				VERBOSE("OTP emu: Copy %s: Off %d Len %d\n",
+					name, otp_offset, otp_len);
 				memcpy(lan966x_fw_config.otp_emu_data + otp_offset,
 				       data, otp_len);
 			} else {
@@ -153,6 +154,7 @@ int lan966x_fw_config_get_prop(void *fdt, unsigned int offset, uint32_t *dst)
 		err = lan966x_fdt_get_prop(fdt, "microchip,lan966x-sdhci", "clocks", &tmp);
 		if (err == 0) {
 			int node = fdt_node_offset_by_phandle(fdt, tmp);
+
 			if (node < 0) {
 				WARN("Cannot get SDHCI clock\n");
 				return node;
