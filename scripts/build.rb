@@ -9,15 +9,12 @@ require 'pp'
 platforms = {
     "lan966x_sr"	=> Hash[
         :uboot =>  "u-boot-lan966x_sr_atf.bin",
-        :dtb   =>  "lan966x-sr.dtb",
         :bl2_at_el3 => false ],
     "lan966x_a0"	=> Hash[
         :uboot =>  "u-boot-lan966x_evb_atf.bin",
-        :dtb   =>  "lan966x_pcb8291.dtb",
         :bl2_at_el3 => true  ],
     "lan966x_b0"	=> Hash[
         :uboot =>  "u-boot-lan966x_evb_atf.bin",
-        :dtb   =>  "lan966x_pcb8291.dtb",
         :bl2_at_el3 => false ],
 }
 
