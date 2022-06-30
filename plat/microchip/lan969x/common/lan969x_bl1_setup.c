@@ -108,7 +108,9 @@ void bl1_platform_setup(void)
 	/* Prepare fw_config from applicable boot source */
 	if (lan966x_bootable_source()) {
 		/* Prepare fw_config from applicable boot source */
+		bl1_plat_handle_pre_image_load(FW_CONFIG_ID);
 		lan966x_load_fw_config(FW_CONFIG_ID);
+		bl1_plat_handle_post_image_load(FW_CONFIG_ID);
 		lan966x_fwconfig_apply();
 	}
 

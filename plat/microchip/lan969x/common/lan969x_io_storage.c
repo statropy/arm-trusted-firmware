@@ -61,17 +61,21 @@ static const io_block_dev_spec_t mmc_dev_spec = {
 };
 
 /*
- * State data about alternate boot source(s).  Only used in
- * conjunction with BL1 monitor mode.
+ * State data about alternate boot source(s).
  */
 enum {
 	FIP_SELECT_RAM_FIP,
-	FIP_SELECT_DEFAULT,
+	FIP_SELECT_DEFAULT,	/* "fip" */
+	FIP_SELECT_FALLBACK,	/* "fip.bak" */
+	FIP_SELECT_RAW,		/* Start of device */
 };
 static int fip_select;
+static bool fip_spec_valid;
 
 /* Data will be fetched from the GPT */
 static io_block_spec_t fip_block_spec;
+
+static unsigned long gpt_device_offset;
 
 static const io_block_spec_t mmc_gpt_spec = {
 	.offset	= LAN966X_GPT_BASE,
@@ -166,6 +170,8 @@ static const io_uuid_spec_t fwu_cert_uuid_spec = {
 static int check_fip(const uintptr_t spec);
 static int check_mmc(const uintptr_t spec);
 static int check_memmap(const uintptr_t spec);
+static int check_mmc_fip(const uintptr_t spec);
+static int check_memmap_fip(const uintptr_t spec);
 static int check_error(const uintptr_t spec);
 static int check_enc_fip(const uintptr_t spec);
 
@@ -310,17 +316,17 @@ static const struct plat_io_policy boot_source_policies[] = {
 	[BOOT_SOURCE_EMMC] = {
 		&mmc_dev_handle,
 		(uintptr_t)&fip_block_spec,
-		check_mmc
+		check_mmc_fip
 	},
 	[BOOT_SOURCE_QSPI] = {
 		&memmap_dev_handle,
 		(uintptr_t)&fip_block_spec,
-		check_memmap
+		check_memmap_fip
 	},
 	[BOOT_SOURCE_SDMMC] = {
 		&mmc_dev_handle,
 		(uintptr_t)&fip_block_spec,
-		check_mmc
+		check_mmc_fip
 	},
 	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
@@ -344,36 +350,44 @@ static const struct plat_io_policy boot_source_gpt[] = {
 	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
 
-static void lan969x_set_fip_addr(unsigned int image_id, unsigned long dev_offset)
+static void lan969x_init_gpt(unsigned int image_id, unsigned long dev_offset)
 {
-	const char *primary = FW_PARTITION_NAME,
-		*fallback = FW_BACKUP_PARTITION_NAME, *name;
+	partition_init(image_id);
+	gpt_device_offset = dev_offset;
+}
+
+static bool lan969x_get_fip_addr(int fip_src)
+{
+	const char *name;
 	const partition_entry_t *entry;
 
-	if (fip_block_spec.length == 0) {
-		partition_init(image_id);
-		name = primary;
-		entry = get_partition_entry(primary);
-		if (entry == NULL) {
-			INFO("Could not find the '%s' partition, trying '%s'...\n",
-			     primary, fallback);
-			name = fallback;
-			entry = get_partition_entry(fallback);
-			if (entry == NULL) {
-				ERROR("No valid partitions found!\n");
-				NOTICE("Assuming FIP start at device origin\n");
-				fip_block_spec.offset = dev_offset;
-				fip_block_spec.length = SIZE_M(2); /* Conservative default */
-				return;
-			}
-		}
+	if (fip_src == FIP_SELECT_RAM_FIP)
+		return false;	/* Ignore */
 
-		INFO("Found partition '%s' at offset 0x%0lx length %ld\n",
-		     name, entry->start, entry->length);
-
-		fip_block_spec.offset = dev_offset + entry->start;
-		fip_block_spec.length = entry->length;
+	if (fip_src == FIP_SELECT_RAW) {
+		/* Try to use non-gpt fallback values */
+		NOTICE("Assuming FIP start at device origin\n");
+		fip_block_spec.offset = gpt_device_offset;
+		fip_block_spec.length = SIZE_M(2); /* Conservative default */
+		return true;
 	}
+
+	name = (fip_src == FIP_SELECT_DEFAULT) ?
+		FW_PARTITION_NAME : FW_BACKUP_PARTITION_NAME;
+
+	entry = get_partition_entry(name);
+	if (entry == NULL) {
+		ERROR("No '%s' partition found\n", name);
+		return false;
+	}
+
+	INFO("Found partition '%s' at offset 0x%0lx length %ld\n",
+	     name, entry->start, entry->length);
+
+	fip_block_spec.offset = gpt_device_offset + entry->start;
+	fip_block_spec.length = entry->length;
+
+	return true;
 }
 
 #if defined(IMAGE_BL1)
@@ -475,6 +489,20 @@ static int check_memmap(const uintptr_t spec)
 	return result;
 }
 
+static int check_mmc_fip(const uintptr_t spec)
+{
+	if (fip_spec_valid)
+		return check_mmc(spec);
+	return -EINVAL;
+}
+
+static int check_memmap_fip(const uintptr_t spec)
+{
+	if (fip_spec_valid)
+		return check_memmap(spec);
+	return -EINVAL;
+}
+
 static int check_error(const uintptr_t spec)
 {
 	return -1;
@@ -520,11 +548,11 @@ void lan966x_io_setup(void)
 				     &mmc_dev_handle);
 		assert(result == 0);
 
-		lan969x_set_fip_addr(GPT_IMAGE_ID, 0);
+		lan969x_init_gpt(GPT_IMAGE_ID, 0);
 		break;
 
 	case BOOT_SOURCE_QSPI:
-		lan969x_set_fip_addr(GPT_IMAGE_ID, LAN969X_QSPI0_MMAP);
+		lan969x_init_gpt(GPT_IMAGE_ID, LAN969X_QSPI0_MMAP);
 		break;
 
 	case BOOT_SOURCE_NONE:
@@ -562,18 +590,43 @@ int bl1_plat_handle_pre_image_load(unsigned int image_id)
 		FIP_SELECT_RAM_FIP :
 		FIP_SELECT_DEFAULT;
 
+	fip_spec_valid = lan969x_get_fip_addr(fip_select);
+
 	return 0;
 }
+#elif defined(IMAGE_BL2)
+int bl2_plat_handle_pre_image_load(unsigned int image_id)
+{
+	/* Start with the default FIP */
+	fip_select = FIP_SELECT_DEFAULT;
+
+	fip_spec_valid = lan969x_get_fip_addr(fip_select);
+
+	return 0;
+}
+#endif
 
 int plat_try_next_boot_source(void)
 {
+#if defined(IMAGE_BL1)
 	if (fip_select == FIP_SELECT_RAM_FIP) {
 		fip_select = FIP_SELECT_DEFAULT;
+		fip_spec_valid = lan969x_get_fip_addr(fip_select);
+		return 1;	/* Try again */
+	}
+#endif
+	if (fip_select == FIP_SELECT_DEFAULT) {
+		fip_select = FIP_SELECT_FALLBACK;
+		fip_spec_valid = lan969x_get_fip_addr(fip_select);
+		return 1;	/* Try again */
+	}
+	if (fip_select == FIP_SELECT_FALLBACK) {
+		fip_select = FIP_SELECT_RAW;
+		fip_spec_valid = lan969x_get_fip_addr(fip_select);
 		return 1;	/* Try again */
 	}
 	return 0;		/* No more */
 }
-#endif
 
 static const struct plat_io_policy *current_fip_io_policy(void)
 {
