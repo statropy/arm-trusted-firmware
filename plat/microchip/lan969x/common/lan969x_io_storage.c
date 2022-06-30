@@ -71,19 +71,16 @@ enum {
 static int fip_select;
 
 /* Data will be fetched from the GPT */
-static io_block_spec_t fip_mmc_block_spec;
-
-/* Plain FIP at offset zero */
-#define FLASH_FIP_OFFSET	0
-
-static const io_block_spec_t fip_qspi_block_spec = {
-	.offset = LAN969X_QSPI0_MMAP + FLASH_FIP_OFFSET,
-	.length = LAN969X_QSPI0_RANGE - FLASH_FIP_OFFSET,
-};
+static io_block_spec_t fip_block_spec;
 
 static const io_block_spec_t mmc_gpt_spec = {
 	.offset	= LAN966X_GPT_BASE,
 	.length	= LAN966X_GPT_SIZE,
+};
+
+static const io_block_spec_t qspi_gpt_spec = {
+	.offset	= LAN969X_QSPI0_MMAP,
+	.length	= (34 * 512),	/* Std GPT size */
 };
 
 static const io_uuid_spec_t bl2_uuid_spec = {
@@ -278,11 +275,6 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&fwu_cert_uuid_spec,
 		check_fip
 	},
-	[GPT_IMAGE_ID] = {
-		&mmc_dev_handle,
-		(uintptr_t)&mmc_gpt_spec,
-		check_mmc
-	},
 };
 
 static const struct plat_io_policy fallback_policies[] = {
@@ -317,45 +309,68 @@ static const struct plat_io_policy fallback_policies[] = {
 static const struct plat_io_policy boot_source_policies[] = {
 	[BOOT_SOURCE_EMMC] = {
 		&mmc_dev_handle,
-		(uintptr_t)&fip_mmc_block_spec,
+		(uintptr_t)&fip_block_spec,
 		check_mmc
 	},
 	[BOOT_SOURCE_QSPI] = {
 		&memmap_dev_handle,
-		(uintptr_t)&fip_qspi_block_spec,
+		(uintptr_t)&fip_block_spec,
 		check_memmap
 	},
 	[BOOT_SOURCE_SDMMC] = {
 		&mmc_dev_handle,
-		(uintptr_t)&fip_mmc_block_spec,
+		(uintptr_t)&fip_block_spec,
 		check_mmc
 	},
 	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
 
-static int lan969x_set_fip_addr(unsigned int image_id, const char *name)
+static const struct plat_io_policy boot_source_gpt[] = {
+	[BOOT_SOURCE_EMMC] = {
+		&mmc_dev_handle,
+		(uintptr_t)&mmc_gpt_spec,
+		check_mmc
+	},
+	[BOOT_SOURCE_QSPI] = {
+		&memmap_dev_handle,
+		(uintptr_t)&qspi_gpt_spec,
+		check_memmap
+	},
+	[BOOT_SOURCE_SDMMC] = {
+		&mmc_dev_handle,
+		(uintptr_t)&mmc_gpt_spec,
+		check_mmc
+	},
+	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
+};
+
+static int lan969x_set_fip_addr(unsigned int image_id, unsigned long dev_offset)
 {
+	const char *primary = FW_PARTITION_NAME,
+		*fallback = FW_BACKUP_PARTITION_NAME, *name;
 	const partition_entry_t *entry;
 
-	if (fip_mmc_block_spec.length == 0) {
+	if (fip_block_spec.length == 0) {
 		partition_init(image_id);
-		entry = get_partition_entry(name);
+		name = primary;
+		entry = get_partition_entry(primary);
 		if (entry == NULL) {
-			INFO("Could not find the '%s' partition! Seek for "
-							"fallback partition !\n",
-							name);
-			entry = get_partition_entry(FW_BACKUP_PARTITION_NAME);
+			INFO("Could not find the '%s' partition! "
+			     "Seek for fallback partition !\n",
+			     primary);
+			name = fallback;
+			entry = get_partition_entry(fallback);
 			if (entry == NULL) {
-				ERROR("No valid partition found !\n");
-				plat_error_handler(-ENOTBLK);
+				ERROR("No valid partitions found!\n");
+				plat_error_handler(-ENOENT);
 			}
-		} else {
-			INFO("Find the '%s' partition, fetch FIP configuration "
-							"data\n", name);
 		}
 
-		fip_mmc_block_spec.offset = entry->start;
-		fip_mmc_block_spec.length = entry->length;
+		INFO("Found partition '%s' at offset 0x%0lx length %ld\n",
+		     name, entry->start, entry->length);
+
+		fip_block_spec.offset = dev_offset + entry->start;
+		fip_block_spec.length = entry->length;
 	}
 
 	return 0;
@@ -505,10 +520,11 @@ void lan966x_io_setup(void)
 				     &mmc_dev_handle);
 		assert(result == 0);
 
-		lan969x_set_fip_addr(GPT_IMAGE_ID, FW_PARTITION_NAME);
+		lan969x_set_fip_addr(GPT_IMAGE_ID, 0);
 		break;
 
 	case BOOT_SOURCE_QSPI:
+		lan969x_set_fip_addr(GPT_IMAGE_ID, LAN969X_QSPI0_MMAP);
 		break;
 
 	case BOOT_SOURCE_NONE:
@@ -581,6 +597,8 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 
 	if (image_id == FIP_IMAGE_ID)
 		policy = current_fip_io_policy();
+	else if (image_id == GPT_IMAGE_ID)
+		policy = &boot_source_gpt[lan966x_get_boot_source()];
 	else
 		policy = &policies[image_id];
 

@@ -18,6 +18,7 @@ platforms = {
         :bl2_at_el3 => false ],
     "lan969x_sr"	=> Hash[
         :arch  => "arm64",
+        :nor_gpt_size   => 2*(1024 * 1024),
         :bl2_at_el3 => false ],
 }
 
@@ -164,6 +165,10 @@ def install_toolchain(tc_vers)
     puts "Using toolchain #{tc_vers} at #{$bin}"
 end
 
+def align_block(nblocks, align)
+    return (nblocks.fdiv(align).ceil()) * align
+end
+
 pdef = platforms[$option[:platform]]
 raise "Unknown platform: #{$option[:platform]}" unless pdef
 $arch = architectures[pdef[:arch]]
@@ -280,6 +285,47 @@ if $option[:norimg] && pdef[:bl2_at_el3]
     do_cmd("cat #{fip} >> #{img}")
     # List binaries
     lsargs << "img"
+end
+
+if pdef[:nor_gpt_size]
+    gptfile = "#{build}/nor.gpt"
+    # Size of NOR
+    size = pdef[:nor_gpt_size]
+    # Alignment in blocks (erase-size)
+    align_blocks = 4096 / 512;
+    # Size in blocks
+    total_blocks = (size / 512.0).ceil();
+    # Create partition file of appropriate size
+    do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=#{total_blocks}")
+    do_cmd("parted -s #{gptfile} mktable gpt")
+    # FIP size
+    fip_size = File.size?(fip)
+    # Convert size to sectors
+    fip_blocks = align_block((fip_size / 512.0).ceil(), align_blocks)
+    # Reserve first 34 blocks for partition table
+    partsize = 34
+    # Add fip
+    p_start = align_block(partsize, align_blocks)
+    p_end = p_start + fip_blocks - 1
+    do_cmd("parted -s #{gptfile} --align minimal mkpart fip #{p_start}s #{p_end}s")
+    # Inject data
+    do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+    # Add second backup partition
+    p_start += fip_blocks
+    p_end += fip_blocks
+    do_cmd("parted -s #{gptfile} --align minimal mkpart fip.bak #{p_start}s #{p_end}s")
+    # Inject data
+    do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+    # Environment
+    p_start = total_blocks - ((128 * 1024) / 512);
+    # Check for overflow
+    if p_end >= p_start
+        raise "GPT FIP overflow, #{p_end} >= #{p_start}"
+    end
+    p_end = total_blocks - align_block(partsize, align_blocks)
+    do_cmd("parted -s #{gptfile} --align minimal mkpart Env #{p_start}s #{p_end}s")
+    do_cmd("parted -s #{gptfile} unit s print all")
+    lsargs << "gpt"
 end
 
 if $option[:gptimg]
