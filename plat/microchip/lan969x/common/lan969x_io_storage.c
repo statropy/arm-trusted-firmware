@@ -355,9 +355,8 @@ static int lan969x_set_fip_addr(unsigned int image_id, unsigned long dev_offset)
 		name = primary;
 		entry = get_partition_entry(primary);
 		if (entry == NULL) {
-			INFO("Could not find the '%s' partition! "
-			     "Seek for fallback partition !\n",
-			     primary);
+			INFO("Could not find the '%s' partition, trying '%s'...\n",
+			     primary, fallback);
 			name = fallback;
 			entry = get_partition_entry(fallback);
 			if (entry == NULL) {
