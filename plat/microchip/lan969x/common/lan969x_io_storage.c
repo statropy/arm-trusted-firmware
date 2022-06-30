@@ -344,7 +344,7 @@ static const struct plat_io_policy boot_source_gpt[] = {
 	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
 
-static int lan969x_set_fip_addr(unsigned int image_id, unsigned long dev_offset)
+static void lan969x_set_fip_addr(unsigned int image_id, unsigned long dev_offset)
 {
 	const char *primary = FW_PARTITION_NAME,
 		*fallback = FW_BACKUP_PARTITION_NAME, *name;
@@ -361,7 +361,10 @@ static int lan969x_set_fip_addr(unsigned int image_id, unsigned long dev_offset)
 			entry = get_partition_entry(fallback);
 			if (entry == NULL) {
 				ERROR("No valid partitions found!\n");
-				plat_error_handler(-ENOENT);
+				NOTICE("Assuming FIP start at device origin\n");
+				fip_block_spec.offset = dev_offset;
+				fip_block_spec.length = SIZE_M(2); /* Conservative default */
+				return;
 			}
 		}
 
@@ -371,8 +374,6 @@ static int lan969x_set_fip_addr(unsigned int image_id, unsigned long dev_offset)
 		fip_block_spec.offset = dev_offset + entry->start;
 		fip_block_spec.length = entry->length;
 	}
-
-	return 0;
 }
 
 #if defined(IMAGE_BL1)
