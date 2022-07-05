@@ -8,13 +8,16 @@ require 'pp'
 
 platforms = {
     "lan966x_sr"	=> Hash[
-        :uboot =>  "u-boot-lan966x_sr_atf.bin",
+        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_sr_atf.bin",
+        :arch  => "arm",
         :bl2_at_el3 => false ],
     "lan966x_a0"	=> Hash[
-        :uboot =>  "u-boot-lan966x_evb_atf.bin",
+        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
+        :arch  => "arm",
         :bl2_at_el3 => true  ],
     "lan966x_b0"	=> Hash[
-        :uboot =>  "u-boot-lan966x_evb_atf.bin",
+        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
+        :arch  => "arm",
         :bl2_at_el3 => false ],
     "lan969x_sr"	=> Hash[
         :arch  => "arm64",
