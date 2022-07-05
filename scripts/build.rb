@@ -116,8 +116,8 @@ end
 def install_sdk()
     brsdk_name = "mscc-brsdk-#{$option[:arch]}-#{$option[:sdk]}"
     brsdk_base = "/opt/mscc/#{brsdk_name}"
-    if not File.exist? brsdk_base
-        if File.exist? "/usr/local/bin/mscc-install-pkg"
+    if not File.exist?(brsdk_base)
+        if File.exist?("/usr/local/bin/mscc-install-pkg")
             do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}-brsdk #{brsdk_name}"
         else
             puts "Please install the BSP: #{brsdk_name}.tar.gz into /opt/mscc/"
@@ -135,8 +135,8 @@ def install_toolchain(tc_vers)
     tc_folder = "#{tc_vers}-toolchain" if not tc_vers.include? "toolchain"
     tc_path = "mscc-toolchain-bin-#{tc_vers}"
     $tc_bin = "/opt/mscc/#{tc_path}/arm-cortex_a8-linux-gnueabihf/bin"
-    if not File.directory? $tc_bin
-        if File.exist? "/usr/local/bin/mscc-install-pkg"
+    if not File.directory?($tc_bin)
+        if File.exist?("/usr/local/bin/mscc-install-pkg")
             do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
         else
             puts "Please install the toolchain: #{tc_path}.tar.gz into /opt/mscc/"
