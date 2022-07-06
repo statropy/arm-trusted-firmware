@@ -131,17 +131,20 @@ static int fw_config_read_bytes(unsigned int offset,
 	return ret_val;
 }
 
-int lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst)
+void lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst, uint8_t defval)
 {
-	return fw_config_read_bytes(offset, 1, (uint8_t *)dst);
+	if (fw_config_read_bytes(offset, 1, (uint8_t *)dst))
+		*dst = defval;
 }
 
-int lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst)
+void lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst, uint16_t defval)
 {
-	return fw_config_read_bytes(offset, 2, (uint8_t *)dst);
+	if (fw_config_read_bytes(offset, 2, (uint8_t *)dst))
+		*dst = defval;
 }
 
-int lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst)
+void lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst, uint32_t defval)
 {
-	return fw_config_read_bytes(offset, 4, (uint8_t *)dst);
+	if (fw_config_read_bytes(offset, 4, (uint8_t *)dst))
+		*dst = defval;
 }

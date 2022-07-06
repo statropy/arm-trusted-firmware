@@ -39,7 +39,7 @@ shared_memory_desc_t shared_memory_desc;
 lan966x_fw_config_t lan966x_fw_config = {
 	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, MMC_DEFAULT_SPEED),
 	FW_CONFIG_INIT_8(LAN966X_FW_CONF_MMC_BUS_WIDTH, MMC_BUS_WIDTH_1),
-	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 25), /* 25Mhz */
+	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, QSPI_DEFAULT_SPEED_MHZ),
 };
 
 #define LAN966X_MAP_QSPI0						\
@@ -203,7 +203,7 @@ void plat_qspi_init_clock(void)
 {
 	uint8_t clk = 0;
 
-	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk);
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk, QSPI_DEFAULT_SPEED_MHZ);
 	/* Clamp to [5MHz ; 100MHz] */
 	clk = MAX(clk, (uint8_t) 5);
 	clk = MIN(clk, (uint8_t) 100);

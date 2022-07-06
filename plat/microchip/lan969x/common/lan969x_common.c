@@ -22,11 +22,7 @@
 #include "plat_otp.h"
 
 /* Define global fw_config, set default MMC settings */
-lan966x_fw_config_t lan966x_fw_config __aligned(CACHE_WRITEBACK_GRANULE) = {
-	FW_CONFIG_INIT_32(LAN966X_FW_CONF_MMC_CLK_RATE, MMC_DEFAULT_SPEED),
-	FW_CONFIG_INIT_8(LAN966X_FW_CONF_MMC_BUS_WIDTH, MMC_BUS_WIDTH_1),
-	FW_CONFIG_INIT_8(LAN966X_FW_CONF_QSPI_CLK, 25), /* 25Mhz */
-} ;
+lan966x_fw_config_t lan966x_fw_config __aligned(CACHE_WRITEBACK_GRANULE);
 
 #define LAN969X_MAP_QSPI0						\
 	MAP_REGION_FLAT(						\
@@ -229,8 +225,16 @@ const mmap_region_t *plat_arm_get_mmap(void)
 	return plat_arm_mmap;
 }
 
-/* Platform QSPI clock init - currenly empty */
 void plat_qspi_init_clock(void)
 {
-	INFO("QSPI: Platform clock init (TBD)\n");
+	uint8_t clk = 0;
+
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk, QSPI_DEFAULT_SPEED_MHZ);
+	/* Clamp to [5MHz ; 100MHz] */
+	clk = MAX(clk, (uint8_t) 5);
+	clk = MIN(clk, (uint8_t) 100);
+	VERBOSE("QSPI: Using clock %u Mhz\n", clk);
+	lan966x_clk_disable(LAN966X_CLK_ID_QSPI0);
+	lan966x_clk_set_rate(LAN966X_CLK_ID_QSPI0, clk * 1000 * 1000);
+	lan966x_clk_enable(LAN966X_CLK_ID_QSPI0);
 }

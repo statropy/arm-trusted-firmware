@@ -7,6 +7,8 @@
 include lib/xlat_tables_v2/xlat_tables.mk
 include drivers/arm/gic/v2/gicv2.mk
 include lib/zlib/zlib.mk
+include lib/libfdt/libfdt.mk
+include common/fdt_wrappers.mk
 
 $(info Including platform TBBR)
 include drivers/microchip/crypto/lan969x_crypto.mk
@@ -39,7 +41,8 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				plat/microchip/common/lan96xx_mmc.c			\
 				plat/microchip/lan969x/common/lan969x_mmc.c
 
-PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
+PLAT_BL_COMMON_SOURCES	:=	${FDT_WRAPPERS_SOURCES}			\
+				${XLAT_TABLES_LIB_SRCS}			\
 				${LAN969X_PLAT_COMMON}/aarch64/plat_helpers.S \
 				${LAN969X_PLAT_COMMON}/lan969x_common.c \
 				${LAN969X_PLAT_COMMON}/lan969x_strapping.c \
@@ -55,7 +58,7 @@ PLAT_BL_COMMON_SOURCES	:=	${XLAT_TABLES_LIB_SRCS}			\
 				drivers/microchip/trng/lan966x_trng.c	\
 				drivers/microchip/tz_matrix/tz_matrix.c	\
 				plat/microchip/common/duff_memcpy.c	\
-				plat/microchip/common/fw_config.c	\
+				plat/microchip/common/fw_config_dt.c	\
 				plat/microchip/common/lan966x_crc32.c	\
 				plat/microchip/common/lan96xx_common.c	\
 				plat/microchip/common/plat_crypto.c	\
@@ -144,21 +147,14 @@ ifeq (${OVERRIDE_LIBC},1)
     include lib/libc/libc_asm.mk
 endif
 
-# Generate binary FW configuration data for inclusion in the FIPs FW_CONFIG
-LAN969X_FW_PARAM	:=	${BUILD_PLAT}/fw_param.bin
-
-LAN969X_OTP_DATA	:=	plat/microchip/config/otp_data.yaml
-
-${LAN969X_FW_PARAM}: plat/microchip/config/fw_data_lan969x.yaml
-	$(info Generating binary FW configuration data)
-	$(Q)ruby scripts/otp_fw_data.rb $< $@
+# DT related compile flags
+$(eval $(call add_define,FW_CONFIG_DT))
+DTC_CPPFLAGS		+=	-I ${LAN969X_PLAT}/fdts
 
 # Generate the FIPs FW_CONFIG
-LAN969X_FW_CONFIG	:=	${BUILD_PLAT}/fw_config.bin
+LAN969X_FW_CONFIG	:=	${BUILD_PLAT}/fdts/${PLAT}_tb_fw_config.dtb
 
-${LAN969X_FW_CONFIG}: ${LAN969X_OTP_DATA} ${LAN969X_FW_PARAM}
-	$(Q)ruby ./scripts/otpbin.rb $(if ${LAN969X_OTP_DATA},-y ${LAN969X_OTP_DATA}) -o $@
-	$(Q)cat ${LAN969X_FW_PARAM} >> $@
+FDT_SOURCES		+=	${LAN969X_PLAT_BOARD}/fdts/${PLAT}_tb_fw_config.dts
 
 # FW config
 $(eval $(call TOOL_ADD_PAYLOAD,${LAN969X_FW_CONFIG},--fw-config,${LAN969X_FW_CONFIG}))
