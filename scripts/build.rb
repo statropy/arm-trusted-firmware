@@ -116,11 +116,16 @@ end
 def install_sdk()
     brsdk_name = "mscc-brsdk-#{$option[:arch]}-#{$option[:sdk]}"
     brsdk_base = "/opt/mscc/#{brsdk_name}"
-    if not File.exist? brsdk_base
-        if File.exist? "/usr/local/bin/mscc-install-pkg"
+    if not File.exist?(brsdk_base)
+        if File.exist?("/usr/local/bin/mscc-install-pkg")
             do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}-brsdk #{brsdk_name}"
+        else
+            puts "Please install the BSP: #{brsdk_name}.tar.gz into /opt/mscc/"
+            puts ""
+            puts "This may be done by using the following command:"
+            puts "sudo sh -c \"mkdir -p /opt/mscc && wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/bsp/#{brsdk_name}.tar.gz | tar -xz -C /opt/mscc/\""
+            exit 1
         end
-        raise "Unable to install SDK to #{brsdk_base}" unless File.exist? brsdk_base
     end
     return brsdk_base
 end
@@ -129,13 +134,20 @@ def install_toolchain(tc_vers)
     tc_folder = tc_vers
     tc_folder = "#{tc_vers}-toolchain" if not tc_vers.include? "toolchain"
     tc_path = "mscc-toolchain-bin-#{tc_vers}"
-    $bin = "/opt/mscc/" + tc_path + "/arm-cortex_a8-linux-gnueabihf/bin"
-    if !File.directory?($bin)
-        do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
-        raise "Unable to install toolchain to #{$bin}" unless File.exist?($bin)
+    $tc_bin = "/opt/mscc/#{tc_path}/arm-cortex_a8-linux-gnueabihf/bin"
+    if not File.directory?($tc_bin)
+        if File.exist?("/usr/local/bin/mscc-install-pkg")
+            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
+        else
+            puts "Please install the toolchain: #{tc_path}.tar.gz into /opt/mscc/"
+            puts ""
+            puts "This may be done by using the following command:"
+            puts "sudo sh -c \"mkdir -p /opt/mscc && wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/toolchain/#{tc_path}.tar.gz | tar -xz -C /opt/mscc/\""
+            exit 1
+        end
     end
-    ENV["CROSS_COMPILE"] = "#{$bin}/arm-linux-"
-    puts "Using toolchain #{tc_vers} at #{$bin}"
+    ENV["CROSS_COMPILE"] = "#{$tc_bin}/arm-linux-"
+    puts "Using toolchain #{tc_vers} at #{$tc_bin}"
 end
 
 pdef = platforms[$option[:platform]]
@@ -341,7 +353,7 @@ if $option[:ramusage]
     ["bl1", "bl2"].each do |s|
         elf = "#{build}/#{s}/#{s}.elf"
         if File.exist? elf
-            o = `#{$bin}/arm-linux-size #{elf}`
+            o = `#{$tc_bin}/arm-linux-size #{elf}`
             raise "Unable to read size of #{elf} - $?" unless $?.success?
             b1 = o.split("\n")[1]
             d = b1.match(/(\d+)[ \t]+(\d+)[ \t]+(\d+)[ \t]+(\d+)/);
