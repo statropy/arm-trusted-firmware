@@ -14,7 +14,6 @@
 #include <plat/common/platform.h>
 #include <plat_bl2u_bootstrap.h>
 #include <lan96xx_common.h>
-#include <fw_config.h>
 
 #include "lan969x_private.h"
 #include "lan969x_regs.h"
@@ -39,12 +38,6 @@ void bl2u_platform_setup(void)
 
 	/* Initialize DDR */
 	lan966x_ddr_init();
-
-	/* Prepare fw_config from applicable boot source */
-	if (lan966x_bootable_source()) {
-		lan966x_load_fw_config(FW_CONFIG_ID);
-		lan966x_fwconfig_apply();
-	}
 
 	/* Call BL2U UART monitor */
 	lan966x_bl2u_bootstrap_monitor();

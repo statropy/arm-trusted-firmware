@@ -17,17 +17,15 @@
 #include <plat/common/platform.h>
 #include <stddef.h>
 
-static bool fdt_valid;
-
 void *lan966x_get_dt(void)
 {
-	return fdt_valid ? lan966x_fw_config.fdt_buf : NULL;
+	return lan966x_fw_config.fdt_buf;
 }
 
+#if defined(IMAGE_BL1)
 int lan966x_load_fw_config(unsigned int image_id)
 {
 	int result = -ENOTSUP;
-#if !defined(IMAGE_BL2U)
 	image_info_t config_image_info = {
 		.h.type = (uint8_t)PARAM_IMAGE_BINARY,
 		.h.version = (uint8_t)VERSION_2,
@@ -41,10 +39,7 @@ int lan966x_load_fw_config(unsigned int image_id)
 	result = load_auth_image(image_id, &config_image_info);
 	if (result != 0) {
 		ERROR("FW_CONFIG did not authenticate: rc %d\n", result);
-	} else {
-		fdt_valid = true;
 	}
-#endif
 
 	return result;
 }
@@ -66,6 +61,7 @@ void lan966x_fwconfig_apply(void)
 		break;
 	}
 }
+#endif
 
 static int lan966x_fdt_get_prop(void *fdt,
 				const char *compatible,
@@ -93,10 +89,9 @@ int lan966x_fw_config_get_prop(void *fdt, unsigned int offset, uint32_t *dst)
 	uint32_t tmp;
 	int err;
 
-	if (!fdt_valid) {
-		/* This occur at initial startup or if no DT is in FIP */
-		return -EINVAL;
-	}
+	/* This occur at initial startup or if no DT is in FIP */
+	if (fdt_check_header(fdt) != EXIT_SUCCESS)
+		return -ENOENT;
 
 	switch (offset) {
 	case LAN966X_FW_CONF_MMC_CLK_RATE:
