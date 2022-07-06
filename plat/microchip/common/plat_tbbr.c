@@ -181,10 +181,12 @@ int plat_set_nv_ctr(void *cookie, unsigned int nv_ctr)
 	uint8_t buffer[NV_CT_LEN];
 	int ret;
 
+#if defined(MCHP_OTP_EMULATION)
 	if (otp_in_emulation()) {
 		VERBOSE("NV counters are read-only in OTP emulation mode\n");
 		return 0;
 	}
+#endif /* defined(MCHP_OTP_EMULATION) */
 
 	ret = lan966x_get_nv_ctr(cookie, buffer, sizeof(buffer));
 	if (ret)

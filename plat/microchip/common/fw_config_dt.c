@@ -24,53 +24,6 @@ void *lan966x_get_dt(void)
 	return fdt_valid ? lan966x_fw_config.fdt_buf : NULL;
 }
 
-static int lan966x_fw_config_parse_dt(void *fdt)
-{
-	const fdt32_t *off;
-	int node, otp_node;
-
-	node = fdt_path_offset(fdt, "/otp");
-	if (node < 0) {
-		VERBOSE("No OTP emulation data found\n");
-		return -ENOENT;
-	}
-
-	fdt_for_each_subnode(otp_node, fdt, node) {
-		const char *name = fdt_get_name(fdt, otp_node, NULL);
-		int otp_offset, otp_len;
-		const void *data;
-
-		off = fdt_getprop(fdt, otp_node, "reg", NULL);
-		if (off == NULL) {
-			WARN("OTP emu: Skip node %s, no 'reg' property\n", name);
-			continue;
-		}
-
-		otp_offset = fdt32_to_cpu(*off);
-
-		data = fdt_getprop(fdt, otp_node, "data", &otp_len);
-		if (data) {
-			if (otp_offset >= 0 &&
-			    (otp_len > 0 && otp_len <= OTP_EMU_MAX_DATA) &&
-			    (otp_offset + otp_len) <= OTP_EMU_MAX_DATA) {
-				/* Copy emulation data */
-				VERBOSE("OTP emu: Copy %s: Off %d Len %d\n",
-					name, otp_offset, otp_len);
-				memcpy(lan966x_fw_config.otp_emu_data + otp_offset,
-				       data, otp_len);
-			} else {
-				WARN("OTP emu: Skip malformed node %s: Off %d Len %d\n",
-				     name, otp_offset, otp_len);
-			}
-
-		} else {
-			WARN("OTP emu: OTP emulation at offset %d has no data\n", otp_offset);
-		}
-	}
-
-	return 0;
-}
-
 int lan966x_load_fw_config(unsigned int image_id)
 {
 	int result = -ENOTSUP;
@@ -92,11 +45,6 @@ int lan966x_load_fw_config(unsigned int image_id)
 		fdt_valid = true;
 	}
 #endif
-
-	/* Parse OTP emulation DT info */
-	if (result == 0) {
-		result = lan966x_fw_config_parse_dt(lan966x_fw_config.fdt_buf);
-	}
 
 	return result;
 }

@@ -15,6 +15,7 @@
 #include "lan966x_regs.h"
 #include "plat_otp.h"
 
+#if defined(MCHP_OTP_EMULATION)
 /* Restrict OTP emulation */
 #define OTP_EMU_START_OFF	256
 
@@ -23,6 +24,8 @@ enum {
 };
 
 static uint32_t otp_flags;
+#endif /* defined(MCHP_OTP_EMULATION) */
+
 static uintptr_t reg_base = LAN966X_OTP_BASE;
 
 static bool otp_hw_wait_flag_clear(uintptr_t reg, uint32_t flag)
@@ -155,6 +158,7 @@ static int otp_hw_write_bytes(unsigned int offset, unsigned int nbytes, const ui
 	return rc;
 }
 
+#if defined(MCHP_OTP_EMULATION)
 void otp_emu_init(void)
 {
 	uint8_t rotpk[OTP_TBBR_ROTPK_SIZE];
@@ -183,6 +187,7 @@ static uint8_t otp_emu_get_byte(unsigned int offset)
 	/* Otherwise zero contribution */
 	return 0;
 }
+#endif /* defined(MCHP_OTP_EMULATION) */
 
 /*
  * Marking this interface as weak enables BL32 to replace it with an
@@ -199,6 +204,7 @@ int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 	/* Read bitstream */
 	rc = otp_hw_read_bytes(offset, nbytes, dst);
 
+#if defined(MCHP_OTP_EMULATION)
 	/* If we read data, possibly or in emulation data */
 	if (rc >= 0 && otp_flags & OTP_FLAG_EMULATION) {
 		int i;
@@ -206,6 +212,7 @@ int otp_read_bytes(unsigned int offset, unsigned int nbytes, uint8_t *dst)
 		for (i = 0; i < nbytes; i++)
 			dst[i] |= otp_emu_get_byte(offset + i);
 	}
+#endif /* defined(MCHP_OTP_EMULATION) */
 
 	return rc;
 }
@@ -240,6 +247,7 @@ bool otp_all_zero(const uint8_t *p, size_t nbytes)
 	return true;
 }
 
+#if defined(MCHP_OTP_EMULATION)
 bool otp_in_emulation(void)
 {
 	return !!(otp_flags & OTP_FLAG_EMULATION);
@@ -274,6 +282,7 @@ int otp_commit_emulation(void)
 
 	return rc;
 }
+#endif /* defined(MCHP_OTP_EMULATION) */
 
 /* Bl2U only - for diagnostics */
 int otp_read_bytes_raw(unsigned int offset, unsigned int nbytes, uint8_t *dst)

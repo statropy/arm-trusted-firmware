@@ -30,10 +30,11 @@ typedef enum {
 #define FW_CONFIG_MAX_DATA	128
 #endif	/* !defined(FW_CONFIG_DT) */
 
-#define OTP_EMU_MAX_DATA	384
-
 typedef struct {
+#if defined(MCHP_OTP_EMULATION)
+#define OTP_EMU_MAX_DATA	384
 	uint8_t otp_emu_data[OTP_EMU_MAX_DATA];
+#endif
 #if defined(FW_CONFIG_DT)
 #define MAX_FDT SIZE_K(4)
 	/* DT based fw_config use actual DT instead */

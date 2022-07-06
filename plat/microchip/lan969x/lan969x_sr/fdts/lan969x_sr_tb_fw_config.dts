@@ -8,34 +8,9 @@
 
 #include "lan969x.dtsi"
 
-/ {
-	otp {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		rotpk: rotpk@0 {
-			reg = <0>;
-			data = /incbin/("../../../../keys/rotpk_ecdsa_sha256.bin");
-		};
-		huk: huk@32 {
-			reg = <32>;
-			data = [da a1 fa 71 a9 0c b2 ee 58 a6 ac 74 e0 78 a0 b9
-				98 0b 28 53 2d 8b 21 0b 5c 95 12 2c 4b 34 a1 4f];
-		};
-		ssk: ssk@96 {
-			reg = <96>;
-			data = /incbin/("../../../../keys/ssk.bin");
-		};
-	};
-};
-
 &sdmmc0 {
 	status = "okay";
 	bus-width = <4>;
-	cap-mmc-highspeed;
-	cap-mmc-hw-reset;
-	non-removable;
-	no-1-8-v;
-	disable-wp;
 };
 
 &qspi0 {
@@ -44,10 +19,5 @@
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <20000000>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		spi-tx-bus-width = <4>;
-		spi-rx-bus-width = <4>;
-		m25p,fast-read;
 	};
 };

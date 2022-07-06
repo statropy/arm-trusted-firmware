@@ -91,10 +91,14 @@ static void handle_otp_random(bootstrap_req_t *req)
 
 static void handle_otp_commit(const bootstrap_req_t *req)
 {
+#if defined(MCHP_OTP_EMULATION)
 	if (otp_commit_emulation() == 0)
 		bootstrap_TxAck();
 	else
 		bootstrap_TxNack("OTP commit failed");
+#else
+	bootstrap_TxNack("OTP emulation not supported");
+#endif /* defined(MCHP_OTP_EMULATION) */
 }
 
 static void handle_otp_regions(const bootstrap_req_t *req)

@@ -49,6 +49,9 @@ include drivers/microchip/crypto/lan966x_crypto.mk
 # MCHP SOC family
 $(eval $(call add_define,MCHP_SOC_LAN966X))
 
+# We have OTP emulation enabled
+$(eval $(call add_define,MCHP_OTP_EMULATION))
+
 # Default chip variant = platform
 ifeq (${PLAT_VARIANT},)
 PLAT_VARIANT			:=	${PLAT}
