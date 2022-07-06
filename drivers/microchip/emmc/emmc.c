@@ -990,11 +990,20 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params, struct mmc_device_info *inf
 	       ((params->reg_base & MMC_BLOCK_MASK) == 0) &&
 	       ((params->desc_base & MMC_BLOCK_MASK) == 0) &&
 	       ((params->desc_size & MMC_BLOCK_MASK) == 0) &&
-	       (params->desc_size > 0) &&
-	       (params->clk_rate > 0) &&
-	       ((params->bus_width == MMC_BUS_WIDTH_1) ||
-		(params->bus_width == MMC_BUS_WIDTH_4) ||
-		(params->bus_width == MMC_BUS_WIDTH_8)));
+	       (params->desc_size > 0));
+
+	if (params->clk_rate == 0) {
+		params->clk_rate = MMC_DEFAULT_SPEED;
+		WARN("emmc: Clock speed not set - using %d\n", params->clk_rate);
+	}
+
+	if ((params->bus_width != MMC_BUS_WIDTH_1) &&
+	    (params->bus_width != MMC_BUS_WIDTH_4) &&
+	    (params->bus_width != MMC_BUS_WIDTH_8)) {
+		WARN("emmc: Bus width %d not valid - using %d\n",
+		     params->bus_width, MMC_BUS_WIDTH_1);
+		params->bus_width = MMC_BUS_WIDTH_1;
+	}
 
 	memcpy(&lan966x_params, params, sizeof(lan966x_mmc_params_t));
 	lan966x_params.mmc_dev_type = info->mmc_dev_type;
