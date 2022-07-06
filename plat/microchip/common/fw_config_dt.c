@@ -6,14 +6,15 @@
 
 #include <assert.h>
 #include <common/debug.h>
+#include <common/fdt_wrappers.h>
 #include <drivers/io/io_storage.h>
+#include <drivers/microchip/qspi.h>
+#include <drivers/mmc.h>
 #include <fw_config.h>
 #include <lan96xx_common.h>
 #include <lan96xx_mmc.h>
 #include <libfdt.h>
-#include <common/fdt_wrappers.h>
 #include <plat/common/platform.h>
-#include <drivers/microchip/qspi.h>
 #include <stddef.h>
 
 static bool fdt_valid;
@@ -164,7 +165,23 @@ int lan966x_fw_config_get_prop(void *fdt, unsigned int offset, uint32_t *dst)
 		}
 		break;
 	case LAN966X_FW_CONF_MMC_BUS_WIDTH:
-		err = lan966x_fdt_get_prop(fdt, "microchip,lan966x-sdhci", "bus-width", dst);
+		err = lan966x_fdt_get_prop(fdt, "microchip,lan966x-sdhci", "bus-width", &tmp);
+		if (err == 0) {
+			switch (tmp) {
+			case 8:
+				*dst = MMC_BUS_WIDTH_8;
+				break;
+			case 4:
+				*dst = MMC_BUS_WIDTH_4;
+				break;
+			case 1:
+				*dst = MMC_BUS_WIDTH_1;
+				break;
+			default:
+				WARN("fw_config: Illegal bus-width: %d\n", tmp);
+				err = -EINVAL;
+			}
+		}
 		break;
 	case LAN966X_FW_CONF_QSPI_CLK:
 		err = lan966x_fdt_get_prop(fdt, "jedec,spi-nor", "spi-max-frequency", dst);
