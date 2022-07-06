@@ -32,7 +32,8 @@ $option = { :platform	=> "lan966x_b0",
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2022.02.2-755",
+             :sdk	=> "2022.06",
+#            :sdk_branch => "-brsdk",
              :norimg	=> true,
              :gptimg	=> false,
              :ramusage	=> true,
@@ -118,7 +119,7 @@ def install_sdk()
     brsdk_base = "/opt/mscc/#{brsdk_name}"
     if not File.exist?(brsdk_base)
         if File.exist?("/usr/local/bin/mscc-install-pkg")
-            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}-brsdk #{brsdk_name}"
+            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}#{$option[:sdk_branch]} #{brsdk_name}"
         else
             puts "Please install the BSP: #{brsdk_name}.tar.gz into /opt/mscc/"
             puts ""
