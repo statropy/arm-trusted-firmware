@@ -58,7 +58,8 @@ $option = { :platform	=> "lan966x_b0",
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2022.02.2-755",
+             :sdk	=> "2022.06",
+#            :sdk_branch => "-brsdk",
              :norimg	=> true,
              :gptimg	=> false,
              :ramusage	=> true,
@@ -146,11 +147,16 @@ end
 def install_sdk()
     brsdk_name = "mscc-brsdk-#{$arch[:bsp_arch]}-#{$option[:sdk]}"
     brsdk_base = "/opt/mscc/#{brsdk_name}"
-    if not File.exist? brsdk_base
-        if File.exist? "/usr/local/bin/mscc-install-pkg"
-            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}-brsdk #{brsdk_name}"
+    if not File.exist?(brsdk_base)
+        if File.exist?("/usr/local/bin/mscc-install-pkg")
+            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}#{$option[:sdk_branch]} #{brsdk_name}"
+        else
+            puts "Please install the BSP: #{brsdk_name}.tar.gz into /opt/mscc/"
+            puts ""
+            puts "This may be done by using the following command:"
+            puts "sudo sh -c \"mkdir -p /opt/mscc && wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/bsp/#{brsdk_name}.tar.gz | tar -xz -C /opt/mscc/\""
+            exit 1
         end
-        raise "Unable to install SDK to #{brsdk_base}" unless File.exist? brsdk_base
     end
     return brsdk_base
 end
@@ -159,13 +165,20 @@ def install_toolchain(tc_vers)
     tc_folder = tc_vers
     tc_folder = "#{tc_vers}-toolchain" if not tc_vers.include? "toolchain"
     tc_path = "mscc-toolchain-bin-#{tc_vers}"
-    $bin = "/opt/mscc/" + tc_path + "/" + $arch[:tc_dir] + "/bin"
-    if !File.directory?($bin)
-        do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
-        raise "Unable to install toolchain to #{$bin}" unless File.exist?($bin)
+    $tc_bin = "/opt/mscc/" + tc_path + "/" + $arch[:tc_dir] + "/bin"
+    if not File.directory?($tc_bin)
+        if File.exist?("/usr/local/bin/mscc-install-pkg")
+            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t toolchains/#{tc_folder} #{tc_path}"
+        else
+            puts "Please install the toolchain: #{tc_path}.tar.gz into /opt/mscc/"
+            puts ""
+            puts "This may be done by using the following command:"
+            puts "sudo sh -c \"mkdir -p /opt/mscc && wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/toolchain/#{tc_path}.tar.gz | tar -xz -C /opt/mscc/\""
+            exit 1
+        end
     end
-    ENV["CROSS_COMPILE"] = $bin + "/" + $arch[:tc_prf] + "-"
-    puts "Using toolchain #{tc_vers} at #{$bin}"
+    ENV["CROSS_COMPILE"] = $tc_bin + "/" + $arch[:tc_prf] + "-"
+    puts "Using toolchain #{tc_vers} at #{$tc_bin}"
 end
 
 def align_block(nblocks, align)
@@ -176,8 +189,6 @@ pdef = platforms[$option[:platform]]
 raise "Unknown platform: #{$option[:platform]}" unless pdef
 $arch = architectures[pdef[:arch]]
 raise "Unknown architecture: #{pdef[:arch]}" unless $arch
-
-raise "No device-tree for #{$option[:platform]}" if $option[:linux_boot] && !pdef[:dtb]
 
 if $option[:debug]
     args += "DEBUG=1 "
@@ -196,7 +207,7 @@ install_toolchain(tc_conf["toolchain"])
 ENV['PATH'] = "#{sdk_dir}/#{$arch[:linux]}/x86_64-linux/bin:" + ENV['PATH']
 
 if $option[:linux_boot]
-    kernel = sdk_dir + $arch[:linux] + "ext4-itb-bare.itb"
+    kernel = sdk_dir + $arch[:linux] + "brsdk_standalone_arm.itb"
     args += "BL33=#{kernel} "
 else
     if pdef[:uboot]
@@ -451,7 +462,7 @@ if $option[:ramusage]
     ["bl1", "bl2"].each do |s|
         elf = "#{build}/#{s}/#{s}.elf"
         if File.exist? elf
-            o = `#{$bin}/#{$arch[:tc_prf]}-size #{elf}`
+            o = `#{$tc_bin}/#{$arch[:tc_prf]}-size #{elf}`
             raise "Unable to read size of #{elf} - $?" unless $?.success?
             b1 = o.split("\n")[1]
             d = b1.match(/(\d+)[ \t]+(\d+)[ \t]+(\d+)[ \t]+(\d+)/);
