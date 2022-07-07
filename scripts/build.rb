@@ -171,7 +171,7 @@ install_toolchain(tc_conf["toolchain"])
 ENV['PATH'] = "#{sdk_dir}/arm-cortex_a8-linux-gnu/standalone/release/x86_64-linux/bin:" + ENV['PATH']
 
 if $option[:linux_boot]
-    kernel = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/ext4-itb-bare.itb"
+    kernel = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/brsdk_standalone_arm.itb"
     args += "BL33=#{kernel} "
 else
     uboot = sdk_dir + "/arm-cortex_a8-linux-gnu/bootloaders/lan966x/" + pdef[:uboot]
