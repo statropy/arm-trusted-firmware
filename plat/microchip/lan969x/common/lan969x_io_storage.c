@@ -15,11 +15,13 @@
 #include <drivers/io/io_encrypted.h>
 #include <drivers/io/io_fip.h>
 #include <drivers/io/io_memmap.h>
+#include <drivers/io/io_mtd.h>
 #include <drivers/io/io_storage.h>
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/tz_matrix.h>
 #include <drivers/mmc.h>
 #include <drivers/partition/partition.h>
+#include <drivers/spi_nor.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
@@ -36,10 +38,12 @@ struct plat_io_policy {
 static const io_dev_connector_t *fip_dev_con;
 static const io_dev_connector_t *mmc_dev_con;
 static const io_dev_connector_t *memmap_dev_con;
+static const io_dev_connector_t *spi_dev_con;
+static const io_dev_connector_t *enc_dev_con;
 static uintptr_t fip_dev_handle;
 static uintptr_t mmc_dev_handle;
 static uintptr_t memmap_dev_handle;
-static const io_dev_connector_t *enc_dev_con;
+static uintptr_t mtd_dev_handle;
 static uintptr_t enc_dev_handle;
 
 #define FW_PARTITION_NAME		"fip"
@@ -58,6 +62,13 @@ static const io_block_dev_spec_t mmc_dev_spec = {
 		.write = NULL,
 		},
 	.block_size = MMC_BLOCK_SIZE,
+};
+
+static io_mtd_dev_spec_t spi_nor_dev_spec = {
+	.ops = {
+		.init = spi_nor_init,
+		.read = spi_nor_read,
+	},
 };
 
 /*
@@ -356,6 +367,33 @@ static void lan969x_init_gpt(unsigned int image_id, unsigned long dev_offset)
 	gpt_device_offset = dev_offset;
 }
 
+static void lan969x_io_init_mmc(void)
+{
+	int io_result __unused;
+
+	io_result = register_io_dev_block(&mmc_dev_con);
+	assert(io_result == 0);
+
+	io_result = io_dev_open(mmc_dev_con, (uintptr_t)&mmc_dev_spec,
+			     &mmc_dev_handle);
+	assert(io_result == 0);
+}
+
+static void lan969x_io_init_spi_mtd(void)
+{
+	int io_result __unused;
+
+	qspi_init();
+
+	io_result = register_io_dev_mtd(&spi_dev_con);
+	assert(io_result == 0);
+
+	/* Open connections to device */
+	io_result = io_dev_open(spi_dev_con,
+				(uintptr_t)&spi_nor_dev_spec,
+				&mtd_dev_handle);
+	assert(io_result == 0);
+}
 static bool lan969x_get_fip_addr(int fip_src)
 {
 	const char *name;
@@ -541,17 +579,12 @@ void lan966x_io_setup(void)
 	switch (lan966x_get_boot_source()) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
-		result = register_io_dev_block(&mmc_dev_con);
-		assert(result == 0);
-
-		result = io_dev_open(mmc_dev_con, (uintptr_t)&mmc_dev_spec,
-				     &mmc_dev_handle);
-		assert(result == 0);
-
+		lan969x_io_init_mmc();
 		lan969x_init_gpt(GPT_IMAGE_ID, 0);
 		break;
 
 	case BOOT_SOURCE_QSPI:
+		lan969x_io_init_spi_mtd();
 		lan969x_init_gpt(GPT_IMAGE_ID, LAN969X_QSPI0_MMAP);
 		break;
 

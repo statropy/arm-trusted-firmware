@@ -32,10 +32,13 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/io/io_encrypted.c				\
 				drivers/io/io_fip.c					\
 				drivers/io/io_memmap.c					\
+				drivers/io/io_mtd.c					\
 				drivers/io/io_storage.c					\
 				drivers/microchip/emmc/emmc.c				\
-				drivers/microchip/qspi/qspi.c				\
+				drivers/microchip/qspi/qspi_mtd.c			\
 				drivers/mmc/mmc.c					\
+				drivers/mtd/nor/spi_nor.c				\
+				drivers/mtd/spi-mem/spi_mem.c				\
 				drivers/partition/gpt.c					\
 				drivers/partition/partition.c				\
 				plat/microchip/common/lan96xx_mmc.c			\
