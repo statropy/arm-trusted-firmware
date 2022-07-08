@@ -54,4 +54,8 @@ void lan966x_fw_config_read_uint8(unsigned int offset, uint8_t *dst, uint8_t def
 void lan966x_fw_config_read_uint16(unsigned int offset, uint16_t *dst, uint16_t defval);
 void lan966x_fw_config_read_uint32(unsigned int offset, uint32_t *dst, uint32_t defval);
 
+#if defined(FW_CONFIG_DT)
+void *lan966x_get_dt(void);
+#endif
+
 #endif /* FW_CONFIG_H */
