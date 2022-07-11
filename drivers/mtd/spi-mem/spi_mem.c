@@ -288,3 +288,31 @@ int spi_mem_init_slave(void *fdt, int bus_node, const struct spi_bus_ops *ops)
 
 	return spi_mem_set_speed_mode();
 }
+
+/*
+ * spi_mem_init_slave_default() - SPI slave device initializationwo fdt.
+ * @ops: The SPI bus ops defined.
+ *
+ * This function first checks that @ops are supported and then tries to find
+ * a SPI slave device.
+ *
+ * Return: 0 in case of success, a negative error code otherwise.
+ */
+int spi_mem_init_slave_default(const struct spi_bus_ops *ops)
+{
+	int ret;
+	int mode = 0;
+
+	ret = spi_mem_check_bus_ops(ops);
+	if (ret != 0) {
+		return ret;
+	}
+
+	/* Defaults */
+	spi_slave.cs = 0;
+	spi_slave.max_hz = SPI_MEM_DEFAULT_SPEED_HZ;
+	spi_slave.mode = mode;
+	spi_slave.ops = ops;
+
+	return spi_mem_set_speed_mode();
+}
