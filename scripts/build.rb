@@ -61,7 +61,6 @@ $option = { :platform	=> "lan966x_b0",
              :sdk	=> "2022.06",
 #            :sdk_branch => "-brsdk",
              :norimg	=> true,
-             :gptimg	=> false,
              :ramusage	=> true,
           }
 
@@ -105,11 +104,10 @@ OptionParser.new do |opts|
     opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP (lan966x_a0 only)") do |v|
         $option[:norimg] = v
     end
-    opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP") do |v|
-        $option[:gptimg] = v
+    opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP (obsoleted)") do |v|
+        puts "Always creating GPT images"
     end
     opts.on("--gpt-data <file>", "Add GPT payload") do |f|
-        $option[:gptimg] = true
         $option[:gpt_data] = f
     end
     opts.on("-c", "--clean", "Do a 'make clean' instead of normal build") do |v|
@@ -277,7 +275,7 @@ do_cmd cmd
 
 exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
 
-lsargs = %w(bin gz)
+lsargs = %w(bin gpt gz html)
 
 # produce GZIP FIP
 fip = "#{build}/fip.bin"
@@ -339,11 +337,12 @@ if pdef[:nor_gpt_size]
     p_end = total_blocks - align_block(partsize, align_blocks)
     do_cmd("parted -s #{gptfile} --align minimal mkpart Env #{p_start}s #{p_end}s")
     do_cmd("parted -s #{gptfile} unit s print all")
-    lsargs << "gpt"
+    do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
 end
 
-if $option[:gptimg]
-    gptfile = "#{build}/fip.gpt"
+# MMC GPT file
+if true
+    gptfile = "#{build}/mmc.gpt"
     begin
         # Get size of FIP
         size = File.size?(fip)
@@ -435,11 +434,9 @@ if $option[:gptimg]
     end
     do_cmd("gdisk -l #{gptfile}")
     do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
-    lsargs << "gpt"
 end
 
 # Build FWU
-lsargs << "html"
 do_cmd("ruby ./scripts/html_inline.rb ./scripts/fwu/serial.html > #{build}/fwu.html")
 
 # DT's
