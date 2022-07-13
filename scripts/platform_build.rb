@@ -64,8 +64,10 @@ build_platforms.each do |bp|
         artifacts = [
           ["build/#{bp}/#{bt}/fip.bin",      "#{dst}.fip"],
           ["build/#{bp}/#{bt}/fip.bin.gz",   "#{dst}.fip.gz"],
-          ["build/#{bp}/#{bt}/fip.gpt",      "#{dst}.gpt"],
-          ["build/#{bp}/#{bt}/fip.gpt.gz",   "#{dst}.gpt.gz"],
+          ["build/#{bp}/#{bt}/mmc.gpt",      "#{dst}-mmc.gpt"],
+          ["build/#{bp}/#{bt}/mmc.gpt.gz",   "#{dst}-mmc.gpt.gz"],
+          ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
+          ["build/#{bp}/#{bt}/fip.gpt.gz",   "#{dst}-nor.gpt.gz"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
           ["build/#{bp}/#{bt}/fwu.html",     "fwu.html"],
         ]
