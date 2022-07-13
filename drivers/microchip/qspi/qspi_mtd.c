@@ -21,6 +21,7 @@
 #include <drivers/delay_timer.h>
 #include <drivers/microchip/lan966x_clock.h>
 #include <lib/mmio.h>
+#include <drivers/spi_nor.h>
 
 /* QSPI register offsets */
 #define QSPI_CR	     0x0000  /* Control Register */
@@ -206,16 +207,30 @@
 
 #define DT_QSPI_COMPAT	"microchip,lan966x-qspi"
 
-static struct {
-	uintptr_t reg_base;
-} qspi_ctl = {
-	LAN969X_QSPI_0_BASE,
-};
+static uintptr_t reg_base = LAN969X_QSPI_0_BASE;
+
+static uint32_t qspi_ifr;
+
+static unsigned int qspi_mode;
+
+static void mchp_qspi_write(const unsigned int reg,
+			    const uint32_t value)
+{
+	VERBOSE("qspi: WRITE(%08lx, %08x)\n", reg_base + reg, value);
+	mmio_write_32(reg_base + reg, value);
+}
+
+static uint32_t mchp_qspi_read(const unsigned int reg)
+{
+	uint32_t value = mmio_read_32(reg_base + reg);
+	VERBOSE("qspi: READ(%08lx) = %08x)\n", reg_base + reg, value);
+	return value;
+}
 
 /*
  * Returns 'true' iff timeout occurred, 'false' otherwise.
  */
-static bool mchp_qspi_wait_flag(const uintptr_t reg,
+static bool mchp_qspi_wait_flag(const unsigned int reg,
 			   const uint32_t flag,
 			   const uint32_t value,
 			   const char *fname)
@@ -224,7 +239,7 @@ static bool mchp_qspi_wait_flag(const uintptr_t reg,
 	uint32_t w;
 
 	do {
-		w = mmio_read_32(reg);
+		w = mchp_qspi_read(reg);
 		if ((w & flag) == value)
 			return false;
 	} while (!timeout_elapsed(timeout));
@@ -235,106 +250,446 @@ static bool mchp_qspi_wait_flag(const uintptr_t reg,
 	return true;
 }
 
-static bool mchp_qspi_wait_flag_set(const uintptr_t reg,
-			       const uint32_t flag,
-			       const char *fname)
+static bool mchp_qspi_wait_flag_set(const unsigned int reg,
+				    const uint32_t flag,
+				    const char *fname)
 {
 	return mchp_qspi_wait_flag(reg, flag, flag, fname);
 }
 
-static bool mchp_qspi_wait_flag_clear(const uintptr_t reg,
-				 const uint32_t flag,
-				 const char *fname)
+static bool mchp_qspi_wait_flag_clear(const unsigned int reg,
+				      const uint32_t flag,
+				      const char *fname)
 {
 	return mchp_qspi_wait_flag(reg, flag, 0x0, fname);
 }
 
-static int mchp_qspi_do_update(uintptr_t reg_base)
+static int mchp_qspi_do_update(void)
 {
 	/* Synchronize configuration */
-	if (mchp_qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+	if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -EIO;
 
-	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_UPDCFG);
+	mchp_qspi_write(QSPI_CR, QSPI_CR_UPDCFG);
 
 	/* Wait end of QSPI sync busy */
-	if (mchp_qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+	if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -EIO;
 
 	return 0;
 }
 
-static int mchp_qspi_init_controller(uintptr_t reg_base)
+static int mchp_qspi_change_ifr(uint32_t ifr)
+{
+	if (ifr == qspi_ifr)
+		return 0;
+
+	VERBOSE("qspi: set IFR = %0x, was %0x\n", ifr, qspi_ifr);
+	qspi_ifr = ifr;
+
+	/* Write instruction frame */
+	mchp_qspi_write(QSPI_IFR, ifr);
+
+	/* Perform dummy read */
+	(void) mchp_qspi_read(QSPI_SR);
+
+	/* Wait for QSPI_SR_RBUSY */
+	if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_RBUSY, "SR:RBUSY"))
+		return -ETIMEDOUT;
+
+	/* Wait for SR.RBUSY == 0 */
+	if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+		return -ETIMEDOUT;
+
+	mchp_qspi_write(QSPI_CR, QSPI_CR_LASTXFER);
+
+	/* wait for SR.HIDLE == 1 */
+	if (mchp_qspi_wait_flag_set(QSPI_SR, QSPI_SR_HIDLE, "SR:HIDLE"))
+		return -ETIMEDOUT;
+
+	if (mchp_qspi_do_update())
+		return -ETIMEDOUT;
+
+	return 0;
+}
+
+static int mchp_qspi_init_controller(void)
 {
 	/* Disable in a failsafe way */
-	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLOFF);
+	mchp_qspi_write(QSPI_CR, QSPI_CR_DLLOFF);
 
 #ifdef LAN966X_ASIC
-	if (mchp_qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
+	if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
 		return -EIO;
 #endif
 
 	/* Set DLLON and STPCAL register */
-	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLON | QSPI_CR_STPCAL);
+	mchp_qspi_write(QSPI_CR, QSPI_CR_DLLON | QSPI_CR_STPCAL);
 
 #ifdef LAN966X_ASIC
-	if (mchp_qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
+	if (mchp_qspi_wait_flag_set(QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
 		return -EIO;
 #endif
 
 	/* Disable QSPI controller */
-	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_QSPIDIS);
+	mchp_qspi_write(QSPI_CR, QSPI_CR_QSPIDIS);
 
 	/* Synchronize configuration */
-	if (mchp_qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+	if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -EIO;
 
 	/* Reset the QSPI controller */
-	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_SWRST);
+	mchp_qspi_write(QSPI_CR, QSPI_CR_SWRST);
 
 	/* Synchronize configuration */
-	if (mchp_qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+	if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 		return -EIO;
 
 	/* Disable write protection */
-	mmio_write_32(reg_base + QSPI_WPMR, QSPI_WPMR_WPKEY(QSPI_WPKEY));
+	mchp_qspi_write(QSPI_WPMR, QSPI_WPMR_WPKEY(QSPI_WPKEY));
 
 	/* Set DLLON and STPCAL register */
-	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_DLLON | QSPI_CR_STPCAL);
+	mchp_qspi_write(QSPI_CR, QSPI_CR_DLLON | QSPI_CR_STPCAL);
 
 #if defined(LAN966X_ASIC)
-	if (mchp_qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
+	if (mchp_qspi_wait_flag_set(QSPI_SR, QSPI_SR_DLOCK, "SR:DLOCK"))
 		return -EIO;
 #endif
 
 	/* Set the QSPI controller by default in Serial Memory Mode */
-	mmio_write_32(reg_base + QSPI_MR, QSPI_MR_SMM | QSPI_MR_DLYCS(QSPI_DLYCS));
+	mchp_qspi_write(QSPI_MR, QSPI_MR_SMM | QSPI_MR_DLYCS(QSPI_DLYCS));
 
 	/* Set DLYBS */
-	mmio_write_32(reg_base + QSPI_SCR, QSPI_SCR_DLYBS(QSPI_DLYBS));
+	mchp_qspi_write(QSPI_SCR, QSPI_SCR_DLYBS(QSPI_DLYBS));
 
 	/* Synchronize configuration */
-	if (mchp_qspi_do_update(reg_base))
+	if (mchp_qspi_do_update())
 		return -EIO;
 
 	/* Enable the QSPI controller */
-	mmio_write_32(reg_base + QSPI_CR, QSPI_CR_QSPIEN);
+	mchp_qspi_write(QSPI_CR, QSPI_CR_QSPIEN);
 
 	/* Wait effective enable */
-	if (mchp_qspi_wait_flag_set(reg_base + QSPI_SR, QSPI_SR_QSPIENS, "SR:QSPIENS"))
+	if (mchp_qspi_wait_flag_set(QSPI_SR, QSPI_SR_QSPIENS, "SR:QSPIENS"))
 		return -EIO;
+
+	return 0;
+}
+
+static const struct mchp_qspi_mode {
+	uint8_t cmd_buswidth;
+	uint8_t addr_buswidth;
+	uint8_t data_buswidth;
+	uint32_t config;
+} mchp_qspi_modes[] = {
+	{ 1, 1, 1, QSPI_IFR_WIDTH_SINGLE_BIT_SPI },
+	{ 1, 1, 2, QSPI_IFR_WIDTH_DUAL_OUTPUT },
+	{ 1, 1, 4, QSPI_IFR_WIDTH_QUAD_OUTPUT },
+	{ 1, 2, 2, QSPI_IFR_WIDTH_DUAL_IO },
+	{ 1, 4, 4, QSPI_IFR_WIDTH_QUAD_IO },
+	{ 2, 2, 2, QSPI_IFR_WIDTH_DUAL_CMD },
+	{ 4, 4, 4, QSPI_IFR_WIDTH_QUAD_CMD },
+};
+
+static bool mchp_qspi_is_compatible(const struct spi_mem_op *op,
+				    const struct mchp_qspi_mode *mode)
+{
+	if (op->cmd.buswidth != mode->cmd_buswidth)
+		return false;
+
+	if (op->addr.nbytes && op->addr.buswidth != mode->addr_buswidth)
+		return false;
+
+	if (op->data.nbytes && op->data.buswidth != mode->data_buswidth)
+		return false;
+
+	return true;
+}
+
+static int mchp_qspi_find_mode(const struct spi_mem_op *op)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(mchp_qspi_modes); i++)
+		if (mchp_qspi_is_compatible(op, &mchp_qspi_modes[i]))
+			return i;
+
+	return -ENOTSUP;
+}
+
+static bool mchp_qspi_op_is_smr(const struct spi_mem_op *op)
+{
+	if (op->cmd.opcode == SPI_NOR_OP_READ_FAST ||
+	    op->cmd.opcode == SPI_NOR_OP_READ_1_1_4 ||
+	    op->cmd.opcode == SPI_NOR_OP_READ_1_4_4 ||
+	    op->cmd.opcode == SPI_NOR_OP_PP)
+		return false;
+	return true;
+}
+
+static int mchp_qspi_set_cfg(const struct spi_mem_op *op,
+			     uint32_t *offset,
+			     uint32_t *ifr,
+			     uint32_t *data_nbytes)
+{
+	uint32_t dummy_cycles = 0;
+	int mode;
+
+	mode = mchp_qspi_find_mode(op);
+	if (mode < 0)
+		return mode;
+	*ifr = mchp_qspi_modes[mode].config;
+	*offset = 0;
+
+	if (mchp_qspi_op_is_smr(op)) {
+		if (op->data.dir == SPI_MEM_DATA_IN)
+			*ifr |= QSPI_IFR_SMRM | QSPI_IFR_APBTFRTYP;
+		else
+			*ifr |= QSPI_IFR_SMRM;
+	} else {
+		*ifr |= QSPI_IFR_TFRTYP;
+	}
+
+	/* Write op command */
+	if (op->data.dir == SPI_MEM_DATA_IN) {
+		mchp_qspi_write(QSPI_RICR, QSPI_RICR_RDINST(op->cmd.opcode));
+		mchp_qspi_write(QSPI_WICR, 0);
+	} else if (op->data.dir == SPI_MEM_DATA_OUT) {
+		mchp_qspi_write(QSPI_WICR, QSPI_WICR_WRINST(op->cmd.opcode));
+		mchp_qspi_write(QSPI_RICR, 0);
+	}
+	*ifr |= QSPI_IFR_INSTEN;
+
+	if (op->dummy.buswidth && op->dummy.nbytes)
+		dummy_cycles = op->dummy.nbytes * 8 / op->dummy.buswidth;
+
+	if (op->addr.buswidth) {
+		switch (op->addr.nbytes) {
+		case 0:
+			break;
+		case 1:
+			*ifr |= QSPI_IFR_ADDREN | QSPI_IFR_ADDRL_8BIT;
+			*offset = op->addr.val & 0xff;
+			break;
+		case 2:
+			*ifr |= QSPI_IFR_ADDREN | QSPI_IFR_ADDRL_16BIT;
+			*offset = op->addr.val & 0xffff;
+			break;
+		case 3:
+			*ifr |= QSPI_IFR_ADDREN | QSPI_IFR_ADDRL_24BIT;
+			*offset = op->addr.val & 0xffffff;
+			break;
+		case 4:
+			*ifr |= QSPI_IFR_ADDREN | QSPI_IFR_ADDRL_32BIT;
+			*offset = op->addr.val;
+			break;
+		default:
+			return -ENOTSUP;
+		}
+	}
+
+	/*
+	 * if it is an erase operation the address is in data and it should
+	 * expect any data written
+	 */
+	if (op->cmd.opcode == SPI_NOR_OP_BE_4K ||
+	    op->cmd.opcode == SPI_NOR_OP_BE_4K_PMC ||
+	    op->cmd.opcode == SPI_NOR_OP_BE_32K ||
+	    op->cmd.opcode == SPI_NOR_OP_CHIP_ERASE ||
+	    op->cmd.opcode == SPI_NOR_OP_SE) {
+		int iar = 0, i = 0;
+
+		for (i = 0; i < op->data.nbytes; ++i) {
+			iar <<= 8;
+			iar += ((uint8_t *)op->data.buf)[i];
+		}
+
+		*ifr |= QSPI_IFR_ADDREN;
+		*ifr |= QSPI_IFR_ADDRL_24BIT;
+
+		*data_nbytes = 0;
+		*offset = iar;
+	}
+
+	/* Set number of dummy cycles */
+	if (dummy_cycles)
+		*ifr |= QSPI_IFR_NBDUM(dummy_cycles);
+
+	/* Set data enable */
+	if (*data_nbytes)
+		*ifr |= QSPI_IFR_DATAEN;
+
+	/*
+	 * Set QSPI controller in Serial Memory Mode (SMM).
+	 */
+	mchp_qspi_write(QSPI_MR, QSPI_MR_SMM);
+
+	return 0;
+}
+
+static int mchp_qspi_reg_acc(const struct spi_mem_op *op,
+			     uint32_t offset,
+			     uint32_t ifr,
+			     uint32_t data_nbytes)
+{
+	VERBOSE("qspi: reg %s, cmd %02x, ifr %08x, offset %08x, len %d\n",
+		op->data.dir == SPI_MEM_DATA_IN ? "in" : "out", op->cmd.opcode, ifr, offset, op->data.nbytes);
+
+	mchp_qspi_write(QSPI_IAR, offset);
+
+	/* Write instruction frame - if changed */
+	mchp_qspi_change_ifr(ifr);
+
+	/* Skip to the final step if there is no data */
+	if (data_nbytes == 0) {
+		mchp_qspi_write(QSPI_CR, QSPI_CR_STTFR);
+		goto no_data;
+	}
+
+	/* if read reg operation */
+	if (ifr & QSPI_IFR_APBTFRTYP) {
+		uint32_t i = 0;
+		uint32_t remaining = op->data.nbytes;
+		uint8_t *rx = op->data.buf;
+
+		/* always wait for SR.SYNCBSY == 0 */
+		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+			return -1;
+
+		/* start transfer */
+		mchp_qspi_write(QSPI_CR, QSPI_CR_STTFR);
+
+		/* read buffer_len - 1 data */
+		while (remaining > 1) {
+			/* wait for ISFR.RDRF */
+			if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_RDRF, "ISR:RDRF"))
+				return -1;
+
+			/* wait end of QSPI sync busy */
+			if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+				return -1;
+
+			rx[i] = mchp_qspi_read(QSPI_RDR);
+
+			remaining--;
+			i++;
+		}
+
+		/* Wait for ISFR.RDRF */
+		if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_RDRF, "ISR:RDRF"))
+			return -1;
+
+		/* wait end of QSPI sync busy */
+		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+			return -1;
+
+		/* chip select release */
+		mchp_qspi_write(QSPI_CR, QSPI_CR_LASTXFER);
+
+		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+			return -1;
+
+		rx[i] = mchp_qspi_read(QSPI_RDR);
+	} else {
+		uint32_t i = 0;
+		const uint8_t *tx = op->data.buf;
+
+		for (i = 0; i < op->data.nbytes; ++i) {
+			/* wait for ISR.TDRE */
+			if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_TDRE, "ISR:TDRE"))
+				return -1;
+
+			/* write data */
+			mchp_qspi_write(QSPI_TDR, tx[i]);
+		}
+
+		/* wait for ISR.TXEMPTY */
+		if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_TXEMPTY, "ISR:TXEMPTY"))
+			return -1;
+
+		/* wait end of QSPI sync busy */
+		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+			return -1;
+
+		mchp_qspi_write(QSPI_SR, QSPI_CR_LASTXFER);
+	}
+
+no_data:
+	if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_CSRA, "ISR:CSRA"))
+		return -1;
+
+	VERBOSE("qspi: reg success\n");
+
+	return 0;
+}
+
+static int mchp_qspi_mem(const struct spi_mem_op *op,
+			 uint32_t offset,
+			 uint32_t ifr)
+{
+	VERBOSE("qspi: mem %s, cmd %02x, ifr %08x, off %08x, len %d\n",
+		op->data.dir == SPI_MEM_DATA_IN ? "in" : "out",
+		op->cmd.opcode, ifr, offset, op->data.nbytes);
+
+        if (op->data.dir == SPI_MEM_DATA_OUT) {
+		mchp_qspi_write(QSPI_WRACNT, op->data.nbytes);
+        }
+
+	/* Write instruction frame - if changed */
+	mchp_qspi_change_ifr(ifr);
+
+	/* Move the data */
+	if (op->data.dir == SPI_MEM_DATA_IN) {
+		memcpy(op->data.buf, (void *) (LAN969X_QSPI0_MMAP + offset), op->data.nbytes);
+
+		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_RBUSY, "SR:RBUSY"))
+			return -ETIMEDOUT;
+	} else {
+		memcpy((void *) (LAN969X_QSPI0_MMAP + offset), op->data.buf, op->data.nbytes);
+
+		/* Wait 'Last Write Access' */
+		if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_LWRA, "ISR:LWRA"))
+			return -ETIMEDOUT;
+	}
+
+	/* Wait sync to clear */
+	if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
+		return -ETIMEDOUT;
+
+	/* Release the chip-select */
+	mchp_qspi_write(QSPI_CR, QSPI_CR_LASTXFER);
+
+	/* Poll Instruction End and Chip Select Rise flags. */
+	if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_CSRA, "ISR:CSRA"))
+		return -ETIMEDOUT;
+
+	VERBOSE("qspi: mem success\n");
 
 	return 0;
 }
 
 static int mchp_qspi_exec_op(const struct spi_mem_op *op)
 {
-	return -1;
+	uint32_t ifr, offset;
+	uint32_t data_nbytes = op->data.nbytes;
+	int err;
+
+	offset = ifr = 0;
+	err = mchp_qspi_set_cfg(op, &offset, &ifr, &data_nbytes);
+	if (err) {
+		NOTICE("qspi: cmd %02x cfg fails: %d\n", op->cmd.opcode, err);
+		return err;
+	}
+
+	if (ifr & QSPI_IFR_SMRM)
+		return mchp_qspi_reg_acc(op, offset, ifr, data_nbytes);
+
+	return mchp_qspi_mem(op, offset, ifr);
 }
 
 static int mchp_qspi_claim_bus(unsigned int cs)
 {
-	return -1;
+	return 0;
 }
 
 static void mchp_qspi_release_bus(void)
@@ -343,12 +698,31 @@ static void mchp_qspi_release_bus(void)
 
 static int mchp_qspi_set_speed(unsigned int hz)
 {
-	return -1;
+	return 0;
 }
 
 static int mchp_qspi_set_mode(unsigned int mode)
 {
-	return -1;
+	uint32_t scr, mask, new_value = 0;
+
+	/* Save the new mode */
+	qspi_mode = mode;
+
+	if (mode & SPI_CPOL)
+		new_value = QSPI_SCR_CPOL;
+	if (mode & SPI_CPHA)
+		new_value = QSPI_SCR_CPHA;
+
+	mask = QSPI_SCR_CPOL | QSPI_SCR_CPHA;
+
+	scr = mchp_qspi_read(QSPI_SCR);
+	if ((scr & mask) == new_value)
+		return 0;
+
+	scr = (scr & ~mask) | new_value;
+	mchp_qspi_write(QSPI_SCR, scr);
+
+	return mchp_qspi_do_update();
 }
 
 static const struct spi_bus_ops mchp_qspi_bus_ops = {
@@ -366,6 +740,7 @@ int qspi_write(uint32_t offset, const void *buf, size_t len)
 
 int qspi_init(void)
 {
+#if !defined(IMAGE_BL1)
 	int qspi_node;
 	void *fdt = NULL;
 
@@ -380,12 +755,23 @@ int qspi_init(void)
 		ERROR("No QSPI ctrl found\n");
 		return -FDT_ERR_NOTFOUND;
 	}
+#endif
 
-	mchp_qspi_init_controller(qspi_ctl.reg_base);
+	/* Init HW */
+	mchp_qspi_init_controller();
 
+#if defined(IMAGE_BL1)
+	return spi_mem_init_slave_default(&mchp_qspi_bus_ops);
+#else
 	return spi_mem_init_slave(fdt, qspi_node, &mchp_qspi_bus_ops);
+#endif
 }
 
 void qspi_reinit(void)
 {
+}
+
+unsigned int qspi_get_spi_mode(void)
+{
+	return qspi_mode;
 }

@@ -13,8 +13,10 @@
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/usb.h>
 #include <drivers/microchip/vcore_gpio.h>
+#include <drivers/spi_nor.h>
 #include <fw_config.h>
 #include <lib/mmio.h>
+#include <lib/utils.h>
 #include <plat/arm/common/plat_arm.h>
 
 #include "lan969x_regs.h"
@@ -28,13 +30,13 @@ lan966x_fw_config_t lan966x_fw_config __aligned(CACHE_WRITEBACK_GRANULE);
 	MAP_REGION_FLAT(						\
 		LAN969X_QSPI0_MMAP,					\
 		LAN969X_QSPI0_RANGE,					\
-		MT_MEMORY | MT_RO | MT_SECURE)
+		MT_DEVICE | MT_RO | MT_SECURE)
 
 #define LAN969X_MAP_QSPI0_RW						\
 	MAP_REGION_FLAT(						\
 		LAN969X_QSPI0_MMAP,					\
 		LAN969X_QSPI0_RANGE,					\
-		MT_MEMORY | MT_RW | MT_SECURE)
+		MT_DEVICE | MT_RW | MT_SECURE)
 
 #define LAN969X_MAP_AXI							\
 	MAP_REGION_FLAT(						\
@@ -237,4 +239,30 @@ void plat_qspi_init_clock(void)
 	lan966x_clk_disable(LAN966X_CLK_ID_QSPI0);
 	lan966x_clk_set_rate(LAN966X_CLK_ID_QSPI0, clk * 1000 * 1000);
 	lan966x_clk_enable(LAN966X_CLK_ID_QSPI0);
+}
+
+int plat_get_nor_data(struct nor_device *device)
+{
+	unsigned int mode = qspi_get_spi_mode();
+
+	INFO("QSPI: Using mode 0x%0x\n", mode);
+
+	device->size = SIZE_M(2);
+
+	zeromem(&device->read_op, sizeof(struct spi_mem_op));
+	if (mode & SPI_RX_QUAD) {
+		device->read_op.cmd.opcode = SPI_NOR_OP_READ_1_1_4;
+		device->read_op.data.buswidth = SPI_MEM_BUSWIDTH_4_LINE;
+	} else {
+		device->read_op.cmd.opcode = SPI_NOR_OP_READ_FAST;
+		device->read_op.data.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
+	}
+	device->read_op.cmd.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
+	device->read_op.addr.nbytes = 3U;
+	device->read_op.addr.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
+	device->read_op.dummy.nbytes = 1U;
+	device->read_op.dummy.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
+	device->read_op.data.dir = SPI_MEM_DATA_IN;
+
+	return 0;
 }
