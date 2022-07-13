@@ -28,13 +28,13 @@ lan966x_fw_config_t lan966x_fw_config __aligned(CACHE_WRITEBACK_GRANULE);
 	MAP_REGION_FLAT(						\
 		LAN969X_QSPI0_MMAP,					\
 		LAN969X_QSPI0_RANGE,					\
-		MT_MEMORY | MT_RO | MT_SECURE)
+		MT_DEVICE | MT_RO | MT_SECURE)
 
 #define LAN969X_MAP_QSPI0_RW						\
 	MAP_REGION_FLAT(						\
 		LAN969X_QSPI0_MMAP,					\
 		LAN969X_QSPI0_RANGE,					\
-		MT_MEMORY | MT_RW | MT_SECURE)
+		MT_DEVICE | MT_RW | MT_SECURE)
 
 #define LAN969X_MAP_AXI							\
 	MAP_REGION_FLAT(						\
