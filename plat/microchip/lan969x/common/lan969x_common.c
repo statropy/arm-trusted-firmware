@@ -245,12 +245,11 @@ int plat_get_nor_data(struct nor_device *device)
 {
 	unsigned int mode = qspi_get_spi_mode();
 
-	INFO("QSPI: Using mode 0x%0x\n", mode);
-
 	device->size = SIZE_M(16); /* Normally 2Mb */
 
 	zeromem(&device->read_op, sizeof(struct spi_mem_op));
 	if (mode & SPI_RX_QUAD) {
+		INFO("QSPI: Using quad mode\n");
 		device->read_op.cmd.opcode = SPI_NOR_OP_READ_1_1_4;
 		device->read_op.data.buswidth = SPI_MEM_BUSWIDTH_4_LINE;
 	} else {

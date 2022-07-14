@@ -734,31 +734,27 @@ int qspi_write(uint32_t offset, const void *buf, size_t len)
 
 int qspi_init(void)
 {
-#if !defined(IMAGE_BL1)
 	int qspi_node;
-	void *fdt = NULL;
-
-	fdt = lan966x_get_dt();
-	if (fdt == NULL) {
-		ERROR("qspi: No DT?\n");
-		return -FDT_ERR_NOTFOUND;
-	}
-
-	qspi_node = fdt_node_offset_by_compatible(fdt, -1, DT_QSPI_COMPAT);
-	if (qspi_node < 0) {
-		ERROR("No QSPI ctrl found\n");
-		return -FDT_ERR_NOTFOUND;
-	}
-#endif
+	void *fdt;
 
 	/* Init HW */
 	mchp_qspi_init_controller();
 
-#if defined(IMAGE_BL1)
-	return spi_mem_init_slave_default(&mchp_qspi_bus_ops);
-#else
+	/* Have DT? */
+	fdt = lan966x_get_dt();
+	if (fdt == NULL || fdt_check_header(fdt) != 0) {
+		/* Instantiate default QSPI */
+		return spi_mem_init_slave_default(&mchp_qspi_bus_ops);
+	}
+
+	qspi_node = fdt_node_offset_by_compatible(fdt, -1, DT_QSPI_COMPAT);
+	if (qspi_node < 0) {
+		/* Instantiate default QSPI */
+		ERROR("No QSPI in DT, using default values\n");
+		return spi_mem_init_slave_default(&mchp_qspi_bus_ops);
+	}
+
 	return spi_mem_init_slave(fdt, qspi_node, &mchp_qspi_bus_ops);
-#endif
 }
 
 void qspi_reinit(void)
