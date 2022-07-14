@@ -247,7 +247,7 @@ int plat_get_nor_data(struct nor_device *device)
 
 	INFO("QSPI: Using mode 0x%0x\n", mode);
 
-	device->size = SIZE_M(2);
+	device->size = SIZE_M(16); /* Normally 2Mb */
 
 	zeromem(&device->read_op, sizeof(struct spi_mem_op));
 	if (mode & SPI_RX_QUAD) {
