@@ -209,8 +209,6 @@
 
 static uintptr_t reg_base = LAN969X_QSPI_0_BASE;
 
-static uint32_t qspi_ifr;
-
 static unsigned int qspi_mode;
 
 static void mchp_qspi_write(const unsigned int reg,
@@ -281,11 +279,7 @@ static int mchp_qspi_do_update(void)
 
 static int mchp_qspi_change_ifr(uint32_t ifr)
 {
-	if (ifr == qspi_ifr)
-		return 0;
-
-	VERBOSE("qspi: set IFR = %0x, was %0x\n", ifr, qspi_ifr);
-	qspi_ifr = ifr;
+	VERBOSE("qspi: set IFR = %0x\n", ifr);
 
 	/* Write instruction frame */
 	mchp_qspi_write(QSPI_IFR, ifr);
