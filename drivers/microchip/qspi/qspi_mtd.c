@@ -605,7 +605,7 @@ static int mchp_qspi_reg_acc(const struct spi_mem_op *op,
 		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 			return -1;
 
-		mchp_qspi_write(QSPI_SR, QSPI_CR_LASTXFER);
+		mchp_qspi_write(QSPI_CR, QSPI_CR_LASTXFER);
 	}
 
 no_data:
