@@ -202,8 +202,6 @@ static struct spi_mem_op default_read_op;
 #define QSPI_TIMEOUT			 0x1000U
 
 /* Non-std Command codes */
-#define SPI_NOR_OP_PP		 0x02	 /* Page program (up to 256 bytes) */
-#define SPI_NOR_OP_BE_4K	 0x20	 /* Erase 4KiB block */
 #define SPI_NOR_OP_BE_4K_PMC	 0xd7	 /* Erase 4KiB block on PMC chips */
 #define SPI_NOR_OP_BE_32K	 0x52	 /* Erase 32KiB block */
 #define SPI_NOR_OP_CHIP_ERASE	 0xc7	 /* Erase whole flash chip */

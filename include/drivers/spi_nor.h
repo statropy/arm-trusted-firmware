@@ -19,6 +19,10 @@
 #define SPINOR_OP_RDEAR		0xC8U	/* Read Extended Address Register */
 #define SPINOR_OP_WREAR		0xC5U	/* Write Extended Address Register */
 
+/* WRITE OPCODES */
+#define SPI_NOR_OP_PP		0x02U	/* Page program (up to 256 bytes) */
+#define SPI_NOR_OP_BE_4K	0x20U	/* Erase 4KiB block */
+
 /* Used for Spansion flashes only. */
 #define SPINOR_OP_BRWR		0x17U	/* Bank register write */
 #define SPINOR_OP_BRRD		0x16U	/* Bank register read */
@@ -36,15 +40,21 @@
 
 struct nor_device {
 	struct spi_mem_op read_op;
+	struct spi_mem_op pageprog_op;
 	uint32_t size;
+	uint32_t erase_size;
+	uint32_t page_size;
 	uint32_t flags;
 	uint8_t selected_bank;
 	uint8_t bank_write_cmd;
 	uint8_t bank_read_cmd;
+	uint8_t erase_cmd;
 };
 
 int spi_nor_read(unsigned int offset, uintptr_t buffer, size_t length,
 		 size_t *length_read);
+int spi_nor_erase(unsigned int offset, size_t length);
+int spi_nor_write(unsigned int offset, uintptr_t buffer, size_t length);
 int spi_nor_init(unsigned long long *device_size, unsigned int *erase_size);
 
 /*
