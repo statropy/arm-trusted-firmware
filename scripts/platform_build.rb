@@ -68,12 +68,9 @@ build_platforms.each do |bp|
           ["build/#{bp}/#{bt}/mmc.gpt.gz",   "#{dst}-mmc.gpt.gz"],
           ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
           ["build/#{bp}/#{bt}/fip.gpt.gz",   "#{dst}-nor.gpt.gz"],
-          ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
+          ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
           ["build/#{bp}/#{bt}/fwu.html",     "fwu.html"],
         ]
-        if bp == :lan966x_sr && bv == :bl2normal && ba == :auth
-          artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
-        end
         # Limit the BL1 image artifacts
         # dst = "#{bp}-#{bt}"
         # if bp == :lan966x_sr && bv == :bl2normal && ba == :auth
