@@ -22,6 +22,7 @@
 #include <drivers/microchip/lan966x_clock.h>
 #include <lib/mmio.h>
 #include <drivers/spi_nor.h>
+#include <plat/microchip/common/duff_memcpy.h>
 
 /* QSPI register offsets */
 #define QSPI_CR	     0x0000  /* Control Register */
@@ -632,12 +633,12 @@ static int mchp_qspi_mem(const struct spi_mem_op *op,
 
 	/* Move the data */
 	if (op->data.dir == SPI_MEM_DATA_IN) {
-		memcpy(op->data.buf, (void *) (LAN969X_QSPI0_MMAP + offset), op->data.nbytes);
+		duff_memcpy(op->data.buf, (void *) (LAN969X_QSPI0_MMAP + offset), op->data.nbytes);
 
 		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_RBUSY, "SR:RBUSY"))
 			return -ETIMEDOUT;
 	} else {
-		memcpy((void *) (LAN969X_QSPI0_MMAP + offset), op->data.buf, op->data.nbytes);
+		duff_memcpy((void *) (LAN969X_QSPI0_MMAP + offset), op->data.buf, op->data.nbytes);
 
 		/* Wait 'Last Write Access' */
 		if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_LWRA, "ISR:LWRA"))

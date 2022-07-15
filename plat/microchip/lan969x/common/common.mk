@@ -154,6 +154,9 @@ endif
 $(eval $(call add_define,FW_CONFIG_DT))
 DTC_CPPFLAGS		+=	-I ${LAN969X_PLAT}/fdts
 
+# Set FIP alignment to acheive good performance
+FIP_ALIGN		:= 512
+
 # Generate the FIPs FW_CONFIG
 LAN969X_FW_CONFIG	:=	${BUILD_PLAT}/fdts/${PLAT}_tb_fw_config.dtb
 
