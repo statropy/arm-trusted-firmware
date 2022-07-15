@@ -406,7 +406,7 @@ static int spi_nor_erase_sector(uint32_t addr)
 	uint8_t buf[3];
 	int i, ret;
 
-	VERBOSE("%s: Erase 4k @ %08x\n", __func__, addr);
+	VERBOSE("%s: Erase %d bytes @ %08x\n", __func__, nor_dev.erase_size, addr);
 
 	ret = spi_nor_write_en();
 	if (ret != 0)
@@ -418,7 +418,7 @@ static int spi_nor_erase_sector(uint32_t addr)
 		addr >>= 8;
 	}
 
-	return spi_nor_reg(SPI_NOR_OP_BE_4K, buf, sizeof(buf), SPI_MEM_DATA_OUT);
+	return spi_nor_reg(nor_dev.erase_cmd, buf, sizeof(buf), SPI_MEM_DATA_OUT);
 }
 
 int spi_nor_erase(unsigned int offset, size_t length)
@@ -463,11 +463,11 @@ static int spi_nor_write_data_page(uint32_t offset, uintptr_t buffer, size_t len
 	if (ret)
 		goto fail;
 
-	VERBOSE("%s: Write %zd bytes succeeds\n", __func__, length);
+	VERBOSE("%s: Write %zd bytes @ %08x succeeds\n", __func__, length, offset);
 	return 0;
 
 fail:
-	NOTICE("%s: Write %zd bytes fail: %d\n", __func__, length, ret);
+	VERBOSE("%s: Write %zd bytes @ %08x fail: %d\n", __func__, length, offset, ret);
 	return ret;
 }
 
