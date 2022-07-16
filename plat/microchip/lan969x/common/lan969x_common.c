@@ -248,20 +248,26 @@ int plat_get_nor_data(struct nor_device *device)
 	device->size = SIZE_M(16); /* Normally 2Mb */
 
 	zeromem(&device->read_op, sizeof(struct spi_mem_op));
-	if (mode & SPI_RX_QUAD) {
-		INFO("QSPI: Using quad mode\n");
-		device->read_op.cmd.opcode = SPI_NOR_OP_READ_1_1_4;
-		device->read_op.data.buswidth = SPI_MEM_BUSWIDTH_4_LINE;
-	} else {
-		device->read_op.cmd.opcode = SPI_NOR_OP_READ_FAST;
-		device->read_op.data.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
-	}
+	device->read_op.cmd.opcode = SPI_NOR_OP_READ_FAST;
 	device->read_op.cmd.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
 	device->read_op.addr.nbytes = 3U;
 	device->read_op.addr.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
 	device->read_op.dummy.nbytes = 1U;
 	device->read_op.dummy.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
 	device->read_op.data.dir = SPI_MEM_DATA_IN;
+	device->read_op.data.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
+	if ((mode & (SPI_RX_QUAD | SPI_TX_QUAD)) == (SPI_RX_QUAD | SPI_TX_QUAD)) {
+		INFO("QSPI: Using 1-4-4 quad mode\n");
+		device->read_op.cmd.opcode = SPI_NOR_OP_READ_1_4_4;
+		device->read_op.dummy.nbytes = 3U; /* Really 1 mode and 2 dummy */
+		device->read_op.dummy.buswidth = SPI_MEM_BUSWIDTH_4_LINE;
+		device->read_op.addr.buswidth = SPI_MEM_BUSWIDTH_4_LINE;
+		device->read_op.data.buswidth = SPI_MEM_BUSWIDTH_4_LINE;
+	} else if (mode & SPI_RX_QUAD) {
+		INFO("QSPI: Using 1-1-4 quad mode\n");
+		device->read_op.cmd.opcode = SPI_NOR_OP_READ_1_1_4;
+		device->read_op.data.buswidth = SPI_MEM_BUSWIDTH_4_LINE;
+	}
 
 	return 0;
 }
