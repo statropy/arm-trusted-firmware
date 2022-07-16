@@ -16,7 +16,7 @@
 #include <drivers/partition/mbr.h>
 #include <plat/common/platform.h>
 
-static uint8_t mbr_sector[PLAT_PARTITION_BLOCK_SIZE];
+static uint8_t mbr_sector[PLAT_PARTITION_BLOCK_SIZE] __aligned(16);
 static partition_entry_list_t list;
 
 #if LOG_LEVEL >= LOG_LEVEL_VERBOSE
