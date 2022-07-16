@@ -503,7 +503,7 @@ static int check_mmc(const uintptr_t spec)
 	return result;
 }
 
-/*static*/ int check_mtd(const uintptr_t spec)
+static int check_mtd(const uintptr_t spec)
 {
 	int result;
 	uintptr_t local_image_handle;
