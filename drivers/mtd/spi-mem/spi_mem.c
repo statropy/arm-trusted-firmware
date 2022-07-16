@@ -13,7 +13,9 @@
 #include <drivers/spi_mem.h>
 #include <lib/utils_def.h>
 
+#if !defined(SPI_MEM_DEFAULT_SPEED_HZ)
 #define SPI_MEM_DEFAULT_SPEED_HZ 100000U
+#endif
 
 /*
  * struct spi_slave - Representation of a SPI slave.

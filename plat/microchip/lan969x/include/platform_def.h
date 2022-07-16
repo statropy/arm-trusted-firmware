@@ -135,4 +135,6 @@
 #define PLAT_VIRT_ADDR_SPACE_SIZE	(1ULL << 32)
 #endif
 
+#define SPI_MEM_DEFAULT_SPEED_HZ	(25 * 1000000U) /* 25MHz */
+
 #endif /* PLATFORM_DEF_H */
