@@ -75,13 +75,9 @@ static int fip_select;
 /* Data will be fetched from the GPT */
 static io_block_spec_t fip_mmc_block_spec;
 
-#if BL2_AT_EL3
-/* 80k BL2/SPL + 2 * 256 U-Boot Env */
-#define FLASH_FIP_OFFSET	(1024 * (80 + 2 * 256))
-#else
 /* Plain FIP at offset zero */
 #define FLASH_FIP_OFFSET	0
-#endif
+
 static const io_block_spec_t fip_qspi_block_spec = {
 	.offset = LAN966X_QSPI0_MMAP + FLASH_FIP_OFFSET,
 	.length = LAN966X_QSPI0_RANGE - FLASH_FIP_OFFSET,

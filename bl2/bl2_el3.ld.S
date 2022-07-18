@@ -65,13 +65,6 @@ SECTIONS
     ro . : {
         __RO_START__ = .;
 	__TEXT_RESIDENT_START__ = .;
-#if defined(LAN966X_SAMA)
-	/*
-	 * LAN966X SAMA ROM insists that boot vectors are located first.
-	 * A sort of uneducated check of a valid boot stage image, sigh.
-	 */
-        *(.vectors)
-#endif
 	*bl2_el3_entrypoint.o(.text*)
 	*(.text.asm.*)
 	__TEXT_RESIDENT_END__ = .;
@@ -80,9 +73,7 @@ SECTIONS
 
 	RODATA_COMMON
 
-#if !defined(LAN966X_SAMA)
         *(.vectors)
-#endif
         __RO_END_UNALIGNED__ = .;
         /*
          * Memory page(s) mapped to this section will be marked as
