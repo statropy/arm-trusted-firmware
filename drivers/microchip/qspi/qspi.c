@@ -595,7 +595,7 @@ static int lan966x_qspi_reg_acc(const struct spi_mem_op *op, uint32_t ifr, uint3
 		if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_SYNCBSY, "SR:SYNCBSY"))
 			return -1;
 
-		mmio_write_32(reg_base + QSPI_SR, QSPI_CR_LASTXFER);
+		mmio_write_32(reg_base + QSPI_CR, QSPI_CR_LASTXFER);
 	}
 
 no_data:
