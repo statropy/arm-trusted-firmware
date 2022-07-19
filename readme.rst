@@ -6,7 +6,7 @@ support for the following SoC:
 
 * `lan966x_b0`: LAN966X revision B - BL1 secure bootrom
 
-Specifically, the platform `lan966x_sr` an is internal development
+Specifically, the platform `lan966x_sr` is an internal development
 platform and should not be used (and is not supported).
 
 It is possible to build the software by following the normal TFA
