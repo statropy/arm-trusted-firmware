@@ -16,7 +16,6 @@
 #include <drivers/spi_nor.h>
 #include <fw_config.h>
 #include <lib/mmio.h>
-#include <lib/utils.h>
 #include <plat/arm/common/plat_arm.h>
 
 #include "lan969x_regs.h"
@@ -247,7 +246,7 @@ int plat_get_nor_data(struct nor_device *device)
 
 	device->size = SIZE_M(16); /* Normally 2Mb */
 
-	zeromem(&device->read_op, sizeof(struct spi_mem_op));
+	memset(&device->read_op, 0, sizeof(struct spi_mem_op));
 	device->read_op.cmd.opcode = SPI_NOR_OP_READ_FAST;
 	device->read_op.cmd.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
 	device->read_op.addr.nbytes = 3U;

@@ -431,11 +431,15 @@ int spi_nor_erase(unsigned int offset, size_t length)
 
 	for (addr = offset; addr < (offset + length); addr += nor_dev.erase_size) {
 		ret = spi_nor_erase_sector(addr);
-		if (ret)
+		if (ret) {
+			ERROR("%s: Erase error @ %08x = %d\n", __func__, offset, ret);
 			break;
+		}
 		ret = spi_nor_wait_ready();
-		if (ret)
+		if (ret) {
+			ERROR("%s: Erase ready timeout @ %08x = %d\n", __func__, offset, ret);
 			break;
+		}
 	}
 
 	return ret;
@@ -467,7 +471,7 @@ static int spi_nor_write_data_page(uint32_t offset, uintptr_t buffer, size_t len
 	return 0;
 
 fail:
-	VERBOSE("%s: Write %zd bytes @ %08x fail: %d\n", __func__, length, offset, ret);
+	ERROR("%s: Write %zd bytes @ %08x fail: %d\n", __func__, length, offset, ret);
 	return ret;
 }
 
