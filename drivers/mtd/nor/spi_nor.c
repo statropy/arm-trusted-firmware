@@ -22,6 +22,7 @@
 #define SPANSION_ID		0x01U
 #define MACRONIX_ID		0xC2U
 #define MICRON_ID		0x2CU
+#define SST_ID			0xBFU
 
 #define BANK_SIZE		0x1000000U
 
@@ -74,6 +75,11 @@ static inline int spi_nor_read_fsr(uint8_t *fsr)
 static inline int spi_nor_write_en(void)
 {
 	return spi_nor_reg(SPI_NOR_OP_WREN, NULL, 0U, SPI_MEM_DATA_OUT);
+}
+
+static inline int spi_nor_write_dis(void)
+{
+	return spi_nor_reg(SPI_NOR_OP_WRDI, NULL, 0U, SPI_MEM_DATA_OUT);
 }
 
 /*
@@ -181,6 +187,28 @@ static int spi_nor_write_sr_cr(uint8_t *sr_cr)
 	return 0;
 }
 
+static int spi_nor_global_unlock(void)
+{
+	int ret;
+
+	ret = spi_nor_write_en();
+	if (ret != 0) {
+		return ret;
+	}
+
+	ret = spi_nor_reg(SPI_NOR_OP_ULBPR, NULL, 0U, SPI_MEM_DATA_OUT);
+	if (ret != 0) {
+		return -EINVAL;
+	}
+
+	ret = spi_nor_wait_ready();
+	if (ret != 0) {
+		return ret;
+	}
+
+	return 0;
+}
+
 static int spi_nor_quad_enable(void)
 {
 	uint8_t sr_cr[2];
@@ -273,6 +301,7 @@ static int spi_nor_read_bar(void)
 
 	return 0;
 }
+
 
 int spi_nor_read(unsigned int offset, uintptr_t buffer, size_t length,
 		 size_t *length_read)
@@ -394,6 +423,10 @@ int spi_nor_init(unsigned long long *size, unsigned int *erase_size)
 		}
 	}
 
+	if ((ret == 0) && (id == SST_ID)) {
+		ret = spi_nor_global_unlock();
+	}
+
 	if ((ret == 0) && ((nor_dev.flags & SPI_NOR_USE_BANK) != 0U)) {
 		ret = spi_nor_read_bar();
 	}
@@ -426,8 +459,10 @@ int spi_nor_erase(unsigned int offset, size_t length)
 	uint32_t addr;
 	int ret;
 
-	if (offset & (nor_dev.erase_size - 1))
+	if (offset & (nor_dev.erase_size - 1)) {
+		ERROR("%s: Erase error @ %08x - illegal offset\n", __func__, offset);
 		return -EINVAL;
+	}
 
 	for (addr = offset; addr < (offset + length); addr += nor_dev.erase_size) {
 		ret = spi_nor_erase_sector(addr);
@@ -441,6 +476,9 @@ int spi_nor_erase(unsigned int offset, size_t length)
 			break;
 		}
 	}
+
+	/* Disable write */
+	(void) spi_nor_write_dis();
 
 	return ret;
 }
@@ -493,6 +531,9 @@ int spi_nor_write(unsigned int offset, uintptr_t buffer, size_t length)
 		if (ret)
 			break;
 	}
+
+	/* Disable write */
+	(void) spi_nor_write_dis();
 
 	return ret;
 }

@@ -11,6 +11,7 @@
 
 /* OPCODE */
 #define SPI_NOR_OP_WREN		0x06U	/* Write enable */
+#define SPI_NOR_OP_WRDI		0x04U	/* Write disable */
 #define SPI_NOR_OP_WRSR		0x01U	/* Write status register 1 byte */
 #define SPI_NOR_OP_READ_ID	0x9FU	/* Read JEDEC ID */
 #define SPI_NOR_OP_READ_CR	0x35U	/* Read configuration register */
@@ -22,6 +23,7 @@
 /* WRITE OPCODES */
 #define SPI_NOR_OP_PP		0x02U	/* Page program (up to 256 bytes) */
 #define SPI_NOR_OP_BE_4K	0x20U	/* Erase 4KiB block */
+#define SPI_NOR_OP_ULBPR	0x98U	/* Global block unlock */
 
 /* Used for Spansion flashes only. */
 #define SPINOR_OP_BRWR		0x17U	/* Bank register write */
