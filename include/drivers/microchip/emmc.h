@@ -23,7 +23,6 @@
 #define ALL_FLAGS	(0xFFFFu)
 #define SD_CARD_SUPP_VOLT		0x00FF8000
 
-#define EMMC_POLL_LOOP_DELAY	8u		/* 8µs */
 #define EMMC_POLLING_TIMEOUT	2000000u	/* 2sec */
 #define EMMC_POLLING_VALUE	10000u
 
