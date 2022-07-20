@@ -415,12 +415,11 @@ static void lan966x_get_csd_register(void)
 
 static unsigned char lan966x_emmc_poll(unsigned int expected)
 {
-	unsigned int trials = DIV_ROUND_UP_2EVAL(EMMC_POLLING_TIMEOUT,
-						 EMMC_POLL_LOOP_DELAY);
+	uint64_t timeout = timeout_init_us(EMMC_POLLING_TIMEOUT);
 	uint16_t nistr = 0u;
 
 	eistr = 0u;
-	while (trials--) {
+	do {
 		nistr = mmio_read_16(reg_base + SDMMC_NISTR);
 
 		/* Check errors */
@@ -445,8 +444,10 @@ static unsigned char lan966x_emmc_poll(unsigned int expected)
 			return 0;
 		}
 
-		udelay(EMMC_POLL_LOOP_DELAY);
-	}
+	} while(!timeout_elapsed(timeout));
+
+	ERROR("emmc: Timeout waiting for %08x - have %08x\n", expected, nistr);
+
 	return 1;
 }
 
