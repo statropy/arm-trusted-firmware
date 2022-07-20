@@ -215,7 +215,13 @@ static uint32_t single_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_
 		buf_ptr += MMC_BLOCK_SIZE;
 		written += MMC_BLOCK_SIZE;
 		lba++;
+		if ((written % SIZE_M(1)) == 0) {
+			/* Hearbeat */
+			INFO("emmc: Wrote %zdMb\n", written / SIZE_M(1));
+		}
 	}
+
+	INFO("emmc: Done at %d bytes, %d blocks\n", written, written / MMC_BLOCK_SIZE);
 
 	return written;
 }
