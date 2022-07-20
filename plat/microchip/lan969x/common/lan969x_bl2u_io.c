@@ -11,12 +11,17 @@
 #include <drivers/io/io_block.h>
 #include <drivers/io/io_driver.h>
 #include <drivers/io/io_mtd.h>
+#include <drivers/microchip/qspi.h>
+#include <drivers/microchip/tz_matrix.h>
 #include <drivers/mmc.h>
 #include <drivers/partition/partition.h>
 #include <drivers/spi_nor.h>
+#include <lib/mmio.h>
 #include <plat/common/platform.h>
 
+#include <lan966x_regs.h>
 #include <lan96xx_common.h>
+#include <lan96xx_mmc.h>
 
 struct plat_io_policy {
 	uintptr_t *dev_handle;
@@ -83,8 +88,6 @@ static void lan966x_io_setup_mmc(void)
 {
 	int result;
 
-	lan966x_io_bootsource_init();
-
 	result = register_io_dev_block(&mmc_dev_con);
 	assert(result == 0);
 
@@ -110,10 +113,61 @@ static void lan966x_io_setup_spi(void)
 	assert(result == 0);
 }
 
+void lan966x_bl2u_io_init_dev(boot_source_type boot_source)
+{
+	static bool mmc_init_done, spi_init_done;
+
+	switch (boot_source) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		if (mmc_init_done)
+			return;
+
+		/* Setup MMC */
+		lan966x_mmc_plat_config(boot_source);
+		lan966x_io_setup_mmc();
+
+		/* Record state */
+		mmc_init_done = true;
+		break;
+
+	case BOOT_SOURCE_QSPI:
+		if (spi_init_done)
+			return;
+
+		/* We own SPI */
+		mmio_setbits_32(CPU_GENERAL_CTRL(LAN966X_CPU_BASE),
+				CPU_GENERAL_CTRL_IF_SI_OWNER_M);
+
+		/* Enable memmap access */
+		qspi_init();
+
+		/* Ensure we have ample reach on QSPI mmap area */
+		/* 16M should be more than adequate - EVB/SVB have 2M */
+		matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
+				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
+
+		/* Enable QSPI0 for NS access */
+		matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
+						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
+						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
+						MATRIX_LANSECH_NS(0));
+
+		lan966x_io_setup_spi();
+
+		/* Record state */
+		spi_init_done = true;
+
+	default:
+		break;
+	}
+}
+
 void lan966x_io_setup(void)
 {
-	lan966x_io_setup_mmc();
-	lan966x_io_setup_spi();
+	/* Nop - no default IO devices to set up */
 }
 
 /* Return an IO device handle and specification which can be used to access

@@ -294,7 +294,7 @@ static void handle_write_image(const bootstrap_req_t * req)
 	}
 
 	/* Init IO layer */
-	lan966x_io_init_dev(req->arg0);
+	lan966x_bl2u_io_init_dev(req->arg0);
 
 	/* Write Flash */
 	switch (req->arg0) {
@@ -342,7 +342,7 @@ static void handle_write_fip(const bootstrap_req_t * req)
 
 	/* Init IO layer, explicit source */
 	if (req->arg0 != lan966x_get_boot_source())
-		lan966x_io_init_dev(req->arg0);
+		lan966x_bl2u_io_init_dev(req->arg0);
 
 	/* Write Flash */
 	switch (req->arg0) {

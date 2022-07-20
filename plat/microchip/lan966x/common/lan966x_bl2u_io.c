@@ -8,13 +8,18 @@
 
 #include <platform_def.h>
 
-#include <drivers/io/io_driver.h>
 #include <drivers/io/io_block.h>
+#include <drivers/io/io_driver.h>
+#include <drivers/microchip/qspi.h>
+#include <drivers/microchip/tz_matrix.h>
 #include <drivers/mmc.h>
 #include <drivers/partition/partition.h>
+#include <lib/mmio.h>
 #include <plat/common/platform.h>
 
+#include <lan966x_regs.h>
 #include <lan96xx_common.h>
+#include <lan96xx_mmc.h>
 
 struct plat_io_policy {
 	uintptr_t *dev_handle;
@@ -67,6 +72,40 @@ static const struct plat_io_policy gpt_policy = {
 	(uintptr_t)&mmc_gpt_spec,
 	check_mmc
 };
+
+void lan966x_bl2u_io_init_dev(boot_source_type boot_source)
+{
+	switch (boot_source) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		/* Setup MMC */
+		lan966x_mmc_plat_config(boot_source);
+		break;
+
+	case BOOT_SOURCE_QSPI:
+		/* We own SPI */
+		mmio_setbits_32(CPU_GENERAL_CTRL(LAN966X_CPU_BASE),
+				CPU_GENERAL_CTRL_IF_SI_OWNER_M);
+
+		/* Enable memmap access */
+		qspi_init();
+
+		/* Ensure we have ample reach on QSPI mmap area */
+		/* 16M should be more than adequate - EVB/SVB have 2M */
+		matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
+				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
+
+		/* Enable QSPI0 for NS access */
+		matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
+						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
+						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
+						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
+						MATRIX_LANSECH_NS(0));
+	default:
+		break;
+	}
+}
 
 void lan966x_io_setup(void)
 {

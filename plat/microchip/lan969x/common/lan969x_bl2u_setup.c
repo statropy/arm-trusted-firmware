@@ -30,9 +30,6 @@
 
 void bl2u_platform_setup(void)
 {
-	/* IO */
-	lan966x_io_setup();
-
 	/* Init tzpm */
 	lan969x_tz_init();
 
