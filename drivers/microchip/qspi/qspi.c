@@ -206,7 +206,6 @@ static struct spi_mem_op default_read_op;
 #define SPI_NOR_OP_BE_32K	 0x52	 /* Erase 32KiB block */
 #define SPI_NOR_OP_CHIP_ERASE	 0xc7	 /* Erase whole flash chip */
 #define SPI_NOR_OP_SE		 0xd8	 /* Sector erase (usually 64KiB) */
-#define SPI_NOR_OP_WRDI		 0x04	 /* Write disable */
 
 /* SPI_MEM utility functions */
 static void qspi_set_op(struct spi_mem_op *op, uint8_t cmd, enum spi_mem_data_dir dir)
