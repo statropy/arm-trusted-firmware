@@ -13,6 +13,8 @@
 #define BOOTSTRAP_SEND         'S'
 // Data transmitted
 #define BOOTSTRAP_DATA         'D'
+// Gunzip (BL2U)
+#define BOOTSTRAP_UNZIP        'Z'
 // Authenticate & load BL2U
 #define BOOTSTRAP_AUTH         'U'
 // Override strapping

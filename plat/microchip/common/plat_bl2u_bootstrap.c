@@ -168,9 +168,14 @@ static void handle_load_data(const bootstrap_req_t *req)
 	data_rcv_length = length;
 
 	VERBOSE("Received %d bytes\n", length);
+}
+
+static void handle_unzip_data(const bootstrap_req_t *req)
+{
+	uint8_t *ptr = (uint8_t *)fip_base_addr;
+	const char *resp = "Plain data";
 
 	/* See if this is compressed data */
-	ptr = (uint8_t *)fip_base_addr;
 	if (ptr[0] == 0x1f && ptr[1] == 0x8b) {
 		uintptr_t in_buf, work_buf, out_buf, out_start;
 		size_t in_len, work_len, out_len;
@@ -192,10 +197,14 @@ static void handle_load_data(const bootstrap_req_t *req)
 			memmove((void *)fip_base_addr, (const void *) out_start, out_len);
 			data_rcv_length = out_len;
 			INFO("Unzipped data, length now %d bytes\n", data_rcv_length);
+			resp = "Decompressed data";
 		} else {
 			INFO("Non-zipped data, length %d bytes\n", data_rcv_length);
 		}
 	}
+
+	/* Send response */
+	bootstrap_TxAckData_arg(resp, strlen(resp), data_rcv_length);
 }
 
 /*
@@ -426,6 +435,8 @@ void lan966x_bl2u_bootstrap_monitor(void)
 			handle_read_rom_version(&req);
 		else if (is_cmd(&req, BOOTSTRAP_SEND))		// S - Load data file
 			handle_load_data(&req);
+		else if (is_cmd(&req, BOOTSTRAP_UNZIP))		// Z - Unzip data
+			handle_unzip_data(&req);
 		else if (is_cmd(&req, BOOTSTRAP_IMAGE))		// I - Copy uploaded raw image from DDR memory to flash device
 			handle_write_image(&req);
 		else if (is_cmd(&req, BOOTSTRAP_WRITE))		// W - Copy uploaded fip from DDR memory to flash device

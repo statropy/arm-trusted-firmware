@@ -3,6 +3,7 @@ const CMD_DELIM_HEX = '#';
 const CMD_DELIM_BIN = '%';
 const CMD_VERS = 'V';
 const CMD_SEND = 'S';
+const CMD_UNZIP = 'Z';
 const CMD_DATA = 'D';
 const CMD_AUTH = 'U';
 const CMD_STRAP = 'O';
@@ -543,6 +544,12 @@ function startSerial()
 	    let s = disableButtons("bl2u", true);
 	    try {
 		await downloadApp(port, image, document.getElementById("binary").checked);
+		// Do explicit uncompress
+		setStatus("Decompressing");
+		var rspStruct = await completeRequest(port, fmtReq(CMD_UNZIP, 0));
+		var datalen = rspStruct["arg"].toString(16).padStart(8, "0");
+		var status = rspStruct["data"];
+		setStatus("Data received: " + status + ", length " + rspStruct["arg"].toString(10));
 	    } catch(e) {
 		setStatus("Failed upload: " + e);
 	    } finally {
