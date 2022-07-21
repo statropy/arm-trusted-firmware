@@ -1,6 +1,4 @@
 #!/bin/env ruby
-# The BL1 binary is controlled by the BL2_AT_EL3 flag
-# in plat/microchip/lan966x/lan966x_a0/platform.mk
 
 require 'fileutils'
 require 'optparse'

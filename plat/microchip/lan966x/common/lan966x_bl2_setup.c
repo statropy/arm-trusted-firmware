@@ -67,9 +67,7 @@ static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 void bl2_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
-#if !BL2_AT_EL3
 		MAP_SHARED_HEAP,
-#endif
 		MAP_BL2_TOTAL,
 		MAP_PKCL_CODE,
 		MAP_PKCL_DATA,
@@ -91,11 +89,6 @@ void bl2_plat_arch_setup(void)
 
 static void bl2_early_platform_setup(void)
 {
-#if BL2_AT_EL3
-	/* BL1 was not there */
-	lan966x_init_strapping();
-#endif
-
 	/* Must ensure timer is setup */
 	lan966x_timer_init();
 
@@ -184,13 +177,6 @@ void bl2_platform_setup(void)
 {
 	/* IO */
 	lan966x_io_setup();
-
-#if BL2_AT_EL3
-	/* No BL1 to forward fw_config, load it ourselves */
-	lan966x_load_fw_config(FW_CONFIG_ID);
-	/* Apply fw_config */
-	lan966x_fwconfig_apply();
-#endif
 
 	/* OTP */
 	otp_emu_init();

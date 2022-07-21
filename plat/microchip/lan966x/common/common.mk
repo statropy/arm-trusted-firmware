@@ -157,10 +157,6 @@ TRNG_SUPPORT			:=	1
 # Enable stack protection
 ENABLE_STACK_PROTECTOR	 	:= strong
 
-ifneq (${BL2_AT_EL3}, 0)
-    override BL1_SOURCES =
-endif
-
 ifneq (${ENABLE_STACK_PROTECTOR},0)
 PLAT_BL_COMMON_SOURCES  +=      plat/microchip/common/lan966x_stack_protector.c
 endif

@@ -9,20 +9,13 @@ require 'pp'
 platforms = {
     "lan966x_sr"	=> Hash[
         :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_sr_atf.bin",
-        :arch  => "arm",
-        :bl2_at_el3 => false ],
-    "lan966x_a0"	=> Hash[
-        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
-        :arch  => "arm",
-        :bl2_at_el3 => true  ],
+        :arch  => "arm" ],
     "lan966x_b0"	=> Hash[
         :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
-        :arch  => "arm",
-        :bl2_at_el3 => false ],
+        :arch  => "arm" ],
     "lan969x_sr"	=> Hash[
         :arch  => "arm64",
-        :nor_gpt_size   => 2*(1024 * 1024),
-        :bl2_at_el3 => false ],
+        :nor_gpt_size   => 2*(1024 * 1024) ],
 }
 
 architectures = {
@@ -100,9 +93,6 @@ OptionParser.new do |opts|
     end
     opts.on("--release", "Disable DEBUG") do
         $option[:debug] = false
-    end
-    opts.on("-n", "--[no-]norimg", "Create a NOR image file with the FIP (lan966x_a0 only)") do |v|
-        $option[:norimg] = v
     end
     opts.on("-g", "--[no-]gptimg", "Create a GPT image file with the FIP (obsoleted)") do |v|
         puts "Always creating GPT images"
@@ -283,22 +273,6 @@ if File.exist?(fip)
     do_cmd("gzip -c #{fip} > #{fip}.gz")
 end
 
-if $option[:norimg] && pdef[:bl2_at_el3]
-    img = build + "/" + $option[:platform] + ".img"
-    # BL2 placed in the start of FLASH
-    b = "#{build}/bl2.bin"
-    FileUtils.cp(b, img)
-    tsize = 80
-    do_cmd("truncate --size=#{tsize}k #{img}")
-    # Reserve UBoot env 2 * 256k
-    tsize += 512
-    do_cmd("truncate --size=#{tsize}k #{img}")
-    # Lastly, the FIP
-    do_cmd("cat #{fip} >> #{img}")
-    # List binaries
-    lsargs << "img"
-end
-
 if pdef[:nor_gpt_size]
     gptfile = "#{build}/nor.gpt"
     # Size of NOR
@@ -469,25 +443,18 @@ if $option[:ramusage]
         end
     end
     raise "No RAM usage report, no ELF data" if usage.length == 0
-    raise "No bl1 data" if !usage['bl1'] && !pdef[:bl2_at_el3]
+    raise "No bl1 data" if !usage['bl1']
     raise "No bl2 data" if !usage['bl2']
-    if pdef[:bl2_at_el3]
-        d2 = usage['bl2']
-        sram = d2[0] + d2[1] + d2[2]
-        printf "BL2: %dK - %d bytes spare. Code %d, data %d, bss %d\n",
-               sram / 1024, $arch[:sram_sz] - sram, d2[0], d2[1], d2[2]
-    else
-        d1 = usage['bl1']
-        d2 = usage['bl2']
-        bl1 = d1[1] + d1[2]
-        bl2 = d2[0] + d2[1] + d2[2]
-        sram = bl1 + bl2
-        rom = d1[0]
-        printf "BL1: Code %d, data %d, bss %d\n", d1[0], d1[1], d1[2]
-        printf "BL2: Code %d, data %d, bss %d\n", d2[0], d2[1], d2[2]
-        printf "ROM: %dK - %d bytes spare\n", rom / 1024, $arch[:rom_sz] - rom
-        printf "SRAM: %dK - %d bytes spare\n", sram / 1024, $arch[:sram_sz] - sram
-    end
+    d1 = usage['bl1']
+    d2 = usage['bl2']
+    bl1 = d1[1] + d1[2]
+    bl2 = d2[0] + d2[1] + d2[2]
+    sram = bl1 + bl2
+    rom = d1[0]
+    printf "BL1: Code %d, data %d, bss %d\n", d1[0], d1[1], d1[2]
+    printf "BL2: Code %d, data %d, bss %d\n", d2[0], d2[1], d2[2]
+    printf "ROM: %dK - %d bytes spare\n", rom / 1024, $arch[:rom_sz] - rom
+    printf "SRAM: %dK - %d bytes spare\n", sram / 1024, $arch[:sram_sz] - sram
 end
 
 #  vim: set ts=8 sw=4 sts=4 tw=120 et cc=120 ft=ruby :

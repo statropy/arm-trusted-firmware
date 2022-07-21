@@ -6,8 +6,8 @@ support for the following SoC:
 
 * `lan966x_b0`: LAN966X revision B - BL1 secure bootrom
 
-Specifically, the platforms `lan966x_a0` and `lan966x_sr` are internal
-development platforms and should not be used (and are not supported).
+Specifically, the platform `lan966x_sr` is an internal development
+platform and should not be used (and is not supported).
 
 It is possible to build the software by following the normal TFA
 guidelines, but the (Ruby) wrapper `scripts/build.rb` script is

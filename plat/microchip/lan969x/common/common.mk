@@ -32,10 +32,13 @@ LAN969X_STORAGE_SOURCES	:=	drivers/io/io_block.c					\
 				drivers/io/io_encrypted.c				\
 				drivers/io/io_fip.c					\
 				drivers/io/io_memmap.c					\
+				drivers/io/io_mtd.c					\
 				drivers/io/io_storage.c					\
 				drivers/microchip/emmc/emmc.c				\
-				drivers/microchip/qspi/qspi.c				\
+				drivers/microchip/qspi/qspi_mtd.c			\
 				drivers/mmc/mmc.c					\
+				drivers/mtd/nor/spi_nor.c				\
+				drivers/mtd/spi-mem/spi_mem.c				\
 				drivers/partition/gpt.c					\
 				drivers/partition/partition.c				\
 				plat/microchip/common/lan96xx_mmc.c			\
@@ -150,6 +153,9 @@ endif
 # DT related compile flags
 $(eval $(call add_define,FW_CONFIG_DT))
 DTC_CPPFLAGS		+=	-I ${LAN969X_PLAT}/fdts
+
+# Set FIP alignment to acheive good performance
+FIP_ALIGN		:= 512
 
 # Generate the FIPs FW_CONFIG
 LAN969X_FW_CONFIG	:=	${BUILD_PLAT}/fdts/${PLAT}_tb_fw_config.dtb

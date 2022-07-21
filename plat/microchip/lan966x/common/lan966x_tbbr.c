@@ -21,9 +21,9 @@ int plat_get_mbedtls_heap(void **heap_addr, size_t *heap_size)
 	assert(heap_addr != NULL);
 	assert(heap_size != NULL);
 
-#if defined(IMAGE_BL1) || BL2_AT_EL3
+#if defined(IMAGE_BL1)
 
-	/* If in BL1 or BL2_AT_EL3 define a heap */
+	/* If in BL1 define a heap */
 	static unsigned char heap[TF_MBEDTLS_HEAP_SIZE];
 
 	*heap_addr = heap;

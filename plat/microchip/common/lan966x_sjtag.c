@@ -30,7 +30,7 @@ void lan966x_sjtag_configure(void)
 	w = mmio_read_32(SJTAG_CTL(LAN966X_SJTAG_BASE));
 	mode = SJTAG_CTL_SJTAG_MODE_X(w);
 
-#if defined(IMAGE_BL1) || BL2_AT_EL3
+#if defined(IMAGE_BL1)
 	/* Initial configuration */
 	if (mode == LAN966X_SJTAG_MODE1 || mode == LAN966X_SJTAG_MODE2) {
 		lan966x_key32_t sjtag_nonce, sjtag_ssk;

@@ -29,10 +29,12 @@
 
 #define PLAT_MAX_OFF_STATE		U(2)
 
-#define MAX_IO_DEVICES			4
-#define MAX_IO_HANDLES			4
+#define MAX_IO_DEVICES			5
+#define MAX_IO_HANDLES			5
 /* eMMC RPMB and eMMC User Data */
 #define MAX_IO_BLOCK_DEVICES		U(2)
+/* QSPI NOR */
+#define MAX_IO_MTD_DEVICES		U(1)
 
 #define MMC_BUF_SIZE			512
 
@@ -132,5 +134,7 @@
 #define PLAT_PHY_ADDR_SPACE_SIZE	(1ULL << 32)
 #define PLAT_VIRT_ADDR_SPACE_SIZE	(1ULL << 32)
 #endif
+
+#define SPI_MEM_DEFAULT_SPEED_HZ	(25 * 1000000U) /* 25MHz */
 
 #endif /* PLATFORM_DEF_H */

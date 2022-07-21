@@ -15,6 +15,7 @@
 void qspi_init(void);
 void qspi_reinit(void);
 int qspi_write(uint32_t offset, const void *buf, size_t len);
+unsigned int qspi_get_spi_mode(void);
 
 /*
  * Platform can implement this to override default QSPI clock setup.

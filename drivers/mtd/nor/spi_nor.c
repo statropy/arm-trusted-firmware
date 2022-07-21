@@ -335,6 +335,19 @@ int spi_nor_init(unsigned long long *size, unsigned int *erase_size)
 	nor_dev.read_op.data.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
 	nor_dev.read_op.data.dir = SPI_MEM_DATA_IN;
 
+	/* Default block erase command used */
+	nor_dev.erase_cmd = SPI_NOR_OP_BE_4K;
+	nor_dev.erase_size = (1024U * 4U);
+
+	/* Default page program command used */
+	nor_dev.pageprog_op.cmd.opcode = SPI_NOR_OP_PP;
+	nor_dev.pageprog_op.cmd.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
+	nor_dev.pageprog_op.addr.nbytes = 3U;
+	nor_dev.pageprog_op.addr.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
+	nor_dev.pageprog_op.data.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
+	nor_dev.pageprog_op.data.dir = SPI_MEM_DATA_OUT;
+	nor_dev.page_size = 512U;
+
 	if (plat_get_nor_data(&nor_dev) != 0) {
 		return -EINVAL;
 	}
@@ -346,6 +359,8 @@ int spi_nor_init(unsigned long long *size, unsigned int *erase_size)
 	}
 
 	*size = nor_dev.size;
+	if (erase_size)
+		*erase_size = nor_dev.erase_size;
 
 	ret = spi_nor_read_id(&id);
 	if (ret != 0) {
@@ -381,6 +396,98 @@ int spi_nor_init(unsigned long long *size, unsigned int *erase_size)
 
 	if ((ret == 0) && ((nor_dev.flags & SPI_NOR_USE_BANK) != 0U)) {
 		ret = spi_nor_read_bar();
+	}
+
+	return ret;
+}
+
+static int spi_nor_erase_sector(uint32_t addr)
+{
+	uint8_t buf[3];
+	int i, ret;
+
+	VERBOSE("%s: Erase %d bytes @ %08x\n", __func__, nor_dev.erase_size, addr);
+
+	ret = spi_nor_write_en();
+	if (ret != 0)
+		return ret;
+
+	/* Prepare sector offset */
+	for (i = sizeof(buf) - 1; i >= 0; i--) {
+		buf[i] = addr & 0xff;
+		addr >>= 8;
+	}
+
+	return spi_nor_reg(nor_dev.erase_cmd, buf, sizeof(buf), SPI_MEM_DATA_OUT);
+}
+
+int spi_nor_erase(unsigned int offset, size_t length)
+{
+	uint32_t addr;
+	int ret;
+
+	if (offset & (nor_dev.erase_size - 1))
+		return -EINVAL;
+
+	for (addr = offset; addr < (offset + length); addr += nor_dev.erase_size) {
+		ret = spi_nor_erase_sector(addr);
+		if (ret)
+			break;
+		ret = spi_nor_wait_ready();
+		if (ret)
+			break;
+	}
+
+	return ret;
+}
+
+static int spi_nor_write_data_page(uint32_t offset, uintptr_t buffer, size_t length)
+{
+	int ret;
+
+	/* Write enable */
+	ret = spi_nor_write_en();
+	if (ret != 0)
+		goto fail;
+
+	/* Now write */
+	nor_dev.pageprog_op.addr.val = offset;
+	nor_dev.pageprog_op.data.buf = (void *)buffer;
+	nor_dev.pageprog_op.data.nbytes = length;
+	ret = spi_mem_exec_op(&nor_dev.pageprog_op);
+	if (ret)
+		goto fail;
+
+	/* Wait for write to complete */
+	ret = spi_nor_wait_ready();
+	if (ret)
+		goto fail;
+
+	VERBOSE("%s: Write %zd bytes @ %08x succeeds\n", __func__, length, offset);
+	return 0;
+
+fail:
+	VERBOSE("%s: Write %zd bytes @ %08x fail: %d\n", __func__, length, offset, ret);
+	return ret;
+}
+
+int spi_nor_write(unsigned int offset, uintptr_t buffer, size_t length)
+{
+	uint32_t addr;
+	int ret = 0;
+
+	if (offset & (nor_dev.page_size - 1))
+		return -EINVAL;
+
+	for (addr = offset; addr < (offset + length); addr += nor_dev.page_size, buffer += nor_dev.page_size) {
+		uint32_t block = MIN((size_t) nor_dev.page_size, length);
+
+		ret = spi_nor_write_data_page(addr, buffer, block);
+		if (ret)
+			break;
+		ret = spi_nor_wait_ready();
+		if (ret)
+			break;
 	}
 
 	return ret;

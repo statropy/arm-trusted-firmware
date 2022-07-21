@@ -15,11 +15,13 @@
 #include <drivers/io/io_encrypted.h>
 #include <drivers/io/io_fip.h>
 #include <drivers/io/io_memmap.h>
+#include <drivers/io/io_mtd.h>
 #include <drivers/io/io_storage.h>
 #include <drivers/microchip/qspi.h>
 #include <drivers/microchip/tz_matrix.h>
 #include <drivers/mmc.h>
 #include <drivers/partition/partition.h>
+#include <drivers/spi_nor.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
@@ -36,10 +38,12 @@ struct plat_io_policy {
 static const io_dev_connector_t *fip_dev_con;
 static const io_dev_connector_t *mmc_dev_con;
 static const io_dev_connector_t *memmap_dev_con;
+static const io_dev_connector_t *spi_dev_con;
+static const io_dev_connector_t *enc_dev_con;
 static uintptr_t fip_dev_handle;
 static uintptr_t mmc_dev_handle;
 static uintptr_t memmap_dev_handle;
-static const io_dev_connector_t *enc_dev_con;
+static uintptr_t mtd_dev_handle;
 static uintptr_t enc_dev_handle;
 
 #define FW_PARTITION_NAME		"fip"
@@ -60,6 +64,13 @@ static const io_block_dev_spec_t mmc_dev_spec = {
 	.block_size = MMC_BLOCK_SIZE,
 };
 
+static io_mtd_dev_spec_t spi_nor_dev_spec = {
+	.ops = {
+		.init = spi_nor_init,
+		.read = spi_nor_read,
+	},
+};
+
 /*
  * State data about alternate boot source(s).
  */
@@ -75,15 +86,13 @@ static bool fip_spec_valid;
 /* Data will be fetched from the GPT */
 static io_block_spec_t fip_block_spec;
 
-static unsigned long gpt_device_offset;
-
 static const io_block_spec_t mmc_gpt_spec = {
 	.offset	= LAN966X_GPT_BASE,
 	.length	= LAN966X_GPT_SIZE,
 };
 
 static const io_block_spec_t qspi_gpt_spec = {
-	.offset	= LAN969X_QSPI0_MMAP,
+	.offset	= LAN966X_GPT_BASE,
 	.length	= (34 * 512),	/* Std GPT size */
 };
 
@@ -169,9 +178,9 @@ static const io_uuid_spec_t fwu_cert_uuid_spec = {
 
 static int check_fip(const uintptr_t spec);
 static int check_mmc(const uintptr_t spec);
-static int check_memmap(const uintptr_t spec);
 static int check_mmc_fip(const uintptr_t spec);
-static int check_memmap_fip(const uintptr_t spec);
+static int check_mtd(const uintptr_t spec);
+static int check_mtd_fip(const uintptr_t spec);
 static int check_error(const uintptr_t spec);
 static int check_enc_fip(const uintptr_t spec);
 
@@ -319,9 +328,9 @@ static const struct plat_io_policy boot_source_policies[] = {
 		check_mmc_fip
 	},
 	[BOOT_SOURCE_QSPI] = {
-		&memmap_dev_handle,
+		&mtd_dev_handle,
 		(uintptr_t)&fip_block_spec,
-		check_memmap_fip
+		check_mtd_fip
 	},
 	[BOOT_SOURCE_SDMMC] = {
 		&mmc_dev_handle,
@@ -338,9 +347,9 @@ static const struct plat_io_policy boot_source_gpt[] = {
 		check_mmc
 	},
 	[BOOT_SOURCE_QSPI] = {
-		&memmap_dev_handle,
+		&mtd_dev_handle,
 		(uintptr_t)&qspi_gpt_spec,
-		check_memmap
+		check_mtd
 	},
 	[BOOT_SOURCE_SDMMC] = {
 		&mmc_dev_handle,
@@ -350,12 +359,33 @@ static const struct plat_io_policy boot_source_gpt[] = {
 	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
 
-static void lan969x_init_gpt(unsigned int image_id, unsigned long dev_offset)
+static void lan969x_io_init_mmc(void)
 {
-	partition_init(image_id);
-	gpt_device_offset = dev_offset;
+	int io_result __unused;
+
+	io_result = register_io_dev_block(&mmc_dev_con);
+	assert(io_result == 0);
+
+	io_result = io_dev_open(mmc_dev_con, (uintptr_t)&mmc_dev_spec,
+			     &mmc_dev_handle);
+	assert(io_result == 0);
 }
 
+static void lan969x_io_init_spi_mtd(void)
+{
+	int io_result __unused;
+
+	qspi_init();
+
+	io_result = register_io_dev_mtd(&spi_dev_con);
+	assert(io_result == 0);
+
+	/* Open connections to device */
+	io_result = io_dev_open(spi_dev_con,
+				(uintptr_t)&spi_nor_dev_spec,
+				&mtd_dev_handle);
+	assert(io_result == 0);
+}
 static bool lan969x_get_fip_addr(int fip_src)
 {
 	const char *name;
@@ -367,7 +397,7 @@ static bool lan969x_get_fip_addr(int fip_src)
 	if (fip_src == FIP_SELECT_RAW) {
 		/* Try to use non-gpt fallback values */
 		NOTICE("Assuming FIP start at device origin\n");
-		fip_block_spec.offset = gpt_device_offset;
+		fip_block_spec.offset = 0;
 		fip_block_spec.length = SIZE_M(2); /* Conservative default */
 		return true;
 	}
@@ -384,7 +414,7 @@ static bool lan969x_get_fip_addr(int fip_src)
 	INFO("Found partition '%s' at offset 0x%0lx length %ld\n",
 	     name, entry->start, entry->length);
 
-	fip_block_spec.offset = gpt_device_offset + entry->start;
+	fip_block_spec.offset = entry->start;
 	fip_block_spec.length = entry->length;
 
 	return true;
@@ -473,14 +503,14 @@ static int check_mmc(const uintptr_t spec)
 	return result;
 }
 
-static int check_memmap(const uintptr_t spec)
+static int check_mtd(const uintptr_t spec)
 {
 	int result;
 	uintptr_t local_image_handle;
 
-	result = io_dev_init(memmap_dev_handle, (uintptr_t)NULL);
+	result = io_dev_init(mtd_dev_handle, (uintptr_t)NULL);
 	if (result == 0) {
-		result = io_open(memmap_dev_handle, spec, &local_image_handle);
+		result = io_open(mtd_dev_handle, spec, &local_image_handle);
 		if (result == 0) {
 			VERBOSE("Using QSPI\n");
 			io_close(local_image_handle);
@@ -496,10 +526,10 @@ static int check_mmc_fip(const uintptr_t spec)
 	return -EINVAL;
 }
 
-static int check_memmap_fip(const uintptr_t spec)
+static int check_mtd_fip(const uintptr_t spec)
 {
 	if (fip_spec_valid)
-		return check_memmap(spec);
+		return check_mtd(spec);
 	return -EINVAL;
 }
 
@@ -541,18 +571,13 @@ void lan966x_io_setup(void)
 	switch (lan966x_get_boot_source()) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
-		result = register_io_dev_block(&mmc_dev_con);
-		assert(result == 0);
-
-		result = io_dev_open(mmc_dev_con, (uintptr_t)&mmc_dev_spec,
-				     &mmc_dev_handle);
-		assert(result == 0);
-
-		lan969x_init_gpt(GPT_IMAGE_ID, 0);
+		lan969x_io_init_mmc();
+		partition_init(GPT_IMAGE_ID);
 		break;
 
 	case BOOT_SOURCE_QSPI:
-		lan969x_init_gpt(GPT_IMAGE_ID, LAN969X_QSPI0_MMAP);
+		lan969x_io_init_spi_mtd();
+		partition_init(GPT_IMAGE_ID);
 		break;
 
 	case BOOT_SOURCE_NONE:
