@@ -65,7 +65,7 @@ build_platforms.each do |bp|
           ["build/#{bp}/#{bt}/mmc.gpt",      "#{dst}-mmc.gpt"],
           ["build/#{bp}/#{bt}/mmc.gpt.gz",   "#{dst}-mmc.gpt.gz"],
           ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
-          ["build/#{bp}/#{bt}/fip.gpt.gz",   "#{dst}-nor.gpt.gz"],
+          ["build/#{bp}/#{bt}/nor.gpt.gz",   "#{dst}-nor.gpt.gz"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
           ["build/#{bp}/#{bt}/fwu.html",     "fwu.html"],
         ]
