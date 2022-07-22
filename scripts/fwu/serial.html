@@ -125,7 +125,7 @@
     <h2>BL2U bootstrap</h2>
     <p>
       You are now in the built-in <i>BL2U</i> context, which enables
-      firmware associated functions and OTP reading.
+      firmware associated functions and OTP read/write/randomize capabilities.
     </p>
     <p>
       For firmware update you should start by uploading
@@ -135,10 +135,16 @@
     <p>
       <ul>
 	<li>
-	  When updating NOR flash there is no distinction between FIP
-	  or Flash image. The FIP <i>is</i> the Flash image.
+	  Updating NOR flash differ per platform, depending if GPT is
+	  used on the NOR device:
+	  <ul>
+	    <li> LAN966X: No GPT. The FIP <i>is</i> the Flash image.
+	      Image is called <samp>x.fip</samp> or <samp>x.fip.gz</samp>.</li>
+	    </li>
+	    <li> LAN969X: GPT is used. The NOR flash image is called <samp>nor.gpt</samp> or <samp>nor.gpt.gz</samp>.</li>
+	  </ul>
 	</li>
-	<li>For eMMC/SD the Flash image is a GPT image.</li>
+	<li>For eMMC/SD the Flash image is a GPT image called <samp>mmc.gpt</samp> or <samp>mmc.gpt.gz</samp>.</li>
 	<li>
 	  You may upload <samp>GZIP</samp>'ed files, and they will
 	  automatically be unzipped when received.
@@ -198,7 +204,7 @@
       </tr>
       <tr>
 	<td>
-	  <button type="button" id="bl2u_otp_set_rnd">OTP Random</button>
+	  <button type="button" id="bl2u_otp_set_rnd">OTP Randomize</button>
 	  <select id="bl2u_otp_set_rnd_fld"></select>
 	</td>
 	<td id="bl2u_otp_set_rnd_feedback" class="feedback"></td>
