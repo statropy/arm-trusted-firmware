@@ -226,7 +226,7 @@ static uint32_t single_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_
 		lba++;
 		if ((written % SIZE_M(1)) == 0) {
 			/* Hearbeat */
-			INFO("emmc: Wrote %zdMb\n", written / SIZE_M(1));
+			INFO("emmc: Wrote %ldMb\n", written / SIZE_M(1));
 		}
 	}
 
@@ -235,7 +235,7 @@ static uint32_t single_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_
 	return written;
 }
 
-static int emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length)
+int lan966x_bl2u_emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length)
 {
 	uint32_t round_len, lba, written;
 
@@ -268,7 +268,7 @@ static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
 			       name, (uint32_t) entry->length, len);
 			return false;
 		}
-		return emmc_write(entry->start, buf_ptr, len);
+		return lan966x_bl2u_emmc_write(entry->start, buf_ptr, len);
 	}
 
 	NOTICE("Partition %s not found\n", name);
@@ -309,7 +309,7 @@ static void handle_write_image(const bootstrap_req_t * req)
 	switch (req->arg0) {
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
-		ret = emmc_write(0, fip_base_addr, data_rcv_length);
+		ret = lan966x_bl2u_emmc_write(0, fip_base_addr, data_rcv_length);
 		break;
 	case BOOT_SOURCE_QSPI:
 		ret = qspi_write(0, (void*) fip_base_addr, data_rcv_length);
@@ -322,6 +322,47 @@ static void handle_write_image(const bootstrap_req_t * req)
 		bootstrap_TxNack("Image write failed");
 	else
 		bootstrap_TxAck();
+}
+
+#pragma weak lan966x_bl2u_fip_update
+int lan966x_bl2u_fip_update(boot_source_type boot_source,
+			    uintptr_t buf,
+			    uint32_t len)
+{
+	int ret;
+
+	/* Write Flash */
+	switch (boot_source) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		INFO("Write FIP %d bytes to %s\n", len, boot_source == BOOT_SOURCE_EMMC ? "eMMC" : "SD");
+
+		/* Init GPT */
+		partition_init(GPT_IMAGE_ID);
+
+		/* All OK to start */
+		ret = 0;
+
+		/* Update primary FIP */
+		if (fip_update(FW_PARTITION_NAME, buf, len))
+			ret++;
+
+		/* Update backup FIP */
+		if (fip_update(FW_BACKUP_PARTITION_NAME, buf, len))
+			ret++;
+
+		break;
+
+	case BOOT_SOURCE_QSPI:
+		INFO("Write FIP %d bytes to QSPI NOR\n", len);
+		ret = qspi_write(0, (void*) buf, len);
+		break;
+
+	default:
+		ret = -ENOTSUP;
+	}
+
+	return ret;
 }
 
 /* This routine will write the previous encrypted FIP data to the flash device */
@@ -353,36 +394,8 @@ static void handle_write_fip(const bootstrap_req_t * req)
 	if (req->arg0 != lan966x_get_boot_source())
 		lan966x_bl2u_io_init_dev(req->arg0);
 
-	/* Write Flash */
-	switch (req->arg0) {
-	case BOOT_SOURCE_EMMC:
-	case BOOT_SOURCE_SDMMC:
-		INFO("Write FIP %d bytes to %s\n", data_rcv_length, req->arg0 == BOOT_SOURCE_EMMC ? "eMMC" : "SD");
-
-		/* Init GPT */
-		partition_init(GPT_IMAGE_ID);
-
-		/* All OK to start */
-		ret = 0;
-
-		/* Update primary FIP */
-		if (fip_update(FW_PARTITION_NAME, fip_base_addr, data_rcv_length))
-			ret++;
-
-		/* Update backup FIP */
-		if (fip_update(FW_BACKUP_PARTITION_NAME, fip_base_addr, data_rcv_length))
-			ret++;
-
-		break;
-
-	case BOOT_SOURCE_QSPI:
-		INFO("Write FIP %d bytes to QSPI NOR\n", data_rcv_length);
-		ret = qspi_write(0, (void*) fip_base_addr, data_rcv_length);
-		break;
-
-	default:
-		ret = -ENOTSUP;
-	}
+	/* Do the update - platform dependent */
+	ret = lan966x_bl2u_fip_update(req->arg0, fip_base_addr, data_rcv_length);
 
 	if (ret < 0)
 		bootstrap_TxNack("Write FIP failed");

@@ -19,6 +19,7 @@
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 
+#include <plat_bl2u_bootstrap.h>
 #include <lan966x_regs.h>
 #include <lan96xx_common.h>
 #include <lan96xx_mmc.h>
@@ -29,15 +30,15 @@ struct plat_io_policy {
 	int (*check)(const uintptr_t spec);
 };
 
-/* Data will be fetched from the GPT */
-static io_block_spec_t fip_mmc_block_spec;
-
 static const io_dev_connector_t *mmc_dev_con;
 static const io_dev_connector_t *spi_dev_con;
 static uintptr_t mmc_dev_handle;
 static uintptr_t mtd_dev_handle;
 
 static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
+
+static boot_source_type cur_boot_source;
+static const char *boot_source_name[BOOT_SOURCE_MAX] = { "eMMC", "QSPI", "SD", "None" };
 
 static const io_block_dev_spec_t mmc_dev_spec = {
 	.buffer = {
@@ -63,6 +64,11 @@ static const io_block_spec_t mmc_gpt_spec = {
 	.length	= LAN966X_GPT_SIZE,
 };
 
+static const io_block_spec_t qspi_gpt_spec = {
+	.offset	= LAN966X_GPT_BASE,
+	.length	= (34 * 512),	/* Std GPT size */
+};
+
 static int check_mmc(const uintptr_t spec)
 {
 	int result;
@@ -78,10 +84,44 @@ static int check_mmc(const uintptr_t spec)
 	return result;
 }
 
-static const struct plat_io_policy gpt_policy = {
-	&mmc_dev_handle,
-	(uintptr_t)&mmc_gpt_spec,
-	check_mmc
+static int check_mtd(const uintptr_t spec)
+{
+	int result;
+	uintptr_t local_image_handle;
+
+	result = io_dev_init(mtd_dev_handle, (uintptr_t)NULL);
+	if (result == 0) {
+		result = io_open(mtd_dev_handle, spec, &local_image_handle);
+		if (result == 0) {
+			VERBOSE("Using QSPI\n");
+			io_close(local_image_handle);
+		}
+	}
+	return result;
+}
+
+static int check_error(const uintptr_t spec)
+{
+	return -1;
+}
+
+static const struct plat_io_policy boot_source_gpt[] = {
+	[BOOT_SOURCE_EMMC] = {
+		&mmc_dev_handle,
+		(uintptr_t)&mmc_gpt_spec,
+		check_mmc
+	},
+	[BOOT_SOURCE_QSPI] = {
+		&mtd_dev_handle,
+		(uintptr_t)&qspi_gpt_spec,
+		check_mtd
+	},
+	[BOOT_SOURCE_SDMMC] = {
+		&mmc_dev_handle,
+		(uintptr_t)&mmc_gpt_spec,
+		check_mmc
+	},
+	[BOOT_SOURCE_NONE] = { 0, 0, check_error }
 };
 
 static void lan966x_io_setup_mmc(void)
@@ -148,13 +188,6 @@ void lan966x_bl2u_io_init_dev(boot_source_type boot_source)
 				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
 				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
 
-		/* Enable QSPI0 for NS access */
-		matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
-						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
-						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
-						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
-						MATRIX_LANSECH_NS(0));
-
 		lan966x_io_setup_spi();
 
 		/* Record state */
@@ -177,9 +210,13 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 			  uintptr_t *image_spec)
 {
 	int result = -EINVAL;
+	const struct plat_io_policy *policy;
 
 	if (image_id == GPT_IMAGE_ID) {
-		const struct plat_io_policy *policy = &gpt_policy;
+		if (cur_boot_source >= BOOT_SOURCE_MAX)
+			return result;
+
+		policy = &boot_source_gpt[cur_boot_source];
 
 		result = policy->check(policy->image_spec);
 		if (result == 0) {
@@ -191,30 +228,72 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 	return result;
 }
 
-int lan966x_set_fip_addr(unsigned int image_id, const char *name)
+static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
 {
-	const partition_entry_t *entry;
+	const partition_entry_t *entry = get_partition_entry(name);
 
-	if (fip_mmc_block_spec.length == 0) {
-		partition_init(image_id);
-		entry = get_partition_entry(name);
-		if (entry == NULL) {
-			INFO("Could not find the '%s' partition! Seek for "
-							"fallback partition !\n",
-							name);
-			entry = get_partition_entry(FW_BACKUP_PARTITION_NAME);
-			if (entry == NULL) {
-				ERROR("No valid partition found !\n");
-				plat_error_handler(-ENOTBLK);
-			}
-		} else {
-			INFO("Find the '%s' partition, fetch FIP configuration "
-							"data\n", name);
+	if (entry) {
+		int ret;
+		if (len > entry->length) {
+			NOTICE("Partition %s only can hold %d bytes, %d uploaded\n",
+			       name, (uint32_t) entry->length, len);
+			return -EINVAL;
+		}
+		switch (cur_boot_source) {
+		case BOOT_SOURCE_EMMC:
+		case BOOT_SOURCE_SDMMC:
+			ret = lan966x_bl2u_emmc_write(entry->start, buf_ptr, len);
+			break;
+		case BOOT_SOURCE_QSPI:
+			INFO("Fip update '%s' src %d\n", name, cur_boot_source);
+			ret = qspi_write(entry->start, (void*) buf_ptr, len);
+			break;
+		default:
+			ret = -EIO;
+			break;
 		}
 
-		fip_mmc_block_spec.offset = entry->start;
-		fip_mmc_block_spec.length = entry->length;
+		return ret;
 	}
 
-	return 0;
+	NOTICE("Partition %s not found\n", name);
+	return -ENOENT;
+}
+
+int lan966x_bl2u_fip_update(boot_source_type boot_source,
+			    uintptr_t buf,
+			    uint32_t len)
+{
+	int ret;
+
+	/* Update to control plat_get_image_source() from partition_init() */
+	cur_boot_source = boot_source;
+
+	/* Write FIP - all boot sourecs use GPT */
+	switch (boot_source) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+	case BOOT_SOURCE_QSPI:
+		INFO("Write FIP %d bytes to %s\n", len, boot_source_name[cur_boot_source]);
+
+		/* Init GPT */
+		partition_init(GPT_IMAGE_ID);
+
+		/* All OK to start */
+		ret = 0;
+
+		/* Update primary FIP */
+		if (fip_update(FW_PARTITION_NAME, buf, len))
+			ret++;
+
+		/* Update backup FIP */
+		if (fip_update(FW_BACKUP_PARTITION_NAME, buf, len))
+			ret++;
+
+		break;
+	default:
+		ret = -ENOTSUP;
+	}
+
+	return ret;
 }
