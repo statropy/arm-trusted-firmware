@@ -67,6 +67,7 @@ build_platforms.each do |bp|
           ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
           ["build/#{bp}/#{bt}/nor.gpt.gz",   "#{dst}-nor.gpt.gz"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
+          ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"],
           ["build/#{bp}/#{bt}/fwu.html",     "fwu.html"],
         ]
         # Limit the BL1 image artifacts
@@ -78,7 +79,7 @@ build_platforms.each do |bp|
         #   artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
         #   artifacts << ["build/#{bp}/#{bt}/bl1.hex",      "#{dst}.bl1.hex"]
         # end
-        cargs = "--#{bt} --gptimg --norimg #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
+        cargs = "--#{bt} #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
         cmd_clean = 'ruby scripts/build.rb distclean'
         banner(artifacts, cmd)
