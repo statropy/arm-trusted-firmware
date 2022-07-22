@@ -27,9 +27,6 @@ struct plat_io_policy {
 	int (*check)(const uintptr_t spec);
 };
 
-/* Data will be fetched from the GPT */
-static io_block_spec_t fip_mmc_block_spec;
-
 static const io_dev_connector_t *mmc_dev_con;
 static uintptr_t mmc_dev_handle;
 
@@ -95,13 +92,6 @@ void lan966x_bl2u_io_init_dev(boot_source_type boot_source)
 		matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
 				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
 				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
-
-		/* Enable QSPI0 for NS access */
-		matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
-						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
-						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
-						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
-						MATRIX_LANSECH_NS(0));
 	default:
 		break;
 	}
@@ -143,32 +133,4 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 	}
 
 	return result;
-}
-
-int lan966x_set_fip_addr(unsigned int image_id, const char *name)
-{
-	const partition_entry_t *entry;
-
-	if (fip_mmc_block_spec.length == 0) {
-		partition_init(image_id);
-		entry = get_partition_entry(name);
-		if (entry == NULL) {
-			INFO("Could not find the '%s' partition! Seek for "
-							"fallback partition !\n",
-							name);
-			entry = get_partition_entry(FW_BACKUP_PARTITION_NAME);
-			if (entry == NULL) {
-				ERROR("No valid partition found !\n");
-				plat_error_handler(-ENOTBLK);
-			}
-		} else {
-			INFO("Find the '%s' partition, fetch FIP configuration "
-							"data\n", name);
-		}
-
-		fip_mmc_block_spec.offset = entry->start;
-		fip_mmc_block_spec.length = entry->length;
-	}
-
-	return 0;
 }
