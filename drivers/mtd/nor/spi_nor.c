@@ -375,7 +375,7 @@ int spi_nor_init(unsigned long long *size, unsigned int *erase_size)
 	nor_dev.pageprog_op.addr.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
 	nor_dev.pageprog_op.data.buswidth = SPI_MEM_BUSWIDTH_1_LINE;
 	nor_dev.pageprog_op.data.dir = SPI_MEM_DATA_OUT;
-	nor_dev.page_size = 512U;
+	nor_dev.page_size = 256U;
 
 	if (plat_get_nor_data(&nor_dev) != 0) {
 		return -EINVAL;
@@ -516,6 +516,10 @@ fail:
 int spi_nor_write(unsigned int offset, uintptr_t buffer, size_t length)
 {
 	uint32_t addr;
+#if defined(SPI_NOR_WRITE_READBACK_CHECK)
+	static uint8_t read_buf[512];
+	size_t read_ct, read_act;
+#endif
 	int ret = 0;
 
 	if (offset & (nor_dev.page_size - 1))
@@ -527,9 +531,22 @@ int spi_nor_write(unsigned int offset, uintptr_t buffer, size_t length)
 		ret = spi_nor_write_data_page(addr, buffer, block);
 		if (ret)
 			break;
-		ret = spi_nor_wait_ready();
-		if (ret)
+#if defined(SPI_NOR_WRITE_READBACK_CHECK)
+		read_ct = MIN((size_t)nor_dev.page_size, sizeof(read_buf));
+		ret = spi_nor_read(addr, (uintptr_t) read_buf, read_ct, &read_act);
+		if (ret) {
+			NOTICE("%s: Read error: %d\n", __func__, ret);
 			break;
+		}
+		if (read_ct != read_act) {
+			NOTICE("%s: Read error: req %zd got %zd\n", __func__, read_ct, read_act);
+			ret = -EIO;
+		}
+		if (memcmp((void*) buffer, read_buf, read_ct) != 0) {
+			NOTICE("%s: Readback error: Memory differs\n", __func__);
+			ret = -EIO;
+		}
+#endif
 	}
 
 	/* Disable write */
