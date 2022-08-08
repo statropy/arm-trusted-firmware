@@ -27,6 +27,8 @@ static bool qspi_init_done;
 
 static struct spi_mem_op default_read_op;
 
+#define SST_ID			0xBFU
+
 /* QSPI register offsets */
 #define QSPI_CR	     0x0000  /* Control Register */
 #define QSPI_MR	     0x0004  /* Mode Register */
@@ -201,8 +203,6 @@ static struct spi_mem_op default_read_op;
 #define QSPI_TIMEOUT			 0x1000U
 
 /* Non-std Command codes */
-#define SPI_NOR_OP_PP		 0x02	 /* Page program (up to 256 bytes) */
-#define SPI_NOR_OP_BE_4K	 0x20	 /* Erase 4KiB block */
 #define SPI_NOR_OP_BE_4K_PMC	 0xd7	 /* Erase 4KiB block on PMC chips */
 #define SPI_NOR_OP_BE_32K	 0x52	 /* Erase 32KiB block */
 #define SPI_NOR_OP_CHIP_ERASE	 0xc7	 /* Erase whole flash chip */
@@ -667,7 +667,8 @@ static int qspi_exec_op(struct spi_mem_op *op)
 	return 0;
 }
 
-static int spi_nor_reg(uint8_t reg, enum spi_mem_data_dir dir, uint8_t *buf, size_t len)
+static int spi_nor_reg(uint8_t reg, uint8_t *buf, size_t len,
+		       enum spi_mem_data_dir dir)
 {
 	struct spi_mem_op op;
 
@@ -680,9 +681,24 @@ static int spi_nor_reg(uint8_t reg, enum spi_mem_data_dir dir, uint8_t *buf, siz
 	return qspi_exec_op(&op);
 }
 
+static inline int spi_nor_read_id(uint8_t *id)
+{
+	return spi_nor_reg(SPI_NOR_OP_READ_ID, id, 1U, SPI_MEM_DATA_IN);
+}
+
 static inline int spi_nor_read_sr(uint8_t *sr)
 {
-	return spi_nor_reg(SPI_NOR_OP_READ_SR, SPI_MEM_DATA_IN, sr, sizeof(*sr));
+	return spi_nor_reg(SPI_NOR_OP_READ_SR, sr, sizeof(*sr), SPI_MEM_DATA_IN);
+}
+
+static inline int spi_nor_write_en(void)
+{
+	return spi_nor_reg(SPI_NOR_OP_WREN, NULL, 0U, SPI_MEM_DATA_OUT);
+}
+
+static inline int spi_nor_write_dis(void)
+{
+	return spi_nor_reg(SPI_NOR_OP_WRDI, NULL, 0U, SPI_MEM_DATA_OUT);
 }
 
 static int spi_nor_ready(void)
@@ -704,16 +720,36 @@ static int spi_nor_wait_ready(void)
 	int ret;
 	uint64_t timeout = timeout_init_us(SPI_READY_TIMEOUT_US);
 
-	do {
+	while (!timeout_elapsed(timeout)) {
 		ret = spi_nor_ready();
 		if (ret <= 0) {
 			return ret;
 		}
-	} while (!timeout_elapsed(timeout));
-
-	NOTICE("qspi: Operation timed out\n");
+	}
 
 	return -ETIMEDOUT;
+}
+
+static int spi_nor_global_unlock(void)
+{
+	int ret;
+
+	ret = spi_nor_write_en();
+	if (ret != 0) {
+		return ret;
+	}
+
+	ret = spi_nor_reg(SPI_NOR_OP_ULBPR, NULL, 0U, SPI_MEM_DATA_OUT);
+	if (ret != 0) {
+		return -EINVAL;
+	}
+
+	ret = spi_nor_wait_ready();
+	if (ret != 0) {
+		return ret;
+	}
+
+	return 0;
 }
 
 int qspi_write_enable(void)
@@ -749,7 +785,7 @@ static int qspi_erase_sector(uint32_t addr)
 		addr >>= 8;
 	}
 
-	return spi_nor_reg(SPI_NOR_OP_BE_4K, SPI_MEM_DATA_OUT, buf, sizeof(buf));
+	return spi_nor_reg(SPI_NOR_OP_BE_4K, buf, sizeof(buf), SPI_MEM_DATA_OUT);
 }
 
 int qspi_erase(uint32_t offset, size_t len)
@@ -833,6 +869,21 @@ int qspi_write(uint32_t offset, const void *buf, size_t len)
 {
 	uint32_t ifr, iar;
 	int ret, ret1;
+	uint8_t id;
+
+	ret = spi_nor_read_id(&id);
+	if (ret != 0) {
+		ERROR("QSPI: read JEDEC failed - %d\n", ret);
+		return ret;
+	}
+
+	if (id == SST_ID) {
+		ret = spi_nor_global_unlock();
+		if (ret != 0) {
+			ERROR("QSPI: Unlock failed - %d\n", ret);
+			return ret;
+		}
+	}
 
 	/* Erase area */
 	ret = qspi_erase(offset, len);

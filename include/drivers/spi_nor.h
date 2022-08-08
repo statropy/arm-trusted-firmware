@@ -19,6 +19,11 @@
 #define SPINOR_OP_RDEAR		0xC8U	/* Read Extended Address Register */
 #define SPINOR_OP_WREAR		0xC5U	/* Write Extended Address Register */
 
+/* WRITE OPCODES */
+#define SPI_NOR_OP_PP		0x02U	/* Page program (up to 256 bytes) */
+#define SPI_NOR_OP_BE_4K	0x20U	/* Erase 4KiB block */
+#define SPI_NOR_OP_ULBPR	0x98U	/* Global block unlock */
+
 /* Used for Spansion flashes only. */
 #define SPINOR_OP_BRWR		0x17U	/* Bank register write */
 #define SPINOR_OP_BRRD		0x16U	/* Bank register read */
