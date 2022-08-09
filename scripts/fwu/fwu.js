@@ -67,7 +67,7 @@ const platforms = {
 
 function validResponse(r)
 {
-    var m = r.match(/>(\w),([0-9a-f]{8}),([0-9a-f]{8})(#|%)(.+)$/i);
+    var m = r.match(/>(\w),([0-9a-f]{8}),([0-9a-f]{8})(#|%)(.+)/i);
     //console.log(m);
     return m;
 }
@@ -104,7 +104,7 @@ class BootstrapRequestTransformer {
 	if (this.sync) {
 	    if (tracing)
 		console.log("Xform: %s -> %s", chunk, this.chunks);
-	    // Enogh data to have a real request?
+	    // Enough data to have a real request?
 	    if (this.chunks.length >= this.fixedlen) {
 		var rmatch = validResponse(this.chunks);
 		if (rmatch) {
