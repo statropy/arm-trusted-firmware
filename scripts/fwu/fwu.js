@@ -378,6 +378,7 @@ async function doWrite(port, operation, cmd, dev, status_id)
     let s = disableButtons("bl2u", true);
     try {
 	setFeedbackStatus(status_id, "Starting " + operation);
+	addTrace("This may take up to 5 minutes or even longer depending on data size and media.");
 	let write = await completeRequest(port, fmtReq(cmd, dev));
 	setFeedbackStatus(status_id, "Completed " + operation);
     } catch(e) {
