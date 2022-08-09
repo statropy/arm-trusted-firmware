@@ -504,6 +504,23 @@ window.addEventListener("load", (event) => {
     otpSelPopulate("bl2u_otp_read_fld");
 });
 
+function browserCheck()
+{
+    if (!navigator.userAgentData)
+	return false;
+
+    for (var b of navigator.userAgentData.brands) {
+	console.log(b);
+	if (b.brand.match(/chrome|chromium|crios/i)){
+            return true;
+	} else if (b.brand.match(/edg/i)){
+            return true;
+	}
+    }
+
+    return false;
+}
+
 function startSerial()
 {
     const app = atob(lan966x_b0_app.join(""));
@@ -511,6 +528,13 @@ function startSerial()
     var image;
     var sjtag_challenge;
     var settings_prev_stage;
+
+    if (!browserCheck()) {
+	document.getElementById('browser_check').style.display = 'block';
+	document.getElementById('connect').style.display = 'none';
+	console.log("Browser check failed, bailing out. Use Chrome or Edge.");
+	return;
+    }
 
     document.getElementById("file_select").addEventListener("change", function () {
 	if (this.files && this.files[0]) {
