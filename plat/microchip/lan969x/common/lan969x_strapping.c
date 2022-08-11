@@ -14,20 +14,16 @@ boot_source_type lan966x_get_boot_source(void)
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_BOOT_MMC:
 	case LAN966X_STRAP_BOOT_MMC_FC:
-	case _LAN966X_STRAP_BOOT_MMC_ALIAS:
-	case _LAN966X_STRAP_BOOT_MMC_FC_ALIAS:
 		boot_source = BOOT_SOURCE_EMMC;
 		break;
 	case LAN966X_STRAP_BOOT_QSPI:
 	case LAN966X_STRAP_BOOT_QSPI_FC:
-	case _LAN966X_STRAP_BOOT_QSPI_ALIAS:
-	case _LAN966X_STRAP_BOOT_QSPI_FC_ALIAS:
+	case LAN966X_STRAP_BOOT_QSPI_HS_FC:
+	case LAN966X_STRAP_BOOT_QSPI_HS:
 		boot_source = BOOT_SOURCE_QSPI;
 		break;
 	case LAN966X_STRAP_BOOT_SD:
 	case LAN966X_STRAP_BOOT_SD_FC:
-	case _LAN966X_STRAP_BOOT_SD_ALIAS:
-	case _LAN966X_STRAP_BOOT_SD_FC_ALIAS:
 		boot_source = BOOT_SOURCE_SDMMC;
 		break;
 	default:

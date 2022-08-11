@@ -169,9 +169,7 @@ void lan969x_console_init(void)
 	case LAN966X_STRAP_BOOT_MMC_FC:
 	case LAN966X_STRAP_BOOT_QSPI_FC:
 	case LAN966X_STRAP_BOOT_SD_FC:
-	case _LAN966X_STRAP_BOOT_MMC_FC_ALIAS:
-	case _LAN966X_STRAP_BOOT_QSPI_FC_ALIAS:
-	case _LAN966X_STRAP_BOOT_SD_FC_ALIAS:
+	case LAN966X_STRAP_BOOT_QSPI_HS_FC:
 		lan969x_flexcom_init(FC_DEFAULT, FLEXCOM_BAUDRATE);
 		break;
 	case LAN966X_STRAP_TFAMON_FC0:
@@ -228,9 +226,19 @@ const mmap_region_t *plat_arm_get_mmap(void)
 
 void plat_qspi_init_clock(void)
 {
-	uint8_t clk = 0;
+	uint8_t clk;
 
-	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk, QSPI_DEFAULT_SPEED_MHZ);
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_QSPI_HS_FC:
+	case LAN966X_STRAP_BOOT_QSPI_HS:
+		clk = QSPI_HS_SPEED_MHZ;
+		break;
+	default:
+		clk = QSPI_DEFAULT_SPEED_MHZ;
+		break;
+	}
+
+	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk, clk);
 	/* Clamp to [5MHz ; 100MHz] */
 	clk = MAX(clk, (uint8_t) 5);
 	clk = MIN(clk, (uint8_t) 100);
