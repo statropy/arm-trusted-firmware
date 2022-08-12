@@ -23,6 +23,7 @@
 #include <lib/mmio.h>
 #include <drivers/spi_nor.h>
 #include <plat/microchip/common/duff_memcpy.h>
+#include <drivers/microchip/qspi.h>
 
 /* QSPI register offsets */
 #define QSPI_CR	     0x0000  /* Control Register */
@@ -307,6 +308,9 @@ static int mchp_qspi_change_ifr(uint32_t ifr)
 
 static int mchp_qspi_init_controller(void)
 {
+	/* Init clock */
+	plat_qspi_init_clock();
+
 	/* Disable in a failsafe way */
 	mchp_qspi_write(QSPI_CR, QSPI_CR_DLLOFF);
 

@@ -857,7 +857,7 @@ int qspi_write(uint32_t offset, const void *buf, size_t len)
 	return ret;
 }
 
-void qspi_init(void)
+int qspi_init(void)
 {
 	int ret;
 	uint32_t ifr, iar;
@@ -865,7 +865,7 @@ void qspi_init(void)
 	/* Already initialized? */
 	if (qspi_init_done) {
 		VERBOSE("QSPI: Already enabled\n");
-		return;		/* Already initialized */
+		return 0;		/* Already initialized */
 	}
 
 	/* Platform clock init */
@@ -894,6 +894,8 @@ void qspi_init(void)
 	qspi_change_ifr(ifr);
 
 	qspi_init_done = true;
+
+	return 0;
 }
 
 void qspi_reinit(void)

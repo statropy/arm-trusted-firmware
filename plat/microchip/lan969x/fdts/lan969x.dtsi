@@ -55,6 +55,12 @@
 		clock-frequency = <24000000>;
 	};
 
+	qspi_clk: qspi_clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <100000000>;
+	};
+
 	axi {
 		compatible = "simple-bus";
 		#address-cells = <1>;
@@ -97,7 +103,7 @@
 			reg = <0xe0804000 0x00000100>, <0x20000000 0x08000000>;
 			reg-names = "qspi_base", "qspi_mmap";
 			interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>;
-			clocks =  <&emmc_clk>, <&emmc_clk>;
+			clocks =  <&qspi_clk>, <&qspi_clk>;
 			clock-names = "pclk", "gclk";
 			#address-cells = <1>;
 			#size-cells = <0>;

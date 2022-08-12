@@ -13,7 +13,7 @@
 #define QSPI_DEFAULT_SPEED_MHZ	25
 #define QSPI_HS_SPEED_MHZ	100
 
-void qspi_init(void);
+int qspi_init(void);
 void qspi_reinit(void);
 int qspi_write(uint32_t offset, const void *buf, size_t len);
 unsigned int qspi_get_spi_mode(void);
