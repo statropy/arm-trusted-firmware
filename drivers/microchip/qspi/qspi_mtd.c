@@ -210,6 +210,23 @@ static uintptr_t reg_base = LAN969X_QSPI_0_BASE;
 
 static unsigned int qspi_mode;
 
+#pragma weak plat_qspi_init_clock
+void plat_qspi_init_clock(void)
+{
+}
+
+#pragma weak plat_qspi_default_clock_mhz
+uint32_t plat_qspi_default_clock_mhz(void)
+{
+	return QSPI_DEFAULT_SPEED_MHZ;
+}
+
+#pragma weak plat_qspi_default_mode
+int plat_qspi_default_mode(void)
+{
+	return 0;		/* Single SPI mode */
+}
+
 static void mchp_qspi_write(const unsigned int reg,
 			    const uint32_t value)
 {
@@ -753,19 +770,23 @@ int qspi_init(void)
 
 	/* Have DT? */
 	fdt = lan966x_get_dt();
-	if (fdt == NULL || fdt_check_header(fdt) != 0) {
-		/* Instantiate default QSPI */
-		return spi_mem_init_slave_default(&mchp_qspi_bus_ops);
-	}
+	if (fdt == NULL || fdt_check_header(fdt) != 0)
+		goto default_spi_mem;
 
 	qspi_node = fdt_node_offset_by_compatible(fdt, -1, DT_QSPI_COMPAT);
 	if (qspi_node < 0) {
 		/* Instantiate default QSPI */
 		ERROR("No QSPI in DT, using default values\n");
-		return spi_mem_init_slave_default(&mchp_qspi_bus_ops);
+		goto default_spi_mem;
 	}
 
 	return spi_mem_init_slave(fdt, qspi_node, &mchp_qspi_bus_ops);
+
+default_spi_mem:
+	/* Instantiate default QSPI */
+	return spi_mem_init_slave_default(&mchp_qspi_bus_ops,
+					  plat_qspi_default_mode(),
+					  plat_qspi_default_clock_mhz() * 1000000U);
 }
 
 void qspi_reinit(void)

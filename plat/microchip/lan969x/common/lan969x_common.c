@@ -224,9 +224,14 @@ const mmap_region_t *plat_arm_get_mmap(void)
 	return plat_arm_mmap;
 }
 
-void plat_qspi_init_clock(void)
+int plat_qspi_default_mode(void)
 {
-	uint8_t clk;
+	return (SPI_RX_QUAD | SPI_TX_QUAD); /* Quad mode is default mode (BL1) */
+}
+
+uint32_t plat_qspi_default_clock_mhz(void)
+{
+	uint32_t clk;
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_BOOT_QSPI_HS_FC:
@@ -238,10 +243,19 @@ void plat_qspi_init_clock(void)
 		break;
 	}
 
-	lan966x_fw_config_read_uint8(LAN966X_FW_CONF_QSPI_CLK, &clk, clk);
+	return clk;
+}
+
+void plat_qspi_init_clock(void)
+{
+	uint32_t clk = plat_qspi_default_clock_mhz();
+
+	lan966x_fw_config_read_uint32(LAN966X_FW_CONF_QSPI_CLK, &clk, clk);
+
 	/* Clamp to [5MHz ; 100MHz] */
-	clk = MAX(clk, (uint8_t) 5);
-	clk = MIN(clk, (uint8_t) 100);
+	clk = MAX(clk, 5U);
+	clk = MIN(clk, 100U);
+
 	VERBOSE("QSPI: Using clock %u Mhz\n", clk);
 	lan966x_clk_disable(LAN966X_CLK_ID_QSPI0);
 	lan966x_clk_set_rate(LAN966X_CLK_ID_QSPI0, clk * 1000 * 1000);

@@ -10,8 +10,8 @@
 #include <stdint.h>
 
 /* Default clock speed */
-#define QSPI_DEFAULT_SPEED_MHZ	25
-#define QSPI_HS_SPEED_MHZ	100
+#define QSPI_DEFAULT_SPEED_MHZ	25U
+#define QSPI_HS_SPEED_MHZ	100U
 
 int qspi_init(void);
 void qspi_reinit(void);
@@ -23,5 +23,18 @@ unsigned int qspi_get_spi_mode(void);
  *
  */
 void plat_qspi_init_clock(void);
+
+/*
+ * Platform can implement this to override default QSPI mode
+ *
+ */
+int plat_qspi_default_mode(void);
+
+/*
+ * Platform can implement this to override default QSPI clock speed
+ *
+ */
+uint32_t plat_qspi_default_clock_mhz(void);
+
 
 #endif  /* QSPI_H */

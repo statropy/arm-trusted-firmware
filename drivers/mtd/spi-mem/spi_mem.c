@@ -300,10 +300,10 @@ int spi_mem_init_slave(void *fdt, int bus_node, const struct spi_bus_ops *ops)
  *
  * Return: 0 in case of success, a negative error code otherwise.
  */
-int spi_mem_init_slave_default(const struct spi_bus_ops *ops)
+int spi_mem_init_slave_default(const struct spi_bus_ops *ops,
+			       int mode, int max_hz)
 {
 	int ret;
-	int mode = 0;
 
 	ret = spi_mem_check_bus_ops(ops);
 	if (ret != 0) {
@@ -312,7 +312,7 @@ int spi_mem_init_slave_default(const struct spi_bus_ops *ops)
 
 	/* Defaults */
 	spi_slave.cs = 0;
-	spi_slave.max_hz = SPI_MEM_DEFAULT_SPEED_HZ;
+	spi_slave.max_hz = max_hz;
 	spi_slave.mode = mode;
 	spi_slave.ops = ops;
 
