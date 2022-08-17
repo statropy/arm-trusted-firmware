@@ -55,6 +55,7 @@ typedef enum {
 void lan966x_init_strapping(void);
 void lan966x_set_strapping(soc_strapping value);
 soc_strapping lan966x_get_strapping(void);
+void lan966x_validate_strapping(void);
 bool lan966x_monitor_enabled(void);
 
 boot_source_type lan966x_get_boot_source(void);

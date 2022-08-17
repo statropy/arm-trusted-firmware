@@ -15,9 +15,7 @@
 #include <drivers/microchip/usb.h>
 #include <drivers/microchip/vcore_gpio.h>
 #include <fw_config.h>
-#include <lib/libc/errno.h>
 #include <lib/mmio.h>
-#include <plat/common/platform.h>
 #include <platform_def.h>
 
 #include <plat/common/platform.h>
@@ -28,7 +26,6 @@
 
 #include "lan966x_regs.h"
 #include "lan966x_private.h"
-#include "plat_otp.h"
 
 CASSERT((BL1_RW_SIZE + BL2_SIZE) <= LAN966X_SRAM_SIZE, assert_sram_depletion);
 
@@ -279,25 +276,4 @@ void lan966x_reset_max_trace_level(void)
 		break;
 	}
 #endif
-}
-
-/*
- * Check if the current boot strapping mode has been masked out by the
- * OTP strapping mask and abort if this is the case.
- */
-void lan966x_validate_strapping(void)
-{
-	union {
-		uint8_t b[2];
-		uint16_t w;
-	} mask;
-	uint16_t strapmask = BIT(lan966x_get_strapping());
-
-	if (otp_read_otp_strap_disable_mask(mask.b, OTP_STRAP_DISABLE_MASK_SIZE)) {
-		return;
-	}
-	if (strapmask & mask.w) {
-		ERROR("Bootstrapping masked: %u\n", lan966x_get_strapping());
-		plat_error_handler(-EINVAL);
-	}
 }

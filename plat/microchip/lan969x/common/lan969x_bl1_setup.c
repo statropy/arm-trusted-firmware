@@ -77,6 +77,9 @@ void bl1_early_platform_setup(void)
 	/* Console */
 	lan969x_console_init();
 
+	/* Check bootstrap mask: this may abort */
+	lan966x_validate_strapping();
+
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN969X_SRAM_BASE;
 	bl1_tzram_layout.total_size = LAN969X_SRAM_SIZE;
