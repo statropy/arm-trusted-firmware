@@ -192,8 +192,21 @@ uintptr_t plat_get_ns_image_entrypoint(void)
 void lan969x_set_max_trace_level(void)
 {
 #if !DEBUG
-	/* Reduce logging */
-	tf_log_set_max_level(LOG_LEVEL_ERROR);
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_MMC:
+	case LAN966X_STRAP_BOOT_QSPI:
+	case LAN966X_STRAP_BOOT_QSPI_HS:
+	case LAN966X_STRAP_BOOT_SD:
+	case LAN966X_STRAP_PCIE_ENDPOINT:
+	case LAN966X_STRAP_TFAMON_FC0:
+	case LAN966X_STRAP_TFAMON_FC0_HS:
+	case LAN966X_STRAP_SPI_SLAVE:
+		tf_log_set_max_level(LOG_LEVEL_ERROR);
+		break;
+	default:
+		/* No change in trace level */
+		break;
+	}
 #endif
 }
 
