@@ -32,7 +32,6 @@ typedef enum {
 #define PCIE_BAR_MASK_REG(B)	PCIE_DBI_BAR ## B ##_MASK_REG(LAN966X_PCIE_DBI_BASE)
 
 static const struct {
-	char *name;
 	uint32_t bar_start;
 	uint32_t bar_size;
 	uintptr_t bar_reg;
@@ -42,7 +41,7 @@ static const struct {
 	uintptr_t bar_mask_reg;
 } lan966x_pcie_bar_config[] = {
 	{
-		"CSR",
+		/* CSR */
 		0xe2000000,
 		 0x2000000,
 		PCIE_BAR_REG(0),
@@ -52,7 +51,7 @@ static const struct {
 		PCIE_BAR_MASK_REG(0)
 	},
 	{
-		"CPU",
+		/* CPU */
 		0xe0000000,
 		 0x1000000,
 		PCIE_BAR_REG(1),
@@ -62,9 +61,15 @@ static const struct {
 		PCIE_BAR_MASK_REG(1)
 	},
 	{
-		"QSPI1",
+#if defined(MCHP_SOC_LAN966X)
+		/* QSPI1 */
 		0x40000000,
 		  0x800000,
+#elif defined(MCHP_SOC_LAN969X)
+		/* UNDEF */
+		0x0,
+		0x0,
+#endif
 		PCIE_BAR_REG(2),
 		PCIE_BAR_MASK(2),
 		PCIE_BAR_VALUE(2),
@@ -72,9 +77,15 @@ static const struct {
 		PCIE_BAR_MASK_REG(2)
 	},
 	{
-		"PI",
+#if defined(MCHP_SOC_LAN966X)
+		/* PI */
 		0x48000000,
 		  0x800000,
+#elif defined(MCHP_SOC_LAN969X)
+		/* UNDEF */
+		0x0,
+		0x0,
+#endif
 		PCIE_BAR_REG(3),
 		PCIE_BAR_MASK(3),
 		PCIE_BAR_VALUE(3),
@@ -82,9 +93,9 @@ static const struct {
 		PCIE_BAR_MASK_REG(3)
 	},
 	{
-		"SRAM",
-		  0x100000,
-		   0x20000,
+		/* SRAM */
+		LAN966X_SRAM_BASE,
+		LAN966X_SRAM_SIZE,
 		PCIE_BAR_REG(4),
 		PCIE_BAR_MASK(4),
 		PCIE_BAR_VALUE(4),
