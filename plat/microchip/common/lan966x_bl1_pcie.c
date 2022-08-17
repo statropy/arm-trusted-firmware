@@ -162,20 +162,17 @@ static void lan966x_config_pcie_id(lan966x_pcie_id id, uint32_t defvalue, const 
 
 static void lan966x_config_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_size, int status)
 {
-	bool enable = true;
 	uint32_t start = lan966x_pcie_bar_config[bar].bar_start;
 	uint32_t size = lan966x_pcie_bar_config[bar].bar_size;
 
 	if (status == 0) {
 		INFO("OTP BAR[%d]: offset: 0x%08x, size: %u\n", bar, otp_start, otp_size);
-		if (otp_start != 0 && otp_size != 0) {
+		if (otp_size != 0) {
 			start = otp_start;
 			size = otp_size;
-		} else if (otp_start != 0 && otp_size == 0) {
-			enable = false;
 		}
 	}
-	if (enable) {
+	if (size) {
 		uint32_t mask = size - 1;
 
 		start = start & ~mask;
