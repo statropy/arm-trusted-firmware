@@ -70,6 +70,7 @@ PLAT_BL_COMMON_SOURCES	:=	${FDT_WRAPPERS_SOURCES}			\
 BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl1_setup.c	\
 				plat/common/aarch64/platform_up_stack.S		\
+				plat/microchip/common/lan966x_bl1_pcie.c	\
 				plat/microchip/common/lan966x_bootstrap.c	\
 				plat/microchip/common/lan966x_sjtag.c		\
 				plat/microchip/common/plat_bl1_bootstrap.c	\

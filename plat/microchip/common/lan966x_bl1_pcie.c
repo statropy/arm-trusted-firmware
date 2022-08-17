@@ -4,15 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <drivers/microchip/otp.h>
+#include <lan966x_regs.h>
+#include <lan96xx_common.h>
 #include <lib/mmio.h>
-
-#include "lan966x_regs.h"
-#include "plat_otp.h"
-#include "lan966x_private.h"
-
+#include <plat_otp.h>
+#include <platform_def.h>
 
 #define MAX_BARS	5		/* Maximum number of configurable bars */
 #define OTP_BAR_SIZE	(MAX_BARS*2)	/* Address and size information */
@@ -254,8 +251,15 @@ void lan966x_pcie_init(void)
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
 
 	/* Read protect region 4 of the OTP (keys) */
+#if defined(OTP_OTP_READ_PROTECT)
 	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), BIT(4), BIT(4));
 	ret = mmio_read_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE));
+#elif defined(OTP_OTP_READ_PROTECT0)
+	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT0(LAN966X_OTP_BASE), BIT(4), BIT(4));
+	ret = mmio_read_32(OTP_OTP_READ_PROTECT0(LAN966X_OTP_BASE));
+#else
+#error Platform read protect issue
+#endif
 	INFO("OTP Read Protected regions: 0x%x\n", ret);
 
 	/* Go to sleep */

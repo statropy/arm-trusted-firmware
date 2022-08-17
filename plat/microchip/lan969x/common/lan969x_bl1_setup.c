@@ -80,6 +80,9 @@ void bl1_early_platform_setup(void)
 	/* Check bootstrap mask: this may abort */
 	lan966x_validate_strapping();
 
+	/* PCIe - may never return */
+	lan966x_pcie_init();
+
 	/* Allow BL1 to see the whole Trusted RAM */
 	bl1_tzram_layout.total_base = LAN969X_SRAM_BASE;
 	bl1_tzram_layout.total_size = LAN969X_SRAM_SIZE;
