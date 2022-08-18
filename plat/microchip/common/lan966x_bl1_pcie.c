@@ -4,15 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <drivers/microchip/otp.h>
+#include <lan966x_regs.h>
+#include <lan96xx_common.h>
 #include <lib/mmio.h>
-
-#include "lan966x_regs.h"
-#include "plat_otp.h"
-#include "lan966x_private.h"
-
+#include <plat_otp.h>
+#include <platform_def.h>
 
 #define MAX_BARS	5		/* Maximum number of configurable bars */
 #define OTP_BAR_SIZE	(MAX_BARS*2)	/* Address and size information */
@@ -35,7 +32,6 @@ typedef enum {
 #define PCIE_BAR_MASK_REG(B)	PCIE_DBI_BAR ## B ##_MASK_REG(LAN966X_PCIE_DBI_BASE)
 
 static const struct {
-	char *name;
 	uint32_t bar_start;
 	uint32_t bar_size;
 	uintptr_t bar_reg;
@@ -45,7 +41,7 @@ static const struct {
 	uintptr_t bar_mask_reg;
 } lan966x_pcie_bar_config[] = {
 	{
-		"CSR",
+		/* CSR */
 		0xe2000000,
 		 0x2000000,
 		PCIE_BAR_REG(0),
@@ -55,7 +51,7 @@ static const struct {
 		PCIE_BAR_MASK_REG(0)
 	},
 	{
-		"CPU",
+		/* CPU */
 		0xe0000000,
 		 0x1000000,
 		PCIE_BAR_REG(1),
@@ -65,9 +61,15 @@ static const struct {
 		PCIE_BAR_MASK_REG(1)
 	},
 	{
-		"QSPI1",
+#if defined(MCHP_SOC_LAN966X)
+		/* QSPI1 */
 		0x40000000,
 		  0x800000,
+#elif defined(MCHP_SOC_LAN969X)
+		/* UNDEF */
+		0x0,
+		0x0,
+#endif
 		PCIE_BAR_REG(2),
 		PCIE_BAR_MASK(2),
 		PCIE_BAR_VALUE(2),
@@ -75,9 +77,15 @@ static const struct {
 		PCIE_BAR_MASK_REG(2)
 	},
 	{
-		"PI",
+#if defined(MCHP_SOC_LAN966X)
+		/* PI */
 		0x48000000,
 		  0x800000,
+#elif defined(MCHP_SOC_LAN969X)
+		/* UNDEF */
+		0x0,
+		0x0,
+#endif
 		PCIE_BAR_REG(3),
 		PCIE_BAR_MASK(3),
 		PCIE_BAR_VALUE(3),
@@ -85,9 +93,9 @@ static const struct {
 		PCIE_BAR_MASK_REG(3)
 	},
 	{
-		"SRAM",
-		  0x100000,
-		   0x20000,
+		/* SRAM */
+		LAN966X_SRAM_BASE,
+		LAN966X_SRAM_SIZE,
 		PCIE_BAR_REG(4),
 		PCIE_BAR_MASK(4),
 		PCIE_BAR_VALUE(4),
@@ -154,20 +162,17 @@ static void lan966x_config_pcie_id(lan966x_pcie_id id, uint32_t defvalue, const 
 
 static void lan966x_config_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_size, int status)
 {
-	bool enable = true;
 	uint32_t start = lan966x_pcie_bar_config[bar].bar_start;
 	uint32_t size = lan966x_pcie_bar_config[bar].bar_size;
 
 	if (status == 0) {
 		INFO("OTP BAR[%d]: offset: 0x%08x, size: %u\n", bar, otp_start, otp_size);
-		if (otp_start != 0 && otp_size != 0) {
+		if (otp_size != 0) {
 			start = otp_start;
 			size = otp_size;
-		} else if (otp_start != 0 && otp_size == 0) {
-			enable = false;
 		}
 	}
-	if (enable) {
+	if (size) {
 		uint32_t mask = size - 1;
 
 		start = start & ~mask;
@@ -254,8 +259,15 @@ void lan966x_pcie_init(void)
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
 
 	/* Read protect region 4 of the OTP (keys) */
+#if defined(OTP_OTP_READ_PROTECT)
 	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), BIT(4), BIT(4));
 	ret = mmio_read_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE));
+#elif defined(OTP_OTP_READ_PROTECT0)
+	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT0(LAN966X_OTP_BASE), BIT(4), BIT(4));
+	ret = mmio_read_32(OTP_OTP_READ_PROTECT0(LAN966X_OTP_BASE));
+#else
+#error Platform read protect issue
+#endif
 	INFO("OTP Read Protected regions: 0x%x\n", ret);
 
 	/* Go to sleep */

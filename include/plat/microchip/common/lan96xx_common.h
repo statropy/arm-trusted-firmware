@@ -58,6 +58,8 @@ soc_strapping lan966x_get_strapping(void);
 void lan966x_validate_strapping(void);
 bool lan966x_monitor_enabled(void);
 
+void lan966x_pcie_init(void);
+
 boot_source_type lan966x_get_boot_source(void);
 bool lan966x_bootable_source(void);
 
