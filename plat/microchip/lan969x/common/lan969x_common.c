@@ -198,8 +198,6 @@ void lan969x_set_max_trace_level(void)
 	case LAN966X_STRAP_BOOT_QSPI_HS:
 	case LAN966X_STRAP_BOOT_SD:
 	case LAN966X_STRAP_PCIE_ENDPOINT:
-	case LAN966X_STRAP_TFAMON_FC0:
-	case LAN966X_STRAP_TFAMON_FC0_HS:
 	case LAN966X_STRAP_SPI_SLAVE:
 		tf_log_set_max_level(LOG_LEVEL_ERROR);
 		break;
