@@ -16,6 +16,9 @@ platforms = {
     "lan969x_sr"	=> Hash[
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
+    "lan969x_a0"	=> Hash[
+        :arch  => "arm64",
+        :nor_gpt_size   => 2*(1024 * 1024) ],
 }
 
 architectures = {

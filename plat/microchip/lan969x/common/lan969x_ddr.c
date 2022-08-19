@@ -9,20 +9,25 @@
 #include <drivers/delay_timer.h>
 #include <lib/mmio.h>
 
-#include "lan969x_regs_sr.h"
-#include "lan969x_ddr_sr.h"
+#include "lan969x_regs.h"
+#include <lan969x_targets.h>
 
+#if defined(LAN966X_ASIC)
+#include <lan969x_ddr_a0.h>
+#include <ddr.h>
+#else
+#include "lan969x_ddr_sr.h"
 #define EXB_FPGA
 #define SKIP_TRAINING	0
 #define INIT_MODE	1
+static uint32_t t = LAN969X_DDR_PHY_BASE;
+#endif
 
 // defining DDR single addr region
 #define VTSS_MASERATI_DDR LAN969X_DDR_BASE
 
 #define debug(x...) VERBOSE(x)
 #define error(x...) ERROR(x)
-
-static uint32_t t = LAN969X_DDR_PHY_BASE;
 
 static inline void my_wait(uint32_t t_nsec, const uint16_t msg)
 {
@@ -234,10 +239,10 @@ void lan966x_ddr_init(void)
     var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_WRDATA_USE_DFI_PHY_CLK,0x0);   // (default = 0);, set to 0, since FPGA MultiPHY uses same dficlk as MC
     wr_fld_s_r(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_RDDATA_USE_DFI_PHY_CLK,0x0);         // (default = 0);, set to 0, since FPGA MultiPHY uses same dficlk as MC
   #else
-    var = wr_fld_r_s(     DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_TPHY_WRLAT, TPHY_WRLAT);
-    var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_TPHY_WRDATA, TPHY_WRDATA);
-    var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_T_RDDATA_EN, TRDDATA_EN);
-    wr_fld_s_r(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_T_CTRL_DELAY, TCTRL_DELAY);
+    var = wr_fld_r_s(     DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_TPHY_WRLAT, params_DDR_UMCTL2_DFI_TPHY_WRLAT);
+    var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_TPHY_WRDATA, params_DDR_UMCTL2_DFI_TPHY_WRDATA);
+    var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_T_RDDATA_EN, params_DDR_UMCTL2_DFI_T_RDDATA_EN);
+    wr_fld_s_r(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG0,DFI_T_CTRL_DELAY, params_DDR_UMCTL2_DFI_T_CTRL_DELAY);
   #endif
 
   // DFITMG1 register configuration
@@ -246,9 +251,9 @@ void lan966x_ddr_init(void)
     var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_DRAM_CLK_DISABLE, 0x1); // TDRAM_CLK_DIS_FPGA);
     wr_fld_s_r(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_WRDATA_DELAY, 0x5); // TWRDATA_DELAY_FPGA);
   #else
-    var = wr_fld_r_s(     DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_DRAM_CLK_ENABLE, TDRAM_CLK_ENA);
-    var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_DRAM_CLK_DISABLE, TDRAM_CLK_DIS);
-    wr_fld_s_r(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_WRDATA_DELAY, TWRDATA_DELAY);
+    var = wr_fld_r_s(     DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_DRAM_CLK_ENABLE, params_DDR_UMCTL2_DFI_T_DRAM_CLK_ENABLE);
+    var = wr_fld_s_s(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_DRAM_CLK_DISABLE, params_DDR_UMCTL2_DFI_T_DRAM_CLK_DISABLE);
+    wr_fld_s_r(var, DDR_UMCTL2,UMCTL2_REGS,DFITMG1,DFI_T_WRDATA_DELAY, params_DDR_UMCTL2_DFI_T_WRDATA_DELAY);
   #endif
 
   // DFITMG2 register configuration (write this register for FPGA only); - commeted out temporarly
@@ -527,7 +532,7 @@ void lan966x_ddr_init(void)
      wr_fld_s_r(var, DDR_PHY, DDR_PHY_REGS ,GENERAL_SETUP, CA_BUS_VAL_EDGE,  0x0); // cfg.phy_cfg.gen_setup.ca_valid);
 
      #else
-     config_ddr_phy_init_reg();
+     // XXX config_ddr_phy_init_reg();
      #endif
      // } else {
      //   printf("DDR_INIT, #### skipping PHY initialization ####");
@@ -579,7 +584,7 @@ void lan966x_ddr_init(void)
      #endif
 
      #else
-     dram_phypub_init(); // DRAM init by PHY-PUB logic
+     // XXX dram_phypub_init(); // DRAM init by PHY-PUB logic
      #endif
    // } else {
      //printf("DDR_INIT, #### skipping DRAM initialization ####");
@@ -878,7 +883,7 @@ void lan966x_ddr_init(void)
      #endif
 
      #else
-     ddr_phypub_training(); // DATA training by PUB
+     // XXX ddr_phypub_training(); // DATA training by PUB
      #endif
    // } else {
    //   //printf("DDR_INIT, #### skipping DATA training ####");

@@ -4,4 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#if defined(LAN966X_ASIC)
+#include <lan969x_regs_a0.h>
+#else
 #include <lan969x_regs_sr.h>
+#endif
