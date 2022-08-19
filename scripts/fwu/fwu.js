@@ -71,7 +71,7 @@ const platforms = {
 	"bl1_binary":	false,
 	"bl2u":		lan966x_b0_app,
     },
-    "f0281445": {
+    "f969a445": {
 	"name":		"LAN969X SR",
 	"bl1_binary":	true,
 	"bl2u":		lan969x_sr_app,
