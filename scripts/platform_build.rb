@@ -7,7 +7,7 @@ require 'pp'
 build_platforms         = %I[lan966x_b0 lan969x_sr lan969x_a0]
 build_types             = %I[debug release]
 build_authentifications = %I[auth ssk]
-build_variants          = %I[bl2normal bl33linux]
+build_variants          = %I[bl2normal bl2noop bl33linux]
 
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp',
                             bl33linux: '--linux-as-bl33' }

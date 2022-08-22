@@ -96,6 +96,14 @@ BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 				plat/microchip/common/plat_bl2u_bootstrap.c	\
 				plat/microchip/lan969x/common/lan969x_bl2u_io.c
 
+ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
+$(info Generating a BL2 NOOP)
+override BL2_SOURCES		:=	\
+				bl2/${ARCH}/bl2_entrypoint.S				\
+				common/aarch64/early_exceptions.S			\
+				plat/microchip/lan969x/common/${ARCH}/plat_bl2_noop.S
+endif
+
 BL31_SOURCES		+=	${GICV2_SOURCES}				\
 				${LAN969X_PLAT_COMMON}/lan969x_bl31_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_pm.c		\
