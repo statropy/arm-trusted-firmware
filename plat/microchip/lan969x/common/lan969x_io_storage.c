@@ -184,7 +184,7 @@ static int check_enc_fip(const uintptr_t spec);
 static const struct plat_io_policy policies[] = {
 	[ENC_IMAGE_ID] = {
 		&fip_dev_handle,
-		(uintptr_t)&bl32_uuid_spec, /* Dummy, but must be present in FIP */
+		(uintptr_t)&bl31_uuid_spec, /* Dummy, but must be present in FIP */
 		check_fip
 	},
 	[BL2_IMAGE_ID] = {
@@ -198,9 +198,9 @@ static const struct plat_io_policy policies[] = {
 		check_fip
 	},
 	[BL31_IMAGE_ID] = {
-		&fip_dev_handle,
+		&enc_dev_handle,
 		(uintptr_t)&bl31_uuid_spec,
-		check_fip
+		check_enc_fip
 	},
 	[BL32_IMAGE_ID] = {
 		&enc_dev_handle,
@@ -293,6 +293,11 @@ static const struct plat_io_policy fallback_policies[] = {
 	[BL2_IMAGE_ID] = {
 		&fip_dev_handle,
 		(uintptr_t)&bl2_uuid_spec,
+		check_fip
+	},
+	[BL31_IMAGE_ID] = {
+		&fip_dev_handle,
+		(uintptr_t)&bl31_uuid_spec,
 		check_fip
 	},
 	[BL32_IMAGE_ID] = {

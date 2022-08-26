@@ -12,8 +12,8 @@ build_variants          = %I[bl2normal bl2noop bl33linux]
 build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp',
                             bl33linux: '--linux-as-bl33' }
 build_auth_args         = { auth: '',
-                            ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl32,bl33',
-                            bssk: '--encrypt-bssk keys/huk.bin --encrypt-images bl2,bl32,bl33' }
+                            ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl31,bl32,bl33',
+                            bssk: '--encrypt-bssk keys/huk.bin --encrypt-images bl2,bl31,bl32,bl33' }
 
 option = {}
 OptionParser.new do |opts|
