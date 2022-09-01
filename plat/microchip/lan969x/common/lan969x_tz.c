@@ -43,6 +43,7 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_write_32(GPV_SECURITY_CPU_REGS(gpv), true);
 	mmio_write_32(GPV_SECURITY_CSR_REGS(gpv), true);
 	mmio_write_32(GPV_SECURITY_DDR_CSS(gpv), true);
+	mmio_write_32(GPV_SECURITY_APB_CSS2(gpv), true); /* OTP */
 
 	/* Magic key to unlock protection */
 	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0x12AC4B5D);

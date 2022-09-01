@@ -303,9 +303,19 @@ int otp_write_regions(void)
 		{ 0x0100, 0x01FF },  // Keys and other security related
 		{ 0x0200, 0x023F },  // Non-volatile secure counters
 		{ 0x0240, 0x027F },  // Insecure configuration with emulation
-		{ 0x0280, 0x1FFF },  // User-space / Customer usage
+		{ 0x0280, OTP_MEM_SIZE - 1 },  // User-space / Customer usage
 	};
 	uint32_t ck;
+
+#if defined(OTP_TRUSTZONE_AWARE)
+	/* Allow NS access for these regions */
+	regions[0].begin |= BIT(15); /* Manuf */
+	regions[1].begin |= BIT(15); /* OTP Write protect */
+	regions[2].begin |= BIT(15); /* OTP Region Definitions */
+	regions[3].begin |= BIT(15); /* Insecure configuration #1 */
+	regions[6].begin |= BIT(15); /* Insecure configuration #2 */
+	regions[ARRAY_SIZE(regions) - 1].begin |= BIT(15); /* User-space */
+#endif
 
 	/* Check if programmed already */
 	if (otp_read_uint32(PROTECT_REGION_ADDR_ADDR, &ck) == 0 && ck == 0)
