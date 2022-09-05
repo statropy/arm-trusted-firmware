@@ -25,18 +25,28 @@ bssk_derive_key = [
 		0x94, 0xdd, 0x46, 0x2a, 0xcc, 0x61, 0xb5, 0x5d,
 ]
 
-$option = { :platform	=> "lan966x_b0",
-             :loglevel	=> 40,
-             :encrypt	=> false,
-             :debug	=> true,
-             :key_alg	=> 'ecdsa',
-             :rot	=> "keys/rotprivk_ecdsa.pem",
-             :arch	=> "arm",
-             :sdk	=> "2022.02.2-777",
-             :sdk_branch => "-brsdk",
-             :norimg	=> true,
-             :gptimg	=> false,
-             :ramusage	=> true,
+$option = { :platform              => "lan966x_b0",
+            :loglevel              => 40,
+            :encrypt               => false,
+            :debug                 => true,
+            :key_alg               => 'ecdsa',
+            :rot                   => "keys/rotprivk_ecdsa.pem",
+            :rot_pub               => "keys/rotpk_ecdsa.der",
+            :rot_sha               => "keys/rotpk_ecdsa_sha256.bin",
+            :bl31_key              => "keys/bl31_ecdsa.pem",
+            :bl32_key              => "keys/bl32_ecdsa.pem",
+            :bl33_key              => "keys/bl33_ecdsa.pem",
+            :non_trusted_world_key => "keys/non_trusted_world_ecdsa.pem",
+            :scp_bl2_key           => "keys/scp_bl2_ecdsa.pem",
+            :trusted_world_key     => "keys/trusted_world_ecdsa.pem",
+            :create_keys           => false,
+            :bl33_blob             => nil,
+            :arch                  => "arm",
+            :sdk                   => "2022.02.2-777",
+            :sdk_branch            => "-brsdk",
+            :norimg                => true,
+            :gptimg                => false,
+            :ramusage              => true,
           }
 
 args = ""
@@ -52,6 +62,27 @@ OptionParser.new do |opts|
     end
     opts.on("-r", "--root-of-trust <keyfile>", "Set ROT key file") do |k|
         $option[:rot] = k
+    end
+    opts.on("--create_keys", "Create new keys") do
+        $option[:create_keys] = true
+    end
+    opts.on("--bl31-key <keyfile>", "Set BL31 key") do |k|
+        $option[:bl31_key] = k
+    end
+    opts.on("--bl32-key <keyfile>", "Set BL32 key") do |k|
+        $option[:bl32_key] = k
+    end
+    opts.on("--bl33-key <keyfile>", "Set BL33 key") do |k|
+        $option[:bl33_key] = k
+    end
+    opts.on("--non_trusted_world-key <keyfile>", "Set non_trusted_world key") do |k|
+        $option[:non_trusted_world_key] = k
+    end
+    opts.on("--scp_bl2-key <keyfile>", "Set scp_bl2 key") do |k|
+        $option[:scp_bl2_key] = k
+    end
+    opts.on("--trusted_world-key <keyfile>", "Set trusted_world key") do |k|
+        $option[:trusted_world_key] = k
     end
     opts.on("--encrypt-images <imagelist>", "List of encrypted images, eg BL2,BL32,BL33") do |k|
         $option[:encrypt_images] = k
@@ -69,6 +100,9 @@ OptionParser.new do |opts|
     end
     opts.on("-l", "--linux-as-bl33", "Enable direct Linux booting") do
         $option[:linux_boot] = true
+    end
+    opts.on("--bl33-blob <file>", "BL33 binary") do |p|
+        $option[:bl33_blob] = p
     end
     opts.on("-d", "--debug", "Enable DEBUG") do
         $option[:debug] = true
@@ -170,7 +204,9 @@ install_toolchain(tc_conf["toolchain"])
 # Use SDK tools first in PATH
 ENV['PATH'] = "#{sdk_dir}/arm-cortex_a8-linux-gnu/standalone/release/x86_64-linux/bin:" + ENV['PATH']
 
-if $option[:linux_boot]
+if $option[:bl33_blob]
+    args += "BL33=#{$option[:bl33_blob]} "
+elsif $option[:linux_boot]
     kernel = sdk_dir + "/arm-cortex_a8-linux-gnu/standalone/release/brsdk_standalone_arm.itb"
     args += "BL33=#{kernel} "
 else
@@ -184,8 +220,18 @@ args += "BL32_EXTRA1=#{$option[:bl32extra1]} " if $option[:bl32extra1]
 args += "BL32_EXTRA2=#{$option[:bl32extra2]} " if $option[:bl32extra2]
 
 # TBBR: Former option, now always on
-args += "GENERATE_COT=1 CREATE_KEYS=1 MBEDTLS_DIR=mbedtls "
+args += "GENERATE_COT=1 MBEDTLS_DIR=mbedtls "
+if $option[:create_keys]
+    args += "CREATE_KEYS=1 SAVE_KEYS=1 "
+end
 args += "KEY_ALG=#{$option[:key_alg]} ROT_KEY=#{$option[:rot]} "
+args += "BL31_KEY=#{$option[:bl31_key]} "
+args += "BL32_KEY=#{$option[:bl32_key]} "
+args += "BL33_KEY=#{$option[:bl33_key]} "
+args += "NON_TRUSTED_WORLD_KEY=#{$option[:non_trusted_world_key]} "
+args += "SCP_BL2_KEY=#{$option[:scp_bl2_key]} "
+args += "TRUSTED_WORLD_KEY=#{$option[:trusted_world_key]} "
+
 if !File.directory?("mbedtls")
     do_cmd("git clone https://github.com/ARMmbed/mbedtls.git")
 end
@@ -232,6 +278,11 @@ puts cmd
 do_cmd cmd
 
 exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
+
+if $option[:create_keys]
+    do_cmd "openssl ec -in #{$option[:rot]} -inform PEM -outform DER -pubout > #{$option[:rot_pub]}"
+    do_cmd "openssl dgst -sha256 -binary #{$option[:rot_pub]} > #{$option[:rot_sha]}"
+end
 
 lsargs = %w(bin gz)
 
