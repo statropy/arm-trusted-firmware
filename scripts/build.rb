@@ -29,7 +29,6 @@ $option = { :platform              => "lan966x_b0",
             :loglevel              => 40,
             :encrypt               => false,
             :debug                 => true,
-            :key_alg               => 'ecdsa',
             :rot                   => "keys/rotprivk_ecdsa.pem",
             :rot_pub               => "keys/rotpk_ecdsa.der",
             :rot_sha               => "keys/rotpk_ecdsa_sha256.bin",
@@ -56,9 +55,6 @@ OptionParser.new do |opts|
     opts.version = 0.1
     opts.on("-p", "--platform <platform>", "Build for given platform") do |p|
         $option[:platform] = p
-    end
-    opts.on("-a", "--key-alg <algo>", "Set key algorithm (rsa|ecdsa)") do |a|
-        $option[:key_alg] = a
     end
     opts.on("-r", "--root-of-trust <keyfile>", "Set ROT key file") do |k|
         $option[:rot] = k
@@ -224,7 +220,8 @@ args += "GENERATE_COT=1 MBEDTLS_DIR=mbedtls "
 if $option[:create_keys]
     args += "CREATE_KEYS=1 SAVE_KEYS=1 "
 end
-args += "KEY_ALG=#{$option[:key_alg]} ROT_KEY=#{$option[:rot]} "
+args += "KEY_ALG=ecdsa "
+args += "ROT_KEY=#{$option[:rot]} "
 args += "BL31_KEY=#{$option[:bl31_key]} "
 args += "BL32_KEY=#{$option[:bl32_key]} "
 args += "BL33_KEY=#{$option[:bl33_key]} "
