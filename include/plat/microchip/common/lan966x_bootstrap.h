@@ -94,14 +94,14 @@ static inline void bootstrap_TxAck(void)
 	bootstrap_Tx(BOOTSTRAP_ACK, 0, 0, NULL);
 }
 
-static inline void bootstrap_TxAckData(const void *data, uint32_t len)
-{
-	bootstrap_Tx(BOOTSTRAP_ACK, 0, len, data);
-}
-
 static inline void bootstrap_TxAckData_arg(const void *data, uint32_t len, uint32_t arg)
 {
 	bootstrap_Tx(BOOTSTRAP_ACK, arg, len, data);
+}
+
+static inline void bootstrap_TxAckData(const void *data, uint32_t len)
+{
+	bootstrap_Tx(BOOTSTRAP_ACK, 0, len, data);
 }
 
 static inline void bootstrap_TxNack_rc(const char *str, uint32_t rc)

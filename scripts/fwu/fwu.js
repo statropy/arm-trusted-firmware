@@ -80,7 +80,7 @@ const platforms = {
 
 function validResponse(r)
 {
-    var m = r.match(/>(\w),([0-9a-f]{8}),([0-9a-f]{8})(#|%)(.+)$/i);
+    var m = r.match(/>(\w),([0-9a-f]{8}),([0-9a-f]{8})(#|%)(.+)/i);
     //console.log(m);
     return m;
 }
@@ -117,7 +117,7 @@ class BootstrapRequestTransformer {
 	if (this.sync) {
 	    if (tracing)
 		console.log("Xform: %s -> %s", chunk, this.chunks);
-	    // Enogh data to have a real request?
+	    // Enough data to have a real request?
 	    if (this.chunks.length >= this.fixedlen) {
 		var rmatch = validResponse(this.chunks);
 		if (rmatch) {
@@ -391,6 +391,7 @@ async function doWrite(port, operation, cmd, dev, status_id)
     let s = disableButtons("bl2u", true);
     try {
 	setFeedbackStatus(status_id, "Starting " + operation);
+	addTrace("This may take up to 5 minutes or even longer depending on data size and media.");
 	let write = await completeRequest(port, fmtReq(cmd, dev));
 	setFeedbackStatus(status_id, "Completed " + operation);
     } catch(e) {
@@ -517,6 +518,23 @@ window.addEventListener("load", (event) => {
     otpSelPopulate("bl2u_otp_read_fld");
 });
 
+function browserCheck()
+{
+    if (!navigator.userAgentData)
+	return false;
+
+    for (var b of navigator.userAgentData.brands) {
+	console.log(b);
+	if (b.brand.match(/chrome|chromium|crios/i)){
+            return true;
+	} else if (b.brand.match(/edg/i)){
+            return true;
+	}
+    }
+
+    return false;
+}
+
 function startSerial()
 {
     var port;
@@ -524,6 +542,13 @@ function startSerial()
     var sjtag_challenge;
     var settings_prev_stage;
     var plf;
+
+    if (!browserCheck()) {
+	document.getElementById('browser_check').style.display = 'block';
+	document.getElementById('connect').style.display = 'none';
+	console.log("Browser check failed, bailing out. Use Chrome or Edge.");
+	return;
+    }
 
     document.getElementById("file_select").addEventListener("change", function () {
 	if (this.files && this.files[0]) {

@@ -38,12 +38,27 @@
 	.feedback {
 	    font-style: italic;
 	}
+	.warning {
+	    border: 1px solid;
+	    margin: 8px 8px;
+	    padding: 8px 8px;
+	    text-color: white;
+	    background-color: red;
+	}
     </style>
 </head>
 <body onload="startSerial()">
   <h1>LAN96xx Secure boot management</h1>
   <img id="settings" width="20" height="20" src="settings.jpg">
   <img id="active" width="30" height="30" src="activity.gif" style="display:none">
+  <div id="browser_check" style="display:none" class="warning">
+    <h3>Warning!</h3>
+    <p>
+      You seem not to be using a supported browser. Please use only
+      Google 'Chrome' or Microsoft 'Edge' browsers, and if so - a
+      current version. This tool will not work otherwise.
+    </p>
+  </div>
   <div id="connect">
     <h2>Select communication port</h2>
     <p>
