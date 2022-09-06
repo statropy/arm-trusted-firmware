@@ -43,24 +43,6 @@ int lan966x_load_fw_config(unsigned int image_id)
 
 	return result;
 }
-
-void lan966x_fwconfig_apply(void)
-{
-	boot_source_type boot_source = lan966x_get_boot_source();
-
-	/* Update storage drivers with new values from fw_config */
-	switch (boot_source) {
-	case BOOT_SOURCE_QSPI:
-		qspi_reinit();
-		break;
-	case BOOT_SOURCE_SDMMC:
-	case BOOT_SOURCE_EMMC:
-		lan966x_mmc_plat_config(boot_source);
-		break;
-	default:
-		break;
-	}
-}
 #endif
 
 static int lan966x_fdt_get_prop(void *fdt,

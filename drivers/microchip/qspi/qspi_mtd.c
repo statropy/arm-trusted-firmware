@@ -789,10 +789,6 @@ default_spi_mem:
 					  plat_qspi_default_clock_mhz() * 1000000U);
 }
 
-void qspi_reinit(void)
-{
-}
-
 unsigned int qspi_get_spi_mode(void)
 {
 	return qspi_mode;

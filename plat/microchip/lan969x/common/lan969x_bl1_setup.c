@@ -117,7 +117,6 @@ void bl1_platform_setup(void)
 		bl1_plat_handle_pre_image_load(FW_CONFIG_ID);
 		lan966x_load_fw_config(FW_CONFIG_ID);
 		bl1_plat_handle_post_image_load(FW_CONFIG_ID);
-		lan966x_fwconfig_apply();
 	}
 
 	/* SJTAG: Configure challenge, no freeze */
