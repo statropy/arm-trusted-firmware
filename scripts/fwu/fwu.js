@@ -6,12 +6,10 @@ const CMD_SEND = 'S';
 const CMD_UNZIP = 'Z';
 const CMD_DATA = 'D';
 const CMD_AUTH = 'U';
-const CMD_STRAP = 'O';
 const CMD_OTPD = 'P';
 const CMD_OTPR = 'R';
 const CMD_OTPC = 'M';
 const CMD_OTP_REGIONS = 'G';
-const CMD_CONT = 'C';
 const CMD_SJTAG_RD = 'Q';
 const CMD_SJTAG_WR = 'A';
 const CMD_ACK = 'a';
@@ -741,22 +739,6 @@ function startSerial()
 
     document.getElementById('bl1_otp_set_data').addEventListener('click', async () => {
 	await doOtpSetData(port, 'bl1', 'bl1_otp_set_data_feedback', 'bl1_otp_set_data_fld', 'bl1_otp_set_data_buf');
-    });
-
-    document.getElementById('bl1_continue').addEventListener('click', async () => {
-	let s = disableButtons("bl1", true);
-	try {
-	    setStatus("Continue TFA boot");
-	    var rspStruct = await completeRequest(port, fmtReq(CMD_CONT, 0));
-	    setStatus("System Booting");
-	    setStage("booting");
-	} catch(e) {
-	    setStatus("System Boot failed: " + e);
-	} finally {
-	    restoreButtons(s);
-	}
-	// Flush port for any pending boot massages
-	await delaySkipInput(port, 2000);
     });
 
     document.getElementById('port_select').addEventListener('click', async () => {

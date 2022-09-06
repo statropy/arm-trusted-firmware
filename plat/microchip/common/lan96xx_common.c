@@ -77,28 +77,6 @@ void lan966x_io_bootsource_init(void)
 			       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
 }
 
-void plat_bootstrap_set_strapping(soc_strapping value)
-{
-
-	/* To override strapping previous boot src must be 'none' */
-	if (lan966x_get_boot_source() == BOOT_SOURCE_NONE) {
-		/* And new strapping should be limited as below */
-		if (value == LAN966X_STRAP_BOOT_MMC ||
-		    value == LAN966X_STRAP_BOOT_QSPI ||
-		    value == LAN966X_STRAP_BOOT_SD ||
-		    value == LAN966X_STRAP_PCIE_ENDPOINT) {
-			NOTICE("OVERRIDE strapping = 0x%08x\n", value);
-			mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 0), GPR0_STRAPPING_SET | value);
-			/* Do initialization according to new source */
-			lan966x_io_bootsource_init();
-		} else {
-			ERROR("Strap override %d illegal\n", value);
-		}
-	} else {
-		ERROR("Strap override is illegal if boot source is already valid\n");
-	}
-}
-
 /*
  * Check if the current boot strapping mode has been masked out by the
  * OTP strapping mask and abort if this is the case.

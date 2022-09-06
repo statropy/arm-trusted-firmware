@@ -17,8 +17,6 @@
 #define BOOTSTRAP_UNZIP        'Z'
 // Authenticate & load BL2U
 #define BOOTSTRAP_AUTH         'U'
-// Override strapping
-#define BOOTSTRAP_STRAP        'O'
 // Set trace log-level
 #define BOOTSTRAP_TRACE_LVL    'T'
 // Program OTP data
@@ -33,8 +31,6 @@
 #define BOOTSTRAP_OTP_READ_EMU 'L' /* BL2U */
 // Read RAW OTP data
 #define BOOTSTRAP_OTP_READ_RAW 'l' /* BL2U */
-// Continue boot
-#define BOOTSTRAP_CONT         'C'
 // SJTAG Read Challenge
 #define BOOTSTRAP_SJTAG_RD     'Q'
 // SJTAG Write Resonse

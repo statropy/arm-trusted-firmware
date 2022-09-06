@@ -42,12 +42,6 @@ static void handle_read_rom_version(const bootstrap_req_t *req)
 	bootstrap_TxAckData_arg(ident, strlen(ident), chip);
 }
 
-static void handle_strap(const bootstrap_req_t *req)
-{
-	bootstrap_TxAck();
-	plat_bootstrap_set_strapping(req->arg0);
-}
-
 static void handle_otp_data(bootstrap_req_t *req)
 {
 	uint8_t *ptr = (uint8_t *) BL2_BASE;
@@ -246,15 +240,10 @@ void plat_bl1_bootstrap_monitor(void)
 			continue;
 		}
 
-		if (is_cmd(&req, BOOTSTRAP_CONT)) {
-			bootstrap_TxAck();
-			exit_monitor = true;
-		} else if (is_cmd(&req, BOOTSTRAP_VERS))
+		if (is_cmd(&req, BOOTSTRAP_VERS))
 			handle_read_rom_version(&req);
 		else if (is_cmd(&req, BOOTSTRAP_SEND))
 			handle_send_data(&req);
-		else if (is_cmd(&req, BOOTSTRAP_STRAP))
-			handle_strap(&req);
 		else if (is_cmd(&req, BOOTSTRAP_TRACE_LVL))
 			handle_trace_lvl(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPD))
