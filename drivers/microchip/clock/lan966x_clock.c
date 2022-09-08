@@ -11,7 +11,13 @@
 
 #include "lan966x_regs.h"
 
-#define PARENT_RATE 600000000UL
+#if defined(MCHP_SOC_LAN966X)
+#define PARENT_RATE 600000000UL	/* 600MHz */
+#elif defined(MCHP_SOC_LAN969X)
+#define PARENT_RATE 1000000000UL /* 1000MHz */
+#else
+#error Unknown SoC!?
+#endif
 
 static const uint32_t base = LAN966X_CPU_BASE;
 
