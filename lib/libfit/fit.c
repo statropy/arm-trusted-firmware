@@ -14,12 +14,11 @@
 
 #include "fit.h"
 
-static inline bool is_ns_ddr(uintptr_t addr)
+#pragma weak fit_plat_is_ns_addr
+bool fit_plat_is_ns_addr(uintptr_t addr)
 {
-	if (addr < PLAT_LAN966X_NS_IMAGE_BASE || addr >= PLAT_LAN966X_NS_IMAGE_LIMIT)
-		return false;
-
-	return true;
+	/* Deny all access by default */
+	return false;
 }
 
 static int fit_check_image_format(const void *fit)
@@ -45,7 +44,7 @@ static int fit_verify_header(const unsigned char *ptr)
 
 int fit_init_context(struct fit_context *context, uintptr_t fit_addr)
 {
-	if (!is_ns_ddr(fit_addr))
+	if (!fit_plat_is_ns_addr(fit_addr))
 		return -EINVAL;
 
 	memset(context, 0, sizeof(*context));
@@ -164,7 +163,7 @@ static int fit_image_get_address(const void *fit, int node_offset, char *name,
 	}
 	*load = (uintptr_t)load64;
 
-	return is_ns_ddr(*load) ? 0 : -EINVAL;
+	return fit_plat_is_ns_addr(*load) ? 0 : -EINVAL;
 }
 
 int fit_image_get_load(const void *fit, int node_offset, uintptr_t *load)
@@ -279,8 +278,8 @@ int fit_load(struct fit_context *context, fit_prop_t prop)
 		image_end = image_start + fit_get_size(context->fit);
 		load_end = load_start + size;
 
-		if (!is_ns_ddr(load_start) || !is_ns_ddr(load_end)) {
-			ERROR("fit: Only load to NS DDR allowed: %p-%p\n", (void*) load_start, (void*) load_end);
+		if (!fit_plat_is_ns_addr(load_start) || !fit_plat_is_ns_addr(load_end)) {
+			ERROR("fit: Only load to NS memory allowed: %p-%p\n", (void*) load_start, (void*) load_end);
 			ret = -EACCES;
 		} else if (prop != FITIMG_PROP_KERNEL_TYPE &&
 			   load_start < image_end && load_end > image_start) {

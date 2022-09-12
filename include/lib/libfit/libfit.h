@@ -22,6 +22,8 @@ typedef enum {
 	FITIMG_PROP_RAMDISK_TYPE
 } fit_prop_t;
 
+bool fit_plat_is_ns_addr(uintptr_t addr);
+
 int fit_init_context(struct fit_context *context, uintptr_t fit_addr);
 
 int fit_select(struct fit_context *context, const char *cfg);

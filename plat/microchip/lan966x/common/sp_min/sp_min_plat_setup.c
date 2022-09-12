@@ -53,6 +53,15 @@ static entry_point_info_t bl33_ep_info;
 
 static char fit_config[128], *fit_config_ptr;
 
+/* FIT platform check of address */
+bool fit_plat_is_ns_addr(uintptr_t addr)
+{
+	if (addr < PLAT_LAN966X_NS_IMAGE_BASE || addr >= PLAT_LAN966X_NS_IMAGE_LIMIT)
+		return false;
+
+	return true;
+}
+
 /*******************************************************************************
  * Return a pointer to the 'entry_point_info' structure of the next image for
  * the security state specified. BL33 corresponds to the non-secure image type.
