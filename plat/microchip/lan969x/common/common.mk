@@ -7,6 +7,7 @@
 include lib/xlat_tables_v2/xlat_tables.mk
 include drivers/arm/gic/v2/gicv2.mk
 include lib/zlib/zlib.mk
+include lib/libfit/libfit.mk
 include lib/libfdt/libfdt.mk
 include common/fdt_wrappers.mk
 
@@ -108,6 +109,7 @@ BL31_SOURCES		+=	${GICV2_SOURCES}				\
 				${LAN969X_PLAT_COMMON}/lan969x_bl31_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_pm.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_topology.c	\
+				drivers/microchip/otp/otp_tags.c		\
 				lib/cpus/aarch64/cortex_a53.S			\
 				plat/common/plat_gicv2.c			\
 				plat/common/plat_psci_common.c			\
