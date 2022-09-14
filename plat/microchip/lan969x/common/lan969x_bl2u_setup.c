@@ -39,8 +39,13 @@ void bl2u_platform_setup(void)
 	/* Call BL2U UART monitor */
 	lan966x_bl2u_bootstrap_monitor();
 
-	/* NOTREACHED */
-	assert(0);
+	/* Unprotect VCORE */
+	mmio_clrbits_32(CPU_RESET_PROT_STAT(LAN969X_CPU_BASE),
+			CPU_RESET_PROT_STAT_SYS_RST_PROT_VCORE(1));
+
+	/* Issue GCB reset */
+	mmio_write_32(GCB_SOFT_RST(LAN969X_GCB_BASE),
+		      GCB_SOFT_RST_SOFT_SWC_RST(1));
 }
 
 void bl2u_early_platform_setup(struct meminfo *mem_layout, void *plat_info)
