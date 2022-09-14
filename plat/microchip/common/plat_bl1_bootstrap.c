@@ -83,18 +83,6 @@ static void handle_otp_random(bootstrap_req_t *req)
 		bootstrap_TxNack("OTP random data illegal req length length");
 }
 
-static void handle_otp_commit(const bootstrap_req_t *req)
-{
-#if defined(MCHP_OTP_EMULATION)
-	if (otp_commit_emulation() == 0)
-		bootstrap_TxAck();
-	else
-		bootstrap_TxNack("OTP commit failed");
-#else
-	bootstrap_TxNack("OTP emulation not supported");
-#endif /* defined(MCHP_OTP_EMULATION) */
-}
-
 static void handle_otp_regions(const bootstrap_req_t *req)
 {
 	if (otp_write_regions() == 0)
@@ -220,12 +208,6 @@ static void handle_send_data(const bootstrap_req_t *req)
 	INFO("Received %d bytes\n", length);
 }
 
-static void handle_trace_lvl(const bootstrap_req_t *req)
-{
-	bootstrap_TxAck();
-	tf_log_set_max_level(req->arg0);
-}
-
 void plat_bl1_bootstrap_monitor(void)
 {
 	bootstrap_req_t req;
@@ -244,14 +226,10 @@ void plat_bl1_bootstrap_monitor(void)
 			handle_read_rom_version(&req);
 		else if (is_cmd(&req, BOOTSTRAP_SEND))
 			handle_send_data(&req);
-		else if (is_cmd(&req, BOOTSTRAP_TRACE_LVL))
-			handle_trace_lvl(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPD))
 			handle_otp_data(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPR))
 			handle_otp_random(&req);
-		else if (is_cmd(&req, BOOTSTRAP_OTPC))
-			handle_otp_commit(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTP_REGIONS))
 			handle_otp_regions(&req);
 		else if (is_cmd(&req, BOOTSTRAP_AUTH)) {

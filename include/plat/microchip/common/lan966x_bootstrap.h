@@ -17,20 +17,14 @@
 #define BOOTSTRAP_UNZIP        'Z'
 // Authenticate & load BL2U
 #define BOOTSTRAP_AUTH         'U'
-// Set trace log-level
-#define BOOTSTRAP_TRACE_LVL    'T'
 // Program OTP data
 #define BOOTSTRAP_OTPD         'P'
 // Program OTP random data
 #define BOOTSTRAP_OTPR         'R'
-// Commit OTP emulation data
-#define BOOTSTRAP_OTPC         'M'
 // Program OTP regions
 #define BOOTSTRAP_OTP_REGIONS  'G'
-// Read OTP data (normal)
-#define BOOTSTRAP_OTP_READ_EMU 'L' /* BL2U */
-// Read RAW OTP data
-#define BOOTSTRAP_OTP_READ_RAW 'l' /* BL2U */
+// Read OTP data
+#define BOOTSTRAP_OTP_READ     'L' /* BL2U */
 // SJTAG Read Challenge
 #define BOOTSTRAP_SJTAG_RD     'Q'
 // SJTAG Write Resonse

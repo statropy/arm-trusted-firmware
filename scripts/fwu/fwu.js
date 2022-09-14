@@ -8,18 +8,15 @@ const CMD_DATA = 'D';
 const CMD_AUTH = 'U';
 const CMD_OTPD = 'P';
 const CMD_OTPR = 'R';
-const CMD_OTPC = 'M';
 const CMD_OTP_REGIONS = 'G';
 const CMD_SJTAG_RD = 'Q';
 const CMD_SJTAG_WR = 'A';
 const CMD_ACK = 'a';
 const CMD_NACK = 'n';
-const CMD_TRACE = 'T';
 const CMD_BL2U_WRITE = 'W';
 const CMD_BL2U_IMAGE = 'I';
 const CMD_BL2U_BIND ='B';
-const CMD_BL2U_OTP_READ_RAW ='l';
-const CMD_BL2U_OTP_READ_EMU ='L';
+const CMD_BL2U_OTP_READ ='L';
 const CMD_BL2U_RESET ='e';
 
 let cur_stage = "connect";	// Initial "tab"
@@ -620,21 +617,19 @@ function startSerial()
 	    var fld = otp_fields[document.getElementById('bl2u_otp_read_fld').value];
 	    var off = fld["offset"];
 	    var len = fld["size"];
-	    var cmd = document.getElementById("bl2u_otp_read_type").selectedIndex == 0 ?
-		CMD_BL2U_OTP_READ_RAW : CMD_BL2U_OTP_READ_EMU;
-	    var type = (cmd == CMD_BL2U_OTP_READ_RAW ? "Raw" : "Emulated");
+	    var cmd = CMD_BL2U_OTP_READ;
 	    var rspStruct = await completeRequest(port, fmtReq(cmd, off, ntohl(len), false));
-	    setStatus(type + " OTP read completed", true);
+	    setStatus("OTP read completed", true);
 	    // Convert data to hex string for display
 	    var data = rspStruct["data"].split('').map(function (ch) {
 		return ch.charCodeAt(0).toString(16).padStart(2, "0");
 	    }).join(":");
 	    if (len < 32) {
-		setOpStatus("bl2u_otp_read_feedback", type + ": " + data);
+		setOpStatus("bl2u_otp_read_feedback", data);
 	    } else {
 		setOpStatus("bl2u_otp_read_feedback", fld["name"] + " data is in trace");
 	    }
-	    addTrace(type + " OTP read " + fld["name"] + " = " + data);
+	    addTrace("OTP read " + fld["name"] + " = " + data);
 	} catch(e) {
 	    setStatus("OTP Read: " + e);
 	    setOpStatus("bl2u_otp_read_feedback", e);

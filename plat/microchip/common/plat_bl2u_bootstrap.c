@@ -37,7 +37,7 @@ static const uintptr_t fip_base_addr = LAN966X_DDR_BASE;
 static const uintptr_t fip_max_size = LAN966X_DDR_SIZE;
 static uint32_t data_rcv_length;
 
-static void handle_otp_read(bootstrap_req_t *req, bool raw)
+static void handle_otp_read(bootstrap_req_t *req)
 {
 	uint8_t data[256];
 	uint32_t datalen;
@@ -46,9 +46,7 @@ static void handle_otp_read(bootstrap_req_t *req, bool raw)
 		datalen = __ntohl(datalen);
 		if (datalen > 0 && datalen < sizeof(data) &&
 		    req->arg0 >= 0 && (req->arg0 + datalen) <= OTP_MEM_SIZE) {
-			int rc = (raw ?
-				  otp_read_bytes_raw(req->arg0, datalen, data) :
-				  otp_read_bytes(req->arg0, datalen, data));
+			int rc = otp_read_bytes_raw(req->arg0, datalen, data);
 			if (rc < 0)
 				bootstrap_TxNack_rc("OTP read fails", rc);
 			else
@@ -460,10 +458,8 @@ void lan966x_bl2u_bootstrap_monitor(void)
 			handle_otp_data(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPR))
 			handle_otp_random(&req);
-		else if (is_cmd(&req, BOOTSTRAP_OTP_READ_EMU))	// L - Read OTP data
-			handle_otp_read(&req, false);
-		else if (is_cmd(&req, BOOTSTRAP_OTP_READ_RAW))	// l - Read RAW OTP data
-			handle_otp_read(&req, true);
+		else if (is_cmd(&req, BOOTSTRAP_OTP_READ))	// L - Read OTP data
+			handle_otp_read(&req);
 		else
 			bootstrap_TxNack("Unknown command");
 	}
