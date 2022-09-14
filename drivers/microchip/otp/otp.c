@@ -15,6 +15,8 @@
 #include "lan966x_regs.h"
 #include "plat_otp.h"
 
+#define OTP_TIMEOUT_US			(500 * 1000) /* 500us */
+
 #if defined(MCHP_OTP_EMULATION)
 /* Restrict OTP emulation */
 #define OTP_EMU_START_OFF	256
@@ -30,15 +32,31 @@ static uintptr_t reg_base = LAN966X_OTP_BASE;
 
 static bool otp_hw_wait_flag_clear(uintptr_t reg, uint32_t flag)
 {
-	int i = 500 * 1000;		/* Wait at most 500 ms*/
-	while (i--) {
+	uint64_t timeout = timeout_init_us(OTP_TIMEOUT_US);
+
+	do {
 		uint32_t val = mmio_read_32(reg);
-		VERBOSE("Wait reg 0x%lx for clr %08x: Have %08x iter %d\n",
-			(reg - reg_base) / 4, flag, val, i);
+		VERBOSE("Wait reg 0x%lx for clr %08x: Have %08x\n",
+			(reg - reg_base) / 4, flag, val);
 		if (!(val & flag))
 			return true;
-		udelay(1);
-	}
+	} while (!timeout_elapsed(timeout));
+
+	return false;
+}
+
+static bool __used otp_hw_wait_flag_set(uintptr_t reg, uint32_t flag)
+{
+	uint64_t timeout = timeout_init_us(OTP_TIMEOUT_US);
+
+	do {
+		uint32_t val = mmio_read_32(reg);
+		VERBOSE("Wait reg 0x%lx for set %08x: Have %08x\n",
+			(reg - reg_base) / 4, flag, val);
+		if (val & flag)
+			return true;
+	} while (!timeout_elapsed(timeout));
+
 	return false;
 }
 
@@ -49,6 +67,12 @@ static void otp_hw_power(bool up)
 		if (!otp_hw_wait_flag_clear(OTP_OTP_STATUS(reg_base), OTP_OTP_STATUS_OTP_CPUMPEN(1))) {
 			ERROR("OTP: CPUMPEN did not clear\n");
 		}
+#if defined(OTP_OTP_STATUS_OTP_LOADED)
+		if (!otp_hw_wait_flag_set(OTP_OTP_STATUS(reg_base), OTP_OTP_STATUS_OTP_LOADED(1))) {
+			ERROR("OTP: OTP_LOAD did not become set (%08x)\n",
+			      mmio_read_32(OTP_OTP_STATUS(reg_base)));
+		}
+#endif
 	} else {
 		mmio_setbits_32(OTP_OTP_PWR_DN(reg_base), OTP_OTP_PWR_DN_OTP_PWRDN_N(1));
 	}
