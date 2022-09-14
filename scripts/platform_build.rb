@@ -69,6 +69,8 @@ build_platforms.each do |bp|
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
           ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"],
           ["build/#{bp}/#{bt}/fwu.html",     "fwu.html"],
+          ["build/#{bp}/#{bt}/bl1/bl1.dump", "#{dst}-bl1.dump"],
+          ["build/#{bp}/#{bt}/bl2/bl2.dump", "#{dst}-bl2.dump"]
         ]
         # Limit the BL1 image artifacts
         # dst = "#{bp}-#{bt}"
