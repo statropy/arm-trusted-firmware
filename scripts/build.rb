@@ -91,6 +91,12 @@ OptionParser.new do |opts|
         $option[:encrypt_key] = k
         $option[:encrypt_flag] = 1 # BSSK
     end
+    opts.on("--fw-nvctr <counter>", "Set Secure FW NV counter for FIP") do |c|
+        $option[:nvctr] = c
+    end
+    opts.on("--ntfw-nvctr <counter>", "Set Non-trusted FW NV counter for FIP") do |c|
+        $option[:nt_nvctr] = c
+    end
     opts.on("-x", "--variant X", "BL2 variant (noop)") do |v|
         $option[:bl2variant] = v
     end
@@ -228,6 +234,8 @@ args += "BL33_KEY=#{$option[:bl33_key]} "
 args += "NON_TRUSTED_WORLD_KEY=#{$option[:non_trusted_world_key]} "
 args += "SCP_BL2_KEY=#{$option[:scp_bl2_key]} "
 args += "TRUSTED_WORLD_KEY=#{$option[:trusted_world_key]} "
+args += "TFW_NVCTR_VAL=#{$option[:nvctr]} " if $option[:nvctr]
+args += "NTFW_NVCTR_VAL=#{$option[:nt_nvctr]} " if $option[:nt_nvctr]
 
 if !File.directory?("mbedtls")
     do_cmd("git clone https://github.com/ARMmbed/mbedtls.git")
