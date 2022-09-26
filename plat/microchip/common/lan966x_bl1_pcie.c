@@ -258,6 +258,18 @@ void lan966x_pcie_init(void)
 			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(1) |
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
 
+#if defined(MCHP_SOC_LAN969X)
+	/* PHY reset */
+	mmio_setbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
+	/* PHY SD de-assert */
+	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_EXT_CFG_RST(1));
+	/* PHY de-assert */
+	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
+#endif
+
 	/* Read protect region 4 of the OTP (keys) */
 #if defined(OTP_OTP_READ_PROTECT)
 	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), BIT(4), BIT(4));
