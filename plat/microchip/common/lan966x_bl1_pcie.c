@@ -248,16 +248,6 @@ void lan966x_pcie_init(void)
 			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED(ret));
 	INFO("Set PCIe max link speed: %d\n", ret);
 
-	/* Start PCIe Link Training and disable writing */
-	mmio_clrsetbits_32(PCIE_DBI_MISC_CONTROL_1_OFF(LAN966X_PCIE_DBI_BASE),
-			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN_M,
-			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN(0));
-	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(LAN966X_PCIE_CFG_BASE),
-			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M |
-			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
-			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(1) |
-			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
-
 #if defined(MCHP_SOC_LAN969X)
 	/* PHY reset */
 	mmio_setbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
@@ -269,6 +259,16 @@ void lan966x_pcie_init(void)
 	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
 			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
 #endif
+
+	/* Start PCIe Link Training and disable writing */
+	mmio_clrsetbits_32(PCIE_DBI_MISC_CONTROL_1_OFF(LAN966X_PCIE_DBI_BASE),
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN_M,
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN(0));
+	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(LAN966X_PCIE_CFG_BASE),
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(1) |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
 
 	/* Read protect region 4 of the OTP (keys) */
 #if defined(OTP_OTP_READ_PROTECT)
