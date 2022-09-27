@@ -276,10 +276,14 @@ end
 
 args += "LOG_LEVEL=#{$option[:loglevel]} " if $option[:loglevel]
 
-if ARGV.length > 0
-    targets = ARGV.join(" ")
+if $option[:create_keys]
+    targets = "certificates"
 else
-    targets = "all fip fwu_fip"
+    if ARGV.length > 0
+        targets = ARGV.join(" ")
+    else
+        targets = "all fip fwu_fip"
+    end
 end
 
 cmd = "make #{args} #{targets}"
@@ -292,6 +296,9 @@ exit(0) if ARGV.length == 1 && (ARGV[0] == 'distclean' || ARGV[0] == 'clean')
 if $option[:create_keys]
     do_cmd "openssl ec -in #{$option[:rot]} -inform PEM -outform DER -pubout > #{$option[:rot_pub]}"
     do_cmd "openssl dgst -sha256 -binary #{$option[:rot_pub]} > #{$option[:rot_sha]}"
+    do_cmd "dd if=/dev/random bs=1 count=32 of=keys/ssk.bin"
+    do_cmd "dd if=/dev/random bs=1 count=32 of=keys/huk.bin"
+    exit 0
 end
 
 lsargs = %w(bin gz)
