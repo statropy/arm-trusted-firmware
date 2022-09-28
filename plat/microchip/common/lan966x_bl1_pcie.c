@@ -196,7 +196,7 @@ void lan966x_pcie_init(void)
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_PCIE_ENDPOINT:
-		INFO("PCIe endpoint mode\n");
+		//INFO("PCIe endpoint mode\n");
 		break;
 	default:
 		return;
