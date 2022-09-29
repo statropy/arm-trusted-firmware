@@ -201,6 +201,19 @@ void lan966x_pcie_init(void)
 	default:
 		return;
 	}
+
+#if defined(MCHP_SOC_LAN969X)
+	/* PHY reset */
+	mmio_setbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
+	/* PHY SD de-assert */
+	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_EXT_CFG_RST(1));
+	/* PHY de-assert */
+	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
+#endif
+
 	/* Stop PCIe Link Training and enable writing */
 	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(LAN966X_PCIE_CFG_BASE),
 			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M |
@@ -247,18 +260,6 @@ void lan966x_pcie_init(void)
 			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED_M,
 			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED(ret));
 	INFO("Set PCIe max link speed: %d\n", ret);
-
-#if defined(MCHP_SOC_LAN969X)
-	/* PHY reset */
-	mmio_setbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
-			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
-	/* PHY SD de-assert */
-	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
-			PCIE_PHY_WRAP_PCIE_PHY_CFG_EXT_CFG_RST(1));
-	/* PHY de-assert */
-	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
-			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
-#endif
 
 	/* Start PCIe Link Training and disable writing */
 	mmio_clrsetbits_32(PCIE_DBI_MISC_CONTROL_1_OFF(LAN966X_PCIE_DBI_BASE),
