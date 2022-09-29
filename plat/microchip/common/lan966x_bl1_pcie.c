@@ -5,6 +5,7 @@
  */
 
 #include <drivers/microchip/otp.h>
+#include <drivers/microchip/vcore_gpio.h>
 #include <lan966x_regs.h>
 #include <lan96xx_common.h>
 #include <lib/mmio.h>
@@ -203,6 +204,9 @@ void lan966x_pcie_init(void)
 	}
 
 #if defined(MCHP_SOC_LAN969X)
+	/* Configure PCIe_PERSTn: GPIO = ALT3 */
+	vcore_gpio_set_alt(0, 3);
+
 	/* PHY reset */
 	mmio_setbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
 			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
