@@ -377,8 +377,6 @@ static void lan969x_io_init_spi_mtd(void)
 {
 	int io_result __unused;
 
-	qspi_init();
-
 	io_result = register_io_dev_mtd(&spi_dev_con);
 	assert(io_result == 0);
 
