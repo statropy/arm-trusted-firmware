@@ -25,6 +25,9 @@
 #include <plat/microchip/common/duff_memcpy.h>
 #include <drivers/microchip/qspi.h>
 
+#define MHZ	1000000U
+#define MHZ_NS	(1000U * MHZ)
+
 /* QSPI register offsets */
 #define QSPI_CR	     0x0000  /* Control Register */
 #define QSPI_MR	     0x0004  /* Mode Register */
@@ -194,7 +197,6 @@
 #define QSPI_WPSR_WPVSRC(src)		 (((src) << 8) & QSPI_WPSR_WPVSRC)
 
 #define QSPI_DLYBS			 0x2
-#define QSPI_DLYCS			 0x7
 #define QSPI_WPKEY			 0x515350
 #define QSPI_TIMEOUT			 0x1000U
 
@@ -209,6 +211,10 @@
 static uintptr_t reg_base = LAN969X_QSPI_0_BASE;
 
 static unsigned int qspi_mode;
+static unsigned int qspi_dlycs;
+
+/* Assumed worst case for 'slow' speed on ST flash */
+#define MIN_DLYCS_NS	25
 
 #pragma weak plat_qspi_init_clock
 void plat_qspi_init_clock(void)
@@ -325,8 +331,16 @@ static int mchp_qspi_change_ifr(uint32_t ifr)
 
 static int mchp_qspi_init_controller(void)
 {
+	unsigned long clk;
+
 	/* Init clock */
 	plat_qspi_init_clock();
+
+	/* Set DLYCS */
+	clk = lan966x_clk_get_rate(LAN966X_CLK_ID_QSPI0);
+	INFO("QSPI0 running at %lu Mhz\n", clk / MHZ);
+	/* Calc minimum DLYCS - in clocks */
+	qspi_dlycs = DIV_ROUND_UP_2EVAL(MIN_DLYCS_NS, (MHZ_NS / clk));
 
 	/* Disable in a failsafe way */
 	mchp_qspi_write(QSPI_CR, QSPI_CR_DLLOFF);
@@ -370,7 +384,7 @@ static int mchp_qspi_init_controller(void)
 #endif
 
 	/* Set the QSPI controller by default in Serial Memory Mode */
-	mchp_qspi_write(QSPI_MR, QSPI_MR_SMM | QSPI_MR_DLYCS(QSPI_DLYCS));
+	mchp_qspi_write(QSPI_MR, QSPI_MR_SMM | QSPI_MR_DLYCS(qspi_dlycs));
 
 	/* Set DLYBS */
 	mchp_qspi_write(QSPI_SCR, QSPI_SCR_DLYBS(QSPI_DLYBS));
@@ -535,7 +549,7 @@ static int mchp_qspi_set_cfg(const struct spi_mem_op *op,
 	/*
 	 * Set QSPI controller in Serial Memory Mode (SMM).
 	 */
-	mchp_qspi_write(QSPI_MR, QSPI_MR_SMM);
+	mchp_qspi_write(QSPI_MR, QSPI_MR_SMM | QSPI_MR_DLYCS(qspi_dlycs));
 
 	return 0;
 }
@@ -786,7 +800,7 @@ default_spi_mem:
 	/* Instantiate default QSPI */
 	return spi_mem_init_slave_default(&mchp_qspi_bus_ops,
 					  plat_qspi_default_mode(),
-					  plat_qspi_default_clock_mhz() * 1000000U);
+					  plat_qspi_default_clock_mhz() * MHZ);
 }
 
 unsigned int qspi_get_spi_mode(void)
