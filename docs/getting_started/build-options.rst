@@ -673,6 +673,9 @@ Common build options
    to mask these events. Platforms that enable FIQ handling in SP_MIN shall
    implement the api ``sp_min_plat_fiq_handler()``. The default value is 0.
 
+-  ``TRNG_SUPPORT``: Setting this to ``1`` enables support for True
+   Random Number Generator Interface to BL31 image. This defaults to ``0``.
+
 -  ``TRUSTED_BOARD_BOOT``: Boolean flag to include support for the Trusted Board
    Boot feature. When set to '1', BL1 and BL2 images include support to load
    and verify the certificates and images in a FIP, and BL1 includes support

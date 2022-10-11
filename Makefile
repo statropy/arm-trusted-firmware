@@ -1041,6 +1041,7 @@ $(eval $(call assert_booleans,\
         ENABLE_FEAT_HCX \
         ENABLE_MPMM \
         ENABLE_MPMM_FCONF \
+	TRNG_SUPPORT \
 )))
 
 $(eval $(call assert_numerics,\

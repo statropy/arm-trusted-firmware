@@ -15,7 +15,7 @@
 #endif
 #if TRNG_SUPPORT
 #include "plat_trng.h"
-#endif
+#endif /* TRNG_SUPPORT */
 #include <drivers/fwu/fwu_metadata.h>
 
 /*******************************************************************************

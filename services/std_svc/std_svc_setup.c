@@ -67,7 +67,10 @@ static int32_t std_svc_setup(void)
 	sdei_init();
 #endif
 
+#if TRNG_SUPPORT
+	/* TRNG initialisation */
 	trng_setup();
+#endif /* TRNG_SUPPORT */
 
 	return ret;
 }
@@ -159,7 +162,8 @@ static uintptr_t std_svc_smc_handler(uint32_t smc_fid,
 		return trng_smc_handler(smc_fid, x1, x2, x3, x4, cookie, handle,
 				flags);
 	}
-#endif
+#endif /* TRNG_SUPPORT */
+
 #if ENABLE_RME
 	/*
 	 * Granule transition service interface functions (GTSI) are allocated
