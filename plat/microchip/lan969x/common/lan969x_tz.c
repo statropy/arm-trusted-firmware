@@ -116,6 +116,13 @@ void lan969x_tz_init(void)
 					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
 					MATRIX_LANSECH_NS(0));
 
+	/* Enable USB for NS access */
+	matrix_configure_slave_security(MATRIX_SLAVE_USB,
+					MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_1M) |
+					MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_1M),
+					MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_1M),
+					MATRIX_LANSECH_NS(0));
+
 	/* TZC: DDR accesess through CSS (128bit) */
 	lan969x_tzc_configure(LAN969X_TZC_CSS_BASE, css_rules, ARRAY_SIZE(css_rules));
 
