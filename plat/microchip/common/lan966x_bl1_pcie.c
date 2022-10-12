@@ -258,7 +258,7 @@ void lan966x_pcie_init(void)
 	/* Configure Maximum Link Speed */
 	ret = otp_read_otp_pcie_flags_max_link_speed();
 	if (ret == 0) {
-		ret = 2;
+		ret = 3;	/* Max speed code 3 = 8 GT/s */
 	}
 	mmio_clrsetbits_32(PCIE_DBI_LINK_CAPABILITIES_REG(LAN966X_PCIE_DBI_BASE),
 			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED_M,
