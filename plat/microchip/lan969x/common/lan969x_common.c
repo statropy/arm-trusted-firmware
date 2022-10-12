@@ -238,8 +238,13 @@ const mmap_region_t *plat_arm_get_mmap(void)
 
 int plat_qspi_default_mode(void)
 {
-	if (lan966x_get_strapping() == LAN966X_STRAP_BOOT_QSPI_HS_FC)
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_BOOT_QSPI_HS_FC:
+	case LAN966X_STRAP_BOOT_QSPI_HS:
 		return (SPI_RX_QUAD | SPI_TX_QUAD); /* HS == Quad mode by default mode (BL1) */
+	default:
+		break;
+	}
 	/* Single-wire otherwise */
 	return 0;
 }
