@@ -14,9 +14,11 @@ platforms = {
         :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
         :arch  => "arm" ],
     "lan969x_sr"	=> Hash[
+        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-lan969x_sr.bin",
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
     "lan969x_a0"	=> Hash[
+        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-lan969x_sr.bin",
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
 }
@@ -54,7 +56,7 @@ $option = { :platform	=> "lan966x_b0",
              :key_alg	=> 'ecdsa',
              :rot	=> "keys/rotprivk_ecdsa.pem",
              :arch	=> "arm",
-             :sdk	=> "2022.02.2-777",
+             :sdk	=> "2022.02.5-817",
              :sdk_branch => "-brsdk",
              :norimg	=> true,
              :ramusage	=> true,
