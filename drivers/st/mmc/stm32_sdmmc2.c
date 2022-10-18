@@ -123,7 +123,7 @@ static void stm32_sdmmc2_init(void);
 static int stm32_sdmmc2_send_cmd_req(struct mmc_cmd *cmd);
 static int stm32_sdmmc2_send_cmd(struct mmc_cmd *cmd);
 static int stm32_sdmmc2_set_ios(unsigned int clk, unsigned int width);
-static int stm32_sdmmc2_prepare(int lba, uintptr_t buf, size_t size);
+static int stm32_sdmmc2_prepare(int lba, uintptr_t buf, size_t size, bool is_write);
 static int stm32_sdmmc2_read(int lba, uintptr_t buf, size_t size);
 static int stm32_sdmmc2_write(int lba, uintptr_t buf, size_t size);
 
@@ -465,7 +465,7 @@ static int stm32_sdmmc2_set_ios(unsigned int clk, unsigned int width)
 	return 0;
 }
 
-static int stm32_sdmmc2_prepare(int lba, uintptr_t buf, size_t size)
+static int stm32_sdmmc2_prepare(int lba, uintptr_t buf, size_t size, bool is_write)
 {
 	struct mmc_cmd cmd;
 	int ret;

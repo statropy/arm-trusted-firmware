@@ -742,7 +742,7 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 	return 0;
 }
 
-static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size)
+static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size, bool is_write)
 {
 	uint16_t mode = SDMMC_TMR_BCEN;
 	size_t blocks, blocksize;
