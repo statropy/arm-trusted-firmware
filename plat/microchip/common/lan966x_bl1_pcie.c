@@ -12,6 +12,12 @@
 #include <plat_otp.h>
 #include <platform_def.h>
 
+#if defined(MCHP_SOC_LAN966X)
+#define PCIE_MAX_SPEED_CODE	2 /* 5 GT/s */
+#elif defined(MCHP_SOC_LAN969X)
+#define PCIE_MAX_SPEED_CODE	3 /* 8 GT/s */
+#endif
+
 #define MAX_BARS	5		/* Maximum number of configurable bars */
 #define OTP_BAR_SIZE	(MAX_BARS*2)	/* Address and size information */
 
@@ -258,8 +264,9 @@ void lan966x_pcie_init(void)
 	/* Configure Maximum Link Speed */
 	ret = otp_read_otp_pcie_flags_max_link_speed();
 	if (ret == 0) {
-		ret = 3;	/* Max speed code 3 = 8 GT/s */
+		ret = PCIE_MAX_SPEED_CODE;
 	}
+	ret = MAX(PCIE_MAX_SPEED_CODE, ret); /* Make sure we don't exceed max */
 	mmio_clrsetbits_32(PCIE_DBI_LINK_CAPABILITIES_REG(LAN966X_PCIE_DBI_BASE),
 			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED_M,
 			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED(ret));
