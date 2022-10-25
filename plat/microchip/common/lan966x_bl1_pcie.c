@@ -266,7 +266,7 @@ void lan966x_pcie_init(void)
 	if (ret == 0) {
 		ret = PCIE_MAX_SPEED_CODE;
 	}
-	ret = MAX(PCIE_MAX_SPEED_CODE, ret); /* Make sure we don't exceed max */
+	ret = MIN(PCIE_MAX_SPEED_CODE, ret); /* Make sure we don't exceed max */
 	mmio_clrsetbits_32(PCIE_DBI_LINK_CAPABILITIES_REG(LAN966X_PCIE_DBI_BASE),
 			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED_M,
 			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED(ret));
