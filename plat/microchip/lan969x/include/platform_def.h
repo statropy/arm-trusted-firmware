@@ -52,14 +52,14 @@
  * the current BL1 RW debug size plus a little space for growth.
  */
 #define BL1_RW_BASE		(BL1_RW_LIMIT - BL1_RW_SIZE)
-#define BL1_RW_SIZE		SIZE_K(128)
+#define BL1_RW_SIZE		SIZE_K(64)
 #define BL1_RW_LIMIT		(LAN969X_SRAM_BASE + LAN969X_SRAM_SIZE)
 
 /*
  * BL2
  */
 #define BL2_BASE		LAN969X_SRAM_BASE
-#define BL2_SIZE       		SIZE_K(256)
+#define BL2_SIZE       		SIZE_K(160)
 #define BL2_LIMIT		(BL2_BASE + BL2_SIZE)
 
 /*
