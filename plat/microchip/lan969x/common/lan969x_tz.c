@@ -44,24 +44,6 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_write_32(GPV_SECURITY_CSR_REGS(gpv), true);
 	mmio_write_32(GPV_SECURITY_DDR_CSS(gpv), true);
 	mmio_write_32(GPV_SECURITY_APB_CSS2(gpv), true); /* OTP */
-
-	/* Magic key to unlock protection */
-	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0x12AC4B5D);
-	mmio_setbits_32(TZPM_TZPCTL0(tzpm),
-			TZPM_TZPCTL0_QSPI0(1) |
-			TZPM_TZPCTL0_QSPI2(1) |
-			TZPM_TZPCTL0_SDMMC0(1) |
-			TZPM_TZPCTL0_SDMMC1(1));
-	mmio_setbits_32(TZPM_TZPCTL1(tzpm),
-			TZPM_TZPCTL1_XDMA(1) |
-			TZPM_TZPCTL1_FLEXCOM0(1) |
-			TZPM_TZPCTL1_FLEXCOM1(1) |
-			TZPM_TZPCTL1_FLEXCOM2(1) |
-			TZPM_TZPCTL1_FLEXCOM3(1));
-	mmio_setbits_32(TZPM_TZPCTL3(tzpm),
-			TZPM_TZPCTL3_FDMA(1));
-	/* Reset key to reestablish protection */
-	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0);
 }
 
 void lan969x_tzc_configure(uintptr_t tzc_base, const lan969x_tcreg_t *regions, size_t nregs)
@@ -128,4 +110,27 @@ void lan969x_tz_init(void)
 
 	/* TZC: DDR access through HSS/HMATRIX (64bit) */
 	lan969x_tzc_configure(LAN969X_TZC_MAIN_HSS_BASE, hss_rules, ARRAY_SIZE(hss_rules));
+}
+
+void lan969x_tz_finish(void)
+{
+	uintptr_t tzpm = LAN969X_TZPM_BASE;
+
+	/* Magic key to unlock protection */
+	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0x12AC4B5D);
+	mmio_setbits_32(TZPM_TZPCTL0(tzpm),
+			TZPM_TZPCTL0_QSPI0(1) |
+			TZPM_TZPCTL0_QSPI2(1) |
+			TZPM_TZPCTL0_SDMMC0(1) |
+			TZPM_TZPCTL0_SDMMC1(1));
+	mmio_setbits_32(TZPM_TZPCTL1(tzpm),
+			TZPM_TZPCTL1_XDMA(1) |
+			TZPM_TZPCTL1_FLEXCOM0(1) |
+			TZPM_TZPCTL1_FLEXCOM1(1) |
+			TZPM_TZPCTL1_FLEXCOM2(1) |
+			TZPM_TZPCTL1_FLEXCOM3(1));
+	mmio_setbits_32(TZPM_TZPCTL3(tzpm),
+			TZPM_TZPCTL3_FDMA(1));
+	/* Reset key to reestablish protection */
+	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0);
 }

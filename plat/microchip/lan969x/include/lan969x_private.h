@@ -23,4 +23,6 @@ void lan966x_ddr_init(void);
 
 void lan969x_tz_init(void);
 
+void lan969x_tz_finish(void);
+
 #endif /* LAN969X_PRIVATE_H */
