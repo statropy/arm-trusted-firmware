@@ -75,8 +75,12 @@
  * MMC buffer for BL1 is at top of BL2 memory. BL2 allocates its own
  * buffer area.
  */
-#define MMC_BUF_SIZE		512
+#if defined(IMAGE_BL1)
+#define MMC_BUF_SIZE		MMC_BLOCK_SIZE
 #define BL1_MMC_BUF_BASE	(BL2_LIMIT - MMC_BUF_SIZE)
+#elif defined(IMAGE_BL2) || defined(IMAGE_BL2U)
+#define MMC_BUF_SIZE		(8 * MMC_BLOCK_SIZE)
+#endif
 
 /*
  * BL32 - start of DDR

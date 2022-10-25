@@ -277,3 +277,14 @@ void lan966x_reset_max_trace_level(void)
 	}
 #endif
 }
+
+bool plat_mmc_use_dma(void)
+{
+#if defined(IMAGE_BL1)
+	/* Defensive... */
+	return false;
+#else
+	/* We can make a DT binding later if necessary*/
+	return true;
+#endif
+}
