@@ -36,7 +36,7 @@
 /* QSPI NOR */
 #define MAX_IO_MTD_DEVICES		U(1)
 
-#define MMC_BUF_SIZE			512
+#define MMC_BUF_SIZE			U(512 * 16)
 
 #define LAN969x_PRIMARY_CPU		0x0
 
