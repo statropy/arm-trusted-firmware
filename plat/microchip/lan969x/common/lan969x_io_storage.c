@@ -46,8 +46,7 @@ static uintptr_t memmap_dev_handle;
 static uintptr_t mtd_dev_handle;
 static uintptr_t enc_dev_handle;
 
-#define MMC_BUF_SIZE	512
-static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
+static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (MMC_BLOCK_SIZE)));
 
 static const io_block_dev_spec_t mmc_dev_spec = {
 	.buffer = {

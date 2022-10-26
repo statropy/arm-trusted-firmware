@@ -37,6 +37,7 @@ void lan966x_mmc_plat_config(boot_source_type boot_source)
 
 	if (boot_source == BOOT_SOURCE_EMMC) {
 		params.mmc_dev_type = MMC_IS_EMMC;
+		params.flags = MMC_FLAG_CMD23;
 		info.mmc_dev_type = MMC_IS_EMMC;
 		info.max_bus_freq = EMMC_HIGH_SPEED;
 	} else if (boot_source == BOOT_SOURCE_SDMMC) {
