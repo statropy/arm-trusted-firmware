@@ -775,10 +775,6 @@ static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size)
 	return 0;
 }
 
-/*
- * This function is called from the mmc_fill_device_info() callback ->read
- * and provides the data for the mmc_ext_csd structure.
- */
 static int lan966x_mmc_read(int lba, uintptr_t buf, size_t size)
 {
 	VERBOSE("MMC: read - lba %08x, buf %08lx, size %zd\n", lba, buf, size);
