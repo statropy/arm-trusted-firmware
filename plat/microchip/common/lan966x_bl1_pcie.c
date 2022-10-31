@@ -185,7 +185,6 @@ static void lan966x_config_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_si
 	if (enable) {
 		uint32_t mask = size - 1;
 
-		start = start & ~mask;
 		INFO("Enable PCIe BAR[%d]: offset: 0x%08x, mask: 0x%x\n", bar, start, mask);
 		mmio_clrsetbits_32(lan966x_pcie_bar_config[bar].bar_reg,
 				   lan966x_pcie_bar_config[bar].bar_mask,
