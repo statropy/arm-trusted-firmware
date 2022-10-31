@@ -28,8 +28,6 @@ void lan966x_ddr_init(void);
 void lan966x_tz_init(void);
 void lan966x_crash_console(console_t *console);
 
-int lan966x_set_fip_addr(unsigned int image_id, const char *name);
-
 #if defined(LAN966X_AES_TESTS)
 void lan966x_crypto_tests(void);
 #endif
