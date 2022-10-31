@@ -42,6 +42,14 @@ static const io_dev_connector_t *fip_dev_con;
 static const io_dev_connector_t *memmap_dev_con;
 static const io_dev_connector_t *enc_dev_con;
 
+/* QSPI NOR layout for T/NT dual bl33 */
+#define T_FW_FIP_SIZE	128
+#define CONFIG_SIZE	256
+#define NT_FIP_SIZE	((2048 - T_FW_FIP_SIZE - CONFIG_SIZE) / 2) /* 832K */
+
+#define LAN966X_QSPI0_FIP1_OFFSET	(LAN966X_QSPI0_MMAP + (1024 * (T_FW_FIP_SIZE)))
+#define LAN966X_QSPI0_FIP2_OFFSET	(LAN966X_QSPI0_MMAP + (1024 * (T_FW_FIP_SIZE + NT_FIP_SIZE)))
+
 #if defined(IMAGE_BL2)
 static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
 #endif
@@ -464,16 +472,14 @@ static int check_memmap(const uintptr_t spec)
 	/* Set FIP offset */
 	switch (fip_select) {
 	case FIP_SELECT_DEFAULT:
-		/* Offset 0K */
+		/* Start of flash */
 		fip_qspi_block_spec.offset = LAN966X_QSPI0_MMAP;
 		break;
 	case FIP_SELECT_NOR_NT_FIP1:
-		/* Offset 128K */
-		fip_qspi_block_spec.offset = LAN966X_QSPI0_MMAP + (1024 * (128));
+		fip_qspi_block_spec.offset = LAN966X_QSPI0_FIP1_OFFSET;
 		break;
 	case FIP_SELECT_NOR_NT_FIP2:
-		/* Offset 128 + 960 = 1088K */
-		fip_qspi_block_spec.offset = LAN966X_QSPI0_MMAP + (1024 * (128 + 960));
+		fip_qspi_block_spec.offset = LAN966X_QSPI0_FIP2_OFFSET;
 		break;
 	default:
 		assert(false);

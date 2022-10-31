@@ -50,8 +50,8 @@ Dir.mktmpdir(nil, build) { |dir|
     do_cmd("#{fiptool} create " + (ntargs.map{|x| "#{x[:opt]} #{dir}/#{x[:file]}" }.join(" ")) + " " + nt_fip)
     do_cmd("#{fiptool} remove --out #{tw_fip} " + (ntargs.map{|x| "#{x[:opt]}" }.join(" ")) + " " + $option[:input])
     raise "TW fip too large" if (File.size(tw_fip) >= (1024 * 128))
-    raise "NT fip too large" if (File.size(nt_fip) >= (1024 * 960))
+    raise "NT fip too large" if (File.size(nt_fip) >= (1024 * 832))
     do_cmd("truncate -s 128KiB #{tw_fip}")
-    do_cmd("truncate -s 960KiB #{nt_fip}")
+    do_cmd("truncate -s 832KiB #{nt_fip}")
     do_cmd("cat #{tw_fip} #{nt_fip} #{nt_fip} > #{$option[:output]}")
 }
