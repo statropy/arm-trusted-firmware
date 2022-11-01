@@ -128,7 +128,7 @@ struct mmc_ops {
 	void (*init)(void);
 	int (*send_cmd)(struct mmc_cmd *cmd);
 	int (*set_ios)(unsigned int clk, unsigned int width);
-	int (*prepare)(int lba, uintptr_t buf, size_t size);
+	int (*prepare)(int lba, uintptr_t buf, size_t size, bool is_write);
 	int (*read)(int lba, uintptr_t buf, size_t size);
 	int (*write)(int lba, const uintptr_t buf, size_t size);
 };

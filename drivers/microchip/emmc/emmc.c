@@ -18,6 +18,7 @@ static card p_card;
 static uintptr_t reg_base;
 static uint16_t eistr = 0u;	/* Holds the error interrupt status */
 static lan966x_mmc_params_t lan966x_params;
+static bool use_dma;
 
 static const unsigned int TAAC_TimeExp[8] =
 	{ 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000 };
@@ -25,6 +26,12 @@ static const unsigned int TAAC_TimeMant[16] =
 	{ 0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80 };
 
 #define EMMC_RESET_TIMEOUT_US		(1000 * 500) /* 500 ms */
+
+#pragma weak plat_mmc_use_dma
+bool plat_mmc_use_dma(void)
+{
+	return false;
+}
 
 static void lan966x_mmc_reset(lan966x_reset_type type)
 {
@@ -225,6 +232,8 @@ static void lan966x_mmc_initialize(void)
 
 	VERBOSE("MMC: ATF CB init() \n");
 
+	use_dma = plat_mmc_use_dma();
+
 	retVal = lan966x_host_init();
 	if (retVal != 0) {
 		ERROR("MMC host initialization failed !\n");
@@ -305,6 +314,20 @@ static unsigned char lan966x_emmc_poll(unsigned int expected)
 			sdhci_write_16(reg_base, SDMMC_EISTR, eistr);
 			sdhci_write_16(reg_base, SDMMC_NISTR, nistr);
 			return 1;
+		}
+
+		/* May need to DMA across boundaries */
+		if (nistr & SDMMC_NISTR_DMAINT) {
+			uint32_t buf;
+
+			/* Ack DMAINT */
+			sdhci_write_16(reg_base, SDMMC_NISTR, SDMMC_NISTR_DMAINT);
+
+			/* SSAR is updated to next DMA address */
+			buf = sdhci_read_32(reg_base, SDMMC_SSAR);
+			VERBOSE("MMC: DMA irq @ %08x\n", buf);
+			/* Writing register restarts DMA */
+			sdhci_write_32(reg_base, SDMMC_SSAR, buf);
 		}
 
 		/* Wait for any expected flags */
@@ -732,8 +755,9 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 	}
 #endif
 
-	INFO("MMC: %d MHz, width %d bits\n",
-	     clock / 1000000U, width_codes[width]);
+	INFO("MMC: %d MHz, width %d bits, %s\n",
+	     clock / 1000000U, width_codes[width],
+	     use_dma ? "SDMA" : "No DMA");
 
 	if (lan966x_set_clk_freq(clock, SDMMC_CLK_CTRL_PROG_MODE)) {
 		return -1;
@@ -742,13 +766,13 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 	return 0;
 }
 
-static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size)
+static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size, bool is_write)
 {
 	uint16_t mode = SDMMC_TMR_BCEN;
 	size_t blocks, blocksize;
 
-	VERBOSE("MMC: prepare - lba %08x, buf %08lx, size %zd\n",
-		lba, buf, size);
+	VERBOSE("MMC: prepare - lba %08x, buf %08lx, size %zd, %s\n",
+		lba, buf, size, is_write ? "write" : "read");
 
 	/* Check preconditions for block size and block count */
 	if (size <= MMC_BLOCK_SIZE) {
@@ -769,6 +793,18 @@ static int lan966x_mmc_prepare(int lba, uintptr_t buf, size_t size)
 	mmc_setbits_16(reg_base, SDMMC_EISTER, SDMMC_EISTER_DATTEO);
 	mmc_setbits_16(reg_base, SDMMC_EISIER, SDMMC_EISIER_DATTEO);
 
+	if (use_dma) {
+		mode |= SDMMC_TMR_DMAEN;
+		sdhci_write_32(reg_base, SDMMC_SSAR, buf);
+		if (is_write) {
+			/* Flush cache -> memory */
+			flush_dcache_range(buf, size);
+		} else {
+			/* Invalidate cache entries */
+			inv_dcache_range(buf, size);
+		}
+	}
+
 	/* Set mode register */
 	sdhci_write_16(reg_base, SDMMC_TMR, mode);
 
@@ -785,8 +821,8 @@ static int lan966x_mmc_read(int lba, uintptr_t buf, size_t size)
 		return 1;
 	}
 
-	/* Need to xfer by CPU */
-	{
+	/* Need to xfer by CPU? */
+	if (!use_dma) {
 		uint32_t *pExtBuffer = (__typeof(pExtBuffer)) buf;
 
 		while (size > 0) {
@@ -818,8 +854,8 @@ static int lan966x_mmc_write(int lba, uintptr_t buf, size_t size)
 {
 	VERBOSE("MMC: write - lba %08x, buf %08lx, size %zd\n", lba, buf, size);
 
-	/* Need to xfer by CPU */
-	{
+	/* Need to xfer by CPU? */
+	if (!use_dma) {
 		uint32_t *pExtBuffer = (__typeof(pExtBuffer)) buf;
 
 		while (size > 0) {

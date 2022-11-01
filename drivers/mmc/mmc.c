@@ -163,7 +163,7 @@ static int mmc_sd_switch(unsigned int bus_width)
 	int retries = MMC_DEFAULT_MAX_RETRIES;
 	unsigned int bus_width_arg = 0;
 
-	ret = ops->prepare(0, (uintptr_t)&scr, sizeof(scr));
+	ret = ops->prepare(0, (uintptr_t)&scr, sizeof(scr), false);
 	if (ret != 0) {
 		return ret;
 	}
@@ -261,7 +261,7 @@ static int mmc_fill_device_info(void)
 		mmc_dev_info->block_size = MMC_BLOCK_SIZE;
 
 		ret = ops->prepare(0, (uintptr_t)&mmc_ext_csd,
-				   sizeof(mmc_ext_csd));
+				   sizeof(mmc_ext_csd), false);
 		if (ret != 0) {
 			return ret;
 		}
@@ -537,7 +537,7 @@ size_t mmc_read_blocks(int lba, uintptr_t buf, size_t size)
 	       (size != 0U) &&
 	       ((size & MMC_BLOCK_MASK) == 0U));
 
-	ret = ops->prepare(lba, buf, size);
+	ret = ops->prepare(lba, buf, size, false);
 	if (ret != 0) {
 		return 0;
 	}
@@ -605,7 +605,7 @@ size_t mmc_write_blocks(int lba, const uintptr_t buf, size_t size)
 	       ((buf & MMC_BLOCK_MASK) == 0U) &&
 	       ((size & MMC_BLOCK_MASK) == 0U));
 
-	ret = ops->prepare(lba, buf, size);
+	ret = ops->prepare(lba, buf, size, true);
 	if (ret != 0) {
 		return 0;
 	}

@@ -215,17 +215,16 @@ static uint32_t single_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_
 	uint32_t written;
 
 	for (written = 0; written < length; ) {
-		if (mmc_write_blocks(lba, buf_ptr, MMC_BLOCK_SIZE) != MMC_BLOCK_SIZE) {
-			ERROR("Incomplete write at LBA 0x%x, writted %d of %d bytes\n", lba, written, length);
+		size_t chunk = MIN((size_t) SIZE_M(1),
+				   (size_t) (length - written));
+		if (mmc_write_blocks(lba, buf_ptr, chunk) != chunk) {
+			ERROR("Incomplete write at LBA 0x%x, wrote %d of %d bytes\n", lba, written, length);
 			break;
 		}
-		buf_ptr += MMC_BLOCK_SIZE;
-		written += MMC_BLOCK_SIZE;
-		lba++;
-		if ((written % SIZE_M(1)) == 0) {
-			/* Hearbeat */
-			INFO("emmc: Wrote %ldMb\n", written / SIZE_M(1));
-		}
+		buf_ptr += chunk;
+		written += chunk;
+		lba += (chunk / MMC_BLOCK_SIZE);
+		INFO("emmc: Wrote %ldMb @ lba 0x%x\n", written / SIZE_M(1), lba);
 	}
 
 	INFO("emmc: Done at %d bytes, %d blocks\n", written, written / MMC_BLOCK_SIZE);

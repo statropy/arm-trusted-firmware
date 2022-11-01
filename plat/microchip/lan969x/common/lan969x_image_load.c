@@ -13,16 +13,6 @@
 #include "lan969x_regs.h"
 
 /*******************************************************************************
- * This function flushes the data structures so that they are visible
- * in memory for the next BL image.
- * NB: This code is only part of BL2
- ******************************************************************************/
-void plat_flush_next_bl_params(void)
-{
-	flush_bl_params_desc();
-}
-
-/*******************************************************************************
  * This function returns the list of loadable images.
  ******************************************************************************/
 bl_load_info_t *plat_get_bl_image_load_info(void)

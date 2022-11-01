@@ -43,17 +43,18 @@ static const io_dev_connector_t *memmap_dev_con;
 static const io_dev_connector_t *enc_dev_con;
 
 #if defined(IMAGE_BL2)
-static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
+static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (MMC_BLOCK_SIZE)));
 #endif
 
 static const io_block_dev_spec_t mmc_dev_spec = {
 	.buffer = {
 #if defined(IMAGE_BL1)
 		.offset = (uintptr_t) BL1_MMC_BUF_BASE,
+		.length = MMC_BUF_SIZE,
 #elif defined(IMAGE_BL2)
 		.offset = (uintptr_t) mmc_buf,
+		.length = sizeof(mmc_buf),
 #endif
-		.length = MMC_BUF_SIZE,
 	},
 	.ops = {
 		.read = mmc_read_blocks,

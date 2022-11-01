@@ -31,4 +31,6 @@ typedef struct lan966x_mmc_params {
 void lan966x_mmc_init(lan966x_mmc_params_t * params,
 		      struct mmc_device_info *info);
 
+bool plat_mmc_use_dma(void);
+
 #endif	/* EMMC_H */

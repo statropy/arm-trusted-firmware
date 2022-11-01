@@ -30,12 +30,12 @@ struct plat_io_policy {
 static const io_dev_connector_t *mmc_dev_con;
 static uintptr_t mmc_dev_handle;
 
-static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (512)));
+static uint8_t mmc_buf[MMC_BLOCK_SIZE * 8] __attribute__ ((aligned (MMC_BLOCK_SIZE)));
 
 static const io_block_dev_spec_t mmc_dev_spec = {
 	.buffer = {
 		.offset = (uintptr_t) mmc_buf,
-		.length = MMC_BUF_SIZE,
+		.length = sizeof(mmc_buf),
 	},
 	.ops = {
 		.read = mmc_read_blocks,

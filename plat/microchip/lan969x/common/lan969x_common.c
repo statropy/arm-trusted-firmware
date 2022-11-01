@@ -312,3 +312,14 @@ int plat_get_nor_data(struct nor_device *device)
 
 	return 0;
 }
+
+bool plat_mmc_use_dma(void)
+{
+#if defined(IMAGE_BL1)
+	/* Defensive... */
+	return false;
+#else
+	/* We can make a DT binding later if necessary*/
+	return true;
+#endif
+}
