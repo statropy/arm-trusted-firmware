@@ -453,21 +453,16 @@ async function doOtpRandom(port, stage, fb_id, sel_id)
 	}
 }
 
-async function doOtpSetData(port, stage, fb_id, field_no, data_id, getdata)
+async function doOtpSetData(port, stage, fb_id, sel_id, data_id)
 {
 	let s = disableButtons(stage, true);
 	try {
 	    setOpStatus(fb_id, "");
-	    var fld = otp_fields[field_no];
+	    var fld = otp_fields[document.getElementById(sel_id).value];
 	    var off = fld["offset"];
 	    var len = fld["size"];
-	    var data;
-	    if (getdata != null) {
-		data = getdata(data_id);
-	    } else {
-		var buf = document.getElementById(data_id).value;
-		data = hexString2Bin(buf);
-	    }
+	    var buf = document.getElementById(data_id).value;
+	    var data = hexString2Bin(buf);
 	    if (data.length != len) {
 		document.getElementById(data_id).focus();
 		setOpStatus(fb_id, "Data should have " + len + " data bytes.");
@@ -479,7 +474,7 @@ async function doOtpSetData(port, stage, fb_id, field_no, data_id, getdata)
 		var rspStruct = await completeRequest(port, fmtReq(CMD_OTPD, off, data, false));
 		setStatus("OTP write completed");
 		setOpStatus(fb_id, "Wrote data to the " + fld["name"]);
-		console.log("OTP set %s = %o", fld["name"], encodeString2Array(data));
+		addTrace("OTP set '" + fld["name"] + "' = '" + buf + "'");
 	    }
 	} catch(e) {
 	    setStatus("OTP Set: " + e);
@@ -525,23 +520,6 @@ function browserCheck()
     }
 
     return false;
-}
-
-function bl1_otp_serial(data_id)
-{
-    var buf = document.getElementById(data_id).value;
-    var m = buf.match(/^(\d{2}-\d{5}-\w{2})\/(\w{3})(\d{9,10})/);
-    if (m) {
-	var buf = "";
-	var ser = parseInt(m[3], 10);
-	for (var i = 0; i <= 4; i++) {
-	    buf += String.fromCharCode(ser & 0xff);
-	    ser >>= 8;
-	}
-	buf += m[2];
-	return buf;
-    }
-    throw "Illegal serial number";
 }
 
 function startSerial()
@@ -659,8 +637,7 @@ function startSerial()
     });
 
     document.getElementById('bl2u_otp_set_data').addEventListener('click', async () => {
-	var fld = document.getElementById('bl2u_otp_set_data_fld').value;
-	await doOtpSetData(port, 'bl2u', 'bl2u_otp_set_data_feedback', fld, 'bl2u_otp_set_data_buf');
+	await doOtpSetData(port, 'bl2u', 'bl2u_otp_set_data_feedback', 'bl2u_otp_set_data_fld', 'bl2u_otp_set_data_buf');
     });
 
     document.getElementById('bl2u_reset').addEventListener('click', async () => {
@@ -749,13 +726,7 @@ function startSerial()
     });
 
     document.getElementById('bl1_otp_set_data').addEventListener('click', async () => {
-	var fld = document.getElementById('bl1_otp_set_data_fld').value;
-	await doOtpSetData(port, 'bl1', 'bl1_otp_set_data_feedback', fld, 'bl1_otp_set_data_buf', null);
-    });
-
-    document.getElementById('bl1_otp_set_serial').addEventListener('click', async () => {
-	var fld = 3;		// SERIAL_NUMBER
-	await doOtpSetData(port, 'bl1', 'bl1_otp_set_serial_feedback', fld, 'bl1_otp_set_serial_buf', bl1_otp_serial);
+	await doOtpSetData(port, 'bl1', 'bl1_otp_set_data_feedback', 'bl1_otp_set_data_fld', 'bl1_otp_set_data_buf');
     });
 
     document.getElementById('bl1_continue').addEventListener('click', async () => {
