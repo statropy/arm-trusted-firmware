@@ -98,6 +98,8 @@ otp_accessor_read_field(otp_read_<%= fname %>, <%= g["name"] %>, <%= f["name"] %
 <%- end -%>
 <%- end -%>
 
+#define OTP_REGION_ADDR(n) (PROTECT_REGION_ADDR_ADDR + (4 * (n)))
+
 #endif	/* PLAT_OTP_H */
 )
 
@@ -217,7 +219,3 @@ end
 if $options[:yaml_out]
     output_yaml($options[:out])
 end
-
-
-
-

@@ -9,6 +9,7 @@
 #include <common/desc_image_load.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
+#include <plat_otp.h>
 
 #include "lan966x_regs.h"
 
@@ -19,15 +20,25 @@
  ******************************************************************************/
 void plat_flush_next_bl_params(void)
 {
-	uint32_t regions;
+	uint8_t rotpk[OTP_TBBR_ROTPK_SIZE];
+	uint8_t tbbr = 4;	/* TBBR = region 4 */
+	uint32_t off_len;
 
 	/* Flush BL params, as this hook normally does */
 	flush_bl_params_desc();
 
-	/* Protect OTP section 4 - Keys */
-	VERBOSE("Protect OTP, just before BL2 is done\n");
-	regions = BIT(4);
-	mmio_write_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), regions);
+	if (otp_read_bytes(OTP_REGION_ADDR(tbbr), sizeof(off_len), (void*) &off_len) == 0 &&
+	    off_len != 0 &&
+	    /* Also check ROTPK non-zero */
+	    otp_read_bytes(OTP_TBBR_ROTPK_ADDR, sizeof(rotpk), rotpk) == 0 &&
+	    !otp_all_zero(rotpk, sizeof(rotpk))) {
+		/* TBBR region (4) defined */
+		VERBOSE("Protecting OTP TBBR region\n");
+		/* Protect OTP section 4 - Keys */
+		mmio_write_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), BIT(tbbr));
+	} else {
+		NOTICE("OTP: Available for non-secure provisioning\n");
+	}
 
         /* Zero out PKCL to ensure not leaking data */
         VERBOSE("Zero PKCL RAM, just before BL2 is done\n");
