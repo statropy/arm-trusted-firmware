@@ -23,8 +23,11 @@
 #include <lib/mmio.h>
 #include <tools_share/firmware_image_package.h>
 #include <plat/common/platform.h>
+#include <common/desc_image_load.h>
 
 #include "lan966x_private.h"
+#include "lan966x_regs.h"
+#include "fw_config.h"
 
 struct plat_io_policy {
 	uintptr_t *dev_handle;
@@ -43,12 +46,15 @@ static const io_dev_connector_t *memmap_dev_con;
 static const io_dev_connector_t *enc_dev_con;
 
 /* QSPI NOR layout for T/NT dual bl33 */
-#define T_FW_FIP_SIZE	128
+#define T_FW_FIP_SIZE	120
+#define NOR_SEL_SIZE	8
 #define CONFIG_SIZE	256
-#define NT_FIP_SIZE	((2048 - T_FW_FIP_SIZE - CONFIG_SIZE) / 2) /* 832K */
+#define NT_FIP_SIZE	((2048 - T_FW_FIP_SIZE - NOR_SEL_SIZE - CONFIG_SIZE) / 2) /* 832K */
 
-#define LAN966X_QSPI0_FIP1_OFFSET	(LAN966X_QSPI0_MMAP + (1024 * (T_FW_FIP_SIZE)))
-#define LAN966X_QSPI0_FIP2_OFFSET	(LAN966X_QSPI0_MMAP + (1024 * (T_FW_FIP_SIZE + NT_FIP_SIZE)))
+#define LAN966X_QSPI0_SEL_OFFSET	(LAN966X_QSPI0_MMAP + (1024 * (T_FW_FIP_SIZE)))
+#define LAN966X_QSPI0_FIP_OFFSET	(LAN966X_QSPI0_SEL_OFFSET + (1024 * NOR_SEL_SIZE))
+#define LAN966X_QSPI0_FIP1_OFFSET	(LAN966X_QSPI0_FIP_OFFSET)
+#define LAN966X_QSPI0_FIP2_OFFSET	(LAN966X_QSPI0_FIP_OFFSET + (1024 * NT_FIP_SIZE))
 
 #if defined(IMAGE_BL2)
 static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (MMC_BLOCK_SIZE)));
@@ -382,6 +388,43 @@ static const struct plat_io_policy boot_source_ram_fip = {
 };
 #endif
 
+#define NOR_IMAGE_SEL_MAGIC 0x638945a5
+struct nor_image_select {
+	uint32_t magic[4];	/* magic - ~magic - magic - ~magic */
+	uint32_t data[16];
+};
+
+static int nor_get_dual_fip_offset(bool primary)
+{
+	/* We are memory mapped */
+	struct nor_image_select *sel = (void*) LAN966X_QSPI0_SEL_OFFSET;
+
+	/* Do we have an initialized FIP select marker? */
+	if (sel->magic[0] == NOR_IMAGE_SEL_MAGIC &&
+	    sel->magic[1] == (uint32_t) ~NOR_IMAGE_SEL_MAGIC &&
+	    sel->magic[2] == NOR_IMAGE_SEL_MAGIC &&
+	    sel->magic[3] == (uint32_t) ~NOR_IMAGE_SEL_MAGIC) {
+		int i, ct;
+
+		/* Then count one bits */
+		for (ct = i = 0; i < ARRAY_SIZE(sel->data); i++)
+			ct += __builtin_popcount(sel->data[i]);
+
+		VERBOSE("QSPI0: Have marker - count %d\n", ct);
+		if ((ct % 2) == 0)
+			goto natural;
+
+		/* Odd = flipped: backwards order */
+		return primary ? LAN966X_QSPI0_FIP2_OFFSET : LAN966X_QSPI0_FIP1_OFFSET;
+	} else {
+		VERBOSE("QSPI0: No FIP select marker\n");
+	}
+
+	/* No marker or even count: natural order */
+natural:
+	return primary ? LAN966X_QSPI0_FIP1_OFFSET : LAN966X_QSPI0_FIP2_OFFSET;
+}
+
 /* Check encryption header in payload */
 static int check_enc_fip(const uintptr_t spec)
 {
@@ -477,10 +520,9 @@ static int check_memmap(const uintptr_t spec)
 		fip_qspi_block_spec.offset = LAN966X_QSPI0_MMAP;
 		break;
 	case FIP_SELECT_NOR_NT_FIP1:
-		fip_qspi_block_spec.offset = LAN966X_QSPI0_FIP1_OFFSET;
-		break;
 	case FIP_SELECT_NOR_NT_FIP2:
-		fip_qspi_block_spec.offset = LAN966X_QSPI0_FIP2_OFFSET;
+		fip_qspi_block_spec.offset =
+			nor_get_dual_fip_offset(fip_select == FIP_SELECT_NOR_NT_FIP1);
 		break;
 	default:
 		assert(false);
@@ -675,4 +717,42 @@ done:
 	*dev_handle = *(policy->dev_handle);
 
 	return result;
+}
+
+int bl2_plat_handle_post_image_load(unsigned int image_id)
+{
+	bl_mem_params_node_t *bl_mem_params = get_bl_mem_params_node(image_id);
+	uint32_t off, src;
+
+	assert(bl_mem_params);
+
+	switch (image_id) {
+	case BL32_IMAGE_ID:
+		//bl_mem_params->ep_info.args.arg0 = 0xdeadbeef;
+		bl_mem_params->ep_info.args.arg1 = (uintptr_t) &lan966x_fw_config;
+		break;
+	case BL33_IMAGE_ID:
+		src = lan966x_get_boot_source();
+		switch (src) {
+		case BOOT_SOURCE_EMMC:
+		case BOOT_SOURCE_SDMMC:
+			off = fip_mmc_block_spec.offset;
+			break;
+		case BOOT_SOURCE_QSPI:
+			off = fip_qspi_block_spec.offset - LAN966X_QSPI0_MMAP;
+			break;
+		default:
+			off = 0xFFFFFFFF; /* Undefined offset */
+		}
+		/* Use GPR(1) and GPR(2) as BL33 might be linux */
+		/* src 31:16 is 'afea' as 'magic' */
+		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 1), 0xAFEA0000 | src);
+		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), off);
+		break;
+	default:
+		/* Do nothing in default case */
+		break;
+	}
+
+	return 0;
 }
