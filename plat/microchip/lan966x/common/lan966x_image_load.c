@@ -7,6 +7,7 @@
 #include <common/bl_common.h>
 #include <common/debug.h>
 #include <common/desc_image_load.h>
+#include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <plat_otp.h>
 
