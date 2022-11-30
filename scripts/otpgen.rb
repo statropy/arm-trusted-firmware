@@ -1,6 +1,5 @@
 #!/bin/env ruby
 
-require 'creek'
 require 'erb'
 require 'yaml'
 require 'optparse'
@@ -99,75 +98,10 @@ otp_accessor_read_field(otp_read_<%= fname %>, <%= g["name"] %>, <%= f["name"] %
 <%- end -%>
 <%- end -%>
 
+#define OTP_REGION_ADDR(n) (PROTECT_REGION_ADDR_ADDR + (4 * (n)))
+
 #endif	/* PLAT_OTP_H */
 )
-
-def process_excel(fn)
-    rowct = 0
-
-    workbook = Creek::Book.new fn
-    worksheets = workbook.sheets
-
-    if worksheets[0]
-        worksheet = worksheets[0]
-        data = Array.new
-        group = nil
-
-        worksheet.rows.each do |row|
-            rowct += 1
-            next if rowct == 1
-            row = row.values
-            next if row[0] != "x"
-
-            if row[2] && row[2] != ""
-                # puts "New group: #{row[1]}"
-                if group
-                    data << group
-                    group = nil
-                end
-                raise "Invalid width: #{row[4]}" unless (row[4].to_i % 8) == 0
-                group = Hash[
-                    "accessor" => row[1] != nil,
-                    "name"   => row[2].strip.upcase,
-                    "size"  => row[4].to_i / 8,
-                    "address"=> row[8],
-                    "desc"   => row[11],
-                    "fields" => Array.new,
-                ]
-                group.delete("accessor") unless group["accessor"]
-                ["address"].each do|k|
-                    group[k].strip! if group[k]
-                end
-                ["prod_probe", "prod_ate", "prod_cust"].each_with_index do|k, i|
-                    group[k] = true if row[13 + i]
-                end
-                ["init_hw", "init_rom", "init_boot"].each_with_index do|k, i|
-                    group[k] = row[17 + i] if row[17 + i]
-                end
-            else
-                elem = Hash[
-                    "accessor" => row[1] != nil,
-                    "name"    => row[3].strip.upcase,
-                    "width"   => row[5].to_i,
-                    "desc"    => row[11],
-                ]
-                elem.delete("accessor") unless elem["accessor"]
-                if elem["width"] > 1
-                    ignore_exception { elem["offset"] = row[10].strip }
-                else
-                    elem["offset"] = row[10].to_i
-                end
-                group["fields"] << elem
-            end
-
-        end
-
-        # Add last group collected
-        data << group if group
-
-    end
-    return data
-end
 
 def process_yaml(fn)
     return YAML::load( File.open( fn ) )
@@ -262,9 +196,6 @@ $options = {}
 OptionParser.new do |opts|
     opts.banner = "Usage: otpgen.rb [options]"
     opts.version = 0.1
-    opts.on("-e", "--read-excel <file>", "Read Excel") do |f|
-        $data = process_excel(f)
-    end
     opts.on("-y", "--read-yaml <file>", "Read YAML data") do |f|
         $data = process_yaml(f)
     end
@@ -288,7 +219,3 @@ end
 if $options[:yaml_out]
     output_yaml($options[:out])
 end
-
-
-
-

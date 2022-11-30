@@ -243,4 +243,6 @@ otp_accessor_group_read(otp_read_otp_strap_disable_mask, OTP_STRAP_DISABLE_MASK)
 otp_accessor_group_read(otp_read_otp_tbbr_ntnvct, OTP_TBBR_NTNVCT);
 otp_accessor_group_read(otp_read_otp_tbbr_tnvct, OTP_TBBR_TNVCT);
 
+#define OTP_REGION_ADDR(n) (PROTECT_REGION_ADDR_ADDR + (4 * (n)))
+
 #endif	/* PLAT_OTP_H */
