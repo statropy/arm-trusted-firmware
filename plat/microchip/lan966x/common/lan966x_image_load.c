@@ -11,6 +11,7 @@
 #include <plat/common/platform.h>
 #include <plat_otp.h>
 
+#include "lan966x_private.h"
 #include "lan966x_regs.h"
 
 /*******************************************************************************
@@ -43,6 +44,10 @@ void plat_flush_next_bl_params(void)
         /* Zero out PKCL to ensure not leaking data */
         VERBOSE("Zero PKCL RAM, just before BL2 is done\n");
         memset((void*) LAN966X_PKCL_RAM_BASE, 0, LAN966X_PKCL_RAM_SIZE);
+
+	/* Last TZPM settings */
+	VERBOSE("Enable last NS devices\n");
+	lan966x_tz_finish();
 }
 
 /*******************************************************************************
