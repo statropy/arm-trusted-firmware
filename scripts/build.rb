@@ -247,7 +247,7 @@ ENV['PATH'] = "#{sdk_dir}/#{$arch[:linux]}/x86_64-linux/bin:" + ENV['PATH']
 if $option[:bl33_blob]
     args += "BL33=#{$option[:bl33_blob]} "
 elsif $option[:linux_boot]
-    kernel = sdk_dir + $arch[:linux] + "brsdk_standalone_arm.itb"
+    kernel = sdk_dir + $arch[:linux] + "brsdk_standalone_#{pdef[:arch]}.itb"
     args += "BL33=#{kernel} "
 else
     if pdef[:uboot]
@@ -350,7 +350,7 @@ if File.exist?(fip)
     do_cmd("gzip -c #{fip} > #{fip}.gz")
 end
 
-if pdef[:nor_gpt_size]
+if !$option[:linux_boot] && pdef[:nor_gpt_size]
     gptfile = "#{build}/nor.gpt"
     # Size of NOR
     size = pdef[:nor_gpt_size]
