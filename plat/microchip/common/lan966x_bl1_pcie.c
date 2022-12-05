@@ -11,11 +11,14 @@
 #include <lib/mmio.h>
 #include <plat_otp.h>
 #include <platform_def.h>
+#include <errno.h>
 
 #if defined(MCHP_SOC_LAN966X)
 #define PCIE_MAX_SPEED_CODE	2 /* 5 GT/s */
+#define PCIE_ATU_MIN_REGION_SIZE SIZE_K(64)
 #elif defined(MCHP_SOC_LAN969X)
 #define PCIE_MAX_SPEED_CODE	3 /* 8 GT/s */
+#define PCIE_ATU_MIN_REGION_SIZE SIZE_K(64)
 #endif
 
 #define MAX_BARS	5		/* Maximum number of configurable bars */
@@ -167,6 +170,19 @@ static void lan966x_config_pcie_id(lan966x_pcie_id id, uint32_t defvalue, const 
 	mmio_clrsetbits_32(addr, mask, ival);
 }
 
+static int lan966x_validate_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_size)
+{
+	uint32_t atu_mask = PCIE_ATU_MIN_REGION_SIZE - 1;
+
+	INFO("Validate OTP BAR[%d]: offset: 0x%08x, size: %u\n", bar, otp_start, otp_size);
+
+	if (otp_start & atu_mask) /* Invalid start address */
+		return -EIO;
+	if (otp_size & atu_mask) /* Invalid size */
+		return -EIO;
+	return 0;
+}
+
 static void lan966x_config_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_size, int status)
 {
 	bool enable = true;
@@ -201,7 +217,7 @@ void lan966x_pcie_init(void)
 {
 	uint32_t bar[OTP_BAR_SIZE];
 	uint32_t cls;
-	int ret;
+	int ret, idx;
 
 	switch (lan966x_get_strapping()) {
 	case LAN966X_STRAP_PCIE_ENDPOINT:
@@ -255,13 +271,20 @@ void lan966x_pcie_init(void)
 	lan966x_config_pcie_id(LAN966X_SUBSYS_DEVICE_ID, 0x9660, "subsys_device");
 	lan966x_config_pcie_id(LAN966X_SUBSYS_VENDOR_ID, 0x1055, "subsys_vendor");
 
-	/* Configure Base Address Registers to map to local address space */
 	ret = otp_read_otp_pcie_bars((uint8_t *)bar, OTP_PCIE_BARS_SIZE);
-	lan966x_config_pcie_bar(0, bar[0], bar[0+MAX_BARS], ret);
-	lan966x_config_pcie_bar(1, bar[1], bar[1+MAX_BARS], ret);
-	lan966x_config_pcie_bar(2, bar[2], bar[2+MAX_BARS], ret);
-	lan966x_config_pcie_bar(3, bar[3], bar[3+MAX_BARS], ret);
-	lan966x_config_pcie_bar(4, bar[4], bar[4+MAX_BARS], ret);
+
+	/* Validate Base Address Register values read from the OTP */
+	if (ret == 0) {
+		for (idx = 0; idx < MAX_BARS; ++idx) {
+			ret = lan966x_validate_pcie_bar(idx, bar[idx], bar[idx+MAX_BARS]);
+			if (ret)
+				break; /* Use hardcoded default BARs */
+		}
+	}
+
+	/* Configure Base Address Registers to map to local address space */
+	for (idx = 0; idx < MAX_BARS; ++idx)
+		lan966x_config_pcie_bar(idx, bar[idx], bar[idx+MAX_BARS], ret);
 
 	/* Configure Maximum Link Speed */
 	ret = otp_read_otp_pcie_flags_max_link_speed();
