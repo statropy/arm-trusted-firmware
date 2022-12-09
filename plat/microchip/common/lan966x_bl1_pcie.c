@@ -70,16 +70,11 @@ static const struct {
 		PCIE_BAR_TARGET_REG(1),
 		PCIE_BAR_MASK_REG(1)
 	},
-	{
 #if defined(MCHP_SOC_LAN966X)
+	{
 		/* QSPI1 */
 		0x40000000,
 		  0x800000,
-#elif defined(MCHP_SOC_LAN969X)
-		/* UNDEF */
-		0x0,
-		0x0,
-#endif
 		PCIE_BAR_REG(2),
 		PCIE_BAR_MASK(2),
 		PCIE_BAR_VALUE(2),
@@ -87,15 +82,9 @@ static const struct {
 		PCIE_BAR_MASK_REG(2)
 	},
 	{
-#if defined(MCHP_SOC_LAN966X)
 		/* PI */
 		0x48000000,
 		  0x800000,
-#elif defined(MCHP_SOC_LAN969X)
-		/* UNDEF */
-		0x0,
-		0x0,
-#endif
 		PCIE_BAR_REG(3),
 		PCIE_BAR_MASK(3),
 		PCIE_BAR_VALUE(3),
@@ -112,6 +101,38 @@ static const struct {
 		PCIE_BAR_TARGET_REG(4),
 		PCIE_BAR_MASK_REG(4)
 	},
+#elif defined(MCHP_SOC_LAN969X)
+	{
+		/* Unused */
+		0x0,
+		0x0,
+		PCIE_BAR_REG(2),
+		PCIE_BAR_MASK(2),
+		PCIE_BAR_VALUE(2),
+		PCIE_BAR_TARGET_REG(2),
+		PCIE_BAR_MASK_REG(2)
+	},
+	{
+		/* Unused */
+		0x0,
+		0x0,
+		PCIE_BAR_REG(3),
+		PCIE_BAR_MASK(3),
+		PCIE_BAR_VALUE(3),
+		PCIE_BAR_TARGET_REG(3),
+		PCIE_BAR_MASK_REG(3)
+	},
+	{
+		/* Unused */
+		0x0,
+		0x0,
+		PCIE_BAR_REG(4),
+		PCIE_BAR_MASK(4),
+		PCIE_BAR_VALUE(4),
+		PCIE_BAR_TARGET_REG(4),
+		PCIE_BAR_MASK_REG(4)
+	},
+#endif
 };
 
 static void lan966x_config_pcie_id(lan966x_pcie_id id, uint32_t defvalue, const char *name)
@@ -176,9 +197,11 @@ static int lan966x_validate_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_s
 
 	INFO("Validate OTP BAR[%d]: offset: 0x%08x, size: %u\n", bar, otp_start, otp_size);
 
-	if (otp_start & atu_mask) /* Invalid start address */
+	if (otp_start & atu_mask) /* Invalid start address according to ATU */
 		return -EIO;
-	if (otp_size & atu_mask) /* Invalid size */
+	if (otp_size & atu_mask) /* Invalid size according to ATU */
+		return -EIO;
+	if (otp_start & (otp_size - 1)) /* Invalid start address according to size */
 		return -EIO;
 	return 0;
 }
