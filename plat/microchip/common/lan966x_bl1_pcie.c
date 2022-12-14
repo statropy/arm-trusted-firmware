@@ -18,7 +18,6 @@
 #define PCIE_ATU_MIN_REGION_SIZE SIZE_K(64)
 #elif defined(MCHP_SOC_LAN969X)
 #define PCIE_MAX_SPEED_CODE	3 /* 8 GT/s */
-#define PCIE_ATU_MIN_REGION_SIZE SIZE_K(64)
 #endif
 
 #define MAX_BARS	5		/* Maximum number of configurable bars */
@@ -193,14 +192,8 @@ static void lan966x_config_pcie_id(lan966x_pcie_id id, uint32_t defvalue, const 
 
 static int lan966x_validate_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_size)
 {
-	uint32_t atu_mask = PCIE_ATU_MIN_REGION_SIZE - 1;
-
 	INFO("Validate OTP BAR[%d]: offset: 0x%08x, size: %u\n", bar, otp_start, otp_size);
 
-	if (otp_start & atu_mask) /* Invalid start address according to ATU */
-		return -EIO;
-	if (otp_size & atu_mask) /* Invalid size according to ATU */
-		return -EIO;
 	if (otp_start & (otp_size - 1)) /* Invalid start address according to size */
 		return -EIO;
 	return 0;
