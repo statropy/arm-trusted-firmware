@@ -15,7 +15,6 @@
 
 #if defined(MCHP_SOC_LAN966X)
 #define PCIE_MAX_SPEED_CODE	2 /* 5 GT/s */
-#define PCIE_ATU_MIN_REGION_SIZE SIZE_K(64)
 #elif defined(MCHP_SOC_LAN969X)
 #define PCIE_MAX_SPEED_CODE	3 /* 8 GT/s */
 #endif
