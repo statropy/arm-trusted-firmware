@@ -21,7 +21,6 @@
  ******************************************************************************/
 void plat_flush_next_bl_params(void)
 {
-	uint8_t rotpk[OTP_TBBR_ROTPK_SIZE];
 	uint8_t tbbr = 4;	/* TBBR = region 4 */
 	uint32_t off_len;
 
@@ -30,9 +29,8 @@ void plat_flush_next_bl_params(void)
 
 	if (otp_read_bytes(OTP_REGION_ADDR(tbbr), sizeof(off_len), (void*) &off_len) == 0 &&
 	    off_len != 0 &&
-	    /* Also check ROTPK non-zero */
-	    otp_read_bytes(OTP_TBBR_ROTPK_ADDR, sizeof(rotpk), rotpk) == 0 &&
-	    !otp_all_zero(rotpk, sizeof(rotpk))) {
+	    /* OTP emulation 'false' => ROTPK non-zero */
+	    otp_in_emulation() == false) {
 		/* TBBR region (4) defined */
 		VERBOSE("Protecting OTP TBBR region\n");
 		/* Protect OTP section 4 - Keys */
