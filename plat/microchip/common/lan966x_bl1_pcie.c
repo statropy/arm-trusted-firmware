@@ -193,6 +193,8 @@ static int lan966x_validate_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_s
 {
 	INFO("Validate OTP BAR[%d]: offset: 0x%08x, size: %u\n", bar, otp_start, otp_size);
 
+	if (otp_size == 0) /* Disabled BAR is OK */
+		return 0;
 	if (otp_start & (otp_size - 1)) /* Invalid start address according to size */
 		return -EIO;
 	return 0;
@@ -200,7 +202,6 @@ static int lan966x_validate_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_s
 
 static void lan966x_config_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_size, int status)
 {
-	bool enable = true;
 	uint32_t start = lan966x_pcie_bar_config[bar].bar_start;
 	uint32_t size = lan966x_pcie_bar_config[bar].bar_size;
 
@@ -210,10 +211,10 @@ static void lan966x_config_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_si
 			start = otp_start;
 			size = otp_size;
 		} else if (otp_start != 0 && otp_size == 0) {
-			enable = false;
+			size = 0;
 		}
 	}
-	if (enable) {
+	if (size != 0) {
 		uint32_t mask = size - 1;
 
 		INFO("Enable PCIe BAR[%d]: offset: 0x%08x, mask: 0x%x\n", bar, start, mask);
