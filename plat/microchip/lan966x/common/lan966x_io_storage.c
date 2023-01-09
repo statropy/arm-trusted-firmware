@@ -12,6 +12,7 @@
 
 #include <arch_helpers.h>
 #include <common/debug.h>
+#include <drivers/auth/auth_mod.h>
 #include <drivers/io/io_driver.h>
 #include <drivers/io/io_encrypted.h>
 #include <drivers/io/io_fip.h>
@@ -24,6 +25,7 @@
 #include <tools_share/firmware_image_package.h>
 #include <plat/common/platform.h>
 #include <common/desc_image_load.h>
+#include <lib/fconf/fconf_tbbr_getter.h>
 
 #include "lan966x_private.h"
 #include "lan966x_regs.h"
@@ -410,14 +412,14 @@ static int nor_get_dual_fip_offset(bool primary)
 		for (ct = i = 0; i < ARRAY_SIZE(sel->data); i++)
 			ct += __builtin_popcount(sel->data[i]);
 
-		VERBOSE("QSPI0: Have marker - count %d\n", ct);
+		INFO("QSPI0: Have marker - count %d\n", ct);
 		if ((ct % 2) == 0)
 			goto natural;
 
 		/* Odd = flipped: backwards order */
 		return primary ? LAN966X_QSPI0_FIP2_OFFSET : LAN966X_QSPI0_FIP1_OFFSET;
 	} else {
-		VERBOSE("QSPI0: No FIP select marker\n");
+		INFO("QSPI0: No FIP select marker\n");
 	}
 
 	/* No marker or even count: natural order */
@@ -503,7 +505,7 @@ static int check_mmc(const uintptr_t spec)
 	fip_mmc_block_spec.offset = entry->start;
 	fip_mmc_block_spec.length = entry->length;
 
-	VERBOSE("MMC: Try source %d, %s offset: %08x\n", fip_select, fipname, fip_mmc_block_spec.offset);
+	INFO("MMC: Try source %d, %s offset: %08x\n", fip_select, fipname, fip_mmc_block_spec.offset);
 
 	return check_mmc_raw(spec);
 }
@@ -528,7 +530,7 @@ static int check_memmap(const uintptr_t spec)
 		assert(false);
 	}
 
-	VERBOSE("QSPI: Try source %d, offset: %08x\n", fip_select, fip_qspi_block_spec.offset);
+	INFO("QSPI: Try source %d, offset: %08x\n", fip_select, fip_qspi_block_spec.offset);
 
 	result = io_dev_init(memmap_dev_handle, (uintptr_t)NULL);
 	if (result == 0) {
@@ -645,6 +647,47 @@ int bl2_plat_handle_pre_image_load(unsigned int image_id)
 
 	return 0;
 }
+
+#if defined(LAN966X_DUAL_BL33)
+static bool is_non_trusted_image(unsigned int image_id)
+{
+        return (image_id == BL33_IMAGE_ID ||
+                image_id == NON_TRUSTED_FW_CONTENT_CERT_ID ||
+                image_id == NON_TRUSTED_FW_KEY_CERT_ID);
+}
+
+void bl2_plat_handle_image_error(unsigned int image_id, int err)
+{
+        if (!is_non_trusted_image(image_id)) {
+                VERBOSE("Image(%d) ignore non-NT load error: %d\n", image_id, err);
+                return;
+        }
+
+        NOTICE("NT Image(%d) load error: %d\n", image_id, err);
+
+        /* NOTE: We must remove authentication from NT parents. This
+         * is due to the fact we will be retrying to load from an
+         * alternate source later and must avoid mixing FIP
+         * elements. Clearing the NT parent authentication flags
+         * will trigger reloading them.
+         */
+        for (;;) {
+                /* Get the image descriptor */
+                const auth_img_desc_t *img_desc = FCONF_GET_PROPERTY(tbbr, cot, image_id);
+                if (img_desc->parent == NULL)
+                        /* Stop if no parents */
+                        break;
+
+                image_id = img_desc->parent->img_id;
+                if (!is_non_trusted_image(image_id))
+                        /* Stop once we exit NT world */
+                        break;
+
+                INFO("Invalidate NT parent image: %d\n", image_id);
+                auth_img_flags[image_id] &= ~IMG_FLAG_AUTHENTICATED;
+        }
+}
+#endif
 
 int plat_try_next_boot_source(void)
 {
