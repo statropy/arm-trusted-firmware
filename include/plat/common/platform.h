@@ -218,6 +218,12 @@ struct meminfo *bl2_plat_sec_mem_layout(void);
 int bl2_plat_handle_pre_image_load(unsigned int image_id);
 int bl2_plat_handle_post_image_load(unsigned int image_id);
 
+/*
+ * Platform hook if image loading fails. This can be used to handle
+ * alternative load sources.
+ */
+void bl2_plat_handle_image_error(unsigned int image_id, int rc);
+
 /*******************************************************************************
  * Optional BL2 functions (may be overridden)
  ******************************************************************************/

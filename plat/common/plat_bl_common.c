@@ -24,6 +24,7 @@
 #pragma weak bl2_plat_preload_setup
 #pragma weak bl2_plat_handle_pre_image_load
 #pragma weak bl2_plat_handle_post_image_load
+#pragma weak bl2_plat_handle_image_error
 #pragma weak plat_try_next_boot_source
 #pragma weak plat_get_enc_key_info
 #pragma weak plat_is_smccc_feature_available
@@ -67,6 +68,10 @@ int bl2_plat_handle_pre_image_load(unsigned int image_id)
 int bl2_plat_handle_post_image_load(unsigned int image_id)
 {
 	return 0;
+}
+
+void bl2_plat_handle_image_error(unsigned int image_id, int rc)
+{
 }
 
 int plat_try_next_boot_source(void)
