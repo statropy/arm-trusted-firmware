@@ -121,6 +121,11 @@ void plat_panic_handler(void) __dead2;
 const char *plat_log_get_prefix(unsigned int log_level);
 void bl2_plat_preload_setup(void);
 int plat_try_next_boot_source(void);
+/*
+ * Optional platform hook if image loading fails. This can be used to
+ * handle alternative load sources.
+ */
+void plat_handle_image_error(unsigned int image_id, int rc);
 
 #if MEASURED_BOOT
 int plat_mboot_measure_image(unsigned int image_id, image_info_t *image_data);

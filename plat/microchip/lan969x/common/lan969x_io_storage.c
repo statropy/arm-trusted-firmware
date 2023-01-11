@@ -10,6 +10,7 @@
 
 #include <arch_helpers.h>
 #include <common/debug.h>
+#include <drivers/auth/auth_mod.h>
 #include <drivers/io/io_block.h>
 #include <drivers/io/io_driver.h>
 #include <drivers/io/io_encrypted.h>
@@ -22,6 +23,7 @@
 #include <drivers/mmc.h>
 #include <drivers/partition/partition.h>
 #include <drivers/spi_nor.h>
+#include <lib/fconf/fconf_tbbr_getter.h>
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
@@ -629,6 +631,33 @@ int bl2_plat_handle_pre_image_load(unsigned int image_id)
 	return 0;
 }
 #endif
+
+void plat_handle_image_error(unsigned int image_id, int err)
+{
+#if defined(IMAGE_BL1)
+	NOTICE("Image(%d) load error: %d\n", image_id, err);
+	/* In BL1, we reset state for all images - blunt & simple */
+	memset(auth_img_flags, 0, ARRAY_SIZE(auth_img_flags));
+#else
+	/* In BL2, we only remove authentication from parents. Thus we
+	 * avoid mixing FIP elements from a failed load. Clearing the
+	 * parent authentication flags will trigger reloading them as
+	 * needed.
+	 */
+	for (;;) {
+		/* Get the image descriptor */
+		const auth_img_desc_t *img_desc = FCONF_GET_PROPERTY(tbbr, cot, image_id);
+		if (img_desc->parent == NULL)
+			/* Stop if no parents */
+			break;
+
+		image_id = img_desc->parent->img_id;
+
+		INFO("AUTH: Invalidate parent image: %d\n", image_id);
+		auth_img_flags[image_id] &= ~IMG_FLAG_AUTHENTICATED;
+	}
+#endif
+}
 
 int plat_try_next_boot_source(void)
 {
