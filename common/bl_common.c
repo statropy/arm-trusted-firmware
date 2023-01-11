@@ -186,6 +186,7 @@ static int load_auth_image_recursive(unsigned int image_id,
 	/* Load the image */
 	rc = load_image(image_id, image_data);
 	if (rc != 0) {
+		plat_handle_image_error(image_id, rc);
 		return rc;
 	}
 
@@ -194,6 +195,7 @@ static int load_auth_image_recursive(unsigned int image_id,
 				 (void *)image_data->image_base,
 				 image_data->image_size);
 	if (rc != 0) {
+		plat_handle_image_error(image_id, rc);
 		/* Authentication error, zero memory and flush it right away. */
 		zero_normalmem((void *)image_data->image_base,
 			       image_data->image_size);
