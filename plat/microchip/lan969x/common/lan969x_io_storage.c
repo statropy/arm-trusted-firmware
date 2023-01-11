@@ -634,8 +634,8 @@ int bl2_plat_handle_pre_image_load(unsigned int image_id)
 
 void plat_handle_image_error(unsigned int image_id, int err)
 {
-#if defined(IMAGE_BL1)
 	NOTICE("Image(%d) load error: %d\n", image_id, err);
+#if defined(IMAGE_BL1)
 	/* In BL1, we reset state for all images - blunt & simple */
 	memset(auth_img_flags, 0, ARRAY_SIZE(auth_img_flags));
 #else

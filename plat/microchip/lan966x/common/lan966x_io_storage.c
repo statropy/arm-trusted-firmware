@@ -648,47 +648,6 @@ int bl2_plat_handle_pre_image_load(unsigned int image_id)
 	return 0;
 }
 
-#if defined(LAN966X_DUAL_BL33)
-static bool is_non_trusted_image(unsigned int image_id)
-{
-        return (image_id == BL33_IMAGE_ID ||
-                image_id == NON_TRUSTED_FW_CONTENT_CERT_ID ||
-                image_id == NON_TRUSTED_FW_KEY_CERT_ID);
-}
-
-void bl2_plat_handle_image_error(unsigned int image_id, int err)
-{
-        if (!is_non_trusted_image(image_id)) {
-                VERBOSE("Image(%d) ignore non-NT load error: %d\n", image_id, err);
-                return;
-        }
-
-        NOTICE("NT Image(%d) load error: %d\n", image_id, err);
-
-        /* NOTE: We must remove authentication from NT parents. This
-         * is due to the fact we will be retrying to load from an
-         * alternate source later and must avoid mixing FIP
-         * elements. Clearing the NT parent authentication flags
-         * will trigger reloading them.
-         */
-        for (;;) {
-                /* Get the image descriptor */
-                const auth_img_desc_t *img_desc = FCONF_GET_PROPERTY(tbbr, cot, image_id);
-                if (img_desc->parent == NULL)
-                        /* Stop if no parents */
-                        break;
-
-                image_id = img_desc->parent->img_id;
-                if (!is_non_trusted_image(image_id))
-                        /* Stop once we exit NT world */
-                        break;
-
-                INFO("Invalidate NT parent image: %d\n", image_id);
-                auth_img_flags[image_id] &= ~IMG_FLAG_AUTHENTICATED;
-        }
-}
-#endif
-
 int plat_try_next_boot_source(void)
 {
 	switch (lan966x_get_boot_source()) {
@@ -716,7 +675,58 @@ int plat_try_next_boot_source(void)
 	}
 	return 0;		/* No more */
 }
+#endif	/* IMAGE_BL2 */
+
+#if defined(LAN966X_DUAL_BL33) && defined(IMAGE_BL2)
+static bool is_non_trusted_image(unsigned int image_id)
+{
+        return (image_id == BL33_IMAGE_ID ||
+                image_id == NON_TRUSTED_FW_CONTENT_CERT_ID ||
+                image_id == NON_TRUSTED_FW_KEY_CERT_ID);
+}
 #endif
+
+void plat_handle_image_error(unsigned int image_id, int err)
+{
+	NOTICE("Image(%d) load error: %d\n", image_id, err);
+#if defined(IMAGE_BL1)
+	/* In BL1, we reset state for all images - blunt & simple */
+	memset(auth_img_flags, 0, ARRAY_SIZE(auth_img_flags));
+#else  /* IMAGE_BL2 */
+#if defined(LAN966X_DUAL_BL33)
+	if (!is_non_trusted_image(image_id)) {
+		VERBOSE("Image(%d) ignore non-NT load error: %d\n", image_id, err);
+		return;
+	}
+#endif
+
+	/* NOTE: We must remove authentication from parents. This is
+	 * due to the fact we will be retrying to load from an
+	 * alternate source later and must avoid mixing FIP
+	 * elements. Clearing the parent authentication flags will
+	 * trigger reloading them.
+	 * NOTE: LAN966X_DUAL_BL33 only supports NOR - and only NT
+	 * blobs.
+	 */
+	for (;;) {
+		/* Get the image descriptor */
+		const auth_img_desc_t *img_desc = FCONF_GET_PROPERTY(tbbr, cot, image_id);
+		if (img_desc->parent == NULL)
+			/* Stop if no parents */
+			break;
+
+		image_id = img_desc->parent->img_id;
+#if defined(LAN966X_DUAL_BL33)
+		if (!is_non_trusted_image(image_id))
+			/* Stop once we exit NT world */
+			break;
+#endif
+
+		INFO("Invalidate parent image: %d\n", image_id);
+		auth_img_flags[image_id] &= ~IMG_FLAG_AUTHENTICATED;
+	}
+#endif	/* IMAGE_BL1 */
+}
 
 static const struct plat_io_policy *current_fip_io_policy(void)
 {
