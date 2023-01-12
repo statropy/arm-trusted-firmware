@@ -25,7 +25,6 @@
 #include <tools_share/firmware_image_package.h>
 #include <plat/common/platform.h>
 #include <common/desc_image_load.h>
-#include <lib/fconf/fconf_tbbr_getter.h>
 
 #include "lan966x_private.h"
 #include "lan966x_regs.h"
@@ -60,6 +59,9 @@ static const io_dev_connector_t *enc_dev_con;
 
 #if defined(IMAGE_BL2)
 static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (MMC_BLOCK_SIZE)));
+#if defined(LAN966X_DUAL_BL33)
+static bool primary_image_failure;
+#endif
 #endif
 
 static const io_block_dev_spec_t mmc_dev_spec = {
@@ -91,8 +93,10 @@ enum {
 	 * should be included in the same manner as for BL2.
 	 */
 	FIP_SELECT_FALLBACK,	/* eMMC/SD */
+#if defined(IMAGE_BL2) && defined(LAN966X_DUAL_BL33)
 	FIP_SELECT_NOR_NT_FIP1,	/* NOR */
 	FIP_SELECT_NOR_NT_FIP2,	/* NOR */
+#endif
 };
 static int fip_select;
 
@@ -396,6 +400,7 @@ struct nor_image_select {
 	uint32_t data[16];
 };
 
+#if defined(IMAGE_BL2) && defined(LAN966X_DUAL_BL33)
 static int nor_get_dual_fip_offset(bool primary)
 {
 	/* We are memory mapped */
@@ -412,20 +417,21 @@ static int nor_get_dual_fip_offset(bool primary)
 		for (ct = i = 0; i < ARRAY_SIZE(sel->data); i++)
 			ct += __builtin_popcount(sel->data[i]);
 
-		INFO("QSPI0: Have marker - count %d\n", ct);
+		VERBOSE("QSPI0: Have marker - count %d\n", ct);
 		if ((ct % 2) == 0)
 			goto natural;
 
 		/* Odd = flipped: backwards order */
 		return primary ? LAN966X_QSPI0_FIP2_OFFSET : LAN966X_QSPI0_FIP1_OFFSET;
 	} else {
-		INFO("QSPI0: No FIP select marker\n");
+		VERBOSE("QSPI0: No FIP select marker\n");
 	}
 
 	/* No marker or even count: natural order */
 natural:
 	return primary ? LAN966X_QSPI0_FIP1_OFFSET : LAN966X_QSPI0_FIP2_OFFSET;
 }
+#endif
 
 /* Check encryption header in payload */
 static int check_enc_fip(const uintptr_t spec)
@@ -521,11 +527,17 @@ static int check_memmap(const uintptr_t spec)
 		/* Start of flash */
 		fip_qspi_block_spec.offset = LAN966X_QSPI0_MMAP;
 		break;
+#if defined(IMAGE_BL2) && defined(LAN966X_DUAL_BL33)
 	case FIP_SELECT_NOR_NT_FIP1:
+		if (primary_image_failure) {
+			/* Primary image failure, bail out */
+			return -EIO;
+		}
 	case FIP_SELECT_NOR_NT_FIP2:
 		fip_qspi_block_spec.offset =
 			nor_get_dual_fip_offset(fip_select == FIP_SELECT_NOR_NT_FIP1);
 		break;
+#endif
 	default:
 		assert(false);
 	}
@@ -644,7 +656,12 @@ int plat_try_next_boot_source(void)
 int bl2_plat_handle_pre_image_load(unsigned int image_id)
 {
 	fip_select = FIP_SELECT_DEFAULT;
-
+#if defined(LAN966X_DUAL_BL33)
+	if (lan966x_get_boot_source() == BOOT_SOURCE_QSPI) {
+		/* Skip loading from 'default' FIP */
+		plat_try_next_boot_source();
+	}
+#endif
 	return 0;
 }
 
@@ -655,7 +672,10 @@ int plat_try_next_boot_source(void)
 #if defined(LAN966X_DUAL_BL33)
 		if (fip_select == FIP_SELECT_DEFAULT) {
 			fip_select = FIP_SELECT_NOR_NT_FIP1;
-			return 1;	/* Try again */
+			if (!primary_image_failure) {
+				return 1; /* Try again */
+			}
+			/* Fall through if FIP1 failure*/
 		}
 		if (fip_select == FIP_SELECT_NOR_NT_FIP1) {
 			fip_select = FIP_SELECT_NOR_NT_FIP2;
@@ -677,12 +697,13 @@ int plat_try_next_boot_source(void)
 }
 #endif	/* IMAGE_BL2 */
 
-#if defined(LAN966X_DUAL_BL33) && defined(IMAGE_BL2)
-static bool is_non_trusted_image(unsigned int image_id)
+#if defined(_notdef_)
+static bool is_bl2_fip(unsigned int image_id)
 {
-        return (image_id == BL33_IMAGE_ID ||
-                image_id == NON_TRUSTED_FW_CONTENT_CERT_ID ||
-                image_id == NON_TRUSTED_FW_KEY_CERT_ID);
+	/* These Blobs are in the 'main' FIP (BL2) */
+        return (image_id == BL2_IMAGE_ID ||
+                image_id == TRUSTED_BOOT_FW_CERT_ID ||
+                image_id == FW_CONFIG_ID);
 }
 #endif
 
@@ -694,38 +715,12 @@ void plat_handle_image_error(unsigned int image_id, int err)
 	memset(auth_img_flags, 0, ARRAY_SIZE(auth_img_flags));
 #else  /* IMAGE_BL2 */
 #if defined(LAN966X_DUAL_BL33)
-	if (!is_non_trusted_image(image_id)) {
-		VERBOSE("Image(%d) ignore non-NT load error: %d\n", image_id, err);
-		return;
-	}
+	if (fip_select == FIP_SELECT_NOR_NT_FIP1)
+		primary_image_failure = true;
 #endif
-
-	/* NOTE: We must remove authentication from parents. This is
-	 * due to the fact we will be retrying to load from an
-	 * alternate source later and must avoid mixing FIP
-	 * elements. Clearing the parent authentication flags will
-	 * trigger reloading them.
-	 * NOTE: LAN966X_DUAL_BL33 only supports NOR - and only NT
-	 * blobs.
-	 */
-	for (;;) {
-		/* Get the image descriptor */
-		const auth_img_desc_t *img_desc = FCONF_GET_PROPERTY(tbbr, cot, image_id);
-		if (img_desc->parent == NULL)
-			/* Stop if no parents */
-			break;
-
-		image_id = img_desc->parent->img_id;
-#if defined(LAN966X_DUAL_BL33)
-		if (!is_non_trusted_image(image_id))
-			/* Stop once we exit NT world */
-			break;
-#endif
-
-		INFO("Invalidate parent image: %d\n", image_id);
-		auth_img_flags[image_id] &= ~IMG_FLAG_AUTHENTICATED;
-	}
-#endif	/* IMAGE_BL1 */
+	/* Invalidate all blobs, try again */
+	memset(auth_img_flags, 0, ARRAY_SIZE(auth_img_flags));
+#endif	/* IMAGE_BL2 */
 }
 
 static const struct plat_io_policy *current_fip_io_policy(void)
@@ -801,6 +796,7 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 		/* src 31:16 is 'afea' as 'magic' */
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 1), 0xAFEA0000 | src);
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), off);
+		INFO("GPR: Set 'Loaded From' = src %d, offset %08x\n", src, off);
 		break;
 	default:
 		/* Do nothing in default case */
