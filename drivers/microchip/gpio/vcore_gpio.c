@@ -108,9 +108,9 @@ void vcore_gpio_set_alt(int gpio, int f)
 	 * Note: ALT0/ALT1/ALT2 are organized specially for 78 gpio targets
 	 */
 	vcore_gpio_set_bits(REG_ALT(0, gpio), BIT(p), f << p);
-	vcore_gpio_set_bits(REG_ALT(1, gpio), BIT(p), (f >> 1) << p);
+	vcore_gpio_set_bits(REG_ALT(1, gpio), BIT(p), f << (p - 1));
 #if (VCORE_GPIO_STRIDE >= 3)
-	vcore_gpio_set_bits(REG_ALT(2, gpio), BIT(p), (f >> 2) << p);
+	vcore_gpio_set_bits(REG_ALT(2, gpio), BIT(p), f << (p - 2));
 #endif
 }
 

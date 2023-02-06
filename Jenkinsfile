@@ -25,7 +25,7 @@ node('blademaster') {
 
     try {
         stage("Build") {
-            sh "dr ./scripts/platform_build.rb"
+            sh "ruby ./scripts/platform_build.rb"
         }
     } catch (error) {
         throw error
