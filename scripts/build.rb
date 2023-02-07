@@ -243,7 +243,7 @@ args += "TFW_NVCTR_VAL=#{$option[:nvctr]} " if $option[:nvctr]
 args += "NTFW_NVCTR_VAL=#{$option[:nt_nvctr]} " if $option[:nt_nvctr]
 
 if !File.directory?("mbedtls")
-    do_cmd("git clone --tags https://github.com/microchip-ung/mbedtls.git")
+    do_cmd("git clone https://github.com/microchip-ung/mbedtls.git")
 end
 # We're currently using this as a reference - needs to be in sync with TFA
 do_cmd "git -C mbedtls checkout -q 2aff17b8c55ed460a549db89cdf685c700676ff7"
