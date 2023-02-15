@@ -129,12 +129,6 @@ static void set_static_phy(const struct ddr_config *cfg)
 	/* Disabling PHY initiated update request during DDR
 	 * initialization */
 	mmio_clrbits_32(DDR_PHY_DSGCR, DSGCR_PUREN);
-	/* Unresolved: The old driver sets up SARBASE0 and SARSIZE0.
-	 * It does not seem to be necessary? Should the registers be
-	 * considered for being adapted as config registers?
-	 * SARBASE0 = 00000003
-	 * SARSIZE0 = 00000004
-	 */
 }
 
 static void enable_axi_ports(bool enable)
@@ -258,13 +252,8 @@ static void PHY_initialization(void)
 
 static void DRAM_initialization_by_memctrl(void)
 {
-	/* Unresolved: Had to change this step - why is this needed? */
-#if 0
-	/* write PHY initialization register for SDRAM initialization */
-	ddr_phy_init(PIR_CTLDINIT, PHY_TIMEOUT_US_1S);
-#else
+	/* This does a DRAM BIST */
 	ddr_phy_init(PIR_DRAMRST | PIR_DRAMINIT, PHY_TIMEOUT_US_1S);
-#endif
 }
 
 static void sw_done_start(void)
@@ -323,13 +312,6 @@ static void do_data_training(const struct ddr_config *cfg)
 
 	/* PHY FIFO reset (???) */
 	phy_fifo_reset();
-
-	/* Unresolved: Set DCR */
-	mmio_clrsetbits_32(DDR_PHY_DTCR,
-			   DTCR_RANKEN | DTCR_DTMPR | DTCR_DTRPTN,
-			   FIELD_PREP(DTCR_RANKEN, 1) |
-			   FIELD_PREP(DTCR_DTMPR, 1) |
-			   FIELD_PREP(DTCR_DTRPTN, 7));
 
 	/* write PHY initialization register for Write leveling, DQS
 	 * gate training, Write_latency adjustment

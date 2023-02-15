@@ -8,7 +8,7 @@
 
 const struct ddr_config lan966x_ddr_config = {
 	.info = {
-		.name = "lan966x 2023-02-15-11:58:40 4df813ff6528",
+		.name = "lan966x 2023-02-15-21:32:07 4cf830af9cce",
 		.speed = 1200,
 		.size = 0x40000000,
 		.dq_bits_used = 16,
@@ -25,8 +25,8 @@ const struct ddr_config lan966x_ddr_config = {
 		.init3 = 0x1b600000,
 		.init4 = 0x00100000,
 		.init5 = 0x00080000,
-		.mstr = 0x01041001,
-		.pccfg = 0x00000100,
+		.mstr = 0x01040001,
+		.pccfg = 0x00000000,
 		.pwrctl = 0x00000000,
 		.rfshctl0 = 0x00210010,
 		.rfshctl3 = 0x00000000,
@@ -57,6 +57,7 @@ const struct ddr_config lan966x_ddr_config = {
 	.phy = {
 		.dcr = 0x0000040b,
 		.dsgcr = 0xf000641f,
+		.dtcr = 0x910035c7,
 		.dxccr = 0x44181884,
 		.pgcr2 = 0x00f0b540,
 	},
