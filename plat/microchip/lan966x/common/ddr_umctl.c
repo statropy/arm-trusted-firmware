@@ -10,7 +10,7 @@
 #include <ddr_reg.h>
 #include <ddr_xlist.h>
 
-#define PGSR_ERR_MASK 		GENMASK_32(27, 20)
+#define PGSR_ERR_MASK		GENMASK_32(27, 20)
 #define PGSR_ALL_DONE		GENMASK_32(11, 0)
 
 #define PHY_TIMEOUT_US_1S	1000000U
@@ -31,33 +31,33 @@ static const struct {
 
 struct reg_desc {
 	uintptr_t reg_addr;
-        uint8_t par_offset;     /* Offset for parameter array */
+	uint8_t par_offset;	/* Offset for parameter array */
 };
 
 #define X(x, y, z)							\
-        {                                               		\
+	{								\
 		.reg_addr  = y,						\
 		.par_offset = offsetof(struct config_ddr_##z, x),	\
-        },
+	},
 
 static const struct reg_desc ddr_main_reg[] = {
-XLIST_DDR_MAIN
+	XLIST_DDR_MAIN
 };
 
 static const struct reg_desc ddr_timing_reg[] = {
-XLIST_DDR_TIMING
+	XLIST_DDR_TIMING
 };
 
 static const struct reg_desc ddr_mapping_reg[] = {
-XLIST_DDR_MAPPING
+	XLIST_DDR_MAPPING
 };
 
 static const struct reg_desc ddr_phy_reg[] = {
-XLIST_DDR_PHY
+	XLIST_DDR_PHY
 };
 
 static const struct reg_desc ddr_phy_timing_reg[] = {
-XLIST_DDR_PHY_TIMING
+	XLIST_DDR_PHY_TIMING
 };
 
 static bool wait_reg_set(uintptr_t reg, uint32_t mask, int usec)
@@ -150,42 +150,42 @@ static void ecc_enable_scrubbing(void)
 {
 	VERBOSE("Enable ECC scrubbing\n");
 
-        /* 1.  Disable AXI port. port_en = 0 */
+	/* 1.  Disable AXI port. port_en = 0 */
 	enable_axi_ports(false);
 
-        /* 2. scrub_mode = 1 */
+	/* 2. scrub_mode = 1 */
 	mmio_setbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_MODE);
 
-        /* 3. scrub_interval = 0 */
+	/* 3. scrub_interval = 0 */
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_INTERVAL);
 
-        /* 4. Data pattern = 0 */
+	/* 4. Data pattern = 0 */
 	mmio_write_32(DDR_UMCTL2_SBRWDATA0, 0);
 
-        /* 5. (skip) */
+	/* 5. (skip) */
 
-        /* 6. Enable SBR programming */
+	/* 6. Enable SBR programming */
 	mmio_setbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
 
-        /* 7. Poll SBRSTAT.scrub_done */
+	/* 7. Poll SBRSTAT.scrub_done */
 	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 1000000))
 		PANIC("Timeout SBRSTAT.scrub_done set");
 
-        /* 8. Poll SBRSTAT.scrub_busy */
+	/* 8. Poll SBRSTAT.scrub_busy */
 	if (wait_reg_clr(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_BUSY, 50))
 		PANIC("Timeout SBRSTAT.scrub_busy clear");
 
-        /* 9. Disable SBR programming */
+	/* 9. Disable SBR programming */
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
 #if 0
-        /* 10. Normal scrub operation, mode = 0, interval = 100 */
-        wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_MODE, 0);
-        wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_INTERVAL, 100);
-        /* 11. Enable SBR progeramming again  */
-        wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_EN, 1);
+	/* 10. Normal scrub operation, mode = 0, interval = 100 */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_MODE, 0);
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_INTERVAL, 100);
+	/* 11. Enable SBR progeramming again  */
+	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_EN, 1);
 #endif
 
-        /* 12. Enable AXI port */
+	/* 12. Enable AXI port */
 	enable_axi_ports(true);
 
 	VERBOSE("Enabled ECC scrubbing\n");
@@ -234,8 +234,8 @@ static void ddr_phy_init(uint32_t mode, int usec_timout)
 
 	VERBOSE("pir = 0x%x -> 0x%x\n", mode, mmio_read_32(DDR_PHY_PIR));
 
-        /* Need to wait 10 configuration clock before start polling */
-        ddr_nsleep(10);
+	/* Need to wait 10 configuration clock before start polling */
+	ddr_nsleep(10);
 
 	wait_phy_idone(usec_timout);
 
@@ -363,9 +363,9 @@ int ddr_init(const struct ddr_config *cfg)
 {
 	VERBOSE("ddr_init:start\n");
 
-        VERBOSE("name = %s\n", cfg->info.name);
-        VERBOSE("speed = %d kHz\n", cfg->info.speed);
-        VERBOSE("size  = %zdM\n", cfg->info.size / 1024 / 1024);
+	VERBOSE("name = %s\n", cfg->info.name);
+	VERBOSE("speed = %d kHz\n", cfg->info.speed);
+	VERBOSE("size  = %zdM\n", cfg->info.size / 1024 / 1024);
 
 	/* Reset, start clocks at desired speed */
 	ddr_reset(cfg, true);
