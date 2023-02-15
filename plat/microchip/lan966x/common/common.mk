@@ -101,6 +101,7 @@ BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
 				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
 				plat/microchip/lan966x/common/ddr_umctl.c		\
+				plat/microchip/lan966x/common/lan966x_ddr_config.c	\
 				plat/microchip/lan966x/common/lan966x_image_load.c	\
 				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_tz.c

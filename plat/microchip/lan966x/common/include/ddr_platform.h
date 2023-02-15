@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PANIC(s) do { ERROR(s); panic(); } while(0)
+#define PANIC(s) do { ERROR(s "\n"); panic(); } while(0)
 
 static inline void ddr_usleep(int us)
 {
