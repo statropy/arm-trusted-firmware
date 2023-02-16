@@ -171,13 +171,11 @@ static void ecc_enable_scrubbing(void)
 	/* 9. Disable SBR programming */
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
 
-#if 0
 	/* 10. Normal scrub operation, mode = 0, interval = 100 */
-	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_MODE, 0);
-	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_INTERVAL, 100);
-	/* 11. Enable SBR progeramming again  */
-	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_EN, 1);
-#endif
+	mmio_clrsetbits_32(DDR_UMCTL2_SBRCTL,
+			   SBRCTL_SCRUB_MODE | SBRCTL_SCRUB_INTERVAL,
+			   FIELD_PREP(SBRCTL_SCRUB_INTERVAL, 100) |
+			   FIELD_PREP(SBRCTL_SCRUB_EN, 1));
 
 	/* 12. Enable AXI port */
 	enable_axi_ports(true);
