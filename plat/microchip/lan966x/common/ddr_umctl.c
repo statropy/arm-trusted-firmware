@@ -111,13 +111,6 @@ static void set_regs(const struct ddr_config *ddr_cfg,
 
 static void set_static_ctl(void)
 {
-	mmio_write_32(DDR_UMCTL2_RFSHCTL1,
-		      FIELD_PREP(RFSHCTL1_REFRESH_TIMER0_START_VALUE_X32, 0x20) |
-		      FIELD_PREP(RFSHCTL1_REFRESH_TIMER1_START_VALUE_X32, 0x40));
-	mmio_clrsetbits_32(DDR_UMCTL2_RANKCTL,
-			   RANKCTL_DIFF_RANK_RD_GAP | RANKCTL_DIFF_RANK_WR_GAP,
-			   FIELD_PREP(RANKCTL_DIFF_RANK_RD_GAP, 2) |
-			   FIELD_PREP(RANKCTL_DIFF_RANK_WR_GAP, 2));
 	/* Disabling update request initiated by DDR controller during
 	 * DDR initialization */
 	mmio_setbits_32(DDR_UMCTL2_DFIUPD0,
@@ -177,6 +170,7 @@ static void ecc_enable_scrubbing(void)
 
 	/* 9. Disable SBR programming */
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
+
 #if 0
 	/* 10. Normal scrub operation, mode = 0, interval = 100 */
 	wr_fld_r_r (DDR_UMCTL2, UMCTL2_MP, SBRCTL, SCRUB_MODE, 0);
@@ -189,11 +183,6 @@ static void ecc_enable_scrubbing(void)
 	enable_axi_ports(true);
 
 	VERBOSE("Enabled ECC scrubbing\n");
-}
-
-static void phy_fifo_reset(void)
-{
-	/* Unsure if we need this or its at all possible */
 }
 
 static void wait_phy_idone(int tmo)
@@ -310,9 +299,6 @@ static void do_data_training(const struct ddr_config *cfg)
 	 * can be set and rest of the training can be executed with a second PIR register.
 	 */
 
-	/* PHY FIFO reset (???) */
-	phy_fifo_reset();
-
 	/* write PHY initialization register for Write leveling, DQS
 	 * gate training, Write_latency adjustment
 	 */
@@ -387,9 +373,6 @@ int ddr_init(const struct ddr_config *cfg)
 
 	/* Static PHY settings */
 	set_static_phy(cfg);
-
-	/* PHY FIFO reset (???) */
-	phy_fifo_reset();
 
 	PHY_initialization();
 
