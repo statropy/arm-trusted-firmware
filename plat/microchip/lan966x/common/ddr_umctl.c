@@ -124,7 +124,7 @@ static void set_static_phy(const struct ddr_config *cfg)
 	mmio_clrbits_32(DDR_PHY_DSGCR, DSGCR_PUREN);
 }
 
-static void enable_axi_ports(bool enable)
+static void axi_enable_ports(bool enable)
 {
 	if (enable) {
 		/* Enable controller port(s) */
@@ -132,7 +132,7 @@ static void enable_axi_ports(bool enable)
 		mmio_setbits_32(DDR_UMCTL2_PCTRL_1, PCTRL_1_PORT_EN);
 		mmio_setbits_32(DDR_UMCTL2_PCTRL_2, PCTRL_2_PORT_EN);
 	} else {
-		/* Enable controller port(s) */
+		/* Disable controller port(s) */
 		mmio_clrbits_32(DDR_UMCTL2_PCTRL_0, PCTRL_0_PORT_EN);
 		mmio_clrbits_32(DDR_UMCTL2_PCTRL_1, PCTRL_1_PORT_EN);
 		mmio_clrbits_32(DDR_UMCTL2_PCTRL_2, PCTRL_2_PORT_EN);
@@ -144,7 +144,7 @@ static void ecc_enable_scrubbing(void)
 	VERBOSE("Enable ECC scrubbing\n");
 
 	/* 1.  Disable AXI port. port_en = 0 */
-	enable_axi_ports(false);
+	axi_enable_ports(false);
 
 	/* 2. scrub_mode = 1 */
 	mmio_setbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_MODE);
@@ -172,13 +172,14 @@ static void ecc_enable_scrubbing(void)
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
 
 	/* 10. Normal scrub operation, mode = 0, interval = 100 */
+	/* 11. Enable SBR programming again  */
 	mmio_clrsetbits_32(DDR_UMCTL2_SBRCTL,
 			   SBRCTL_SCRUB_MODE | SBRCTL_SCRUB_INTERVAL,
 			   FIELD_PREP(SBRCTL_SCRUB_INTERVAL, 100) |
 			   FIELD_PREP(SBRCTL_SCRUB_EN, 1));
 
 	/* 12. Enable AXI port */
-	enable_axi_ports(true);
+	axi_enable_ports(true);
 
 	VERBOSE("Enabled ECC scrubbing\n");
 }
@@ -302,12 +303,6 @@ static void do_data_training(const struct ddr_config *cfg)
 	 */
 	ddr_phy_init(PIR_WL | PIR_QSGATE | PIR_WLADJ, PHY_TIMEOUT_US_1S);
 
-	/* Static read training must be performed in static read mode.
-	 * read/write bit Deskew, read/write Eye Centering training,
-	 * VREF training can be performed in static read mode or
-	 * asynchronous read mode.
-	 */
-
 	/* Now, actual data training */
 	w = PIR_WREYE | PIR_RDEYE | PIR_WRDSKW | PIR_RDDSKW;
 	ddr_phy_init(w, PHY_TIMEOUT_US_1S);
@@ -334,8 +329,8 @@ static void do_data_training(const struct ddr_config *cfg)
 	 */
 	mmio_setbits_32(DDR_PHY_DSGCR, DSGCR_PUREN);
 
-	/* Enable AXI port */
-	enable_axi_ports(true);
+	/* Enable AXI port(s) */
+	axi_enable_ports(true);
 
 	/* Settle */
 	ddr_usleep(1);
