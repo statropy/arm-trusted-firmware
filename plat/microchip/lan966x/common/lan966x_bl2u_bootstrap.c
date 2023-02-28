@@ -16,19 +16,20 @@
 #include <platform_def.h>
 #include <tf_gunzip.h>
 
+#include "lan966x_def.h"
 #include "lan966x_private.h"
 #include "lan966x_fw_bind.h"
 #include "lan966x_bootstrap.h"
 #include "lan966x_bl2u_bootstrap.h"
-#include "ddr.h"
 #include "otp.h"
 
 #define MAX_OTP_DATA	1024
 
 #define PAGE_ALIGN(x, a)	(((x) + (a) - 1) & ~((a) - 1))
 
-static const uintptr_t fip_base_addr = DDR_BASE_ADDR;
-static const uintptr_t fip_max_size = DDR_MEM_SIZE;
+extern const struct ddr_config lan966x_ddr_config;
+static const uintptr_t fip_base_addr = LAN966X_DDR_BASE;
+static const uintptr_t fip_max_size = LAN966X_DDR_SIZE;
 static uint32_t data_rcv_length;
 
 static void handle_otp_read(bootstrap_req_t *req, bool raw)

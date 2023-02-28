@@ -100,7 +100,8 @@ BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
 				plat/microchip/lan966x/common/lan966x_bl2_setup.c	\
-				plat/microchip/lan966x/common/lan966x_ddr.c		\
+				plat/microchip/lan966x/common/ddr_umctl.c		\
+				plat/microchip/lan966x/common/lan966x_ddr_config.c	\
 				plat/microchip/lan966x/common/lan966x_image_load.c	\
 				plat/microchip/lan966x/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_tz.c
@@ -112,7 +113,8 @@ BL2U_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_bl2u_setup.c	\
 				plat/microchip/lan966x/common/lan966x_bootstrap.c	\
 				plat/microchip/lan966x/common/lan966x_fw_bind.c		\
-				plat/microchip/lan966x/common/lan966x_ddr.c
+				plat/microchip/lan966x/common/ddr_umctl.c		\
+				plat/microchip/lan966x/common/lan966x_ddr_config.c
 
 ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
 override BL2_SOURCES		:=	\
