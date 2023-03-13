@@ -53,7 +53,7 @@ bssk_derive_key = [
 ]
 
 $option = { :platform              => "lan966x_b0",
-            :loglevel              => 40,
+            :loglevel              => 30,
             :encrypt               => false,
             :debug                 => true,
             :rot                   => "keys/rotprivk_ecdsa.pem",
