@@ -156,6 +156,10 @@ void lan966x_tz_init(void)
 	mmio_write_32(GPV_SECURITY_APB_CSS2(LAN966X_GPV_BASE),
 		      BIT(0));
 
+	/* Configure SECURITY_QSPI1 for Non-secure */
+	mmio_write_32(GPV_SECURITY_QSPI1(LAN966X_GPV_BASE),
+		      GPV_SECURITY_QSPI1_SECURITY_QSPI1(1));
+
 	/* NS periph access */
 	setup_ns_access(LAN966X_GPV_BASE, LAN966X_TZPM_BASE);
 }
