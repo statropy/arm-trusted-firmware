@@ -91,8 +91,7 @@ static void wait_operating_mode(uint32_t mode, int usec)
 	while ((FIELD_GET(STAT_OPERATING_MODE,
 			  mmio_read_32(DDR_UMCTL2_STAT))) != mode) {
 		if (timeout_elapsed(t)) {
-			VERBOSE("Timeout waiting for mode %d\n", mode);
-			PANIC("wait_operating_mode");
+			PANIC("Timeout waiting for mode %d\n", mode);
 		}
 	}
 }
@@ -123,6 +122,23 @@ static void set_static_phy(const struct ddr_config *cfg)
 	/* Disabling PHY initiated update request during DDR
 	 * initialization */
 	mmio_clrbits_32(DDR_PHY_DSGCR, DSGCR_PUREN);
+	/* Enable data lanes according to configured bus width */
+	switch (cfg->info.bus_width) {
+	case 16:
+		/* Enable two first lanes */
+		mmio_setbits_32(DDR_PHY_DX0GCR, DX0GCR_DX0_DXEN);
+		mmio_setbits_32(DDR_PHY_DX1GCR, DX1GCR_DX1_DXEN);
+		break;
+	case 8:
+		/* Enable first lane */
+		mmio_setbits_32(DDR_PHY_DX0GCR, DX0GCR_DX0_DXEN);
+		/* Disable un-used upper byte lanes */
+		mmio_clrbits_32(DDR_PHY_DX1GCR, DX1GCR_DX1_DXEN);
+		break;
+	default:
+		PANIC("Unsupported bus width: %d\n", cfg->info.bus_width);
+		break;
+	}
 }
 
 static void axi_enable_ports(bool enable)
@@ -163,11 +179,11 @@ static void ecc_enable_scrubbing(void)
 
 	/* 7. Poll SBRSTAT.scrub_done */
 	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 1000000))
-		PANIC("Timeout SBRSTAT.scrub_done set");
+		PANIC("Timeout SBRSTAT.scrub_done set\n");
 
 	/* 8. Poll SBRSTAT.scrub_busy */
 	if (wait_reg_clr(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_BUSY, 50))
-		PANIC("Timeout SBRSTAT.scrub_busy clear");
+		PANIC("Timeout SBRSTAT.scrub_busy clear\n");
 
 	/* 9. Disable SBR programming */
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
@@ -260,7 +276,7 @@ static void sw_done_ack(void)
 
 	/* wait for SWSTAT.sw_done_ack to become set */
 	if (wait_reg_set(DDR_UMCTL2_SWSTAT, SWSTAT_SW_DONE_ACK, 50))
-		PANIC("Timout SWSTAT.sw_done_ack set");
+		PANIC("Timout SWSTAT.sw_done_ack set\n");
 
 	VERBOSE("sw_done_ack:exit\n");
 }
@@ -310,8 +326,7 @@ static void do_data_training(const struct ddr_config *cfg)
 
 	w = mmio_read_32(DDR_PHY_PGSR0);
 	if ((w & PGSR_ALL_DONE) != PGSR_ALL_DONE) {
-		ERROR("pgsr0: got %08x, want %08x\n", w, PGSR_ALL_DONE);
-		PANIC("data training error");
+		PANIC("data training error: pgsr0: got %08x, want %08x\n", w, PGSR_ALL_DONE);
 	}
 
 	ddr_restore_refresh(cfg->main.rfshctl3, cfg->main.pwrctl);
