@@ -98,8 +98,6 @@ const mmap_region_t plat_arm_mmap[] = {
 const mmap_region_t plat_arm_mmap[] = {
 	LAN966X_MAP_QSPI0_RW,
 	LAN966X_MAP_AXI,
-	LAN966X_MAP_BL32,
-	LAN966X_MAP_NS_MEM,
 	{0}
 };
 #endif
