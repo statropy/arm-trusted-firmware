@@ -8,7 +8,7 @@
 
 const struct ddr_config lan966x_ddr_config = {
 	.info = {
-		.name = "lan966x 2023-03-08-10:47:09 2abb4212857a",
+		.name = "lan966x 2023-03-16-12:03:55 41f4dd1ec3ff",
 		.speed = 1200,
 		.size = 0x40000000,
 		.bus_width = 16,
@@ -33,7 +33,7 @@ const struct ddr_config lan966x_ddr_config = {
 	},
 
 	.timing = {
-		.dramtmg0 = 0x0a0f160c,
+		.dramtmg0 = 0x0a0f0b0c,
 		.dramtmg1 = 0x00020211,
 		.dramtmg2 = 0x00000508,
 		.dramtmg3 = 0x0000400c,
@@ -41,7 +41,7 @@ const struct ddr_config lan966x_ddr_config = {
 		.dramtmg5 = 0x04040303,
 		.dramtmg8 = 0x00000803,
 		.odtcfg = 0x0600060c,
-		.rfshtmg = 0x00620057,
+		.rfshtmg = 0x00820057,
 	},
 
 	.mapping = {
@@ -59,7 +59,7 @@ const struct ddr_config lan966x_ddr_config = {
 		.dsgcr = 0xf000641f,
 		.dtcr = 0x910035c7,
 		.dxccr = 0x44181884,
-		.pgcr2 = 0x00f0b540,
+		.pgcr2 = 0x00f00898,
 		.zq0cr0 = 0x4000014a,
 		.zq0cr1 = 0x0000107b,
 		.zq1cr0 = 0x4000014a,
@@ -70,10 +70,6 @@ const struct ddr_config lan966x_ddr_config = {
 		.dtpr0 = 0xc958ea85,
 		.dtpr1 = 0x228bb3c4,
 		.dtpr2 = 0x1002e8b4,
-		.mr0 = 0x00001b60,
-		.mr1 = 0x00000004,
-		.mr2 = 0x00000010,
-		.mr3 = 0x00000000,
 		.ptr0 = 0x25a12c90,
 		.ptr1 = 0x754f0a8f,
 		.ptr2 = 0x00083def,
