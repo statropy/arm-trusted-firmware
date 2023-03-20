@@ -8,7 +8,7 @@
 
 const struct ddr_config lan966x_ddr_config = {
 	.info = {
-		.name = "lan966x 2023-03-17-14:31:31 985a509f58b3",
+		.name = "lan966x 2023-03-20-15:06:41 221947e3e864",
 		.speed = 1200,
 		.size = 0x40000000,
 		.bus_width = 16,
@@ -30,7 +30,6 @@ const struct ddr_config lan966x_ddr_config = {
 		.pwrctl = 0x00000000,
 		.rfshctl0 = 0x00210010,
 		.rfshctl3 = 0x00000000,
-		.sbrctl = 0x0000ff10,
 	},
 
 	.timing = {
