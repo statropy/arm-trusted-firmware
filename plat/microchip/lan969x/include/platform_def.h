@@ -59,7 +59,7 @@
  * BL2
  */
 #define BL2_BASE		LAN969X_SRAM_BASE
-#define BL2_SIZE       		SIZE_K(160)
+#define BL2_SIZE       		SIZE_K(192)
 #define BL2_LIMIT		(BL2_BASE + BL2_SIZE)
 
 /*

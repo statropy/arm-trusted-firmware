@@ -34,7 +34,7 @@ void bl2u_platform_setup(void)
 	lan969x_tz_init();
 
 	/* Initialize DDR */
-	lan966x_ddr_init();
+	lan966x_ddr_init(NULL);
 
 	/* Call BL2U UART monitor */
 	lan966x_bl2u_bootstrap_monitor();

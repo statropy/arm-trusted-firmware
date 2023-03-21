@@ -36,9 +36,8 @@ typedef struct {
 	uint8_t otp_emu_data[OTP_EMU_MAX_DATA];
 #endif
 #if defined(FW_CONFIG_DT)
-#define MAX_FDT SIZE_K(4)
 	/* DT based fw_config use actual DT instead */
-	uint8_t fdt_buf[MAX_FDT];
+	uint8_t fdt_buf[4 * 1024];
 #else
 	/* simple byte array with offsets */
 	uint8_t config[FW_CONFIG_MAX_DATA];

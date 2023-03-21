@@ -67,6 +67,11 @@
 		#size-cells = <1>;
 		ranges;
 
+                ddr: ddr@e0080000 {
+                        compatible = "microchip,ddr-umctl";
+                        microchip,mem-speed = <2400>;
+                };
+
 		gic: interrupt-controller@e8c11000 {
 			compatible = "arm,gic-400";
 			#address-cells = <1>;

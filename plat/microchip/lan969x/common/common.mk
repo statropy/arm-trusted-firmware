@@ -81,7 +81,6 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 				drivers/arm/tzc/tzc400.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_mem_params_desc.c \
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_setup.c	\
-				${LAN969X_PLAT_COMMON}/lan969x_ddr.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_image_load.c	\
 				plat/microchip/common/lan966x_sjtag.c		\
@@ -90,12 +89,23 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 				drivers/arm/tzc/tzc400.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c	\
-				${LAN969X_PLAT_COMMON}/lan969x_ddr.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
 				plat/microchip/common/lan966x_bootstrap.c	\
 				plat/microchip/common/lan966x_fw_bind.c		\
 				plat/microchip/common/plat_bl2u_bootstrap.c	\
 				plat/microchip/lan969x/common/lan969x_bl2u_io.c
+
+ifeq (${PLAT},lan969x_a0)
+DDR_SOURCES	:=					\
+	${LAN969X_PLAT_COMMON}/ddr_umctl.c		\
+	${LAN969X_PLAT_COMMON}/lan969x_ddr_config.c	\
+	${LAN969X_PLAT_COMMON}/lan969x_ddr_clock.c
+else
+DDR_SOURCES	:=  ${LAN969X_PLAT_COMMON}/lan969x_ddr.c
+endif
+
+BL2_SOURCES	+=  ${DDR_SOURCES}
+BL2U_SOURCES	+=  ${DDR_SOURCES}
 
 ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
 $(info Generating a BL2 NOOP)
@@ -170,6 +180,8 @@ FIP_ALIGN		:= 512
 
 # Generate the FIPs FW_CONFIG
 LAN969X_FW_CONFIG	:=	${BUILD_PLAT}/fdts/${PLAT}_tb_fw_config.dtb
+
+DTC_FLAGS		+=	-Wno-unit_address_vs_reg -Wno-simple_bus_reg
 
 FDT_SOURCES		+=	${LAN969X_PLAT_BOARD}/fdts/${PLAT}_tb_fw_config.dts
 
