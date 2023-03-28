@@ -40,10 +40,11 @@ static const lan969x_tcreg_t hss_rules[] = {
 static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 {
 	/* Allow S+NS access to these devices */
-	mmio_write_32(GPV_SECURITY_CPU_REGS(gpv), true);
-	mmio_write_32(GPV_SECURITY_CSR_REGS(gpv), true);
-	mmio_write_32(GPV_SECURITY_DDR_CSS(gpv), true);
-	mmio_write_32(GPV_SECURITY_APB_CSS2(gpv), true); /* OTP */
+	mmio_write_32(GPV_SECURITY_CPU_REGS(gpv), BIT(0));
+	mmio_write_32(GPV_SECURITY_CSR_REGS(gpv), BIT(0));
+	mmio_write_32(GPV_SECURITY_DDR_CSS(gpv), BIT(0));
+	mmio_write_32(GPV_SECURITY_APB_CSS2(gpv), BIT(0)); /* OTP */
+	mmio_write_32(GPV_SECURITY_APB_MAIN3(gpv), BIT(2)|BIT(3)); /* TIMERS, WDT */
 }
 
 void lan969x_tzc_configure(uintptr_t tzc_base, const lan969x_tcreg_t *regions, size_t nregs)
