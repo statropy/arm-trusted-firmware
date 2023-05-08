@@ -51,23 +51,23 @@ struct reg_desc {
 	},
 
 static const struct reg_desc ddr_main_reg[] = {
-XLIST_DDR_MAIN
+	XLIST_DDR_MAIN
 };
 
 static const struct reg_desc ddr_timing_reg[] = {
-XLIST_DDR_TIMING
+	XLIST_DDR_TIMING
 };
 
 static const struct reg_desc ddr_mapping_reg[] = {
-XLIST_DDR_MAPPING
+	XLIST_DDR_MAPPING
 };
 
 static const struct reg_desc ddr_phy_reg[] = {
-XLIST_DDR_PHY
+	XLIST_DDR_PHY
 };
 
 static const struct reg_desc ddr_phy_timing_reg[] = {
-XLIST_DDR_PHY_TIMING
+	XLIST_DDR_PHY_TIMING
 };
 
 static inline bool deferred_register(uintptr_t reg)
@@ -126,8 +126,7 @@ static void wait_operating_mode(uint32_t mode, int usec)
 	while ((FIELD_GET(STAT_OPERATING_MODE,
 			  mmio_read_32(DDR_UMCTL2_STAT))) != mode) {
 		if (timeout_elapsed(t)) {
-			VERBOSE("Timeout waiting for mode %d\n", mode);
-			PANIC("wait_operating_mode");
+			PANIC("Timeout waiting for mode %d\n", mode);
 		}
 	}
 }
@@ -277,11 +276,11 @@ static void ecc_enable_scrubbing(const struct ddr_config *cfg)
 
 	/* 7. Poll SBRSTAT.scrub_done */
 	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 1000000))
-		PANIC("Timeout SBRSTAT.scrub_done set");
+		PANIC("Timeout SBRSTAT.scrub_done set\n");
 
 	/* 8. Poll SBRSTAT.scrub_busy */
 	if (wait_reg_clr(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_BUSY, 50))
-		PANIC("Timeout SBRSTAT.scrub_busy clear");
+		PANIC("Timeout SBRSTAT.scrub_busy clear\n");
 
 	/* 9. Disable SBR programming */
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
@@ -372,10 +371,12 @@ static int PHY_initialization(void)
 	return ddr_phy_init(PIR_ZCAL | PIR_PLLINIT | PIR_DCAL | PIR_PHYRST, PHY_TIMEOUT_US_1S);
 }
 
-static int DRAM_initialization_by_memctrl(void)
+static int DRAM_initialization(bool init_by_pub)
 {
-	/* write PHY initialization register for SDRAM initialization */
-	return ddr_phy_init(PIR_CTLDINIT, PHY_TIMEOUT_US_1S);
+        uint32_t init_flags = init_by_pub ? PIR_DRAMRST | PIR_DRAMINIT : PIR_CTLDINIT;
+
+        /* write PHY initialization register for PUB/UMCTL SDRAM initialization */
+        return ddr_phy_init(init_flags, PHY_TIMEOUT_US_1S);
 }
 
 static void sw_done_start(void)
@@ -393,7 +394,7 @@ static void sw_done_ack(void)
 
 	/* wait for SWSTAT.sw_done_ack to become set */
 	if (wait_reg_set(DDR_UMCTL2_SWSTAT, SWSTAT_SW_DONE_ACK, 50))
-		PANIC("Timout SWSTAT.sw_done_ack set");
+		PANIC("Timout SWSTAT.sw_done_ack set\n");
 
 	VERBOSE("sw_done_ack:exit\n");
 }
@@ -607,7 +608,7 @@ int ddr_init(const struct ddr_config *cfg)
 	if (PHY_initialization())
 		PANIC("PHY initization failed\n");
 
-	if (DRAM_initialization_by_memctrl())
+	if (DRAM_initialization(true))
 		PANIC("DDR initization failed\n");
 
 	/* Start quasi-dynamic programming */
