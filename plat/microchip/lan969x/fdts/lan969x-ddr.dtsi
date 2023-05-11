@@ -5,7 +5,7 @@
  */
 
 &ddr {
-	microchip,mem-name = "lan969x 2023-03-21-10:33:25 bc62372a7773";
+	microchip,mem-name = "lan969x 2023-05-11-13:16:52 5507dcdf9fe5";
 	microchip,mem-speed = <2400>;
 	microchip,mem-size = <0x38000000>;
 	microchip,mem-bus-width = <16>;
@@ -25,7 +25,7 @@
 		0x10180200	/* init4 */
 		0x00110000	/* init5 */
 		0x00000402	/* init6 */
-		0x00000899	/* init7 */
+		0x00000c19	/* init7 */
 		0x81040010	/* mstr */
 		0x00000000	/* pccfg */
 		0x00000000	/* pwrctl */
@@ -39,7 +39,7 @@
 		0x1a000010	/* dramtmg12 */
 		0x090b0512	/* dramtmg2 */
 		0x0000400c	/* dramtmg3 */
-		0x08030409	/* dramtmg4 */
+		0x08040409	/* dramtmg4 */
 		0x07070404	/* dramtmg5 */
 		0x05040c07	/* dramtmg8 */
 		0x0003040d	/* dramtmg9 */
@@ -50,13 +50,13 @@
 	microchip,mapping-reg = <
 		0x0000001f	/* addrmap0 */
 		0x003f0505	/* addrmap1 */
-		0x00000000	/* addrmap2 */
+		0x01010100	/* addrmap2 */
 		0x13131303	/* addrmap3 */
 		0x00001f1f	/* addrmap4 */
 		0x04040404	/* addrmap5 */
 		0x04040404	/* addrmap6 */
 		0x00000f0f	/* addrmap7 */
-		0x00003f04	/* addrmap8 */
+		0x00003f01	/* addrmap8 */
 	>;
 
 	microchip,phy-reg = <
@@ -75,7 +75,7 @@
 
 	microchip,phy_timing-reg = <
 		0x0827100a	/* dtpr0 */
-		0x2825061e	/* dtpr1 */
+		0x28250018	/* dtpr1 */
 		0x000701b1	/* dtpr2 */
 		0x03000101	/* dtpr3 */
 		0x01a50808	/* dtpr4 */
