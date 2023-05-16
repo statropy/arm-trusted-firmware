@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <drivers/auth/mbedtls/mbedtls_config.h>
 #include <errno.h>
-#include <lib/mmio.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
 #include <errno.h>

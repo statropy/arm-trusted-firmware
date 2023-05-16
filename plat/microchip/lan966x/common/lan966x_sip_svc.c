@@ -10,13 +10,18 @@
 #include <common/runtime_svc.h>
 #include <drivers/microchip/sha.h>
 #include <lib/mmio.h>
+#include <plat/common/platform.h>
 #include <platform_def.h>
 #include <tools_share/uuid.h>
+#include <tools_share/firmware_encrypted.h>
 
 #include <lan966x_sip_svc.h>
 #include <lan966x_private.h>
 #include <lan966x_fw_bind.h>
 #include <lan966x_regs.h>
+#include <lan966x_ns_enc.h>
+
+#include <drivers/microchip/aes.h>
 
 /* MCHP SiP Service UUID */
 DEFINE_SVC_UUID2(microchip_sip_svc_uid,
@@ -106,6 +111,105 @@ static uintptr_t sip_fw_bind(uintptr_t fip, uint32_t size, void *handle)
 	}
 }
 
+static uintptr_t sip_ns_encrypt(uintptr_t enc, uintptr_t data, void *handle)
+{
+	struct ns_enc_hdr *encp = (void*) enc;
+	uint8_t key[KEY_SIZE] = { 0 };
+	uint32_t iv[IV_SIZE / sizeof(uint32_t)] = { 0 };
+	uint8_t tag[TAG_SIZE] = { 0 };
+	size_t key_len = sizeof(key);
+	int result;
+
+	if (!is_ns_ddr(sizeof(*encp), enc))
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+
+	/* Invalidate cache for args */
+	inv_dcache_range(enc, sizeof(*encp));
+
+	if (!is_ns_ddr(encp->data_length, data))
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+
+	if (!is_valid_enc_hdr(encp))
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+
+	/* Invalidate cache for data */
+	inv_dcache_range(data, encp->data_length);
+
+	/* Retrieve key data */
+	result = lan96xx_get_ns_enc_key(encp->flags, key, &key_len);
+
+	/* Initialize iv array with random data */
+	for (int i = 0; i < ARRAY_SIZE(iv); i++) {
+		iv[i] = lan966x_trng_read();
+	}
+
+	/* Encrypt image data on-the-fly in memory  */
+	result = aes_gcm_encrypt((void*) data, encp->data_length,
+				 key, key_len,
+				 (uint8_t *)iv, sizeof(iv),
+				 tag, sizeof(tag));
+
+	if (result)
+		SMC_RET1(handle, SMC_UNK);
+
+	/* Update header data */
+	encp->algo = CRYPTO_GCM_DECRYPT;
+	encp->iv_len = sizeof(iv);
+	encp->tag_len = sizeof(tag);
+	memcpy(encp->iv, iv, sizeof(iv));
+	memcpy(encp->tag, tag, sizeof(tag));
+
+	/* Flush cache, both data and encryption header */
+	flush_dcache_range(data, encp->data_length);
+	flush_dcache_range(enc, sizeof(*encp));
+
+	SMC_RET1(handle, SMC_ARCH_CALL_SUCCESS);
+}
+
+static uintptr_t sip_ns_decrypt(uintptr_t enc, uintptr_t data, void *handle)
+{
+	const struct ns_enc_hdr *encp = (void*) enc;
+	uint8_t key[KEY_SIZE] = { 0 };
+	size_t key_len = sizeof(key);
+	int result;
+
+	if (!is_ns_ddr(sizeof(*encp), enc))
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+
+	/* Invalidate cache for args */
+	inv_dcache_range(enc, sizeof(*encp));
+
+	if (!is_ns_ddr(encp->data_length, data))
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+
+	if (!is_valid_enc_hdr(encp) ||
+	    encp->iv_len != IV_SIZE ||
+	    encp->tag_len != TAG_SIZE)
+		SMC_RET1(handle, SMC_ARCH_CALL_INVAL_PARAM);
+
+	/* Invalidate cache for data */
+	inv_dcache_range(data, encp->data_length);
+
+	/* Retrieve key data */
+	result = lan96xx_get_ns_enc_key(encp->flags, key, &key_len);
+
+	/* Decrypt image data on-the-fly in memory  */
+	result = aes_gcm_decrypt((void*) data, encp->data_length,
+				 key, key_len,
+				 encp->iv,
+				 encp->iv_len,
+				 encp->tag,
+				 encp->tag_len);
+
+	if (result)
+		SMC_RET1(handle, SMC_UNK);
+
+	/* Flush data from cache */
+	flush_dcache_range(data, encp->data_length);
+
+	SMC_RET1(handle, SMC_ARCH_CALL_SUCCESS);
+}
+
 /*
  * This function is responsible for handling all SiP calls from the NS world
  */
@@ -150,6 +254,14 @@ static uintptr_t sip_smc_handler(uint32_t smc_fid,
 	case SIP_SVC_FW_BIND:
 		/* Handle bind firmware re-encryption with BSSK */
 		return sip_fw_bind(x1, x2, handle);
+
+	case SIP_SVC_NS_ENCRYPT:
+		/* Handle NS encryption */
+		return sip_ns_encrypt(x1, x2, handle);
+
+	case SIP_SVC_NS_DECRYPT:
+		/* Handle NS encryption */
+		return sip_ns_decrypt(x1, x2, handle);
 
 	default:
 		return microchip_plat_sip_handler(smc_fid, x1, x2, x3, x4,
