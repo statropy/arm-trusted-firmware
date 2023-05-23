@@ -119,10 +119,15 @@ BL31_SOURCES		+=	${GICV2_SOURCES}				\
 				${LAN969X_PLAT_COMMON}/lan969x_bl31_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_pm.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_topology.c	\
+				drivers/microchip/crypto/aes.c			\
 				drivers/microchip/otp/otp_tags.c		\
 				lib/cpus/aarch64/cortex_a53.S			\
 				plat/common/plat_gicv2.c			\
 				plat/common/plat_psci_common.c			\
+				plat/microchip/common/lan966x_fw_bind.c		\
+				plat/microchip/common/lan966x_ns_enc.c		\
+				plat/microchip/common/lan966x_sip_svc.c		\
+				plat/microchip/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_gicv2.c
 
 # We have/require TBB

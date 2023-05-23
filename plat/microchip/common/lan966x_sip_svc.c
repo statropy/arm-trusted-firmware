@@ -24,6 +24,12 @@
 
 #include <drivers/microchip/aes.h>
 
+#if defined(PLAT_LAN969X_NS_IMAGE_BASE)
+#define PLAT_LAN966X_NS_IMAGE_BASE	PLAT_LAN969X_NS_IMAGE_BASE
+#define PLAT_LAN966X_NS_IMAGE_SIZE	PLAT_LAN969X_NS_IMAGE_SIZE
+#define PLAT_LAN966X_NS_IMAGE_LIMIT	PLAT_LAN969X_NS_IMAGE_LIMIT
+#endif
+
 /* MCHP SiP Service UUID */
 DEFINE_SVC_UUID2(microchip_sip_svc_uid,
 		 0x10c149b6, 0xd31c, 0x4626, 0xaa, 0x79,

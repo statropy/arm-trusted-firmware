@@ -8,12 +8,11 @@
 #include <drivers/auth/mbedtls/mbedtls_config.h>
 #include <errno.h>
 #include <plat/common/platform.h>
+#include <plat_crypto.h>
 #include <platform_def.h>
-#include <errno.h>
 #include <tools_share/firmware_encrypted.h>
 
 #include "plat_otp.h"
-#include "lan966x_private.h"
 #include "lan966x_ns_enc.h"
 
 static const lan966x_key32_t lan966x_ns_derive = {
