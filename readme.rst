@@ -14,6 +14,14 @@ guidelines, but the (Ruby) wrapper `scripts/build.rb` script is
 offered as it ensures using the proper options for the platform. Refer
 to the script help (`--help` option).
 
+You should be able to compile the software using Ubuntu 22.04, but in
+order to shield you from platform software issues, you should consider
+using docker, along with a wrapper script - see
+https://github.com/microchip-ung/docker-run for more info. So with
+docker install, just run `dr ./scripts/build.rb ...`. (At first run it
+docker will download a docker image, but after that the overhead is
+minimal).
+
 .. warning::
    The keys found in the `keys/` directory are *purely* for
    demonstration purposes and *must* be replaced with own keys before

@@ -5,6 +5,7 @@
  */
 
 #include <stddef.h>
+#include <errno.h>
 
 #include <ddr_init.h>
 #include <ddr_reg.h>
@@ -117,6 +118,22 @@ static void set_static_ctl(void)
 			DFIUPD0_DIS_AUTO_CTRLUPD_SRX | DFIUPD0_DIS_AUTO_CTRLUPD);
 }
 
+/*
+ * This mirrors the PHY mrX fields from the controller initX registers
+ * to avoid having both in the configuration strcuture.
+ */
+static void set_mrx_phy(const struct ddr_config *cfg)
+{
+	mmio_write_32(DDR_PHY_MR0,
+		      FIELD_GET(INIT3_MR, cfg->main.init3));
+	mmio_write_32(DDR_PHY_MR1,
+		      FIELD_GET(INIT3_EMR, cfg->main.init3));
+	mmio_write_32(DDR_PHY_MR2,
+		      FIELD_GET(INIT4_EMR2, cfg->main.init4));
+	mmio_write_32(DDR_PHY_MR3,
+		      FIELD_GET(INIT4_EMR3, cfg->main.init4));
+}
+
 static void set_static_phy(const struct ddr_config *cfg)
 {
 	/* Disabling PHY initiated update request during DDR
@@ -201,7 +218,7 @@ static void ecc_enable_scrubbing(void)
 	VERBOSE("Enabled ECC scrubbing\n");
 }
 
-static void wait_phy_idone(int tmo)
+static int wait_phy_idone(int tmo)
 {
 	uint32_t pgsr;
 	uint64_t t;
@@ -216,20 +233,24 @@ static void wait_phy_idone(int tmo)
 			for (i = 0; i < ARRAY_SIZE(phyerr); i++) {
 				if (pgsr & phyerr[i].mask) {
 					NOTICE("PHYERR: %s Error\n", phyerr[i].desc);
-					/* Keep going */
+					return -EIO;
 				}
 			}
 		}
 
 		if (pgsr & PGSR0_IDONE)
-			return;
+			return 0;
 
 	} while(!timeout_elapsed(t));
 	PANIC("PHY IDONE timeout\n");
+
+	return -ETIMEDOUT;
 }
 
-static void ddr_phy_init(uint32_t mode, int usec_timout)
+static int ddr_phy_init(uint32_t mode, int usec_timout)
 {
+	int rc;
+
 	mode |= PIR_INIT;
 
 	VERBOSE("ddr_phy_init:start\n");
@@ -242,23 +263,27 @@ static void ddr_phy_init(uint32_t mode, int usec_timout)
 	/* Need to wait 10 configuration clock before start polling */
 	ddr_nsleep(10);
 
-	wait_phy_idone(usec_timout);
+	rc = wait_phy_idone(usec_timout);
 
-	VERBOSE("ddr_phy_init:done\n");
+	VERBOSE("ddr_phy_init:exit = %d\n", rc);
+
+	return rc;
 }
 
-static void PHY_initialization(void)
+static int PHY_initialization(void)
 {
 	/* PHY initialization: PLL initialization, Delay line
 	 * calibration, PHY reset and Impedance Calibration
 	 */
-	ddr_phy_init(PIR_ZCAL | PIR_PLLINIT | PIR_DCAL | PIR_PHYRST, PHY_TIMEOUT_US_1S);
+	return ddr_phy_init(PIR_ZCAL | PIR_PLLINIT | PIR_DCAL | PIR_PHYRST, PHY_TIMEOUT_US_1S);
 }
 
-static void DRAM_initialization_by_memctrl(void)
+static int DRAM_initialization(bool init_by_pub)
 {
-	/* This does a DRAM BIST */
-	ddr_phy_init(PIR_DRAMRST | PIR_DRAMINIT, PHY_TIMEOUT_US_1S);
+	uint32_t init_flags = init_by_pub ? PIR_DRAMRST | PIR_DRAMINIT : PIR_CTLDINIT;
+
+	/* write PHY initialization register for PUB/UMCTL SDRAM initialization */
+	return ddr_phy_init(init_flags, PHY_TIMEOUT_US_1S);
 }
 
 static void sw_done_start(void)
@@ -301,8 +326,9 @@ static void ddr_restore_refresh(uint32_t rfshctl3, uint32_t pwrctl)
 	sw_done_ack();
 }
 
-static void do_data_training(const struct ddr_config *cfg)
+static int do_data_training(const struct ddr_config *cfg)
 {
+	int rc;
 	uint32_t w;
 
 	VERBOSE("do_data_training:enter\n");
@@ -318,11 +344,15 @@ static void do_data_training(const struct ddr_config *cfg)
 	/* write PHY initialization register for Write leveling, DQS
 	 * gate training, Write_latency adjustment
 	 */
-	ddr_phy_init(PIR_WL | PIR_QSGATE | PIR_WLADJ, PHY_TIMEOUT_US_1S);
+	rc = ddr_phy_init(PIR_WL | PIR_QSGATE | PIR_WLADJ, PHY_TIMEOUT_US_1S);
+	if (rc)
+		return rc;
 
 	/* Now, actual data training */
 	w = PIR_WREYE | PIR_RDEYE | PIR_WRDSKW | PIR_RDDSKW;
-	ddr_phy_init(w, PHY_TIMEOUT_US_1S);
+	rc = ddr_phy_init(w, PHY_TIMEOUT_US_1S);
+	if (rc)
+		return rc;
 
 	w = mmio_read_32(DDR_PHY_PGSR0);
 	if ((w & PGSR_ALL_DONE) != PGSR_ALL_DONE) {
@@ -352,6 +382,8 @@ static void do_data_training(const struct ddr_config *cfg)
 	ddr_usleep(1);
 
 	VERBOSE("do_data_training:exit\n");
+
+	return 0;
 }
 
 int ddr_init(const struct ddr_config *cfg)
@@ -380,12 +412,17 @@ int ddr_init(const struct ddr_config *cfg)
 	set_regs(cfg, &cfg->phy, ddr_phy_reg, ARRAY_SIZE(ddr_phy_reg));
 	set_regs(cfg, &cfg->phy_timing, ddr_phy_timing_reg, ARRAY_SIZE(ddr_phy_timing_reg));
 
+	/* Mirror PHY MRx registers */
+	set_mrx_phy(cfg);
+
 	/* Static PHY settings */
 	set_static_phy(cfg);
 
-	PHY_initialization();
+	if (PHY_initialization())
+		PANIC("PHY initization failed\n");
 
-	DRAM_initialization_by_memctrl();
+	if (DRAM_initialization(true))
+		PANIC("DDR initization failed\n");
 
 	/* Start quasi-dynamic programming */
 	sw_done_start();
@@ -399,7 +436,8 @@ int ddr_init(const struct ddr_config *cfg)
 	/* wait 2ms for STAT.operating_mode to become "normal" */
 	wait_operating_mode(1, TIME_MS_TO_US(2U));
 
-	do_data_training(cfg);
+	if (do_data_training(cfg))
+		PANIC("Data training failed\n");
 
 	if (cfg->main.ecccfg0 & ECCCFG0_ECC_MODE)
 		ecc_enable_scrubbing();
