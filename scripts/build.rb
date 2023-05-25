@@ -8,21 +8,18 @@ require 'pp'
 require 'base64'
 
 platforms = {
-    "lan966x_sr"	=> Hash[
-        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_sr_atf.bin",
-        :arch  => "arm" ],
     "lan966x_b0"	=> Hash[
-        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
+        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-mchp_lan966x_evb.bin",
         :arch  => "arm" ],
     "lan966x_lm"	=> Hash[
-        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-lan966x_evb_atf.bin",
+        :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-mchp_lan966x_evb.bin",
         :arch  => "arm" ],
     "lan969x_sr"	=> Hash[
-        #:uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-lan969x_sr.bin",
+        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-mchp_lan969x.bin",
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
     "lan969x_a0"	=> Hash[
-        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-lan969x_sr.bin",
+        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-mchp_lan969x.bin",
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
 }
@@ -69,8 +66,8 @@ $option = { :platform              => "lan966x_b0",
             :create_keys           => false,
             :bl33_blob             => nil,
             :arch                  => "arm",
-            :sdk                   => "2022.02.5-828",
-            :sdk_branch            => "-brsdk",
+            :sdk                   => "2023.02-103",
+            :sdk_branch            => "-brsdk.lan969x-v4",
             :norimg                => true,
             :gptimg                => false,
             :ramusage              => true,
@@ -185,10 +182,10 @@ end
 
 def install_sdk()
     brsdk_name = "mscc-brsdk-#{$arch[:bsp_arch]}-#{$option[:sdk]}"
-    brsdk_base = "/opt/mscc/#{brsdk_name}"
+    brsdk_base = "/opt/mscc/#{brsdk_name}#{$option[:sdk_branch]}"
     if not File.exist?(brsdk_base)
         if File.exist?("/usr/local/bin/mscc-install-pkg") and detect_internal_network()
-            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}#{$option[:sdk_branch]} #{brsdk_name}"
+            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}#{$option[:sdk_branch]} #{brsdk_name}#{$option[:sdk_branch]}"
         else
             puts "Please install the BSP: #{brsdk_name}.tar.gz into /opt/mscc/"
             puts ""
