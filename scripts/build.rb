@@ -5,6 +5,7 @@ require 'optparse'
 require 'yaml'
 require 'digest'
 require 'pp'
+require 'base64'
 
 platforms = {
     "lan966x_sr"	=> Hash[
@@ -487,8 +488,19 @@ if true
     do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
 end
 
+# fwu fip post process
+fwu_fip = "#{build}/fwu_fip.bin"
+if File.exist?(fwu_fip)
+    jsf = "#{build}/fwu_app_#{$option[:platform]}.js"
+    File.open(jsf, "w") { |f|
+        f.write("const #{$option[:platform]}_app = [\n");
+        Base64.encode64(File.read(fwu_fip)).each_line { |l| l.chomp!; f.write("\t\"#{l}\",\n") }
+        f.write("]\n");
+    }
+end
+
 # Build FWU
-do_cmd("ruby ./scripts/html_inline.rb ./scripts/fwu/serial.html > #{build}/fwu.html")
+do_cmd("ruby ./scripts/html_inline.rb -i #{build} ./scripts/fwu/serial.html > #{build}/fwu.html")
 
 # DT's
 if File.exist? "#{build}/fdts/"

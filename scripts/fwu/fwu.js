@@ -664,6 +664,8 @@ function startSerial()
 	try {
 	    setStatus("Downloading BL2U applet");
 	    const app = atob(plf["bl2u"].join(""));
+	    if (app.length == 0)
+		throw "Empty application image - no BL2U support for " + plf["name"];
 	    await downloadApp(port, app, plf["bl1_binary"]);
 	    await delaySkipInput(port, 2000);
 	    let auth = await completeRequest(port, fmtReq(CMD_AUTH, 0));
