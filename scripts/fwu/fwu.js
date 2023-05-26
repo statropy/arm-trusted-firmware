@@ -753,6 +753,7 @@ function startSerial()
 	    var rspStruct = await completeRequest(port, fmtReq(CMD_VERS, 0));
 	    var chip = rspStruct["arg"].toString(16).padStart(8, "0");
 	    var version = rspStruct["data"];
+	    addTrace("Version: " + version);
 	    plf = getPlatform(chip);
 	    if (plf) {
 		setStatus("Identified device: " + plf["name"]);
