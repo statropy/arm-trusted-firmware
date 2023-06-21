@@ -259,9 +259,9 @@ function parseResponse(input)
     return null;
 }
 
-async function portOpen(port)
+async function portOpen(port, baud)
 {
-    await port.open({ baudRate: 115200});
+    await port.open({ baudRate: baud});
     const textDecoder = new TextDecoderStream();
     const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
     const reader = textDecoder.readable
@@ -740,7 +740,8 @@ function startSerial()
 
     document.getElementById('port_select').addEventListener('click', async () => {
 	port = await navigator.serial.requestPort();
-	port_reader = await portOpen(port);
+	var baud = document.getElementById('baudrate').selectedOptions[0].value;
+	port_reader = await portOpen(port, baud);
 	setStatus("Connected");
 	// Avoid reconnect
 	document.getElementById('port_select').disabled = true;
