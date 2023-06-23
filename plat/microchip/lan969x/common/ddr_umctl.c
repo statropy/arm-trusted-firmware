@@ -108,7 +108,7 @@ static bool wait_reg_set(uintptr_t reg, uint32_t mask, int usec)
 	return false;
 }
 
-static bool wait_reg_clr(uintptr_t reg, uint32_t mask, int usec)
+static __used bool wait_reg_clr(uintptr_t reg, uint32_t mask, int usec)
 {
 	uint64_t t = timeout_init_us(usec);
 	while ((mmio_read_32(reg) & mask) != 0) {
