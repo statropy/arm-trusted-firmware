@@ -253,57 +253,6 @@ static void axi_enable_ports(bool enable)
 	}
 }
 
-static void ecc_enable_scrubbing(const struct ddr_config *cfg)
-{
-	VERBOSE("Enable ECC scrubbing\n");
-
-	/* 1.  Disable AXI port. port_en = 0 */
-	axi_enable_ports(false);
-
-	/* 2. scrub_mode = 1 */
-	mmio_setbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_MODE);
-
-	/* 3. scrub_interval = 0 */
-	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_INTERVAL);
-
-	/* 4. Data pattern = 0 */
-	mmio_write_32(DDR_UMCTL2_SBRWDATA0, 0);
-
-	/* 5. (skip) */
-
-	/* 6. Enable SBR programming */
-	mmio_setbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
-
-	/* 7. Poll SBRSTAT.scrub_done */
-	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 1000000))
-		PANIC("Timeout SBRSTAT.scrub_done set\n");
-
-	/* 8. Poll SBRSTAT.scrub_busy */
-	if (wait_reg_clr(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_BUSY, 50))
-		PANIC("Timeout SBRSTAT.scrub_busy clear\n");
-
-	/* 9. Disable SBR programming */
-	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
-
-	VERBOSE("Initial ECC scrubbing done\n");
-
-	/* Only enable background scrubbing when not using inline ECC.
-	 * 'ECCCFG1_ECC_REGION_PARITY_LOCK' is defined only when having
-	 * inline ECC configured in controller.
-	 */
-#if !defined(ECCCFG1_ECC_REGION_PARITY_LOCK)
-	/* 10+11: Enable SBR programming again if enabled and interval != 0 */
-	if (cfg->main.sbrctl & SBRCTL_SCRUB_EN &&
-	    FIELD_GET(SBRCTL_SCRUB_INTERVAL, cfg->main.sbrctl) != 0) {
-		mmio_write_32(DDR_UMCTL2_SBRCTL, cfg->main.sbrctl);
-		VERBOSE("Enabled ECC scrubbing\n");
-	}
-#endif
-
-	/* 12. Enable AXI port */
-	axi_enable_ports(true);
-}
-
 static void phy_fifo_reset(void)
 {
 	mmio_clrbits_32(DDR_PHY_PGCR0, PGCR0_PHYFRST);
@@ -625,9 +574,6 @@ int ddr_init(const struct ddr_config *cfg)
 
 	if (do_data_training(cfg))
 		PANIC("Data training failed\n");
-
-	if (0) //cfg->main.ecccfg0 & ECCCFG0_ECC_MODE)
-		ecc_enable_scrubbing(cfg);
 
 	VERBOSE("ddr_init:done\n");
 
