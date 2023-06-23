@@ -9,7 +9,7 @@
 const struct ddr_config lan969x_ddr_config = {
 	.info = {
 		.name = "lan969x 2023-03-20-15:09:14 221947e3e864",
-		.speed = 2400,
+		.speed = 1600,
 		.size = 0x38000000,
 		.bus_width = 16,
 	},

@@ -626,7 +626,7 @@ int ddr_init(const struct ddr_config *cfg)
 	if (do_data_training(cfg))
 		PANIC("Data training failed\n");
 
-	if (cfg->main.ecccfg0 & ECCCFG0_ECC_MODE)
+	if (0) //cfg->main.ecccfg0 & ECCCFG0_ECC_MODE)
 		ecc_enable_scrubbing(cfg);
 
 	VERBOSE("ddr_init:done\n");
