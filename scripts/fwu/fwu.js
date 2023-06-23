@@ -73,7 +73,7 @@ const platforms = {
 	"ddr_cfg":	ddr_cfg_lan966x,
 	"ddr_regs":	ddr_regs_lan966x,
     },
-    "f969a445": {
+    "0969a445": {
 	"name":		"LAN969X A0",
 	"bl1_binary":	true,
 	"bl2u":		lan969x_a0_app,
