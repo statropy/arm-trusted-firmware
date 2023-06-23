@@ -221,16 +221,15 @@ void lan966x_io_init_dev(boot_source_type boot_source)
 		qspi_init(LAN966X_QSPI_0_BASE);
 
 		/* Ensure we have ample reach on QSPI mmap area */
-		/* 16M should be more than adequate - EVB/SVB have 2M */
 		matrix_configure_srtop(MATRIX_SLAVE_QSPI0,
-				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
-				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M));
+				       MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
+				       MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M));
 
 		/* Enable QSPI0 for NS access */
 		matrix_configure_slave_security(MATRIX_SLAVE_QSPI0,
-						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_16M) |
-						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_16M),
-						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_16M),
+						MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_128M) |
+						MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_128M),
+						MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_128M),
 						MATRIX_LANSECH_NS(0));
 	default:
 		break;
