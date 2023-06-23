@@ -600,7 +600,7 @@ static void handle_ddr_test(bootstrap_req_t *req)
 	int ret;
 #endif
 
-	attr = MT_RW | MT_SECURE | MT_EXECUTE_NEVER;
+	attr = MT_RW | MT_NS | MT_EXECUTE_NEVER;
 	cache = !!(req->arg0 & 1);
 	if (cache) {
 		attr |= MT_MEMORY;

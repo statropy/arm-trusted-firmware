@@ -83,7 +83,7 @@ void bl2u_plat_arch_setup(void)
 
 #if defined(PLAT_XLAT_TABLES_DYNAMIC)
 	/* Add region we'll be changing */
-	mmap_add_dynamic_region(LAN969X_DDR_BASE, LAN969X_DDR_BASE, LAN969X_DDR_MAX_SIZE, MT_NON_CACHEABLE | MT_RW | MT_SECURE);
+	mmap_add_dynamic_region(LAN969X_DDR_BASE, LAN969X_DDR_BASE, LAN969X_DDR_MAX_SIZE, MT_NON_CACHEABLE | MT_NS | MT_RW);
 #endif
 
 #ifdef __aarch64__

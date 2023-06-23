@@ -76,6 +76,9 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN969X_MAP_QSPI0_RW,
 	LAN969X_MAP_AXI,
 	LAN969X_MAP_BL31,
+#if !defined(PLAT_XLAT_TABLES_DYNAMIC)
+	LAN969X_MAP_NS_MEM,
+#endif
 	{0}
 };
 #endif
