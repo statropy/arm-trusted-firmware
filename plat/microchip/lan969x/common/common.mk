@@ -95,13 +95,18 @@ BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 				plat/microchip/common/plat_bl2u_bootstrap.c	\
 				plat/microchip/lan969x/common/lan969x_bl2u_io.c
 
+# Only BL2U needs this
+BL2U_CPPFLAGS := -DPLAT_XLAT_TABLES_DYNAMIC
+
 ifeq (${PLAT},lan969x_a0)
 DDR_SOURCES	:=					\
 	${LAN969X_PLAT_COMMON}/ddr_umctl.c		\
 	${LAN969X_PLAT_COMMON}/lan969x_ddr_config.c	\
 	${LAN969X_PLAT_COMMON}/lan969x_ddr_clock.c
 else
-DDR_SOURCES	:=  ${LAN969X_PLAT_COMMON}/lan969x_ddr.c
+DDR_SOURCES	:=					\
+	${LAN969X_PLAT_COMMON}/lan969x_ddr.c		\
+	${LAN969X_PLAT_COMMON}/lan969x_ddr_config.c
 endif
 
 BL2_SOURCES	+=  ${DDR_SOURCES}

@@ -55,6 +55,13 @@ lan966x_fw_config_t lan966x_fw_config __aligned(CACHE_WRITEBACK_GRANULE);
 		PLAT_LAN969X_NS_IMAGE_SIZE,			\
 		MT_MEMORY | MT_RW | MT_NS)
 
+#define LAN969X_MAP_DDR						\
+	MAP_REGION_FLAT(					\
+		LAN969X_DDR_BASE,				\
+		LAN969X_DDR_MAX_SIZE,				\
+		MT_NON_CACHEABLE | MT_RW | MT_SECURE)
+
+
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {
 	LAN969X_MAP_QSPI0,
@@ -76,7 +83,7 @@ const mmap_region_t plat_arm_mmap[] = {
 	LAN969X_MAP_QSPI0_RW,
 	LAN969X_MAP_AXI,
 	LAN969X_MAP_BL31,
-	LAN969X_MAP_NS_MEM,
+	LAN969X_MAP_DDR,
 	{0}
 };
 #endif

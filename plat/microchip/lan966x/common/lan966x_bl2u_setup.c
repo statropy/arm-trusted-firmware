@@ -10,6 +10,7 @@
 #include <drivers/generic_delay_timer.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
+#include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/fw_config.h>
@@ -28,12 +29,6 @@
 						BL_CODE_BASE,			\
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
-
-#define LAN966X_MAP_DDR_MEM					\
-	MAP_REGION_FLAT(					\
-		LAN966X_DDR_BASE,				\
-		LAN966X_DDR_SIZE,				\
-		MT_MEMORY | MT_RW | MT_SECURE)
 
 void bl2u_platform_setup(void)
 {
@@ -97,11 +92,13 @@ void bl2u_plat_arch_setup(void)
 	const mmap_region_t bl_regions[] = {
 		MAP_BL2U_TOTAL,
 		ARM_MAP_BL_RO,
-		LAN966X_MAP_DDR_MEM,
 		{0}
 	};
 
 	setup_page_tables(bl_regions, plat_arm_get_mmap());
+
+	/* Add region we'll be changing */
+	mmap_add_dynamic_region(LAN966X_DDR_BASE, LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE, MT_NON_CACHEABLE | MT_RW | MT_SECURE);
 
 #ifdef __aarch64__
 	enable_mmu_el1(0);

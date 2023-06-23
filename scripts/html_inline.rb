@@ -4,12 +4,12 @@ require 'pp'
 require 'optparse'
 require 'base64'
 
-def inline_file(f)
-    puts "<script>\n"
+def inline_file(tag, f)
+    puts "<#{tag}>\n"
     File.readlines(f).each do |line|
         puts line
     end
-    puts "</script>\n"
+    puts "</#{tag}>\n"
 end
 
 def inline_pic(f)
@@ -41,11 +41,14 @@ File.readlines(infilepath).each do |line|
         if $option[:incdir]
             ifile = $option[:incdir] + "/" + f[1]
             ifile = inp_dir + "/" + f[1] if !File.exist?(ifile)
-            inline_file(ifile)
+            inline_file("script", ifile)
         else
             ifile = inp_dir + "/" + f[1]
-            inline_file(ifile)
+            inline_file("script", ifile)
         end
+    elsif line.match(/<link/) && (f = line.match(/href="([^"]+)"/))
+        ifile = inp_dir + "/" + f[1]
+        inline_file("style", ifile)
     elsif line.match(/<img/) && (f = line.match(/src="([^"]+)"/))
         data = inline_pic(inp_dir + "/" + f[1])
         puts line.gsub(f[0], "src=\"#{data}\"")

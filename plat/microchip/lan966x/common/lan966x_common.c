@@ -16,11 +16,11 @@
 #include <drivers/microchip/vcore_gpio.h>
 #include <fw_config.h>
 #include <lib/mmio.h>
-#include <platform_def.h>
-
-#include <plat/common/platform.h>
 #include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
+#include <plat/common/platform.h>
+#include <platform_def.h>
+
 #include <lan96xx_mmc.h>
 #include <lan96xx_common.h>
 

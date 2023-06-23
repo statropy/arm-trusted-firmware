@@ -134,6 +134,9 @@ BL2U_SOURCES		+=	\
 				plat/microchip/lan966x/common/ddr_umctl.c		\
 				plat/microchip/lan966x/common/lan966x_ddr_config.c
 
+# Only BL2U needs this
+BL2U_CPPFLAGS := -DPLAT_XLAT_TABLES_DYNAMIC
+
 ifneq ($(filter ${BL2_VARIANT},NOOP NOOP_OTP),)
 override BL2_SOURCES		:=	\
 				bl2/${ARCH}/bl2_entrypoint.S				\

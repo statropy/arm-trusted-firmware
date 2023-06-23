@@ -5,14 +5,13 @@
   <title>Secure Boot Management</title>
   <script src="crc32c.js"></script>
   <script src="sha256.js"></script>
+  <script src="js-yaml.js"></script>
   <script src="fwu_app_lan966x_b0.js"></script>
-  <script src="fwu_app_lan969x_sr.js"></script>
+  <script src="fwu_app_lan969x_a0.js"></script>
+  <script src="ddr_cfg_lan966x_b0.js"></script>
+  <script src="ddr_cfg_lan969x_a0.js"></script>
   <script src="fwu.js"></script>
-    <style>
-	.wrapper {
-	    padding: 2px;
-	    margin: 2px 2px;
-	}
+  <style>
 	img#settings {
 	    position: absolute;
 	    top: 2px;
@@ -23,13 +22,14 @@
 	    top: 2px;
 	    right: 2px;
 	}
+	img#logo {
+	    position: absolute;
+	    top: 20px;
+	    right: 2px;
+	}
 	textarea {
 	    font-size: 12px;
 	    width: 100%;
-	}
-	table {
-	    width: 100%;
-	    table-layout: fixed;
 	}
 	table.settings td {
 	    border: 1px solid;
@@ -45,12 +45,40 @@
 	    text-color: white;
 	    background-color: red;
 	}
-    </style>
+	.reg_form {
+	    font-family: monospace;
+	    font-size: 14px;
+	    padding: 8px;
+	}
+	table.reg_form td {
+	    padding: 2px;
+	}
+	td.reg_text_col span:hover {
+	    cursor: pointer;
+	}
+	.input_wide {
+	    width: 30em;
+	}
+	.input_normal {
+	    width: 7em;
+	}
+	.ddr_reghelp {
+	    background-color: white;
+	    color: black;
+	    border: 1px solid;
+	    padding: 5px;
+	}
+	.ddr_reghelp th {
+	    text-align: left;
+	}
+  </style>
+  <link rel="stylesheet" href="tabs.css">
 </head>
 <body onload="startSerial()">
   <h1>LAN96xx Secure boot management</h1>
   <img id="settings" width="20" height="20" src="settings.jpg">
   <img id="active" width="30" height="30" src="activity.gif" style="display:none">
+  <img id="logo" src="microchip.png">
   <div id="browser_check" style="display:none" class="warning">
     <h3>Warning!</h3>
     <p>
@@ -83,150 +111,278 @@
   <div id="bl1" style="display:none">
     <h2>BL1 bootstrap</h2>
     <p>
-      You are now in the built-in <i>BL1</i> context, and you may
-      select the functions supported here.
+      You are now in the built-in <em>BL1</em> context, and you may
+      select the functions supported here. You will most likely want
+      to change to the <em>BL2U</em> context.
     </p>
-    <p>
-      To perform firmware upgrade, and other functions such as device
-      firmware encryption you should change to the <i>BL2U</i>
-      context. This implies uploading the associated
-      BL2U <samp>fwu_fip</samp> which will then be replacing BL1
-      temporarily.
-    </p>
-    <table>
-      <tr>
-	<td>
+    <div class="tabs">
+      <div class="tab">
+	<input type="radio" name="bl1-css-tabs" id="bl1-tab-1" checked class="tab-switch">
+	<label for="bl1-tab-1" class="tab-label">BL2U</label>
+	<div class="tab-content">
+	  <p>
+	    To perform firmware upgrade, and other functions such as device
+	    firmware encryption you should change to the <em>BL2U</em>
+	    context. This implies uploading the associated
+	    BL2U <samp>fwu_fip</samp> which will then be replacing BL1
+	    temporarily.
+	  </p>
 	  <button type="button" id="bl1_download">Download BL2U</button>
-	</td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl1_sjtag_challenge">SJTAG Get Challenge</button>
-	</td>
-	<td id="bl1_sjtag_challenge_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl1_sjtag_unlock">SJTAG Unlock</button>
-	  Key <input id="bl1_sjtag_unlock_key" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
-	</td>
-	<td id="bl1_sjtag_unlock_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl1_otp_set_rnd">OTP Random</button>
-	  <select id="bl1_otp_set_rnd_fld"></select>
-	</td>
-	<td id="bl1_otp_set_rnd_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl1_otp_set_data">OTP Set</button>
-	  <select id="bl1_otp_set_data_fld"></select>
-	  Data <input id="bl1_otp_set_data_buf" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
-	</td>
-	<td id="bl1_otp_set_data_feedback" class="feedback"></td>
-      </tr>
-    </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl1-css-tabs" id="bl1-tab-2" class="tab-switch">
+	<label for="bl1-tab-2" class="tab-label">SJTAG</label>
+	<div class="tab-content">
+	  <p>
+	    Secure JTAG (SJTAG) is a feature that allow you to unlock
+	    a secured JTAG port, providing the SJTAG key for this
+	    particular device. The JTAG port can be locked by writing
+	    certain fields in the OTP.
+	    <br>
+	    In order to unlock, first obtain the challenge from the
+	    device. If SJTAG is enabled, you can then provide the key
+	    (copy/paste), and then unlock.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<button type="button" id="bl1_sjtag_challenge">SJTAG Get Challenge</button>
+	      </td>
+	      <td id="bl1_sjtag_challenge_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl1_sjtag_unlock">SJTAG Unlock</button>
+		Key <input id="bl1_sjtag_unlock_key" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	      </td>
+	      <td id="bl1_sjtag_unlock_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl1-css-tabs" id="bl1-tab-3" class="tab-switch">
+	<label for="bl1-tab-3" class="tab-label">OTP</label>
+	<div class="tab-content">
+	  <p>
+	    Note that all OTP Program Random/Set operations <em>cannot</em>
+	    be undone, and may render your device inoperable. Use with caution!
+	    <br>
+	    Note: You may also use <em>BL2U</em> to program OTP, this
+	    context also allow you to read back OTP data for
+	    verification.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<button type="button" id="bl1_otp_set_rnd">OTP Program Random Data</button> to
+		<select id="bl1_otp_set_rnd_fld"></select>
+	      </td>
+	      <td id="bl1_otp_set_rnd_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl1_otp_set_data">OTP Set</button> to
+		<select id="bl1_otp_set_data_fld"></select>
+		Data <input id="bl1_otp_set_data_buf" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	      </td>
+	      <td id="bl1_otp_set_data_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+    </div>
   </div>
   <div id="bl2u" style="display:none">
     <h2>BL2U bootstrap</h2>
     <p>
-      You are now in the downloaded <i>BL2U</i> context, which enables
+      You are in the downloaded <em>BL2U</em> context, which enables
       firmware associated functions and OTP read/write/randomize capabilities.
+      You can also enter DDR configuration or
+      <button type="button" id="bl2u_reset">Reset to BL1</button>
+      mode if desired.
     </p>
-    <p>
-      For firmware update you should start by uploading
-      either the <samp>FIP</samp> with a firmware upgrade, or a full
-      Flash image.
-    </p>
-    <p>
-      <ul>
-	<li>
-	  Updating NOR flash differ per platform, depending if GPT is
-	  used on the NOR device:
+    <div class="tabs">
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-1" checked class="tab-switch">
+	<label for="bl2u-tab-1" class="tab-label">Image types</label>
+	<div class="tab-content">
+	  <p>
+	    For firmware update you should start by uploading
+	    either the <samp>FIP</samp> with a firmware upgrade, or a full
+	    Flash image.
+	  </p>
 	  <ul>
-	    <li> LAN966X: No GPT. The FIP <i>is</i> the Flash image.
-	      Image is called <samp>x.fip</samp> or <samp>x.fip.gz</samp>.</li>
-	    </li>
-	    <li> LAN969X: GPT is used. The NOR flash image is called <samp>nor.gpt</samp> or <samp>nor.gpt.gz</samp>.</li>
+	    <li>
+	      Updating NOR flash differ per platform, depending if GPT is
+	      used on the NOR device:
+	      <ul>
+		<li>
+		  LAN966X: No GPT. The FIP <em>is</em> the Flash image.
+		  Image is called <samp>x.fip</samp> or <samp>x.fip.gz</samp>.
+		</li>
+		<li>
+		  LAN969X: GPT is used. The NOR flash image is
+		  called <samp>nor.gpt</samp> or <samp>nor.gpt.gz</samp>.
+		</li>
+	      </ul>
+	    <li>For eMMC/SD the Flash image is a GPT image called <samp>mmc.gpt</samp> or <samp>mmc.gpt.gz</samp>.</li>
 	  </ul>
-	</li>
-	<li>For eMMC/SD the Flash image is a GPT image called <samp>mmc.gpt</samp> or <samp>mmc.gpt.gz</samp>.</li>
-	<li>
-	  You may upload <samp>GZIP</samp>'ed files, and they will
-	  automatically be unzipped when received.
-	</li>
-      </ul>
-    </p>
-    <table>
-      <tr>
-	<td>
-	  <input type="file" id="file_select">
-	</td>
-      </tr>
-      <tr>
-	<td>
-	<button type="button" id="bl2u_upload">Upload file</button>
-	<input type="checkbox" id="binary" checked> Use binary upload
-	</td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl2u_bind">Bind FIP (BSSK Re-encrypt)</button>
-	</td>
-	<td id="bl2u_bind_fip_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl2u_write_fip">Write FIP Image</button>
-	  <select id="bl2u_write_fip_device">
-	    <option value="0">eMMC</option>
-	    <option value="1">NOR Flash</option>
-	    <option value="2">SD Card</option>
-	  </select>
-	</td>
-	<td id="bl2u_write_fip_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl2u_write_image">Write Flash Image</button>
-	  <select id="bl2u_write_image_device">
-	    <option value="0">eMMC</option>
-	    <option value="1">NOR Flash</option>
-	    <option value="2">SD Card</option>
-	  </select>
-	</td>
-	<td id="bl2u_write_image_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl2u_otp_read">OTP Read</button>
-	  <select id="bl2u_otp_read_fld"></select>
-	</td>
-	<td id="bl2u_otp_read_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl2u_otp_set_rnd">OTP Randomize</button>
-	  <select id="bl2u_otp_set_rnd_fld"></select>
-	</td>
-	<td id="bl2u_otp_set_rnd_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl2u_otp_set_data">OTP Set</button>
-	  <select id="bl2u_otp_set_data_fld"></select>
-	  Data <input id="bl2u_otp_set_data_buf" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
-	</td>
-	<td id="bl2u_otp_set_data_feedback" class="feedback"></td>
-      </tr>
-      <tr>
-	<td>
-	  <button type="button" id="bl2u_reset">Reset to BL1</button>
-	</td>
-      </tr>
-    </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-2" class="tab-switch">
+	<label for="bl2u-tab-2" class="tab-label">Upload Image</label>
+	<div class="tab-content">
+	  <p>
+	    Note: You may upload <samp>GZIP</samp>'ed files, and they will
+	    automatically be unzipped when received.
+	  </p>
+	  <p>
+	    First choose the appropriate file for the operation you
+	    wish to perform, the hit <samp>Upload file</samp>.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<input type="file" id="file_select">
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_upload">Upload file</button>
+		<input type="checkbox" id="binary" checked> Use binary upload
+	      </td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-3" class="tab-switch">
+	<label for="bl2u-tab-3" class="tab-label">Write Image</label>
+	<div class="tab-content">
+	  <p>
+	    The <em>binding</em> operation re-encrypts a FIP
+	    image with the BSSK key. The uploaded FIP must be
+	    encrypted with the SSK. This will ensure firmware
+	    cannot be copied from the device. Binding is
+	    optional, and can only be used on FIP images.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_bind">Bind FIP</button>
+	      </td>
+	      <td id="bl2u_bind_fip_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_write_fip">Write FIP Image</button> to
+		<select id="bl2u_write_fip_device">
+		  <option value="0">eMMC</option>
+		  <option value="1">NOR Flash</option>
+		  <option value="2">SD Card</option>
+		</select>
+	      </td>
+	      <td id="bl2u_write_fip_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_write_image">Write Flash Image</button> to
+		<select id="bl2u_write_image_device">
+		  <option value="0">eMMC</option>
+		  <option value="1">NOR Flash</option>
+		  <option value="2">SD Card</option>
+		</select>
+	      </td>
+	      <td id="bl2u_write_image_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-4" class="tab-switch">
+	<label for="bl2u-tab-4" class="tab-label">OTP operations</label>
+	<div class="tab-content">
+	  <p>
+	    Note that all OTP Program Random/Set operations <em>cannot</em>
+	    be undone, and may render your device inoperable. Use with caution!
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_otp_read">OTP Read</button> from
+		<select id="bl2u_otp_read_fld"></select>
+	      </td>
+	      <td id="bl2u_otp_read_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_otp_set_rnd">OTP Program Random Data</button> to
+		<select id="bl2u_otp_set_rnd_fld"></select>
+	      </td>
+	      <td id="bl2u_otp_set_rnd_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_otp_set_data">OTP Set</button> to
+		<select id="bl2u_otp_set_data_fld"></select>
+		Data <input id="bl2u_otp_set_data_buf" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	      </td>
+	      <td id="bl2u_otp_set_data_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-5" class="tab-switch">
+	<label for="bl2u-tab-5" class="tab-label">DDR configuration</label>
+	<div class="tab-content">
+	  <p>
+	    DDR configuration mode allow you to tweak the existing DDR
+	    configuration parameters, upload and save DDR
+	    configurations to <samp>YAML</samp> format.
+	  </p>
+	  <button type="button" id="bl2u_ddr_mode_enter">Enter DDR configuration</button>
+	</div>
+      </div>
+    </div>
+  </div>
+  <div id="bl2u_ddr" style="display:none">
+    <h2>DDR configuration mode</h2>
+    <p>
+      You are now in the DDR configuration mode, which allows you to
+      load alternate DDR configurations and test out the
+      behaviour. You can
+      <button type="button" id="bl2u_ddr_mode_exit">exit back</button>
+      to the normal BL2U mode if desired.
+      </p>
+    <div id="bl2u_ddr_pane" class="tabs">
+      <div class="tab">
+	<input type="radio" name="css-tabs" id="tab-1" checked class="tab-switch">
+	<label for="tab-1" class="tab-label">Configuration I/O</label>
+	<div class="tab-content">
+	  Load <button type="button" id="bl2u_ddr_load">Configuration From Device</button>
+	  <br>
+	  Load <input type="file" id="ddr_config_input" accept=".yaml">
+	  <br>
+	  Save <button type="button" id="ddr_config_write">Configuration To File</button>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="css-tabs" id="tab-2" class="tab-switch">
+	<label for="tab-2" class="tab-label">Deployment</label>
+	<div class="tab-content">
+	  <button type="button" id="bl2u_ddr_init">Initialize DDR</button>
+	  <br>
+	  <button type="button" id="bl2u_ddr_test">Run DDR tests</button>
+	  Cache: <input type="checkbox" id="enable_cache">
+	</div>
+      </div>
+    </div>
+    <div id="bl2u_ddr_reghelp" style="display:none">
+    </div>
   </div>
   <div id="booting" style="display:none">
     <h2>Booting</h2>
@@ -246,7 +402,7 @@
 	</td>
 	<td>
 	  Enabling this will add detailed trace output of all messages
-	  between the managed device in the <i>JavaScript</i> console
+	  between the managed device in the <em>JavaScript</i> console
 	  of your browser. This is typically found in
 	  <samp>Settings|Developer Tools</samp> (or F-12 on MS Edge).
 	</td>
@@ -256,11 +412,11 @@
       <button id="settings_back">Done</button>
     </p>
   </div>
-  <h3>Status:
-    <span id="status">Disconnected</span>
-  </h3>
-  <p>Log:</p>
-  <div class="wrapper">
+  <div>
+    <h2>Status:
+      <span id="status">Disconnected</span>
+    </h2>
+    <h3>Transaction Log</h3>
     <textarea cols="30" rows="15" id="log"></textarea>
   </div>
 </body>

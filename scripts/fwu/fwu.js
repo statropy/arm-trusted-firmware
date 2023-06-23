@@ -18,6 +18,9 @@ const CMD_BL2U_IMAGE = 'I';
 const CMD_BL2U_BIND ='B';
 const CMD_BL2U_OTP_READ ='L';
 const CMD_BL2U_RESET ='e';
+const CMD_BL2U_DDR_CFG_SET = 'C';
+const CMD_BL2U_DDR_CFG_GET = 'c';
+const CMD_BL2U_DDR_TEST = 'T';
 
 let cur_stage = "connect";	// Initial "tab"
 let tracing = false;
@@ -60,16 +63,22 @@ const platforms = {
 	"name":		"LAN966X B0",
 	"bl1_binary":	false,
 	"bl2u":		lan966x_b0_app,
+	"ddr_cfg":	ddr_cfg_lan966x,
+	"ddr_regs":	ddr_regs_lan966x,
     },
     "19660445": {		// LAN966X B0 BL2U responds with chipid
 	"name":		"LAN966X B0",
 	"bl1_binary":	false,
 	"bl2u":		lan966x_b0_app,
+	"ddr_cfg":	ddr_cfg_lan966x,
+	"ddr_regs":	ddr_regs_lan966x,
     },
     "f969a445": {
-	"name":		"LAN969X SR",
+	"name":		"LAN969X A0",
 	"bl1_binary":	true,
-	"bl2u":		lan969x_sr_app,
+	"bl2u":		lan969x_a0_app,
+	"ddr_cfg":	ddr_cfg_lan969x,
+	"ddr_regs":	ddr_regs_lan969x,
     },
 };
 
@@ -156,7 +165,7 @@ function ntohl(arg)
 {
     var ret = "";
     for (var i = 24; i >= 0; i -= 8)
-	ret += String.fromCharCode(arg >> i);
+	ret += String.fromCharCode(0xff & (arg >> i));
     return ret;
 }
 
@@ -346,7 +355,7 @@ async function downloadApp(port, appdata, binary)
 
 async function delayWait(timeout)
 {
-    return new Promise(resolve => setTimeout(resolve, timeout));
+    return new Promise((resolve, reject) => setTimeout(resolve, timeout)).catch(alert);
 }
 
 async function delaySkipInput(port, timeout)
@@ -423,7 +432,7 @@ function restoreButtons(state)
 function setStage(new_stage)
 {
     var reset_state = (cur_stage != "adv_settings");
-    var stages = ["connect", "bl1", "bl2u", "adv_settings", "booting"];
+    var stages = ["connect", "bl1", "bl2u", "bl2u_ddr", "adv_settings", "booting"];
     for (const stage of stages) {
 	var display = (new_stage == stage ? "block" : "none");
 	document.getElementById(stage).style.display = display;
@@ -505,6 +514,151 @@ function otpSelPopulate(name, usemask)
     }
 }
 
+const chunk = function(array, size) {
+  if (!array.length) {
+    return [];
+  }
+  const head = array.slice(0, size);
+  const tail = array.slice(size);
+
+  return [head, ...chunk(tail, size)];
+};
+
+function appendTd(tr, type, text)
+{
+    var td = document.createElement(type);
+    td.appendChild(document.createTextNode(text));
+    tr.appendChild(td);
+}
+
+function appendTds(tr, type, a)
+{
+    for (let v of a) {
+	appendTd(tr, type, v);
+    }
+}
+
+function createRegHelp(regname, reg)
+{
+    var container = document.createElement("div");
+    var elm;
+
+    container.classList.add("ddr_reghelp");
+
+    elm = document.createElement("h3");
+    elm.setAttribute("id", "ddr_help_current");
+    elm.appendChild(document.createTextNode(regname));
+
+    container.appendChild(elm);
+
+    elm = document.createElement("p");
+    elm.appendChild(document.createTextNode(reg.help));
+    container.appendChild(elm);
+
+    elm = document.createElement("table");
+    const th = document.createElement("tr");
+    appendTds(th, "th", ["Field", "Position", "Width", "Default", "Documentation"]);
+    elm.appendChild(th);
+    for (let [fldname, fld] of reg.fields) {
+	const tr = document.createElement("tr");
+	appendTds(tr, "td", [fldname.toLowerCase(), fld.pos, fld.width, fld.default, fld.help])
+
+	elm.appendChild(tr);
+    }
+    container.appendChild(elm);
+
+    return container;
+}
+
+function ddrUIsetup(name, prefix, plf)
+{
+    const topdiv = document.getElementById(name);
+    var tabno = 0;
+
+    for (let [grpname, regs] of plf["ddr_cfg"]) {
+	tabno++;
+	const tabname = prefix + "-tab-" + tabno;
+
+	const t = document.createElement("div");
+	t.classList.add("tab");
+
+	const r = document.createElement("input");
+	r.setAttribute("type", "radio");
+	r.setAttribute("name", "css-tabs");
+	r.setAttribute("id", tabname);
+	r.classList.add("tab-switch");
+	t.appendChild(r);
+
+	const l = document.createElement("label");
+	l.classList.add("tab-label");
+	l.setAttribute("for", tabname);
+	l.appendChild(document.createTextNode(grpname));
+	t.appendChild(l);
+
+	const c = document.createElement("div");
+	c.classList.add("tab-content");
+
+	const newTab = document.createElement("table");
+	newTab.setAttribute("class", "reg_form");
+
+	// Make x cols for each
+	var col = 1;
+	if (regs.length > 12)
+	    col = 4;
+	else if (regs.length > 5)
+	    col = 3;
+
+	regchunks = chunk(regs, col);
+	for (let rowregs of regchunks) {
+	    const tr = document.createElement("tr");
+
+	    for (let regname of rowregs) {
+		const rt = document.createElement("span");
+		rt.appendChild(document.createTextNode(regname));
+		const reg_desc = plf["ddr_regs"].get(regname);
+		if (reg_desc) {
+		    rt.addEventListener('click', async () => {
+			const helpdiv = document.getElementById("bl2u_ddr_reghelp");
+			const cur = document.getElementById("ddr_help_current");
+			if (cur && cur.textContent == regname) {
+			    helpdiv.innerHTML = "";
+			    helpdiv.style.display = 'none';
+			} else {
+			    const helptext = createRegHelp(regname, reg_desc);
+			    helpdiv.innerHTML = "";
+			    helpdiv.appendChild(helptext);
+			    helpdiv.style.display = 'inline';
+			}
+		    });
+		}
+
+		const tdt = document.createElement("td");
+		tdt.setAttribute("class", "reg_text_col");
+		tdt.appendChild(rt);
+		tr.appendChild(tdt);
+
+		const tdi = document.createElement("td");
+		tdi.classList.add("reg_input_col");
+		const ri = document.createElement("input");
+		ri.setAttribute("id", regname);
+		if (regname == "version") {
+		    ri.classList.add("input_wide");
+		    ri.setAttribute("maxlength", "127");
+		} else {
+		    ri.classList.add("input_normal");
+		}
+		tdi.appendChild(ri);
+		tr.appendChild(tdi);
+	    }
+	    newTab.appendChild(tr);
+	}
+
+	c.appendChild(newTab);
+	t.appendChild(c);
+	topdiv.appendChild(t);
+    }
+}
+
 window.addEventListener("load", (event) => {
     otpSelPopulate("bl1_otp_set_rnd_fld", otp_flag_rnd);
     otpSelPopulate("bl1_otp_set_data_fld", otp_flag_set);
@@ -528,6 +682,191 @@ function browserCheck()
     }
 
     return false;
+}
+
+function convertYaml(yaml, template)
+{
+    const cfg = new Map();
+
+    for (let [grpname, regs] of template) {
+	const grpMap = new Map();
+	for (let regname of regs) {
+	    let keys = yaml[grpname];
+	    if (!keys)
+		keys = yaml['config'];
+	    if (keys[regname] != null) {
+		grpMap.set(regname, keys[regname]);
+	    } else {
+		throw("Config not found: " + grpname + "." + regname);
+	    }
+	}
+	cfg.set(grpname, grpMap);
+    }
+
+    return cfg;
+}
+
+function extractUint32(data, off)
+{
+    var arr = data.substr(off, 4);
+
+    let val = 0;
+    for (let i = arr.length - 1; i >= 0; i--) {
+	val = (val << 8) + arr[i].charCodeAt(0);
+    }
+    return val >>> 0;
+}
+
+function convertFromBinary(data, template)
+{
+    const cfg = new Map();
+    let off = 0;
+
+    for (let [grpname, regs] of template) {
+	const grpMap = new Map();
+	for (let regname of regs) {
+	    let value = null;
+	    if (regname == "version") {
+		// Special case
+		value = data.substr(off, 128);
+		let zero = value.indexOf(String.fromCharCode(0));
+		if (zero)
+		    value = value.substr(0, zero);
+		off += 128;
+	    } else {
+		value = extractUint32(data, off);
+		if (regname == "mem_size_mb") // Special case
+		    value /= (1024 * 1024);
+		off += 4;
+	    }
+	    grpMap.set(regname, value);
+	}
+	cfg.set(grpname, grpMap);
+    }
+
+    return cfg;
+}
+
+function logHexData(data)
+{
+    // Convert data to hex string for display
+    var _data = data.split('').map(function (ch) {
+	return ch.charCodeAt(0).toString(16).padStart(2, "0");
+    }).join(":");
+    console.log(_data);
+}
+
+function ntohl_val(arg)
+{
+    var ret = new Array(4);
+    for (var i = 0, j = 0; i <= 24; i += 8, j++)
+	ret[j] = (0xFF & (arg >>> i)) >>> 0;
+    return ret;
+}
+
+function convertToBinary(cfg)
+{
+    let buf = new Array();
+
+    for (let [grp, keys] of cfg) {
+	for (let [reg, value] of keys) {
+	    if (reg == "version")
+		value = value.padEnd(128, String.fromCharCode(0)).split('').map(
+		    function (ch) {
+			return ch.charCodeAt(0);
+		    }
+		);
+	    else {
+		if (reg == "mem_size_mb")
+		    value *= (1024 * 1024); // Special case
+		value = ntohl_val(value);
+	    }
+	    buf = buf.concat(value);
+	}
+    }
+    return buf.map(function (ch) {
+        return String.fromCharCode(ch);
+    }).join("");
+}
+
+function populateCfg(template)
+{
+    for (let [grp, keys] of template) {
+	for (let [reg, value] of keys) {
+	    let inp = document.getElementById(reg);
+	    if (inp) {
+		if (grp === "info")
+		    inp.value = value;
+		else
+		    inp.value = "0x" + (value.toString(16).toUpperCase().padStart(8,"0"));
+	    } else {
+		throw("Unable to find: " + grp + "." + reg);
+	    }
+	}
+    }
+}
+
+function getDDRFromForm(template)
+{
+    const cfg = new Map();
+
+    for (let [grpname, keys] of template) {
+	const grpMap = new Map();
+	for (let regname of keys) {
+	    let inp = document.getElementById(regname);
+	    let value = null;
+	    if (inp) {
+		if (regname === "version")
+		    value = inp.value;
+		else
+		    value = parseInt(inp.value);
+		grpMap.set(regname, value);
+	    } else {
+		throw("Unable to find: " + grpname + "." + regname);
+	    }
+	}
+	cfg.set(grpname, grpMap);
+    }
+    return cfg;
+}
+
+// Convert Map objects to pure JS objects
+function map2obj(m)
+{
+    var cfg = {};
+    for (let [grpname, regs] of m) {
+	var grp = {};
+	for (let [regname, regval] of regs) {
+	    grp[regname] = regval;
+	}
+	cfg[grpname] = grp;
+    }
+    return cfg;
+}
+
+// Save text to file
+async function saveFile(fileData)
+{
+    const opts = {
+	types: [
+	    {
+		description: "YAML output file",
+		accept: { "text/yaml": [".yaml"] },
+	    },
+	],
+    };
+
+    // create a new handle
+    const newHandle = await window.showSaveFilePicker(opts);
+
+    // create a FileSystemWritableFileStream to write to
+    const writableStream = await newHandle.createWritable();
+
+    // write our file
+    await writableStream.write(fileData);
+
+    // close the file and write the contents to disk.
+    await writableStream.close();
 }
 
 function startSerial()
@@ -646,15 +985,85 @@ function startSerial()
 	await doOtpSetData(port, 'bl2u', 'bl2u_otp_set_data_feedback', 'bl2u_otp_set_data_fld', 'bl2u_otp_set_data_buf');
     });
 
+    document.getElementById('bl2u_ddr_mode_enter').addEventListener('click', async () => {
+	setStage("bl2u_ddr");
+    });
+
+    document.getElementById('bl2u_ddr_load').addEventListener('click', async () => {
+	let s = disableButtons("bl2u_ddr", true);
+	try {
+	    setStatus("DDR load from device start");
+	    var rspStruct = await completeRequest(port, fmtReq(CMD_BL2U_DDR_CFG_GET, 0));
+	    addTrace("DDR configuration data: " + rspStruct["data"].length + " bytes");
+	    logHexData(rspStruct["data"]);
+	    let cfg = convertFromBinary(rspStruct["data"], plf["ddr_cfg"]);
+	    setStatus("DDR config read: " + cfg.get("info").get("version"));
+	    populateCfg(cfg);
+	} catch(e) {
+	    setStatus("DDR load from device error: " + e);
+	} finally {
+	    restoreButtons(s);
+	}
+    });
+
+    document.getElementById('bl2u_ddr_init').addEventListener('click', async () => {
+	let s = disableButtons("bl2u_ddr", true);
+	try {
+	    setStatus("DDR initialize starting");
+	    let cfg = getDDRFromForm(plf["ddr_cfg"]);
+	    let data = convertToBinary(cfg);
+	    logHexData(data);
+	    var rspStruct = await completeRequest(port, fmtReq(CMD_BL2U_DDR_CFG_SET, 0, data));
+	    setStatus("DDR was initialized: " + cfg.get("info").get("version"));
+	} catch(e) {
+	    setStatus("DDR initialize error: " + e);
+	} finally {
+	    restoreButtons(s);
+	}
+    });
+
+    document.getElementById('bl2u_ddr_test').addEventListener('click', async () => {
+	let s = disableButtons("bl2u_ddr", true);
+	try {
+	    setStatus("DDR test starting");
+	    var msec_start = new Date().getTime();
+	    var arg = document.getElementById("enable_cache").checked ? 1 : 0;
+	    var rspStruct = await completeRequest(port, fmtReq(CMD_BL2U_DDR_TEST, arg));
+	    var msec_end = new Date().getTime();
+	    setStatus("DDR was tested: " + rspStruct["data"]);
+	    addTrace("DDR test duration: " + (msec_end - msec_start) + " msec");
+	} catch(e) {
+	    setStatus("DDR test error: " + e);
+	} finally {
+	    restoreButtons(s);
+	}
+    });
+
+    document.getElementById('bl2u_ddr_mode_exit').addEventListener('click', async () => {
+	setStage("bl2u");
+    });
+
     document.getElementById('bl2u_reset').addEventListener('click', async () => {
 	let s = disableButtons("bl2u", true);
 	try {
 	    setStatus("Rebooting from BL2U back to BL1");
 	    let cont = await completeRequest(port, fmtReq(CMD_BL2U_RESET, 0));
 	    setStatus("Booting into BL1");
+	} catch(e) {
+	    setStatus("BL1 reset failed");
+	    addTrace("Failure: " + e);
+	    addTrace("You might need to reload page and reconnect");
+	    try {
+		setStatus("BL1: Trying to syncronize");
+		await delaySkipInput(port, 2000);
+		var rspStruct = await completeRequest(port, fmtReq(CMD_VERS, 0));
+		setStatus("BL1: Syncronization succeeded");
+	    } catch (d) {
+		setStatus("BL1 reset failed, please reconnect");
+	    }
+	} finally {
 	    await delaySkipInput(port, 2000);
 	    setStage("bl1");
-	} finally {
 	    restoreButtons(s);
 	}
     });
@@ -771,8 +1180,48 @@ function startSerial()
 			 "- which is not identified as a known device.\n" +
 			 "Please reconnect.\n");
 	    }
+	    ddrUIsetup("bl2u_ddr_pane", "ddr", plf);
 	} catch (e) {
 	    console.log("Connect failed: " + e);
+	}
+    });
+
+    document.getElementById('ddr_config_input').addEventListener('change', (e) => {
+        if(!e.target.files[0]) {
+            return;
+        }
+
+        var reader = new FileReader();
+        // Set OnLoad callback
+        reader.onload = function(e) {
+	    // First, load raw file
+            let loadedObj = jsyaml.load(e.target.result);
+
+	    // Iterate config template, check yaml, populate form
+	    try {
+		let cfg = convertYaml(loadedObj, plf["ddr_cfg"]);
+		// To form
+		populateCfg(cfg);
+	    } catch(e) {
+		setStatus("Invalid DDR configuration");
+		addTrace(e);
+	    }
+
+        };
+
+        // Read file into memory as UTF-8
+        reader.readAsText(e.target.files[0], "utf8");
+    });
+
+    document.getElementById('ddr_config_write').addEventListener('click', async () => {
+	let cfg = getDDRFromForm(plf["ddr_cfg"]);
+	if (cfg) {
+	    try {
+		saveFile(jsyaml.dump(map2obj(cfg)));
+	    } catch(e) {
+	    }
+	} else {
+	    alert("No DDR configuration loaded");
 	}
     });
 

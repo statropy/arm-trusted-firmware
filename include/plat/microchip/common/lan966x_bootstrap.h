@@ -37,6 +37,12 @@
 #define BOOTSTRAP_BIND         'B'
 // Reset (BL2U)
 #define BOOTSTRAP_RESET        'e'
+// Send DDR config (BL2U)
+#define BOOTSTRAP_DDR_CFG_SET  'C'
+// Read DDR config (BL2U)
+#define BOOTSTRAP_DDR_CFG_GET  'c'
+// Perform DDR test (BL2U)
+#define BOOTSTRAP_DDR_TEST     'T'
 // ACK
 #define BOOTSTRAP_ACK          'a'
 // NACK
@@ -92,6 +98,11 @@ static inline void bootstrap_TxAckData_arg(const void *data, uint32_t len, uint3
 static inline void bootstrap_TxAckData(const void *data, uint32_t len)
 {
 	bootstrap_Tx(BOOTSTRAP_ACK, 0, len, data);
+}
+
+static inline void bootstrap_TxAckStr(const char *str)
+{
+	bootstrap_Tx(BOOTSTRAP_ACK, 0, strlen(str), (const uint8_t *)str);
 }
 
 static inline void bootstrap_TxNack_rc(const char *str, uint32_t rc)
