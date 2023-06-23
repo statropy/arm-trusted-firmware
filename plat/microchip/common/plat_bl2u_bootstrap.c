@@ -596,7 +596,9 @@ static void handle_ddr_test(bootstrap_req_t *req)
 	uintptr_t err_off;
 	uint32_t attr;
 	bool cache;
+#if defined(PLAT_XLAT_TABLES_DYNAMIC)
 	int ret;
+#endif
 
 	attr = MT_RW | MT_SECURE | MT_EXECUTE_NEVER;
 	cache = !!(req->arg0 & 1);
@@ -606,14 +608,23 @@ static void handle_ddr_test(bootstrap_req_t *req)
 		attr |= MT_NON_CACHEABLE;
 	}
 
+#if defined(PLAT_XLAT_TABLES_DYNAMIC)
 	/* 1st remove old mapping */
 	mmap_remove_dynamic_region(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
 
 	/* Add region so attributes are updated */
 	ret = mmap_add_dynamic_region(LAN966X_DDR_BASE, LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE, attr);
 
-	if (ret != 0)
+	if (ret != 0) {
 		bootstrap_TxNack("DDR mapping error");
+		return;
+	}
+#else
+	if (cache) {
+		bootstrap_TxNack("No support for enabling the cache");
+		return;
+	}
+#endif
 
 	/* Now, do tests */
 

@@ -10,6 +10,7 @@
 #include <drivers/generic_delay_timer.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
+#include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat_bl2u_bootstrap.h>
@@ -79,6 +80,11 @@ void bl2u_plat_arch_setup(void)
 	};
 
 	setup_page_tables(bl_regions, plat_arm_get_mmap());
+
+#if defined(PLAT_XLAT_TABLES_DYNAMIC)
+	/* Add region we'll be changing */
+	mmap_add_dynamic_region(LAN969X_DDR_BASE, LAN969X_DDR_BASE, LAN969X_DDR_MAX_SIZE, MT_NON_CACHEABLE | MT_RW | MT_SECURE);
+#endif
 
 #ifdef __aarch64__
 	enable_mmu_el1(0);
