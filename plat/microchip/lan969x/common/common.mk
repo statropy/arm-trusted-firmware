@@ -96,7 +96,7 @@ BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 				plat/microchip/lan969x/common/lan969x_bl2u_io.c
 
 # Only BL2U needs this
-# BL2U_CPPFLAGS := -DPLAT_XLAT_TABLES_DYNAMIC
+BL2U_CPPFLAGS := -DPLAT_XLAT_TABLES_DYNAMIC
 
 ifeq (${PLAT},lan969x_a0)
 DDR_SOURCES	:=					\
