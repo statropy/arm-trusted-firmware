@@ -525,7 +525,7 @@ int ddr_init(const struct ddr_config *cfg)
 
 	VERBOSE("name = %s\n", cfg->info.name);
 	VERBOSE("speed = %d kHz\n", cfg->info.speed);
-	VERBOSE("size  = %zdM\n", cfg->info.size / 1024 / 1024);
+	VERBOSE("size  = %dM\n", cfg->info.size / 1024 / 1024);
 
 	/* Reset, start clocks at desired speed */
 	ddr_reset(cfg, true);

@@ -93,7 +93,7 @@ static uintptr_t ddr_test_data_bus(bool cache)
  ******************************************************************************/
 static uintptr_t ddr_test_addr_bus(struct ddr_config *config, bool cache)
 {
-	uint64_t addressmask = (MIN(config->info.size, (size_t) LAN966X_DDR_MAX_SIZE) - 1U);
+	uint64_t addressmask = (MIN(config->info.size, (uint32_t) LAN966X_DDR_MAX_SIZE) - 1U);
 	uint64_t offset;
 	uint64_t testoffset = 0;
 
@@ -155,7 +155,7 @@ static inline unsigned int ps_rnd(unsigned int x)
 
 static uintptr_t ddr_test_rnd(struct ddr_config *config, bool cache, uint32_t seed)
 {
-	uint32_t max_size = MIN(config->info.size, (size_t) LAN966X_DDR_MAX_SIZE);
+	uint32_t max_size = MIN(config->info.size, (uint32_t) LAN966X_DDR_MAX_SIZE);
 	uint32_t offset;
 	unsigned int value;
 
