@@ -17,4 +17,6 @@ int lan966x_bl2u_fip_update(boot_source_type boot_source, uintptr_t buf, uint32_
 
 int lan966x_bl2u_emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length, bool verify);
 
+int lan966x_bl2u_qspi_verify(uint32_t offset, uintptr_t buf_ptr, size_t length);
+
 #endif

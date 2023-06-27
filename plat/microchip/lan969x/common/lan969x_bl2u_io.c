@@ -247,6 +247,8 @@ static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len, bool ve
 		case BOOT_SOURCE_QSPI:
 			INFO("Fip update '%s' src %d\n", name, cur_boot_source);
 			ret = qspi_write(entry->start, (void*) buf_ptr, len);
+			if (ret == 0)
+				ret = lan966x_bl2u_qspi_verify(entry->start, buf_ptr, len);
 			break;
 		default:
 			ret = -EIO;

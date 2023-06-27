@@ -648,6 +648,12 @@ static void handle_write_fip(const bootstrap_req_t * req)
 		case -ENXIO:
 			bootstrap_TxNack("FIP verify failed");
 			break;
+		case -ENOENT:
+			bootstrap_TxNack("FIP partition not found");
+			break;
+		case -EINVAL:
+			bootstrap_TxNack("FIP partition too small");
+			break;
 		default:
 			bootstrap_TxNack_rc("Write FIP failed", ret);
 			break;
