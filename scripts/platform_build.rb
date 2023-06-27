@@ -58,7 +58,15 @@ build_platforms.each do |bp|
   build_types.each do |bt|
     build_variants.each do |bv|
       build_authentifications.each do |ba|
-        dst = "#{bp}-#{bt}-#{bv}-#{ba}"
+        dst = "#{bp}-#{bt}"
+        # Loose stupid 'bl2normal' name
+        if bv != "bl2normal"
+          dst = "#{bv}/#{dst}-#{bv}"
+        end
+        # Loose stupid 'auth' name
+        if ba != "auth"
+          dst = "#{dst}-#{ba}"
+        end
         artifacts = [
           ["build/#{bp}/#{bt}/fip.bin",      "#{dst}.fip"],
           ["build/#{bp}/#{bt}/fip.bin.gz",   "#{dst}.fip.gz"],
@@ -72,15 +80,6 @@ build_platforms.each do |bp|
           ["build/#{bp}/#{bt}/bl1/bl1.dump", "#{dst}-bl1.dump"],
           ["build/#{bp}/#{bt}/bl2/bl2.dump", "#{dst}-bl2.dump"]
         ]
-        # Limit the BL1 image artifacts
-        # dst = "#{bp}-#{bt}"
-        # if bp == :lan966x_sr && bv == :bl2normal && ba == :auth
-        #   artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
-        #   artifacts << ["build/#{bp}/#{bt}/bl1.hex",      "#{dst}.bl1.hex"]
-        # elsif bp == :lan966x_b0 && bt == :release && bv == :bl2normal && ba == :auth
-        #   artifacts << ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"]
-        #   artifacts << ["build/#{bp}/#{bt}/bl1.hex",      "#{dst}.bl1.hex"]
-        # end
         cargs = "--#{bt} #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
         cmd_clean = 'ruby scripts/build.rb distclean'
