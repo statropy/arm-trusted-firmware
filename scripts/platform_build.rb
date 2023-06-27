@@ -60,11 +60,11 @@ build_platforms.each do |bp|
       build_authentifications.each do |ba|
         dst = "#{bp}-#{bt}"
         # Loose stupid 'bl2normal' name
-        if bv != "bl2normal"
+        if !bv.match("bl2normal")
           dst = "#{bv}/#{dst}-#{bv}"
         end
         # Loose stupid 'auth' name
-        if ba != "auth"
+        if !ba.match("auth")
           dst = "#{dst}-#{ba}"
         end
         artifacts = [
