@@ -910,6 +910,15 @@ int qspi_write(uint32_t offset, const void *buf, size_t len)
 	return ret;
 }
 
+int qspi_read(unsigned int offset, uintptr_t buffer, size_t length,
+	      size_t *length_read)
+{
+	memcpy((void *) buffer, (const void *) (LAN966X_QSPI0_MMAP + offset), length);
+	*length_read = length;
+
+	return 0;
+}
+
 int qspi_init(void)
 {
 	int ret;

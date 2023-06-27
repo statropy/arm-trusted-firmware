@@ -21,6 +21,7 @@ const CMD_BL2U_RESET ='e';
 const CMD_BL2U_DDR_CFG_SET = 'C';
 const CMD_BL2U_DDR_CFG_GET = 'c';
 const CMD_BL2U_DDR_TEST = 'T';
+const CMD_BL2U_DATA_HASH = 'H';
 
 let cur_stage = "connect";	// Initial "tab"
 let tracing = false;
@@ -397,7 +398,8 @@ async function doWrite(port, operation, cmd, dev, status_id)
 	setFeedbackStatus(status_id, "Starting " + operation);
 	addTrace("This may take up to 5 minutes or even longer depending on data size and media.");
 	let write = await completeRequest(port, fmtReq(cmd, dev));
-	setFeedbackStatus(status_id, "Completed " + operation);
+	let rsp = write["data"];
+	setFeedbackStatus(status_id, rsp ? rsp : "Completed " + operation);
     } catch(e) {
 	setFeedbackStatus(status_id, "Failed " + operation + ": " + e);
     } finally {
@@ -869,6 +871,17 @@ async function saveFile(fileData)
     await writableStream.close();
 }
 
+async function getDataInfo(port)
+{
+    const dataInfo = await completeRequest(port, fmtReq(CMD_BL2U_DATA_HASH, 0));
+    setStatus(dataInfo["arg"].toString(10) + " bytes in write buffer");
+    var data = dataInfo["data"].split('').map(function (ch) {
+        return ch.charCodeAt(0).toString(16).padStart(2, "0");
+    }).join("");
+    addTrace("SHA-256 hash: " + data);
+    return dataInfo;
+}
+
 function startSerial()
 {
     var port;
@@ -903,12 +916,20 @@ function startSerial()
 	    let s = disableButtons("bl2u", true);
 	    try {
 		await downloadApp(port, image, document.getElementById("binary").checked);
+		// Get data length & hash
+		await getDataInfo(port);
 		// Do explicit uncompress
 		setStatus("Decompressing");
 		var rspStruct = await completeRequest(port, fmtReq(CMD_UNZIP, 0));
 		var datalen = rspStruct["arg"].toString(16).padStart(8, "0");
 		var status = rspStruct["data"];
-		setStatus("Data received: " + status + ", length " + rspStruct["arg"].toString(10));
+		if (status.match(/Plain data/)) {
+		    // Not decompressed
+		    setStatus("Data received: " + status + ", length " + rspStruct["arg"].toString(10));
+		} else {
+		    // Get data length & hash after decompress
+                    await getDataInfo(port);
+		}
 	    } catch(e) {
 		setStatus("Failed upload: " + e);
 	    } finally {
@@ -936,17 +957,19 @@ function startSerial()
 
     document.getElementById('bl2u_write_fip').addEventListener('click', async () => {
 	let dev = document.getElementById('bl2u_write_fip_device');
+	var verify = document.getElementById("verify_fip_write").checked ? 0x80 : 0;
 	let op = "Write FIP to " + dev.selectedOptions[0].text;
-	doWrite(port, op, CMD_BL2U_WRITE, dev.value, 'bl2u_write_fip_feedback');
+	doWrite(port, op, CMD_BL2U_WRITE, verify | dev.value, 'bl2u_write_fip_feedback');
     });
 
     document.getElementById('bl2u_write_image').addEventListener('click', async () => {
 	let dev = document.getElementById('bl2u_write_image_device');
+	var verify = document.getElementById("verify_image_write").checked ? 0x80 : 0;
 	let op = "Write Image to " + dev.selectedOptions[0].text;
 	if (confirm("Programming flash image will not check whether " +
 		    "the image contain valid data for the chosen device type.\n\n" +
                     "Can you confirm you want to perform this operation?"))
-	    doWrite(port, op, CMD_BL2U_IMAGE, dev.value, 'bl2u_write_image_feedback');
+	    doWrite(port, op, CMD_BL2U_IMAGE, verify | dev.value, 'bl2u_write_image_feedback');
     });
 
     document.getElementById('bl2u_otp_read').addEventListener('click', async () => {

@@ -43,6 +43,8 @@
 #define BOOTSTRAP_DDR_CFG_GET  'c'
 // Perform DDR test (BL2U)
 #define BOOTSTRAP_DDR_TEST     'T'
+// Get download data info (BL2U)
+#define BOOTSTRAP_DATA_HASH    'H'
 // ACK
 #define BOOTSTRAP_ACK          'a'
 // NACK

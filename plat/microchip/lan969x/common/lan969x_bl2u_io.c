@@ -228,7 +228,7 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 	return result;
 }
 
-static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
+static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len, bool verify)
 {
 	const partition_entry_t *entry = get_partition_entry(name);
 
@@ -242,7 +242,7 @@ static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
 		switch (cur_boot_source) {
 		case BOOT_SOURCE_EMMC:
 		case BOOT_SOURCE_SDMMC:
-			ret = lan966x_bl2u_emmc_write(entry->start, buf_ptr, len);
+			ret = lan966x_bl2u_emmc_write(entry->start, buf_ptr, len, verify);
 			break;
 		case BOOT_SOURCE_QSPI:
 			INFO("Fip update '%s' src %d\n", name, cur_boot_source);
@@ -262,7 +262,8 @@ static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len)
 
 int lan966x_bl2u_fip_update(boot_source_type boot_source,
 			    uintptr_t buf,
-			    uint32_t len)
+			    uint32_t len,
+			    bool verify)
 {
 	int ret;
 
@@ -283,12 +284,12 @@ int lan966x_bl2u_fip_update(boot_source_type boot_source,
 		ret = 0;
 
 		/* Update primary FIP */
-		if (fip_update(FW_PARTITION_NAME, buf, len))
-			ret++;
+		if ((ret = fip_update(FW_PARTITION_NAME, buf, len, verify)))
+			return ret;
 
 		/* Update backup FIP */
-		if (fip_update(FW_BACKUP_PARTITION_NAME, buf, len))
-			ret++;
+		if ((ret = fip_update(FW_BACKUP_PARTITION_NAME, buf, len, verify)))
+			return ret;
 
 		break;
 	default:

@@ -774,6 +774,12 @@ int qspi_write(uint32_t offset, const void *buf, size_t len)
 	return ret;
 }
 
+int qspi_read(unsigned int offset, uintptr_t buffer, size_t length,
+	      size_t *length_read)
+{
+	return spi_nor_read(offset, buffer, length, length_read);
+}
+
 int qspi_init(void)
 {
 	int qspi_node;
