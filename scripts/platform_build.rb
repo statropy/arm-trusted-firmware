@@ -15,7 +15,7 @@ build_auth_args         = { auth: '',
                             ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl31,bl32,bl33',
                             bssk: '--encrypt-bssk keys/huk.bin --encrypt-images bl2,bl31,bl32,bl33' }
 
-option = {}
+$option = {}
 OptionParser.new do |opts|
   opts.banner = %(Usage: #{__FILE__} [options]
 
@@ -23,7 +23,10 @@ OptionParser.new do |opts|
 
   Options are:)
   opts.on('-c', '--clean', 'Remove build artifacts') do
-    option[:clean] = true
+    $option[:clean] = true
+  end
+  opts.on('-d', '--dry-run', 'Dont actually do any opertations') do
+    $option[:dry_run] = true
   end
 end.order!
 
@@ -37,6 +40,7 @@ def banner(artifacts, cmd)
 end
 
 def cleanup(do_exit = false)
+  return if $option[:dry_run]
   files = Dir.glob('*.bl1') + Dir.glob('*.bin') + Dir.glob('*.bl1.hex') + Dir.glob('*.fip') + Dir.glob('*.img') + Dir.glob('*.gpt') + Dir.glob('*.dump')
   FileUtils.rm_f(files, verbose: true)
   FileUtils.rm_rf('build', verbose: true)
@@ -51,7 +55,7 @@ def pre_build
   puts '=' * 80
 end
 
-cleanup(true) if option[:clean]
+cleanup(true) if $option[:clean]
 
 pre_build
 build_platforms.each do |bp|
@@ -76,21 +80,31 @@ build_platforms.each do |bp|
           ["build/#{bp}/#{bt}/nor.gpt.gz",   "#{dst}-nor.gpt.gz"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
           ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"],
-          ["build/#{bp}/#{bt}/fwu.html",     "fwu-#{dst}.html"],
-          ["build/#{bp}/#{bt}/bl1/bl1.dump", "#{dst}-bl1.dump"],
-          ["build/#{bp}/#{bt}/bl2/bl2.dump", "#{dst}-bl2.dump"]
         ]
+        if bv.match("bl2normal") && ba.match("auth")
+          artifacts << ["build/#{bp}/#{bt}/fwu.html",      "fwu-#{bp}-#{bt}.html"]
+        end
         cargs = "--#{bt} #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
         cmd = "ruby scripts/build.rb #{cargs}"
         cmd_clean = 'ruby scripts/build.rb distclean'
         banner(artifacts, cmd)
-        system(cmd_clean)
-        system(cmd)
-        FileUtils.mkdir_p("artifacts")
+        if $option[:dry_run]
+          puts "*Not* running:"
+          puts cmd_clean
+          puts cmd
+        else
+          system(cmd_clean)
+          system(cmd)
+          FileUtils.mkdir_p("artifacts")
+        end
         artifacts.each do |from, to|
           to = "artifacts/#{bp}/#{to}"
-          FileUtils.mkdir_p(File.dirname(to))
-          FileUtils.mv(from, to, verbose: true) if !File.exist?(to) && File.exist?(from)
+          if $option[:dry_run]
+            FileUtils.mv(from, to, verbose: true, noop: true) if !File.exist?(to) && File.exist?(from)
+          else
+            FileUtils.mkdir_p(File.dirname(to))
+            FileUtils.mv(from, to, verbose: true) if !File.exist?(to) && File.exist?(from)
+          end
         end
       end
     end
