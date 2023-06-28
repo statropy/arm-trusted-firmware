@@ -9,9 +9,13 @@
 #include "lan969x.dtsi"
 #include "lan969x-ddr.dtsi"
 
+&emmc_clk {
+	clock-frequency = <104000000>;
+};
+
 &sdmmc0 {
 	status = "okay";
-	bus-width = <4>;
+	bus-width = <8>;
 };
 
 &qspi0 {

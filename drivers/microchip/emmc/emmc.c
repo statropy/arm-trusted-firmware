@@ -33,6 +33,15 @@ bool plat_mmc_use_dma(void)
 	return false;
 }
 
+#pragma weak plat_mmc_max_speed
+int plat_mmc_max_speed(enum mmc_device_type dev)
+{
+	if (dev == MMC_IS_EMMC)
+		return EMMC_HIGH_SPEED;
+	assert(dev = MMC_IS_SD);
+	return SD_HIGH_SPEED;
+}
+
 static void lan966x_mmc_reset(lan966x_reset_type type)
 {
 	uint64_t timeout = timeout_init_us(EMMC_RESET_TIMEOUT_US);
@@ -704,6 +713,7 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 	static uint8_t width_codes[] = {1, 4, 8};
 	uint8_t bus_width = 0u;
 	uint32_t clock = 0u;
+	int max_speed;
 
 	VERBOSE("MMC: ATF CB set_ios() \n");
 
@@ -731,29 +741,12 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 	/* Mainly, the desired clock rate should be adjusted by the fw_config
 	 * parameter. This check prevents that the maximum allowed clock
 	 * settings are exceeded depending on the respective mmc device. */
-	if (lan966x_params.mmc_dev_type == MMC_IS_EMMC) {
-		if (clk >= EMMC_HIGH_SPEED) {
-			clock = EMMC_HIGH_SPEED;
-		} else {
-			clock = clk;
-		}
-	} else if (lan966x_params.mmc_dev_type == MMC_IS_SD) {
-		if (clk >= SD_HIGH_SPEED) {
-			clock = SD_HIGH_SPEED;
-		} else {
-			clock = clk;
-		}
-	}
-#if defined(LAN966X_EMMC_TESTS) || defined(IMAGE_BL2U)
-	else {
-		/* When the EVB board is used and LAN966X_EMMC_TESTS is enabled,
-		 * the previously called lan966x_get_boot_source() function will
-		 * return BOOT_SOURCE_QSPI. Since this is a special test mode,
-		 * this boot_source is not considered and supported here.
-		 * Set clock value as requested. */
+	max_speed = plat_mmc_max_speed(lan966x_params.mmc_dev_type);
+	if (clk >= max_speed) {
+		clock = max_speed;
+	} else {
 		clock = clk;
 	}
-#endif
 
 	INFO("MMC: %d MHz, width %d bits, %s\n",
 	     clock / 1000000U, width_codes[width],

@@ -33,4 +33,6 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params,
 
 bool plat_mmc_use_dma(void);
 
+int plat_mmc_max_speed(enum mmc_device_type dev);
+
 #endif	/* EMMC_H */

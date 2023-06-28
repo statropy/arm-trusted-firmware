@@ -29,12 +29,12 @@ typedef struct {
 
 /* Only NS access by default */
 static const lan969x_tcreg_t css_rules[] = {
-	{ 0, TZC_REGION_S_NONE, PLAT_ARM_TZC_NS_DEV_ACCESS, }
+	{ 0, TZC_REGION_S_RDWR, PLAT_ARM_TZC_NS_DEV_ACCESS, }
 };
 
 /* Only NS access by default */
 static const lan969x_tcreg_t hss_rules[] = {
-	{ 0, TZC_REGION_S_NONE, PLAT_ARM_TZC_NS_DEV_ACCESS, }
+	{ 0, TZC_REGION_S_RDWR, PLAT_ARM_TZC_NS_DEV_ACCESS, }
 };
 
 static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
