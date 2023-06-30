@@ -871,14 +871,19 @@ async function saveFile(fileData)
     await writableStream.close();
 }
 
+function sha256ToString(sha)
+{
+    var hash = sha.split('').map(function (ch) {
+        return ch.charCodeAt(0).toString(16).padStart(2, "0");
+    }).join("");
+    return hash;
+}
+
 async function getDataInfo(port)
 {
     const dataInfo = await completeRequest(port, fmtReq(CMD_BL2U_DATA_HASH, 0));
     setStatus(dataInfo["arg"].toString(10) + " bytes in write buffer");
-    var data = dataInfo["data"].split('').map(function (ch) {
-        return ch.charCodeAt(0).toString(16).padStart(2, "0");
-    }).join("");
-    addTrace("SHA-256 hash: " + data);
+    addTrace("SHA-256 hash: " + sha256ToString(dataInfo["data"]));
     return dataInfo;
 }
 
@@ -917,7 +922,13 @@ function startSerial()
 	    try {
 		await downloadApp(port, image, document.getElementById("binary").checked);
 		// Get data length & hash
-		await getDataInfo(port);
+		dld = await getDataInfo(port);
+		var remoteSha = sha256ToString(dld["data"]);
+		var mySha = sha256ToString(sha256(image));
+		if (remoteSha != mySha)
+		    throw "SHA256 mismatch: Should be " + mySha;
+		else
+		    addTrace("Data integrity check pass, SHA-256 hash match");
 		// Do explicit uncompress
 		setStatus("Decompressing");
 		var rspStruct = await completeRequest(port, fmtReq(CMD_UNZIP, 0));
