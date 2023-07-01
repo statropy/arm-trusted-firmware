@@ -529,7 +529,11 @@ const chunk = function(array, size) {
 function appendTd(tr, type, text)
 {
     var td = document.createElement(type);
-    td.appendChild(document.createTextNode(text));
+    let elm;
+    if (typeof text == "object") {
+	td.appendChild(text);
+    } else
+	td.appendChild(document.createTextNode(text));
     tr.appendChild(td);
 }
 
@@ -540,9 +544,52 @@ function appendTds(tr, type, a)
     }
 }
 
+function addOptions(sel, bits, value)
+{
+    for(const i of Array(1 << bits).keys()) {
+	const opt = new Option(i, i);
+	if (i == value)
+	    opt.setAttribute("selected", "selected");
+	sel.options[sel.options.length] = opt;
+    }
+}
+
+function createRegFieldInput(regname, fldname, fld, val)
+{
+    let valReg = val ? val.value : "0";
+    let inp_name = regname + "_" + fldname;
+    let inp;
+
+    if (valReg.match(/^0x/))
+	valReg = parseInt(valReg.substr(2, valReg.length), 16);
+    else
+	valReg = parseInt(valReg);
+    let valFld = (valReg >>> fld.pos) & ((1 << fld.width) - 1);
+    if (fld.width == 1) {
+	inp = document.createElement("input");
+	inp.setAttribute("type", "checkbox");
+	if (valFld)
+	    inp.checked = true;
+    } else if (fld.width < 5) {
+	inp = document.createElement("select");
+	addOptions(inp, fld.width, valFld);
+	inp.selectedIndex = valFld;
+    } else {
+	inp = document.createElement("input");
+	inp.setAttribute("type", "number");
+	inp.setAttribute("size", 10);
+	inp.setAttribute("value", valFld);
+	inp.setAttribute("min", 0);
+	inp.setAttribute("max", (1 << fld.width) - 1);
+    }
+    inp.setAttribute("id", inp_name);
+    return inp;
+}
+
 function createRegHelp(regname, reg)
 {
-    var container = document.createElement("div");
+    var curval = document.getElementById(regname);
+    var container = document.createElement("form");
     var elm;
 
     container.classList.add("ddr_reghelp");
@@ -559,17 +606,65 @@ function createRegHelp(regname, reg)
 
     elm = document.createElement("table");
     const th = document.createElement("tr");
-    appendTds(th, "th", ["Field", "Position", "Width", "Default", "Documentation"]);
+    appendTds(th, "th", ["Field", "", "Bits", "Default", "Documentation"]);
     elm.appendChild(th);
     for (let [fldname, fld] of reg.fields) {
 	const tr = document.createElement("tr");
-	appendTds(tr, "td", [fldname.toLowerCase(), fld.pos, fld.width, fld.default, fld.help])
+	const bits = fld.width == 1 ? fld.pos :
+	      (fld.pos + fld.width -1).toString()  + ":" + fld.pos.toString();
+	const fld_in = createRegFieldInput(regname, fldname, fld, curval);
+	appendTds(tr, "td", [fldname.toLowerCase(), fld_in, bits, fld.default, fld.help])
 
 	elm.appendChild(tr);
     }
     container.appendChild(elm);
 
-    return container;
+    const btn1 = document.createElement("button");
+    btn1.setAttribute("type", "button");
+    btn1.textContent = "Update";
+    btn1.addEventListener('click', (evt) => {
+	if (!container.checkValidity()) {
+	    container.reportValidity();
+	    return false;
+	}
+	let regVal = 0;
+	for (let [fldname, fld] of reg.fields) {
+	    const inp = document.getElementById(regname + "_" + fldname);
+	    let fldVal = 0;
+	    if (inp.tagName == "INPUT") {
+		if (inp.type == "checkbox")
+		    fldVal = inp.checked ? 1 : 0;
+		else
+		    fldVal = parseInt(inp.value);
+	    } else if (inp.tagName == "SELECT") {
+		fldVal = parseInt(inp.value);
+	    } else {
+		console.log("Unknown element: " + inp.tagName);
+	    }
+	    fldVal = ((fldVal & ((1 << fld.width) - 1)) << fld.pos) >>> 0;
+	    regVal += fldVal;
+	}
+	let newVal = "0x" + (regVal.toString(16).toUpperCase().padStart(8,"0"));
+	if (curval.value != newVal) {
+	    console.log(regname + " changed from " + curval.value + " to " + newVal);
+	    curval.classList.add("changed");
+	    curval.value = newVal;
+	}
+	// Close dialog box
+	container.innerHTML = "";
+	container.style.display = 'none';
+    });
+    container.appendChild(btn1);
+    container.appendChild(document.createTextNode(" "));
+    const btn2 = document.createElement("button");
+    btn2.setAttribute("type", "reset");
+    btn2.textContent = "Revert Changes";
+    container.appendChild(btn2);
+    container.appendChild(document.createTextNode(" "));
+
+    var div = document.createElement("div");
+    div.appendChild(container);
+    return div;
 }
 
 function ddrUIsetup(name, prefix, plf)
@@ -793,6 +888,12 @@ function convertToBinary(cfg)
 
 function populateCfg(template)
 {
+    const helpdiv = document.getElementById("bl2u_ddr_reghelp");
+    const cur = document.getElementById("ddr_help_current");
+    if (cur) {
+	helpdiv.innerHTML = "";
+	helpdiv.style.display = 'none';
+    }
     for (let [grp, keys] of template) {
 	for (let [reg, value] of keys) {
 	    let inp = document.getElementById(reg);
@@ -801,6 +902,7 @@ function populateCfg(template)
 		    inp.value = value;
 		else
 		    inp.value = "0x" + (value.toString(16).toUpperCase().padStart(8,"0"));
+		inp.classList.remove("changed");
 	    } else {
 		throw("Unable to find: " + grp + "." + reg);
 	    }
