@@ -544,13 +544,23 @@ function appendTds(tr, type, a)
     }
 }
 
-function addOptions(sel, bits, value)
+function addOptions(name, sel, bits, value)
 {
-    for(const i of Array(1 << bits).keys()) {
-	const opt = new Option(i, i);
-	if (i == value)
-	    opt.setAttribute("selected", "selected");
-	sel.options[sel.options.length] = opt;
+    let oArr = ddr_fields.get(name.toLowerCase());
+    if (oArr) {
+	for (let [val, text] of oArr) {
+	    const opt = new Option(text, val);
+	    if (val == value)
+		opt.setAttribute("selected", "selected");
+	    sel.options[sel.options.length] = opt;
+	}
+    } else {
+	for(const i of Array(1 << bits).keys()) {
+	    const opt = new Option(i, i);
+	    if (i == value)
+		opt.setAttribute("selected", "selected");
+	    sel.options[sel.options.length] = opt;
+	}
     }
 }
 
@@ -572,7 +582,7 @@ function createRegFieldInput(regname, fldname, fld, val)
 	    inp.checked = true;
     } else if (fld.width < 5) {
 	inp = document.createElement("select");
-	addOptions(inp, fld.width, valFld);
+	addOptions(fldname, inp, fld.width, valFld);
 	inp.selectedIndex = valFld;
     } else {
 	inp = document.createElement("input");
