@@ -43,6 +43,7 @@ static const uintptr_t fip_base_addr = LAN966X_DDR_BASE;
 static uint32_t data_rcv_length;
 static struct ddr_config current_ddr_config;
 static const uintptr_t ddr_base_addr = LAN966X_DDR_BASE;
+static bool ddr_was_initialized;
 
 #if defined(MCHP_SOC_LAN969X)
 extern const struct ddr_config lan969x_ddr_config;
@@ -285,6 +286,15 @@ static void handle_load_data(const bootstrap_req_t *req)
 	if (length == 0 || length > default_ddr_config.info.size) {
 		bootstrap_TxNack("Length Error");
 		return;
+	}
+
+	/* Initialize DDR, possibly with defaults */
+	if (!ddr_was_initialized) {
+		ddr_was_initialized = ddr_init(&current_ddr_config) == 0;
+		if (!ddr_was_initialized) {
+			bootstrap_TxNack("DDR initialization error");
+			return;
+		}
 	}
 
 	/* Store data at start address of DDR memory (offset 0x0) */
@@ -689,7 +699,8 @@ static void handle_ddr_cfg_set(bootstrap_req_t *req)
 #if defined(LAN966X_ASIC) || defined(LAN969X_ASIC)
 	if (req->len == sizeof(current_ddr_config)) {
 		if (bootstrap_RxDataCrc(req, (uint8_t *)&current_ddr_config)) {
-			if (ddr_init(&current_ddr_config) == 0)
+			ddr_was_initialized = ddr_init(&current_ddr_config) == 0;
+			if (ddr_was_initialized)
 				bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 			else
 				bootstrap_TxNack("DDR initialization failed");

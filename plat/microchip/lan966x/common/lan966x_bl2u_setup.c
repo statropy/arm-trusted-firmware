@@ -35,9 +35,6 @@ void bl2u_platform_setup(void)
 	/* IO */
 	lan966x_io_setup();
 
-	/* Initialize DDR */
-	lan966x_ddr_init();
-
 	/* Prepare fw_config from applicable boot source */
 	if (lan966x_bootable_source()) {
 		lan966x_load_fw_config(FW_CONFIG_ID);
