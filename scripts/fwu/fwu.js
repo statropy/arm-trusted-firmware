@@ -342,7 +342,7 @@ async function downloadApp(port, appdata, binary)
 	    //console.log("Sending at offset: %d", bytesSent);
 	    await completeRequest(port, fmtReq(CMD_DATA, bytesSent, chunk, binary));
 	    bytesSent += chunk.length;
-	    if (bytesSent % (5 * 1024))
+	    if (bytesSent % 1024 == 0)
 		setStatus("Sent " + bytesSent + " bytes (" + (bytesSent * 100 / appdata.length).toFixed().toString(10) + "%)", true);
 	    //console.log("Sent bytes: %d", chunk.length);
 	}
@@ -547,18 +547,21 @@ function appendTds(tr, type, a)
 function addOptions(name, sel, bits, value)
 {
     let oArr = ddr_fields.get(name.toLowerCase());
+    let opt;
     if (oArr) {
 	for (let [val, text] of oArr) {
-	    const opt = new Option(text, val);
 	    if (val == value)
-		opt.setAttribute("selected", "selected");
+		opt = new Option(text, val, true, true);
+	    else
+		opt = new Option(text, val);
 	    sel.options[sel.options.length] = opt;
 	}
     } else {
-	for(const i of Array(1 << bits).keys()) {
-	    const opt = new Option(i, i);
+	for (var i = 0; i < (1 << bits); i++) {
 	    if (i == value)
-		opt.setAttribute("selected", "selected");
+		opt = new Option(i, i, true, true);
+	    else
+		opt = new Option(i, i);
 	    sel.options[sel.options.length] = opt;
 	}
     }
@@ -583,7 +586,6 @@ function createRegFieldInput(regname, fldname, fld, val)
     } else if (fld.width < 5) {
 	inp = document.createElement("select");
 	addOptions(fldname, inp, fld.width, valFld);
-	inp.selectedIndex = valFld;
     } else {
 	inp = document.createElement("input");
 	inp.setAttribute("type", "number");
