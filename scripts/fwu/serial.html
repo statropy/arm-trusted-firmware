@@ -81,6 +81,7 @@
 	}
   </style>
   <link rel="stylesheet" href="tabs.css">
+  <link rel="stylesheet" href="progress.css">
 </head>
 <body onload="startSerial()">
   <h1>LAN96xx Secure boot management</h1>
@@ -422,12 +423,33 @@
       <button id="settings_back">Done</button>
     </p>
   </div>
-  <div>
-    <h2>Status:
-      <span id="status">Disconnected</span>
-    </h2>
-    <h3>Transaction Log</h3>
-    <textarea cols="30" rows="15" id="log"></textarea>
-  </div>
+  <table>
+    <tr style="vertical-align: center">
+      <td class="progressbar" style="display:none">
+	<svg>
+	  <style>
+	    text {
+		fill: white;
+	    }
+	    text.percentage {
+		font: bold 30px sans-serif;
+	    }
+	  </style>
+	  <text x="50%" y="50%" text-anchor="middle" class="percentage">100</text>
+	  <text x="50%" y="70%" text-anchor="middle" class="pct_unit">%</text>
+	  <circle class="bg"       cx="57" cy="57" r="52"></circle>
+	  <circle class="progress" cx="57" cy="57" r="52"></circle>
+	</svg>
+	&nbsp;&nbsp;
+      </td>
+      <td>
+	<h2>Status:
+	  <span id="status">Disconnected</span>
+	</h2>
+      </td>
+    </tr>
+  </table>
+  <h3>Transaction Log</h3>
+  <textarea cols="30" rows="15" id="log"></textarea>
 </body>
 </html>

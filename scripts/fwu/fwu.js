@@ -326,6 +326,26 @@ async function completeRequest(port, req_str)
     return null;
 }
 
+function updateProgress(pct)
+{
+    const container = document.querySelector(".progressbar");
+    const text = document.querySelector(".percentage");
+    const progress = document.querySelector(".progress");
+
+    if (pct < 0) {
+	container.style.display = "none";
+	return;
+    } else {
+	container.style.display = "block";
+    }
+
+    const dasharray = 2 * Math.PI * 52; // 2 * pi * r
+    progress.style.strokeDasharray = dasharray;
+    progress.style.strokeDashoffset = dasharray - pct / 100 * dasharray;
+
+    text.innerHTML = pct;
+}
+
 async function downloadApp(port, appdata, binary)
 {
     var completed = true;
@@ -343,14 +363,15 @@ async function downloadApp(port, appdata, binary)
 	    await completeRequest(port, fmtReq(CMD_DATA, bytesSent, chunk, binary));
 	    bytesSent += chunk.length;
 	    if (bytesSent % 1024 == 0)
-		setStatus("Sent " + bytesSent + " bytes (" + (bytesSent * 100 / appdata.length).toFixed().toString(10) + "%)", true);
-	    //console.log("Sent bytes: %d", chunk.length);
+		updateProgress((bytesSent * 100 / appdata.length).toFixed());
 	}
+	updateProgress(100);
     } catch (e) {
 	addTrace("Download failed: " + e);
 	completed = false;
     }
     setStatus("Download was " + (completed ? "completed" : "aborted"));
+    updateProgress(-1);
     return completed;
 }
 
@@ -1021,6 +1042,7 @@ function startSerial()
 	    var myFile = this.files[0];
 	    var reader = new FileReader();
 
+	    addTrace("Reading file: " + myFile.name);
 	    reader.addEventListener('load', function (e) {
 		console.log("Read Image: %d bytes", e.total);
 		image = e.target.result;
