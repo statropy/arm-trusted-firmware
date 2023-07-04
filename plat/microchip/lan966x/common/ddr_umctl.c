@@ -173,7 +173,7 @@ static void axi_enable_ports(bool enable)
 	}
 }
 
-static void ecc_enable_scrubbing(void)
+static int ecc_enable_scrubbing(void)
 {
 	VERBOSE("Enable ECC scrubbing\n");
 
@@ -195,12 +195,16 @@ static void ecc_enable_scrubbing(void)
 	mmio_setbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
 
 	/* 7. Poll SBRSTAT.scrub_done */
-	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 1000000))
-		PANIC("Timeout SBRSTAT.scrub_done set\n");
+	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 1000000)) {
+		ERROR("Timeout SBRSTAT.scrub_done set\n");
+		return -ETIMEDOUT;
+	}
 
 	/* 8. Poll SBRSTAT.scrub_busy */
-	if (wait_reg_clr(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_BUSY, 50))
-		PANIC("Timeout SBRSTAT.scrub_busy clear\n");
+	if (wait_reg_clr(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_BUSY, 50)) {
+		ERROR("Timeout SBRSTAT.scrub_busy clear\n");
+		return -ETIMEDOUT;
+	}
 
 	/* 9. Disable SBR programming */
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
@@ -216,6 +220,7 @@ static void ecc_enable_scrubbing(void)
 	axi_enable_ports(true);
 
 	VERBOSE("Enabled ECC scrubbing\n");
+	return 0;
 }
 
 static int wait_phy_idone(int tmo)
@@ -388,14 +393,18 @@ static int do_data_training(const struct ddr_config *cfg)
 
 int ddr_init(const struct ddr_config *cfg)
 {
+	int ret;
+
 	VERBOSE("ddr_init:start\n");
 
-	VERBOSE("name = %s\n", cfg->info.name);
-	VERBOSE("speed = %d kHz\n", cfg->info.speed);
-	VERBOSE("size  = %zdM\n", cfg->info.size / 1024 / 1024);
+	NOTICE("DDR: %s, %d MHz, %dMiB\n", cfg->info.name,
+	       cfg->info.speed,
+	       cfg->info.size / 1024 / 1024);
 
 	/* Reset, start clocks at desired speed */
-	ddr_reset(cfg, true);
+	ret = ddr_reset(cfg, true);
+	if (ret)
+		return ret;
 
 	/* Set up controller registers */
 	set_regs(cfg, &cfg->main, ddr_main_reg, ARRAY_SIZE(ddr_main_reg));
@@ -406,7 +415,9 @@ int ddr_init(const struct ddr_config *cfg)
 	set_static_ctl();
 
 	/* Release reset */
-	ddr_reset(cfg, false);
+	ret = ddr_reset(cfg, false);
+	if (ret)
+		return ret;
 
 	/* Set PHY registers */
 	set_regs(cfg, &cfg->phy, ddr_phy_reg, ARRAY_SIZE(ddr_phy_reg));
@@ -418,11 +429,15 @@ int ddr_init(const struct ddr_config *cfg)
 	/* Static PHY settings */
 	set_static_phy(cfg);
 
-	if (PHY_initialization())
-		PANIC("PHY initization failed\n");
+	if (PHY_initialization()) {
+		ERROR("PHY initization failed\n");
+		return -EIO;
+	}
 
-	if (DRAM_initialization(true))
-		PANIC("DDR initization failed\n");
+	if (DRAM_initialization(true)) {
+		ERROR("DDR initization failed\n");
+		return -EIO;
+	}
 
 	/* Start quasi-dynamic programming */
 	sw_done_start();
@@ -436,18 +451,23 @@ int ddr_init(const struct ddr_config *cfg)
 	/* wait 2ms for STAT.operating_mode to become "normal" */
 	wait_operating_mode(1, TIME_MS_TO_US(2U));
 
-	if (do_data_training(cfg))
-		PANIC("Data training failed\n");
+	if (do_data_training(cfg)) {
+		ERROR("Data training failed\n");
+		return -EIO;
+	}
 
-	if (cfg->main.ecccfg0 & ECCCFG0_ECC_MODE)
-		ecc_enable_scrubbing();
+	if (cfg->main.ecccfg0 & ECCCFG0_ECC_MODE) {
+		ret = ecc_enable_scrubbing();
+		if (ret)
+			return ret;
+	}
 
 	VERBOSE("ddr_init:done\n");
 
 	return 0;
 }
 
-void ddr_reset(const struct ddr_config *cfg , bool assert)
+int ddr_reset(const struct ddr_config *cfg , bool assert)
 {
 	VERBOSE("Reset: %sassert\n", assert ? "" : "de-");
 	if (assert) {
@@ -501,6 +521,8 @@ void ddr_reset(const struct ddr_config *cfg , bool assert)
 		ddr_nsleep(100);
 	}
 	VERBOSE("Reset: %sasserted\n", assert ? "" : "de-");
+
+	return 0;
 }
 
 void lan966x_ddr_init(void)
@@ -508,5 +530,6 @@ void lan966x_ddr_init(void)
 	extern const struct ddr_config lan966x_ddr_config;
 	const struct ddr_config *cfg =	&lan966x_ddr_config;
 
-	ddr_init(cfg);
+	if (ddr_init(cfg))
+		PANIC("DDR initialization failed");
 }

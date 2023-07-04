@@ -521,14 +521,18 @@ static int do_data_training(const struct ddr_config *cfg)
 
 int ddr_init(const struct ddr_config *cfg)
 {
+	int ret;
+
 	VERBOSE("ddr_init:start\n");
 
-	VERBOSE("name = %s\n", cfg->info.name);
-	VERBOSE("speed = %d kHz\n", cfg->info.speed);
-	VERBOSE("size  = %dM\n", cfg->info.size / 1024 / 1024);
+	NOTICE("DDR: %s, %d MHz, %dMiB\n", cfg->info.name,
+	       cfg->info.speed,
+	       cfg->info.size / 1024 / 1024);
 
 	/* Reset, start clocks at desired speed */
-	ddr_reset(cfg, true);
+	ret = ddr_reset(cfg, true);
+	if (ret)
+		return ret;
 
 	/* Set up controller registers */
 	set_regs(cfg, &cfg->main, ddr_main_reg, ARRAY_SIZE(ddr_main_reg));
@@ -539,7 +543,9 @@ int ddr_init(const struct ddr_config *cfg)
 	set_static_ctl();
 
 	/* Release reset */
-	ddr_reset(cfg, false);
+	ret = ddr_reset(cfg, false);
+	if (ret)
+		return ret;
 
 	/* Set PHY registers */
 	set_regs(cfg, &cfg->phy, ddr_phy_reg, ARRAY_SIZE(ddr_phy_reg));
@@ -554,11 +560,15 @@ int ddr_init(const struct ddr_config *cfg)
 	/* PHY FIFO reset - as recommended in PUB databook */
 	phy_fifo_reset();
 
-	if (PHY_initialization())
-		PANIC("PHY initization failed\n");
+	if (PHY_initialization()) {
+		ERROR("PHY initization failed\n");
+		return -EIO;
+	}
 
-	if (DRAM_initialization(true))
-		PANIC("DDR initization failed\n");
+	if (DRAM_initialization(true)) {
+		ERROR("DDR initization failed\n");
+		return -EIO;
+	}
 
 	/* Start quasi-dynamic programming */
 	sw_done_start();
@@ -572,23 +582,25 @@ int ddr_init(const struct ddr_config *cfg)
 	/* wait 2ms for STAT.operating_mode to become "normal" */
 	wait_operating_mode(1, TIME_MS_TO_US(2U));
 
-	if (do_data_training(cfg))
-		PANIC("Data training failed\n");
+	if (do_data_training(cfg)) {
+		ERROR("Data training failed\n");
+		return -EIO;
+	}
 
 	VERBOSE("ddr_init:done\n");
 
 	return 0;
 }
 
-void ddr_reset(const struct ddr_config *cfg , bool assert)
+int ddr_reset(const struct ddr_config *cfg , bool assert)
 {
 	INFO("Reset: %sassert\n", assert ? "" : "de-");
 	if (assert) {
 		const pll_cfg_t *pll = lan969x_ddr_get_clock_cfg(cfg->info.speed);
 
 		if (pll == NULL) {
-			PANIC("Unsupported clock: %d\n", cfg->info.speed);
-			return;
+			ERROR("Unsupported clock: %d\n", cfg->info.speed);
+			return -ENOTSUP;
 		}
 
 		/* Assert resets */
@@ -643,6 +655,8 @@ void ddr_reset(const struct ddr_config *cfg , bool assert)
 		ddr_nsleep(100);
 	}
 	INFO("Reset: %sasserted\n", assert ? "" : "de-");
+
+	return 0;
 }
 
 static int read_ddr_config(void *fdt, struct ddr_config *cfg)
@@ -673,7 +687,7 @@ static int read_ddr_config(void *fdt, struct ddr_config *cfg)
 	if (!(cfg->info.bus_width == 16 &&
 	      lan969x_ddr_get_clock_cfg(cfg->info.speed) != NULL &&
 	      cfg->info.size > 0)) {
-		INFO("ddr: DT memory settings sanity check fails\n");
+		ERROR("ddr: DT settings sanity check fails\n");
 		return -EINVAL;
 	}
 
@@ -696,5 +710,6 @@ void lan966x_ddr_init(void *fdt)
 		cfg = &dt_cfg;
 	}
 
-	ddr_init(cfg);
+	if (ddr_init(cfg))
+		PANIC("DDR initialization failed");
 }

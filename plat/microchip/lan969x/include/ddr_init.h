@@ -13,8 +13,8 @@
 
 #include <ddr_config.h>
 
-void ddr_reset(const struct ddr_config *cfg , bool assert);
+int ddr_reset(const struct ddr_config *cfg , bool assert) __attribute__ ((warn_unused_result));
 
-int ddr_init(const struct ddr_config *cfg);
+int ddr_init(const struct ddr_config *cfg) __attribute__ ((warn_unused_result));
 
 #endif /* _DDR_INIT_H */
