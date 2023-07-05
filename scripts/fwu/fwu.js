@@ -295,17 +295,18 @@ async function sendRequest(port, buf)
     writer.releaseLock();
 }
 
+function setActive(on)
+{
+    document.getElementById("activity").style.display = on ? 'table-cell' : 'none';
+}
+
 async function completeRequest(port, req_str)
 {
-    // Signal busy
-    document.getElementById("active").style.display = 'inline';
     // Send request
     await sendRequest(port, req_str);
     // Get response from port_reader stream
     var response = await port_reader.read();
     //console.log("Response: %o", response);
-    // Signal received req
-    document.getElementById("active").style.display = 'none';
     try {
 	var rspStruct = parseResponse(response.value);
 	//console.log("Response: %o", rspStruct);
@@ -350,6 +351,7 @@ async function downloadApp(port, appdata, binary)
 {
     var completed = true;
     setStatus("Downloading " + appdata.length + " bytes " + (binary ? "binary" : "hex encoded") );
+    var msec_start = new Date().getTime();
     try {
 	const chunkSize = 256;
 	let bytesSent = 0;
@@ -365,6 +367,7 @@ async function downloadApp(port, appdata, binary)
 	    if (bytesSent % 1024 == 0)
 		updateProgress((bytesSent * 100 / appdata.length).toFixed());
 	}
+	reportDuration("Download took", msec_start, new Date().getTime());
 	updateProgress(100);
     } catch (e) {
 	addTrace("Download failed: " + e);
@@ -416,14 +419,18 @@ async function doWrite(port, operation, cmd, dev, status_id)
 {
     let s = disableButtons("bl2u", true);
     try {
+	setActive(true);
 	setFeedbackStatus(status_id, "Starting " + operation);
 	addTrace("This may take up to 5 minutes or even longer depending on data size and media.");
+	var msec_start = new Date().getTime();
 	let write = await completeRequest(port, fmtReq(cmd, dev));
 	let rsp = write["data"];
+	reportDuration(operation + " took", msec_start, new Date().getTime());
 	setFeedbackStatus(status_id, rsp ? rsp : "Completed " + operation);
     } catch(e) {
 	setFeedbackStatus(status_id, "Failed " + operation + ": " + e);
     } finally {
+	setActive(false);
 	restoreButtons(s);
     }
 }
@@ -1016,10 +1023,34 @@ function sha256ToString(sha)
 
 async function getDataInfo(port)
 {
+    setActive(true);
+    setStatus("Calculating download data hash");
     const dataInfo = await completeRequest(port, fmtReq(CMD_BL2U_DATA_HASH, 0));
     setStatus(dataInfo["arg"].toString(10) + " bytes in write buffer");
     addTrace("SHA-256 hash: " + sha256ToString(dataInfo["data"]));
+    setActive(false);
     return dataInfo;
+}
+
+const formatDuration = ms => {
+  if (ms < 0) ms = -ms;
+  const time = {
+    day: Math.floor(ms / 86400000),
+    hour: Math.floor(ms / 3600000) % 24,
+    minute: Math.floor(ms / 60000) % 60,
+    second: Math.floor(ms / 1000) % 60,
+    millisecond: Math.floor(ms) % 1000
+  };
+  return Object.entries(time)
+    .filter(val => val[1] !== 0)
+    .map(([key, val]) => `${val} ${key}${val !== 1 ? 's' : ''}`)
+    .join(', ');
+};
+
+function reportDuration(what, start, end)
+{
+    const msec = end - start;
+    addTrace(what + ": " + formatDuration(msec));
 }
 
 function startSerial()
@@ -1066,7 +1097,9 @@ function startSerial()
 		else
 		    addTrace("Data integrity check pass, SHA-256 hash match");
 		// Do explicit uncompress
-		setStatus("Decompressing");
+		setActive(true);
+		setStatus("Decompressing data");
+		var msec_start = new Date().getTime();
 		var rspStruct = await completeRequest(port, fmtReq(CMD_UNZIP, 0));
 		var datalen = rspStruct["arg"].toString(16).padStart(8, "0");
 		var status = rspStruct["data"];
@@ -1074,12 +1107,14 @@ function startSerial()
 		    // Not decompressed
 		    setStatus("Data received: " + status + ", length " + rspStruct["arg"].toString(10));
 		} else {
+		    reportDuration("Decompressing took", msec_start, new Date().getTime());
 		    // Get data length & hash after decompress
                     await getDataInfo(port);
 		}
 	    } catch(e) {
 		setStatus("Failed upload: " + e);
 	    } finally {
+		setActive(false);
 		restoreButtons(s);
 	    }
 	}
@@ -1195,16 +1230,17 @@ function startSerial()
     document.getElementById('bl2u_ddr_test').addEventListener('click', async () => {
 	let s = disableButtons("bl2u_ddr", true);
 	try {
+	    setActive(true);
 	    setStatus("DDR test starting");
 	    var msec_start = new Date().getTime();
 	    var arg = document.getElementById("enable_cache").checked ? 1 : 0;
 	    var rspStruct = await completeRequest(port, fmtReq(CMD_BL2U_DDR_TEST, arg));
-	    var msec_end = new Date().getTime();
+	    reportDuration("DDR test duration", msec_start, new Date().getTime());
 	    setStatus("DDR was tested: " + rspStruct["data"]);
-	    addTrace("DDR test duration: " + (msec_end - msec_start) + " msec");
 	} catch(e) {
 	    setStatus("DDR test error: " + e);
 	} finally {
+	    setActive(false);
 	    restoreButtons(s);
 	}
     });
@@ -1216,6 +1252,7 @@ function startSerial()
     document.getElementById('bl2u_reset').addEventListener('click', async () => {
 	let s = disableButtons("bl2u", true);
 	try {
+	    setActive(true);
 	    setStatus("Rebooting from BL2U back to BL1");
 	    let cont = await completeRequest(port, fmtReq(CMD_BL2U_RESET, 0));
 	    setStatus("Booting into BL1");
@@ -1233,6 +1270,7 @@ function startSerial()
 	    }
 	} finally {
 	    await delaySkipInput(port, 2000);
+	    setActive(false);
 	    setStage("bl1");
 	    restoreButtons(s);
 	}
@@ -1247,6 +1285,7 @@ function startSerial()
 		throw "Empty application image - no BL2U support for " + plf["name"];
 	    await downloadApp(port, app, plf["bl1_binary"]);
 	    await delaySkipInput(port, 2000);
+	    setActive(true);
 	    let auth = await completeRequest(port, fmtReq(CMD_AUTH, 0));
 	    setStatus("BL2U booting");
 	    // Allow BL2U to boot
@@ -1257,6 +1296,7 @@ function startSerial()
 	} catch(e) {
 	    setStatus(e);
 	} finally {
+	    setActive(false);
 	    restoreButtons(s);
 	}
     });
