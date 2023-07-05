@@ -307,6 +307,9 @@ end
 if $option[:clean] || $option[:coverity]
     puts "Cleaning " + build
     FileUtils.rm_rf build
+    # cert_create is picky about openssl version changes
+    puts "Cleaning tools/cert_create"
+    do_cmd "make -C tools/cert_create clean"
     exit 0 if $option[:clean]
     $cov_dir = "cov_" + $option[:platform]
     FileUtils.rm_rf $cov_dir
