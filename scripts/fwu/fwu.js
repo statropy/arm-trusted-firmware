@@ -462,7 +462,7 @@ function restoreButtons(state)
 function setStage(new_stage)
 {
     var reset_state = (cur_stage != "adv_settings");
-    var stages = ["connect", "bl1", "bl2u", "bl2u_ddr", "adv_settings", "booting"];
+    var stages = ["connect", "bl1", "bl2u", "bl2u_ddr", "booting"];
     for (const stage of stages) {
 	var display = (new_stage == stage ? "block" : "none");
 	document.getElementById(stage).style.display = display;
@@ -1432,24 +1432,6 @@ function startSerial()
 	    }
 	} else {
 	    alert("No DDR configuration loaded");
-	}
-    });
-
-    document.getElementById('settings').addEventListener('click', async (event) => {
-	if (settings_prev_stage) {
-	    setStage(settings_prev_stage);
-	    settings_prev_stage = undefined;
-	} else {
-	    settings_prev_stage = cur_stage;
-	    setStage("adv_settings");
-	}
-    });
-
-    document.getElementById('settings_back').addEventListener('click', async (event) => {
-	if (settings_prev_stage) {
-	    document.getElementById('settings').click();
-	} else {
-	    setStage("connect");
 	}
     });
 

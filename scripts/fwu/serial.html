@@ -13,23 +13,14 @@
   <script src="ddr_fields.js"></script>
   <script src="fwu.js"></script>
   <style>
-	img#settings {
-	    position: absolute;
-	    top: 2px;
-	    right: 60px;
-	}
 	img#logo {
 	    position: absolute;
-	    top: 30px;
+	    top: 10px;
 	    right: 2px;
 	}
 	textarea {
 	    font-size: 12px;
 	    width: 100%;
-	}
-	table.settings td {
-	    border: 1px solid;
-	    padding: 5px;
 	}
 	.feedback {
 	    font-style: italic;
@@ -80,7 +71,6 @@
 </head>
 <body onload="startSerial()">
   <h1>LAN96xx Secure boot management</h1>
-  <img id="settings" width="29" height="29" src="gears.png">
   <img id="logo" src="microchip.png">
   <div id="browser_check" style="display:none" class="warning">
     <h3>Warning!</h3>
@@ -193,6 +183,28 @@
 	      <td id="bl1_otp_set_data_feedback" class="feedback"></td>
 	    </tr>
 	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl1-css-tabs" id="bl1-tab-4" class="tab-switch">
+	<label for="bl1-tab-4" class="tab-label">Settings</label>
+	<div class="tab-content">
+	  <p>
+	    These settings are mostly usable for advanced users. Use at own risk.
+	  </p>
+	  <table class="settings">
+	    <tr>
+	      <td width="20%">
+		Enable trace <input type="checkbox" id="enable_trace">
+	      </td>
+	      <td>
+		Enabling this will add detailed trace output of all messages
+		between the managed device in the <em>JavaScript</em> console
+                of your browser. This is typically found in
+		<samp>Settings|Developer Tools</samp> (or F-12 on MS Edge).
+              </td>
+            </tr>
+          </table>
 	</div>
       </div>
     </div>
@@ -393,28 +405,6 @@
     <h2>Booting</h2>
     <p>The device is now booting.  Remember to reset device strappings
       for automatic boot at next reset if so desired.
-    </p>
-  </div>
-  <div id="adv_settings" style="display:none">
-    <h2>Advanced settings</h2>
-    <p>
-      These settings are mostly usable for advanced users. Use at own risk.
-    </p>
-    <table class="settings">
-      <tr>
-	<td width="20%">
-	  Enable trace <input type="checkbox" id="enable_trace">
-	</td>
-	<td>
-	  Enabling this will add detailed trace output of all messages
-	  between the managed device in the <em>JavaScript</i> console
-	  of your browser. This is typically found in
-	  <samp>Settings|Developer Tools</samp> (or F-12 on MS Edge).
-	</td>
-      </tr>
-    </table>
-    <p>
-      <button id="settings_back">Done</button>
     </p>
   </div>
   <table>
