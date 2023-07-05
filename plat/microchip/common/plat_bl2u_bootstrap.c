@@ -727,6 +727,11 @@ static void handle_ddr_test(bootstrap_req_t *req)
 	int ret;
 #endif
 
+	if (!ddr_was_initialized) {
+		bootstrap_TxNack("DDR not initialized");
+		return;
+	}
+
 	attr = MT_RW | MT_NS | MT_EXECUTE_NEVER;
 	cache = !!(req->arg0 & 1);
 	if (cache) {
