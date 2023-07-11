@@ -28,19 +28,24 @@
 	* -----------------------------------------------
 	*/
 func console_flexcom_core_init
-	/* Configure the baudrate */
-	str	w1, [x0, #USART_REG_BRGR]
-
 	/* Disable the UART interrupt */
 	mov	w1, #0
 	str	w1, [x0, #USART_REG_IDR]
+
+	/* Skip reset if already at right baud rate */
+	ldr	w0, [x0, #USART_REG_BRGR]
+	cmp	w0, w1
+	beq	1f
+
+	/* Configure the baudrate */
+	str	w1, [x0, #USART_REG_BRGR]
 
 	/* Reset the receiver and transmitter */
 	mov	w1, #(USART_CR_RSTRX|USART_CR_RSTTX|USART_CR_RXDIS|USART_CR_TXDIS)
 	str	w1, [x0, #USART_REG_CR]
 
 	/* Enable FIFO */
-	ldr	w1, [x0, #USART_REG_CR]
+1:	ldr	w1, [x0, #USART_REG_CR]
 	and	w1, w1, #(USART_CR_FIFOEN)
 	str	w1, [x0, #USART_REG_CR]
 
