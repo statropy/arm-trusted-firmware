@@ -29,11 +29,9 @@
 #include "lan966x_bootstrap.h"
 #include "lan966x_regs.h"
 #include "aes.h"
+#include "ddr_test.h"
 
 #include "otp.h"
-
-#define DDR_PATTERN1 0xAAAAAAAAU
-#define DDR_PATTERN2 0x55555555U
 
 #define MAX_OTP_DATA	1024
 
@@ -52,136 +50,6 @@ extern const struct ddr_config lan969x_evb_ddr4_ddr_config;
 extern const struct ddr_config lan966x_ddr_config;
 #define  default_ddr_config lan966x_ddr_config
 #endif
-
-/*******************************************************************************
- * This function tests the DDR data bus wiring.
- * This is inspired from the Data Bus Test algorithm written by Michael Barr
- * in "Programming Embedded Systems in C and C++" book.
- * resources.oreilly.com/examples/9781565923546/blob/master/Chapter6/
- * File: memtest.c - This source code belongs to Public Domain.
- * Returns 0 if success, and address value else.
- ******************************************************************************/
-static uintptr_t ddr_test_data_bus(bool cache)
-{
-	uint32_t pattern;
-
-	INFO("DDR data bus begin\n");
-
-	if (cache)
-		inv_dcache_range(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
-
-	for (pattern = 1U; pattern != 0U; pattern <<= 1) {
-		mmio_write_32(ddr_base_addr, pattern);
-
-		if (mmio_read_32(ddr_base_addr) != pattern) {
-			return (uintptr_t) ddr_base_addr;
-		}
-	}
-
-	if (cache)
-		clean_dcache_range(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
-
-	INFO("DDR data bus end\n");
-
-	return 0;
-}
-
-/*******************************************************************************
- * This function tests the DDR address bus wiring.
- * This is inspired from the Data Bus Test algorithm written by Michael Barr
- * in "Programming Embedded Systems in C and C++" book.
- * resources.oreilly.com/examples/9781565923546/blob/master/Chapter6/
- * File: memtest.c - This source code belongs to Public Domain.
- * Returns 0 if success, and address value else.
- ******************************************************************************/
-static uintptr_t ddr_test_addr_bus(struct ddr_config *config, bool cache)
-{
-	uint64_t addressmask = (MIN(config->info.size, (uint32_t) LAN966X_DDR_MAX_SIZE) - 1U);
-	uint64_t offset;
-	uint64_t testoffset = 0;
-
-	INFO("DDR addr bus begin\n");
-
-	if (cache)
-		inv_dcache_range(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
-
-	/* Write the default pattern at each of the power-of-two offsets. */
-	for (offset = sizeof(uint32_t); (offset & addressmask) != 0U; offset <<= 1U) {
-		mmio_write_32(ddr_base_addr + offset, DDR_PATTERN1);
-	}
-
-	/* Check for address bits stuck high. */
-	mmio_write_32(ddr_base_addr + testoffset, DDR_PATTERN2);
-
-	for (offset = sizeof(uint32_t); (offset & addressmask) != 0U; offset <<= 1U) {
-		if (mmio_read_32(ddr_base_addr + offset) != DDR_PATTERN1) {
-			return (ddr_base_addr + offset);
-		}
-	}
-
-	mmio_write_32(ddr_base_addr + testoffset, DDR_PATTERN1);
-
-	/* Check for address bits stuck low or shorted. */
-	for (testoffset = sizeof(uint32_t); (testoffset & addressmask) != 0U; testoffset <<= 1U) {
-		mmio_write_32(ddr_base_addr + testoffset, DDR_PATTERN2);
-
-		if (mmio_read_32(ddr_base_addr) != DDR_PATTERN1) {
-			return ddr_base_addr;
-		}
-
-		for (offset = sizeof(uint32_t); (offset & addressmask) != 0U; offset <<= 1U) {
-			if ((mmio_read_32(ddr_base_addr +
-					  offset) != DDR_PATTERN1) &&
-			    (offset != testoffset)) {
-				return (ddr_base_addr + offset);
-			}
-		}
-
-		mmio_write_32(ddr_base_addr + testoffset, DDR_PATTERN1);
-	}
-
-	if (cache)
-		clean_dcache_range(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
-
-	INFO("DDR addr bus end\n");
-
-	return 0;
-}
-
-static inline unsigned int ps_rnd(unsigned int x)
-{
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = (x >> 16) ^ x;
-    return x;
-}
-
-static uintptr_t ddr_test_rnd(struct ddr_config *config, bool cache, uint32_t seed)
-{
-	uint32_t max_size = MIN(config->info.size, (uint32_t) LAN966X_DDR_MAX_SIZE);
-	uint32_t offset;
-	unsigned int value;
-
-	if (cache)
-		inv_dcache_range(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
-
-	for (offset = 0, value = seed; offset < max_size; offset += sizeof(uint32_t)) {
-		value = ps_rnd(value);
-		mmio_write_32(ddr_base_addr + offset, (uint32_t) value);
-	}
-
-	for (offset = 0, value = seed; offset < max_size; offset += sizeof(uint32_t)) {
-		value = ps_rnd(value);
-		if (mmio_read_32(ddr_base_addr + offset) != (uint32_t) value) {
-			return (ddr_base_addr + offset);
-		}
-	}
-
-	if (cache)
-		clean_dcache_range(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
-
-	return 0;
-}
 
 static void handle_otp_read(bootstrap_req_t *req)
 {
@@ -760,19 +628,19 @@ static void handle_ddr_test(bootstrap_req_t *req)
 
 	/* Now, do tests */
 
-	err_off = ddr_test_data_bus(cache);
+	err_off = ddr_test_data_bus(ddr_base_addr, cache);
 	if (err_off != 0) {
 		bootstrap_TxNack_rc("DDR data bus test", err_off);
 		return;
 	}
 
-	err_off = ddr_test_addr_bus(&current_ddr_config, cache);
+	err_off = ddr_test_addr_bus(&current_ddr_config, ddr_base_addr, cache);
 	if (err_off != 0) {
 		bootstrap_TxNack_rc("DDR data bus test", err_off);
 		return;
 	}
 
-	err_off = ddr_test_rnd(&current_ddr_config, cache, 0xdeadbeef);
+	err_off = ddr_test_rnd(&current_ddr_config, ddr_base_addr, cache, 0xdeadbeef);
 	if (err_off != 0) {
 		bootstrap_TxNack_rc("DDR sweep test", err_off);
 		return;
