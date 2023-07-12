@@ -6,11 +6,11 @@
 
 #include <ddr_config.h>
 
-const struct ddr_config lan969x_ddr_config = {
+const struct ddr_config lan969x_evb_ddr4_ddr_config = {
 	.info = {
-		.name = "lan969x 2023-06-26-11:20:12 8093bf2eaa60-dirty",
+		.name = "lan969x_evb_ddr4 2023-07-11-15:48:31 168381bc2e53",
 		.speed = 1866,
-		.size = 0x40000000,
+		.size = 0x38000000,
 		.bus_width = 16,
 	},
 	.main = {
@@ -21,7 +21,7 @@ const struct ddr_config lan969x_ddr_config = {
 		.dfitmg1 = 0x00040201,
 		.dfiupd0 = 0x40400003,
 		.dfiupd1 = 0x004000ff,
-		.ecccfg0 = 0x003f7f40,
+		.ecccfg0 = 0x003f7f44,
 		.init0 = 0x000201c8,
 		.init1 = 0x00b60000,
 		.init3 = 0x0a200501,

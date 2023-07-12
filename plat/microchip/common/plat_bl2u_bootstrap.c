@@ -46,8 +46,8 @@ static const uintptr_t ddr_base_addr = LAN966X_DDR_BASE;
 static bool ddr_was_initialized;
 
 #if defined(MCHP_SOC_LAN969X)
-extern const struct ddr_config lan969x_ddr_config;
-#define  default_ddr_config lan969x_ddr_config
+extern const struct ddr_config lan969x_evb_ddr4_ddr_config;
+#define  default_ddr_config lan969x_evb_ddr4_ddr_config
 #elif defined(MCHP_SOC_LAN966X)
 extern const struct ddr_config lan966x_ddr_config;
 #define  default_ddr_config lan966x_ddr_config

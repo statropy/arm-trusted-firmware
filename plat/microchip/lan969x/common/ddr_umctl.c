@@ -500,20 +500,6 @@ static int do_data_training(const struct ddr_config *cfg)
 	mmio_write_32(DDR_PHY_DX1BDLR0, 0x08080808);
 	mmio_write_32(DDR_PHY_DX1BDLR1, 0x08080808);
 	mmio_write_32(DDR_PHY_DX1BDLR2, 0x080808);
-	if (cfg->info.bus_width == 32) {
-		mmio_write_32(DDR_PHY_DX2BDLR0, 0x08080808);
-		mmio_write_32(DDR_PHY_DX2BDLR1, 0x08080808);
-		mmio_write_32(DDR_PHY_DX2BDLR2, 0x080808);
-		mmio_write_32(DDR_PHY_DX3BDLR0, 0x08080808);
-		mmio_write_32(DDR_PHY_DX3BDLR1, 0x08080808);
-		mmio_write_32(DDR_PHY_DX3BDLR2, 0x080808);
-	}
-	/* ECC lane enabled? */
-	if (cfg->main.ecccfg0 & ECCCFG0_ECC_MODE) {
-		mmio_write_32(DDR_PHY_DX4BDLR0, 0x08080808);
-		mmio_write_32(DDR_PHY_DX4BDLR1, 0x08080808);
-		mmio_write_32(DDR_PHY_DX4BDLR2, 0x080808);
-	}
 
 	/* PHY FIFO reset - as recommended in PUB databook */
 	phy_fifo_reset();
@@ -595,6 +581,10 @@ int ddr_init(const struct ddr_config *cfg)
 	ret = ddr_reset(cfg, true);
 	if (ret)
 		return ret;
+
+	/* Set up platform specific registers */
+	mmio_write_32(DDR_UMCTL2_SARBASE0, LAN969X_DDR_BASE >> 29);
+	mmio_write_32(DDR_UMCTL2_SARSIZE0, 3); /* n+1 512M blocks = 2G (max) */
 
 	/* Set up controller registers */
 	set_regs(cfg, &cfg->main, ddr_main_reg, ARRAY_SIZE(ddr_main_reg));
@@ -765,20 +755,16 @@ static int read_ddr_config(void *fdt, struct ddr_config *cfg)
 
 void lan966x_ddr_init(void *fdt)
 {
-	extern const struct ddr_config lan969x_ddr_config;
-	struct ddr_config dt_cfg = { };
-	const struct ddr_config *cfg;
+	struct ddr_config cur_ddr_cfg = { };
 
 	if (fdt == NULL ||
 	    fdt_check_header(fdt) != 0 ||
-	    read_ddr_config(fdt, &dt_cfg) != 0) {
+	    read_ddr_config(fdt, &cur_ddr_cfg) != 0) {
+		extern const struct ddr_config lan969x_evb_ddr4_ddr_config;
 		NOTICE("ddr: Invalid DT, using defaults\n");
-		cfg = &lan969x_ddr_config;
-	} else {
-		/* We got DT config */
-		cfg = &dt_cfg;
+		cur_ddr_cfg = lan969x_evb_ddr4_ddr_config;
 	}
 
-	if (ddr_init(cfg))
+	if (ddr_init(&cur_ddr_cfg))
 		PANIC("DDR initialization failed");
 }
