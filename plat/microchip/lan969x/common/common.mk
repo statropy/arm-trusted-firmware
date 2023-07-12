@@ -90,7 +90,6 @@ BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 				drivers/arm/tzc/tzc400.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
-				plat/microchip/common/ddr_test.c		\
 				plat/microchip/common/lan966x_bootstrap.c	\
 				plat/microchip/common/lan966x_fw_bind.c		\
 				plat/microchip/common/plat_bl2u_bootstrap.c	\
@@ -101,6 +100,7 @@ BL2U_CPPFLAGS := -DPLAT_XLAT_TABLES_DYNAMIC
 
 ifeq (${PLAT},lan969x_a0)
 DDR_SOURCES	:=					\
+	plat/microchip/common/ddr_test.c		\
 	${LAN969X_PLAT_COMMON}/ddr_umctl.c		\
 	${LAN969X_PLAT_COMMON}/lan969x_ddr_config.c	\
 	${LAN969X_PLAT_COMMON}/lan969x_ddr_clock.c

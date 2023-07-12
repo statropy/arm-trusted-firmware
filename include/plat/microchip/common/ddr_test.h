@@ -11,7 +11,7 @@
 #include <stdbool.h>
 
 uintptr_t ddr_test_data_bus(uintptr_t ddr_base_addr, bool cache);
-uintptr_t ddr_test_addr_bus(struct ddr_config *config, uintptr_t ddr_base_addr, bool cache);
-uintptr_t ddr_test_rnd(struct ddr_config *config, uintptr_t ddr_base_addr, bool cache, uint32_t seed);
+uintptr_t ddr_test_addr_bus(uintptr_t ddr_base_addr, size_t ddr_size, bool cache);
+uintptr_t ddr_test_rnd(uintptr_t ddr_base_addr, size_t ddr_size, bool cache, uint32_t seed);
 
 #endif /* _DDR_TEST_H */

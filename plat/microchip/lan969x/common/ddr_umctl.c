@@ -12,8 +12,10 @@
 #include <ddr_init.h>
 #include <ddr_platform.h>
 #include <ddr_reg.h>
+#include <ddr_test.h>
 #include <ddr_xlist.h>
 #include <lan969x_ddr_clock.h>
+#include <platform_def.h>
 
 #define PGSR_ERR_MASK		GENMASK_32(30, 19)
 #define PGSR_ALL_DONE		GENMASK_32(11, 0)
@@ -756,6 +758,7 @@ static int read_ddr_config(void *fdt, struct ddr_config *cfg)
 void lan966x_ddr_init(void *fdt)
 {
 	struct ddr_config cur_ddr_cfg = { };
+	uintptr_t err_off;
 
 	if (fdt == NULL ||
 	    fdt_check_header(fdt) != 0 ||
@@ -766,5 +769,13 @@ void lan966x_ddr_init(void *fdt)
 	}
 
 	if (ddr_init(&cur_ddr_cfg))
-		PANIC("DDR initialization failed");
+		PANIC("DDR initialization failed\n");
+
+	err_off = ddr_test_data_bus(PLAT_LAN969X_NS_IMAGE_BASE, true);
+	if (err_off != 0)
+		PANIC("DDR data bus test @ 0x%08lx\n", err_off);
+
+	err_off = ddr_test_addr_bus(PLAT_LAN969X_NS_IMAGE_BASE, PLAT_LAN969X_NS_IMAGE_SIZE, true);
+	if (err_off != 0)
+		PANIC("DDR data bus test @ 0x%08lx\n", err_off);
 }

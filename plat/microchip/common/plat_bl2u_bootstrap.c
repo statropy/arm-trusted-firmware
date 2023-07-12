@@ -634,13 +634,13 @@ static void handle_ddr_test(bootstrap_req_t *req)
 		return;
 	}
 
-	err_off = ddr_test_addr_bus(&current_ddr_config, ddr_base_addr, cache);
+	err_off = ddr_test_addr_bus(ddr_base_addr, current_ddr_config.info.size, cache);
 	if (err_off != 0) {
 		bootstrap_TxNack_rc("DDR data bus test", err_off);
 		return;
 	}
 
-	err_off = ddr_test_rnd(&current_ddr_config, ddr_base_addr, cache, 0xdeadbeef);
+	err_off = ddr_test_rnd(ddr_base_addr, current_ddr_config.info.size, cache, 0xdeadbeef);
 	if (err_off != 0) {
 		bootstrap_TxNack_rc("DDR sweep test", err_off);
 		return;
