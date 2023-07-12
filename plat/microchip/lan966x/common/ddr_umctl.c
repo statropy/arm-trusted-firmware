@@ -9,7 +9,9 @@
 
 #include <ddr_init.h>
 #include <ddr_reg.h>
+#include <ddr_test.h>
 #include <ddr_xlist.h>
+#include <platform_def.h>
 
 #define PGSR_ERR_MASK		GENMASK_32(27, 20)
 #define PGSR_ALL_DONE		GENMASK_32(11, 0)
@@ -529,7 +531,16 @@ void lan966x_ddr_init(void)
 {
 	extern const struct ddr_config lan966x_ddr_config;
 	const struct ddr_config *cfg =	&lan966x_ddr_config;
+	uintptr_t err_off;
 
 	if (ddr_init(cfg))
-		PANIC("DDR initialization failed");
+		PANIC("DDR initialization failed\n");
+
+	err_off = ddr_test_data_bus(PLAT_LAN966X_NS_IMAGE_BASE, true);
+	if (err_off != 0)
+		PANIC("DDR data bus test @ 0x%08lx\n", err_off);
+
+	err_off = ddr_test_addr_bus(PLAT_LAN966X_NS_IMAGE_BASE, PLAT_LAN966X_NS_IMAGE_SIZE, true);
+	if (err_off != 0)
+		PANIC("DDR data bus test @ 0x%08lx\n", err_off);
 }

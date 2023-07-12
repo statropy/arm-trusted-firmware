@@ -114,6 +114,7 @@ BL1_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_tbbr.c
 
 BL2_SOURCES		+=	\
+				plat/microchip/common/ddr_test.c			\
 				plat/microchip/common/lan966x_sjtag.c			\
 				plat/microchip/lan966x/common/lan966x_io_storage.c	\
 				plat/microchip/lan966x/common/lan966x_bl2_mem_params_desc.c \
