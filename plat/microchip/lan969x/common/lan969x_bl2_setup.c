@@ -9,6 +9,7 @@
 #include <common/bl_common.h>
 #include <common/desc_image_load.h>
 #include <drivers/generic_delay_timer.h>
+#include <drivers/microchip/lan969x_pcie_ep.h>
 #include <drivers/microchip/otp.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
@@ -126,6 +127,9 @@ void bl2_platform_setup(void)
 
 	/* Init DDR */
 	lan966x_ddr_init(lan966x_get_dt());
+
+	/* Init PCIe Endpoint */
+	lan969x_pcie_ep_init(lan966x_get_dt());
 }
 
 /*******************************************************************************

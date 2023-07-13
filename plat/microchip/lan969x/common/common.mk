@@ -79,6 +79,7 @@ BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S			\
 
 BL2_SOURCES		+=	common/desc_image_load.c			\
 				drivers/arm/tzc/tzc400.c			\
+				drivers/microchip/pcie/lan969x_pcie_ep.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_mem_params_desc.c \
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
