@@ -98,7 +98,7 @@ BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
 # Only BL2U needs this
 BL2U_CPPFLAGS := -DPLAT_XLAT_TABLES_DYNAMIC
 
-ifeq (${PLAT},lan969x_a0)
+ifneq (${PLAT},lan969x_sr)
 DDR_SOURCES	:=					\
 	plat/microchip/common/ddr_test.c		\
 	${LAN969X_PLAT_COMMON}/ddr_umctl.c		\
