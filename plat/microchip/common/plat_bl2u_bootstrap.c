@@ -636,7 +636,7 @@ static void handle_ddr_test(bootstrap_req_t *req)
 
 	err_off = ddr_test_addr_bus(ddr_base_addr, current_ddr_config.info.size, cache);
 	if (err_off != 0) {
-		bootstrap_TxNack_rc("DDR data bus test", err_off);
+		bootstrap_TxNack_rc("DDR address bus test", err_off);
 		return;
 	}
 

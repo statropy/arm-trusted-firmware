@@ -542,5 +542,5 @@ void lan966x_ddr_init(void)
 
 	err_off = ddr_test_addr_bus(PLAT_LAN966X_NS_IMAGE_BASE, PLAT_LAN966X_NS_IMAGE_SIZE, true);
 	if (err_off != 0)
-		PANIC("DDR data bus test @ 0x%08lx\n", err_off);
+		PANIC("DDR address bus test @ 0x%08lx\n", err_off);
 }

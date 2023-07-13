@@ -26,15 +26,24 @@ uintptr_t ddr_test_data_bus(uintptr_t ddr_base_addr, bool cache)
 {
 	uint32_t pattern;
 
-	INFO("DDR data bus begin, start %08lx, cache %d\n", ddr_base_addr, cache);
+	INFO("DDR data bus test begin, start %08lx, cache %d\n", ddr_base_addr, cache);
 
 	if (cache)
 		inv_dcache_range(ddr_base_addr, PLATFORM_CACHE_LINE_SIZE);
 
 	for (pattern = 1U; pattern != 0U; pattern <<= 1) {
+		uint32_t w;
+
+		/* Write */
 		mmio_write_32(ddr_base_addr, pattern);
 
-		if (mmio_read_32(ddr_base_addr) != pattern) {
+		/* Barrier */
+		dsbsy();
+
+		/* Read */
+		w = mmio_read_32(ddr_base_addr);
+		if (w != pattern) {
+			ERROR("DDR DATA: RD(0): %08x != %08x\n", pattern, w);
 			return (uintptr_t) ddr_base_addr;
 		}
 	}
@@ -42,7 +51,7 @@ uintptr_t ddr_test_data_bus(uintptr_t ddr_base_addr, bool cache)
 	if (cache)
 		clean_dcache_range(ddr_base_addr, PLATFORM_CACHE_LINE_SIZE);
 
-	INFO("DDR data bus end\n");
+	INFO("DDR data bus test end\n");
 
 	return 0;
 }
@@ -59,8 +68,9 @@ uintptr_t ddr_test_addr_bus(uintptr_t ddr_base_addr, size_t ddr_size, bool cache
 {
 	size_t offset;
 	size_t testoffset = 0;
+	uint32_t w;
 
-	INFO("DDR addr bus begin, start %08lx, size 0x%08zx, cache %d\n",
+	INFO("DDR addr bus test begin, start %08lx, size 0x%08zx, cache %d\n",
 	     ddr_base_addr, ddr_size, cache);
 
 	if (cache)
@@ -74,8 +84,13 @@ uintptr_t ddr_test_addr_bus(uintptr_t ddr_base_addr, size_t ddr_size, bool cache
 	/* Check for address bits stuck high. */
 	mmio_write_32(ddr_base_addr + testoffset, DDR_PATTERN2);
 
+	/* Barrier */
+	dsbsy();
+
 	for (offset = sizeof(uint32_t); offset < ddr_size; offset <<= 1U) {
-		if (mmio_read_32(ddr_base_addr + offset) != DDR_PATTERN1) {
+		w = mmio_read_32(ddr_base_addr + offset);
+		if (w != DDR_PATTERN1) {
+			ERROR("DDR BUS: RD(%08zx): %08x != %08x\n", offset, w, DDR_PATTERN1);
 			return (ddr_base_addr + offset);
 		}
 	}
@@ -86,13 +101,19 @@ uintptr_t ddr_test_addr_bus(uintptr_t ddr_base_addr, size_t ddr_size, bool cache
 	for (testoffset = sizeof(uint32_t); testoffset < ddr_size; testoffset <<= 1U) {
 		mmio_write_32(ddr_base_addr + testoffset, DDR_PATTERN2);
 
-		if (mmio_read_32(ddr_base_addr) != DDR_PATTERN1) {
+		/* Barrier */
+		dsbsy();
+
+		w = mmio_read_32(ddr_base_addr);
+		if (w != DDR_PATTERN1) {
+			ERROR("DDR BUS: RD(%08x): %08x != %08x\n", 0, w, DDR_PATTERN1);
 			return ddr_base_addr;
 		}
 
 		for (offset = sizeof(uint32_t); offset < ddr_size; offset <<= 1U) {
-			if ((mmio_read_32(ddr_base_addr + offset) != DDR_PATTERN1) &&
-			    (offset != testoffset)) {
+			w = mmio_read_32(ddr_base_addr  + offset);
+			if ((w != DDR_PATTERN1) && (offset != testoffset)) {
+				ERROR("DDR BUS: RD(%08zx): %08x != %08x\n", offset, w, DDR_PATTERN1);
 				return (ddr_base_addr + offset);
 			}
 		}
@@ -103,7 +124,7 @@ uintptr_t ddr_test_addr_bus(uintptr_t ddr_base_addr, size_t ddr_size, bool cache
 	if (cache)
 		clean_dcache_range(ddr_base_addr, ddr_size);
 
-	INFO("DDR addr bus end\n");
+	INFO("DDR addr bus test end\n");
 
 	return 0;
 }
