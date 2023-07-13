@@ -827,7 +827,16 @@ static int pcie_ep_ctrl_init(const struct pcie_ep_config *cfg)
 	NOTICE("pcie: Enable controller - wait for link up\n");
 	pcie_ep_ctrl_ena_cfg(cfg);
 
-	/* Setup PCIe controller */
+	/* Setup PCIe controller - compliance test settings */
+	mmio_clrsetbits_32(PCIE_DBI_DEVICE_CAPABILITIES_REG(pcie_dbi),
+			   PCIE_DBI_DEVICE_CAPABILITIES_REG_PCIE_CAP_FLR_CAP_M,
+			   PCIE_DBI_DEVICE_CAPABILITIES_REG_PCIE_CAP_FLR_CAP(1));
+	mmio_clrsetbits_32(PCIE_DBI_DEVICE_CAPABILITIES2_REG(pcie_dbi),
+			   PCIE_DBI_DEVICE_CAPABILITIES2_REG_PCIE_CAP2_10_BIT_TAG_COMP_SUPPORT_M,
+			   PCIE_DBI_DEVICE_CAPABILITIES2_REG_PCIE_CAP2_10_BIT_TAG_COMP_SUPPORT(1));
+	mmio_clrsetbits_32(PCIE_DBI_LINK_CAPABILITIES_REG(pcie_dbi),
+			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_L0S_EXIT_LATENCY_M,
+			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_L0S_EXIT_LATENCY(7));
 
 	INFO("pcie: Configure DT values\n");
 	if (cfg->max_link_speed) {
