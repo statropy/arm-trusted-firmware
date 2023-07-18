@@ -19,6 +19,12 @@
 #define TIME_MS_TO_US(ms)	(ms * 1000U)
 #define PHY_TIMEOUT_US_1S	TIME_MS_TO_US(1000U)
 
+#define DDR_FAILURE(...) do { \
+	snprintf(ddr_failure_details, sizeof(ddr_failure_details), __VA_ARGS__); \
+	ERROR("%s\n", ddr_failure_details);				\
+	} while (0)
+char ddr_failure_details[132];
+
 static const struct {
 	uint32_t mask;
 	const char *desc;
@@ -198,13 +204,15 @@ static int ecc_enable_scrubbing(void)
 
 	/* 7. Poll SBRSTAT.scrub_done */
 	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 1000000)) {
-		ERROR("Timeout SBRSTAT.scrub_done set\n");
+		DDR_FAILURE("Timeout: SBRSTAT.done not set: 0x%0x\n",
+			    mmio_read_32(DDR_UMCTL2_SBRSTAT));
 		return -ETIMEDOUT;
 	}
 
 	/* 8. Poll SBRSTAT.scrub_busy */
 	if (wait_reg_clr(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_BUSY, 50)) {
-		ERROR("Timeout SBRSTAT.scrub_busy clear\n");
+		DDR_FAILURE("Timeout: SBRSTAT.busy not clear: 0x%0x\n",
+			    mmio_read_32(DDR_UMCTL2_SBRSTAT));
 		return -ETIMEDOUT;
 	}
 
@@ -239,7 +247,7 @@ static int wait_phy_idone(int tmo)
 		if (pgsr & PGSR_ERR_MASK) {
 			for (i = 0; i < ARRAY_SIZE(phyerr); i++) {
 				if (pgsr & phyerr[i].mask) {
-					NOTICE("PHYERR: %s Error\n", phyerr[i].desc);
+					DDR_FAILURE("PHYERR: %s Error", phyerr[i].desc);
 					return -EIO;
 				}
 			}
@@ -249,8 +257,8 @@ static int wait_phy_idone(int tmo)
 			return 0;
 
 	} while(!timeout_elapsed(t));
-	PANIC("PHY IDONE timeout\n");
 
+	DDR_FAILURE("PHY IDONE timeout");
 	return -ETIMEDOUT;
 }
 
@@ -363,7 +371,8 @@ static int do_data_training(const struct ddr_config *cfg)
 
 	w = mmio_read_32(DDR_PHY_PGSR0);
 	if ((w & PGSR_ALL_DONE) != PGSR_ALL_DONE) {
-		PANIC("data training error: pgsr0: got %08x, want %08x\n", w, PGSR_ALL_DONE);
+		DDR_FAILURE("data training error: pgsr0: got %08x, want %08x\n", w, PGSR_ALL_DONE);
+		return -EIO;
 	}
 
 	ddr_restore_refresh(cfg->main.rfshctl3, cfg->main.pwrctl);
@@ -397,6 +406,8 @@ int ddr_init(const struct ddr_config *cfg)
 {
 	int ret;
 
+	DDR_FAILURE("No error");
+
 	VERBOSE("ddr_init:start\n");
 
 	NOTICE("DDR: %s, %d MHz, %dMiB\n", cfg->info.name,
@@ -407,6 +418,10 @@ int ddr_init(const struct ddr_config *cfg)
 	ret = ddr_reset(cfg, true);
 	if (ret)
 		return ret;
+
+	/* Set up platform specific registers */
+	mmio_write_32(DDR_UMCTL2_SARBASE0, LAN966X_DDR_BASE >> 29);
+	mmio_write_32(DDR_UMCTL2_SARSIZE0, 3); /* n+1 512M blocks = 2G (max) */
 
 	/* Set up controller registers */
 	set_regs(cfg, &cfg->main, ddr_main_reg, ARRAY_SIZE(ddr_main_reg));

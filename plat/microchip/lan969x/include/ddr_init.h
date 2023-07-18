@@ -13,6 +13,8 @@
 
 #include <ddr_config.h>
 
+extern char ddr_failure_details[];
+
 int ddr_reset(const struct ddr_config *cfg , bool assert) __attribute__ ((warn_unused_result));
 
 int ddr_init(const struct ddr_config *cfg) __attribute__ ((warn_unused_result));

@@ -571,7 +571,7 @@ static void handle_ddr_cfg_set(bootstrap_req_t *req)
 			if (ddr_was_initialized)
 				bootstrap_Tx(BOOTSTRAP_ACK, req->arg0, 0, NULL);
 			else
-				bootstrap_TxNack("DDR initialization failed");
+				bootstrap_TxNack(ddr_failure_details);
 		} else
 			bootstrap_TxNack("DDR config rx data failed");
 	} else

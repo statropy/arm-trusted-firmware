@@ -1026,12 +1026,20 @@ function getDDRFromForm(template)
 	const grpMap = new Map();
 	for (let regname of keys) {
 	    let inp = document.getElementById(regname);
-	    let value = null;
 	    if (inp) {
-		if (regname === "version")
-		    value = inp.value;
-		else
-		    value = parseInt(inp.value);
+		let value = inp.value;
+		if (regname !== "version") {
+		    if (value.length == 0)
+			throw(grpname + "." + regname + ": Should not be empty");
+		    if (grpname == "info" && !value.match(/^[0-9]+$/))
+			throw(grpname + "." + regname + ": Should be valid decimal value");
+		    if (grpname != "info" && !value.match(/^0x[0-9a-f]+$/i))
+			throw(grpname + "." + regname + ": Should be valid hexadecimal value");
+		    if (value.match(/^0x/i))
+			value = parseInt(value.substr(2, value.length), 16);
+		    else
+			value = parseInt(value);
+		}
 		grpMap.set(regname, value);
 	    } else {
 		throw("Unable to find: " + grpname + "." + regname);
