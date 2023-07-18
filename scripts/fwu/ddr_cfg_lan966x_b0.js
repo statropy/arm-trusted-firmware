@@ -2097,4 +2097,12 @@ const ddr_diag_regs_lan966x = new Map([
  ["dx1lcdlr0", 0xe0084220],
  ["dx1lcdlr1", 0xe0084224],
  ["dx1lcdlr2", 0xe0084228],
+ ["zq0cr0", 0xe0084180],
+ ["zq0cr1", 0xe0084184],
+ ["zq0sr0", 0xe0084188],
+ ["zq0sr1", 0xe008418c],
+ ["zq1cr0", 0xe0084190],
+ ["zq1cr1", 0xe0084194],
+ ["zq1sr0", 0xe0084198],
+ ["zq1sr1", 0xe008419c],
 ]);
