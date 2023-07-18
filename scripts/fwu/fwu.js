@@ -22,6 +22,7 @@ const CMD_BL2U_DDR_CFG_SET = 'C';
 const CMD_BL2U_DDR_CFG_GET = 'c';
 const CMD_BL2U_DDR_TEST = 'T';
 const CMD_BL2U_DATA_HASH = 'H';
+const CMD_BL2U_REG_READ = 'x';
 
 let cur_stage = "connect";	// Initial "tab"
 let tracing = false;
@@ -65,6 +66,7 @@ const platforms = {
 	"bl1_binary":	false,
 	"bl2u":		lan966x_b0_app,
 	"ddr_cfg":	ddr_cfg_lan966x,
+	"ddr_diag":	ddr_diag_regs_lan966x,
 	"ddr_regs":	ddr_regs_lan966x,
     },
     "19660445": {		// LAN966X B0 BL2U responds with chipid
@@ -72,6 +74,7 @@ const platforms = {
 	"bl1_binary":	false,
 	"bl2u":		lan966x_b0_app,
 	"ddr_cfg":	ddr_cfg_lan966x,
+	"ddr_diag":	ddr_diag_regs_lan966x,
 	"ddr_regs":	ddr_regs_lan966x,
     },
     "0969a445": {
@@ -79,6 +82,7 @@ const platforms = {
 	"bl1_binary":	true,
 	"bl2u":		lan969x_a0_app,
 	"ddr_cfg":	ddr_cfg_lan969x,
+	"ddr_diag":	ddr_diag_regs_lan969x,
 	"ddr_regs":	ddr_regs_lan969x,
     },
 };
@@ -926,6 +930,70 @@ function convertToBinary(cfg)
     }).join("");
 }
 
+function makeRegReq(diag)
+{
+    let buf = new Array();
+
+    for (let [reg, addr] of diag) {
+	let value = ntohl_val(addr);
+	buf = buf.concat(value);
+    }
+
+    return buf.map(function (ch) {
+        return String.fromCharCode(ch);
+    }).join("");
+}
+
+function wrapTable(m)
+{
+    const elm = document.createElement("table");
+    elm.classList.add("ddr-reg-data");
+    for (let [reg, value] of m) {
+	const tr = document.createElement("tr");
+	appendTds(tr, "td", [reg, value]);
+	elm.appendChild(tr);
+    }
+    return elm;
+}
+
+function showRegData(diag, data)
+{
+    let off = 0;
+    const diagnode = document.getElementById("ddr_reg_diagnostics");
+
+    // Remove old content
+    while (diagnode.lastElementChild)
+	diagnode.lastElementChild.remove();
+
+    let m  = new Map();
+    for (let [reg, addr] of diag) {
+	let value = extractUint32(data, off);
+	m.set(reg, "0x" + value.toString(16).padStart(8, "0"));
+	off += 4;
+    }
+
+    const l0 = new Map([...m].filter(([k, v]) => k.match(/^dx0/i)));
+    const l1 = new Map([...m].filter(([k, v]) => k.match(/^dx1/i)));
+    const o = new Map([...m].filter(([k, v]) => !k.match(/^dx[01]/i)));
+
+    const div = document.createElement("div"),
+	  div_l0 = document.createElement("div"),
+	  div_l1 = document.createElement("div"),
+	  div_o = document.createElement("div");
+
+    div.classList.add("horizontal_div");
+
+    div_l0.appendChild(wrapTable(l0));
+    div_l1.appendChild(wrapTable(l1));
+    div_o.appendChild(wrapTable(o));
+
+    div.appendChild(div_l0);
+    div.appendChild(div_l1);
+    div.appendChild(div_o);
+
+    diagnode.appendChild(div);
+}
+
 function populateCfg(template)
 {
     const helpdiv = document.getElementById("bl2u_ddr_reghelp");
@@ -1200,7 +1268,6 @@ function startSerial()
 	    setStatus("DDR load from device start");
 	    var rspStruct = await completeRequest(port, fmtReq(CMD_BL2U_DDR_CFG_GET, 0));
 	    addTrace("DDR configuration data: " + rspStruct["data"].length + " bytes");
-	    logHexData(rspStruct["data"]);
 	    let cfg = convertFromBinary(rspStruct["data"], plf["ddr_cfg"]);
 	    setStatus("DDR config read: " + cfg.get("info").get("version"));
 	    populateCfg(cfg);
@@ -1241,6 +1308,22 @@ function startSerial()
 	    setStatus("DDR test error: " + e);
 	} finally {
 	    setActive(false);
+	    restoreButtons(s);
+	}
+    });
+
+    document.getElementById('bl2u_ddr_read_regs').addEventListener('click', async () => {
+	let s = disableButtons("bl2u_ddr", true);
+	try {
+	    setStatus("Reading DDR debug registers");
+	    let diag = plf["ddr_diag"];
+	    let data = makeRegReq(diag);
+	    var rspStruct = await completeRequest(port, fmtReq(CMD_BL2U_REG_READ, 0, data));
+	    showRegData(diag, rspStruct["data"]);
+	    setStatus("DDR debug data collected");
+	} catch(e) {
+	    setStatus("DDR register read error: " + e);
+	} finally {
 	    restoreButtons(s);
 	}
     });

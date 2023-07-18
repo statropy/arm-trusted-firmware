@@ -665,6 +665,32 @@ static void handle_data_hash(bootstrap_req_t *req)
 	bootstrap_TxAckData_arg(data_sig.b, sizeof(data_sig.b), data_rcv_length);
 }
 
+#define MAX_REG_READ	128	/* Arbitrary */
+static void handle_read_reg(bootstrap_req_t *req)
+{
+	static uint32_t regbuf[MAX_REG_READ];
+	uint32_t i, nreg;
+
+	if (req->len > (MAX_REG_READ * sizeof(uint32_t))) {
+		bootstrap_TxNack("Max register count/request exceeded");
+		return;
+	}
+
+	if (!bootstrap_RxDataCrc(req, (uint8_t *)regbuf)) {
+		bootstrap_TxNack("Read reg rx data failed");
+		return;
+	}
+
+	/* Do the reads, return value per offset */
+	nreg = req->len / sizeof(uint32_t);
+	for (i = 0; i < nreg; i++) {
+		regbuf[i] = mmio_read_32(regbuf[i]);
+	}
+
+	/* Return hash, length */
+	bootstrap_TxAckData_arg(regbuf, req->len, req->arg0);
+}
+
 void lan966x_bl2u_bootstrap_monitor(void)
 {
 	bool exit_monitor = false;
@@ -710,6 +736,8 @@ void lan966x_bl2u_bootstrap_monitor(void)
 			handle_ddr_test(&req);
 		else if (is_cmd(&req, BOOTSTRAP_DATA_HASH))	// H - Get data hash
 			handle_data_hash(&req);
+		else if (is_cmd(&req, BOOTSTRAP_READ_REG))	// x - Read registers
+			handle_read_reg(&req);
 		else
 			bootstrap_TxNack("Unknown command");
 	}

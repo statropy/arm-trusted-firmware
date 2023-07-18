@@ -65,6 +65,25 @@
 	.ddr_reghelp th {
 	    text-align: left;
 	}
+	div.ddr-reg-data {
+	    overflow: auto;
+	    height: 11.5rem;
+	    width: 90%;
+	}
+	table.ddr-reg-data {
+	    border-spacing; 0px;
+	}
+	table.ddr-reg-data > tr > td {
+	    padding: 0px 5px 0px 5px;
+	    font-family: monospace;
+	    font-size: 14px;
+	}
+	.horizontal_div {
+	    display: flex;
+	    flex-direction: row;
+	    justify-content: left;
+	    align-items: start;
+	}
   </style>
   <link rel="stylesheet" href="tabs.css">
   <link rel="stylesheet" href="progress.css">
@@ -395,6 +414,15 @@
 	  <br>
 	  <button type="button" id="bl2u_ddr_test">Run DDR tests</button>
 	  Cache: <input type="checkbox" id="enable_cache">
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="css-tabs" id="tab-3" class="tab-switch">
+	<label for="tab-3" class="tab-label">Diagnostics</label>
+	<div class="tab-content">
+	  <button type="button" id="bl2u_ddr_read_regs" style="position: absolute; top: 3px; right: 3px;">Refresh</button>
+	  <div id="ddr_reg_diagnostics" class="ddr-reg-data">
+	  </div>
 	</div>
       </div>
     </div>

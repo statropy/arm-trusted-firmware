@@ -45,6 +45,8 @@
 #define BOOTSTRAP_DDR_TEST     'T'
 // Get download data info (BL2U)
 #define BOOTSTRAP_DATA_HASH    'H'
+// Read register(s) (BL2U)
+#define BOOTSTRAP_READ_REG     'x'
 // ACK
 #define BOOTSTRAP_ACK          'a'
 // NACK

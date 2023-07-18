@@ -2083,3 +2083,18 @@ const ddr_regs_lan966x = new Map([
   }],
   ])} ],
 ]);
+
+const ddr_diag_regs_lan966x = new Map([
+ ["dx0gsr0", 0xe00841c4],
+ ["dx0gsr1", 0xe00841c8],
+ ["dx0gsr2", 0xe00841f4],
+ ["dx1gsr0", 0xe0084204],
+ ["dx1gsr1", 0xe0084208],
+ ["dx1gsr2", 0xe0084234],
+ ["dx0lcdlr0", 0xe00841e0],
+ ["dx0lcdlr1", 0xe00841e4],
+ ["dx0lcdlr2", 0xe00841e8],
+ ["dx1lcdlr0", 0xe0084220],
+ ["dx1lcdlr1", 0xe0084224],
+ ["dx1lcdlr2", 0xe0084228],
+]);
