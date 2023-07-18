@@ -10,7 +10,7 @@
 
 #include "lan969x_regs.h"
 
-#define DDR_CLK_OPTIONS	4
+#define DDR_CLK_OPTIONS	5
 
 static const pll_cfg_t pll_settings[2][DDR_CLK_OPTIONS] = {
 	{
@@ -19,12 +19,14 @@ static const pll_cfg_t pll_settings[2][DDR_CLK_OPTIONS] = {
 		{1866, 64,  5200937, 7, 3}, /* Actual 466,5 = ddr_speed/4 */
 		{2133, 62, 16609444, 6, 3}, /* Actual 533,25 = ddr_speed/4 */
 		{2400, 71,        0, 6, 3}, /* Actual 600 = ddr_speed/4 */
+		{2666, 65, 10905190, 5, 3}, /* Actual 666,50 = ddr_speed/4 */
 	}, {
 		/* 39 MHz reference clock */
 		{1600, 79, 10737418, 9, 6}, /* Actual 400 = ddr_speed/4 */
 		{1866, 72,  2469606, 7, 6}, /* Actual 466,5 = ddr_speed/4 */
 		{2133, 70, 11220602, 6, 6}, /* Actual 533,25 = ddr_speed/4 */
 		{2400, 79, 10737418, 6, 6}, /* Actual 600 = ddr_speed/4 */
+		{2666, 73, 10871636, 5, 6}, /* Actual 666,50 = ddr_speed/4 */
 	}
 };
 
