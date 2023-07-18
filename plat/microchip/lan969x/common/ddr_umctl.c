@@ -578,7 +578,7 @@ int ddr_init(const struct ddr_config *cfg)
 {
 	int ret;
 
-	DDR_FAILURE("No error");
+	strlcpy(ddr_failure_details, "No error", sizeof(ddr_failure_details));
 
 	VERBOSE("ddr_init:start\n");
 
@@ -619,6 +619,8 @@ int ddr_init(const struct ddr_config *cfg)
 	/* Static PHY settings */
 	set_static_phy(cfg);
 
+	NOTICE("PHY_DSGCR(before): %08x\n", mmio_read_32(DDR_PHY_DSGCR));
+
 	/* PHY FIFO reset - as recommended in PUB databook */
 	phy_fifo_reset();
 
@@ -656,6 +658,7 @@ int ddr_init(const struct ddr_config *cfg)
 		}
 	}
 
+	NOTICE("PHY_DSGCR(after): %08x\n", mmio_read_32(DDR_PHY_DSGCR));
 	VERBOSE("ddr_init:done\n");
 
 	return 0;

@@ -406,7 +406,7 @@ int ddr_init(const struct ddr_config *cfg)
 {
 	int ret;
 
-	DDR_FAILURE("No error");
+	strlcpy(ddr_failure_details, "No error", sizeof(ddr_failure_details));
 
 	VERBOSE("ddr_init:start\n");
 
