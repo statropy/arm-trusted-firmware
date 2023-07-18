@@ -5,8 +5,8 @@
  */
 
 &ddr {
-	microchip,mem-name = "lan969x_evb_ddr4 2023-07-11-15:48:30 168381bc2e53";
-	microchip,mem-speed = <1866>;
+	microchip,mem-name = "lan969x_evb_ddr4 2023-07-18-15:26:07 290d67b12fbf";
+	microchip,mem-speed = <2400>;
 	microchip,mem-size = <0x38000000>;
 	microchip,mem-bus-width = <16>;
 
@@ -14,18 +14,18 @@
 		0x00001091	/* crcparctl1 */
 		0x00000001	/* dbictl */
 		0x00000040	/* dfimisc */
-		0x038d820c	/* dfitmg0 */
+		0x0391820f	/* dfitmg0 */
 		0x00040201	/* dfitmg1 */
 		0x40400003	/* dfiupd0 */
 		0x004000ff	/* dfiupd1 */
 		0x003f7f44	/* ecccfg0 */
-		0x000201c8	/* init0 */
-		0x00b60000	/* init1 */
-		0x0a200501	/* init3 */
-		0x10080200	/* init4 */
+		0x00020248	/* init0 */
+		0x00e80000	/* init1 */
+		0x0c340501	/* init3 */
+		0x10180200	/* init4 */
 		0x00110000	/* init5 */
-		0x00000401	/* init6 */
-		0x00000419	/* init7 */
+		0x00000402	/* init6 */
+		0x00000c19	/* init7 */
 		0x81040010	/* mstr */
 		0x00000000	/* pccfg */
 		0x00000000	/* pwrctl */
@@ -34,17 +34,17 @@
 	>;
 
 	microchip,timing-reg = <
-		0x140f1010	/* dramtmg0 */
-		0x00050417	/* dramtmg1 */
+		0x17131413	/* dramtmg0 */
+		0x0007051b	/* dramtmg1 */
 		0x1a000010	/* dramtmg12 */
-		0x0709050f	/* dramtmg2 */
+		0x090b0512	/* dramtmg2 */
 		0x0000400c	/* dramtmg3 */
-		0x07030307	/* dramtmg4 */
-		0x05050303	/* dramtmg5 */
-		0x04030a06	/* dramtmg8 */
-		0x0003030d	/* dramtmg9 */
-		0x0700060c	/* odtcfg */
-		0x003800a4	/* rfshtmg */
+		0x08040409	/* dramtmg4 */
+		0x07070404	/* dramtmg5 */
+		0x05040c07	/* dramtmg8 */
+		0x0003040d	/* dramtmg9 */
+		0x07000610	/* odtcfg */
+		0x004900d3	/* rfshtmg */
 	>;
 
 	microchip,mapping-reg = <
@@ -65,26 +65,26 @@
 		0x8000b0cf	/* dtcr0 */
 		0x00010a37	/* dtcr1 */
 		0x00c01884	/* dxccr */
-		0x00000caa	/* pgcr2 */
+		0x000010ba	/* pgcr2 */
 		0x00000000	/* schcr1 */
 		0x0007bb00	/* zq0pr */
-		0x0007bb00	/* zq1pr */
-		0x00000000	/* zq2pr */
-		0x00058e00	/* zqcr */
+		0x90077700	/* zq1pr */
+		0x90007700	/* zq2pr */
+		0x00058f00	/* zqcr */
 	>;
 
 	microchip,phy_timing-reg = <
-		0x06200c08	/* dtpr0 */
-		0x281d0018	/* dtpr1 */
-		0x00050151	/* dtpr2 */
-		0x02550101	/* dtpr3 */
-		0x01470806	/* dtpr4 */
-		0x002e0d07	/* dtpr5 */
-		0x3a81d390	/* ptr0 */
-		0x5b44906e	/* ptr1 */
+		0x0827100a	/* dtpr0 */
+		0x28250018	/* dtpr1 */
+		0x000701b1	/* dtpr2 */
+		0x03000101	/* dtpr3 */
+		0x01a50808	/* dtpr4 */
+		0x00361009	/* dtpr5 */
+		0x4ae25710	/* ptr0 */
+		0x74f4950e	/* ptr1 */
 		0x00083def	/* ptr2 */
-		0x15172000	/* ptr3 */
-		0x1002d800	/* ptr4 */
+		0x1b192000	/* ptr3 */
+		0x1003a000	/* ptr4 */
 	>;
 
 };
