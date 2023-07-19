@@ -5,7 +5,7 @@
  */
 
 &ddr {
-	microchip,mem-name = "lan969x_evb_ddr4 2023-07-18-15:26:07 290d67b12fbf";
+	microchip,mem-name = "lan969x_evb_ddr4 2023-07-19-14:24:18 193b2e888363";
 	microchip,mem-speed = <2400>;
 	microchip,mem-size = <0x38000000>;
 	microchip,mem-bus-width = <16>;
@@ -21,7 +21,7 @@
 		0x003f7f44	/* ecccfg0 */
 		0x00020248	/* init0 */
 		0x00e80000	/* init1 */
-		0x0c340501	/* init3 */
+		0x0c340101	/* init3 */
 		0x10180200	/* init4 */
 		0x00110000	/* init5 */
 		0x00000402	/* init6 */
@@ -67,9 +67,9 @@
 		0x00c01884	/* dxccr */
 		0x000010ba	/* pgcr2 */
 		0x00000000	/* schcr1 */
-		0x0007bb00	/* zq0pr */
-		0x90077700	/* zq1pr */
-		0x90007700	/* zq2pr */
+		0x00079900	/* zq0pr */
+		0x10077900	/* zq1pr */
+		0x00000000	/* zq2pr */
 		0x00058f00	/* zqcr */
 	>;
 

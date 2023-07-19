@@ -8,7 +8,7 @@
 
 const struct ddr_config lan969x_evb_ddr4_ddr_config = {
 	.info = {
-		.name = "lan969x_evb_ddr4 2023-07-18-15:26:02 290d67b12fbf",
+		.name = "lan969x_evb_ddr4 2023-07-19-14:24:18 193b2e888363",
 		.speed = 2400,
 		.size = 0x38000000,
 		.bus_width = 16,
@@ -24,7 +24,7 @@ const struct ddr_config lan969x_evb_ddr4_ddr_config = {
 		.ecccfg0 = 0x003f7f44,
 		.init0 = 0x00020248,
 		.init1 = 0x00e80000,
-		.init3 = 0x0c340501,
+		.init3 = 0x0c340101,
 		.init4 = 0x10180200,
 		.init5 = 0x00110000,
 		.init6 = 0x00000402,
@@ -70,9 +70,9 @@ const struct ddr_config lan969x_evb_ddr4_ddr_config = {
 		.dxccr = 0x00c01884,
 		.pgcr2 = 0x000010ba,
 		.schcr1 = 0x00000000,
-		.zq0pr = 0x0007bb00,
-		.zq1pr = 0x90077700,
-		.zq2pr = 0x90007700,
+		.zq0pr = 0x00079900,
+		.zq1pr = 0x10077900,
+		.zq2pr = 0x00000000,
 		.zqcr = 0x00058f00,
 	},
 
