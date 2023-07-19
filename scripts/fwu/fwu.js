@@ -60,6 +60,9 @@ const otp_fields = [
     {"name": 'TBBR_TNVCT',		"offset": 544, "size": 32, },
 ]
 
+const lan966x_speeds = [1200];
+const lan969x_speeds = [1600, 1866, 2133, 2400, 2666];
+
 const platforms = {
     "00000000": {		//  LAN966X B0 BL1 responds *without* chipid
 	"name":		"LAN966X B0",
@@ -68,6 +71,7 @@ const platforms = {
 	"ddr_cfg":	ddr_cfg_lan966x,
 	"ddr_diag":	ddr_diag_regs_lan966x,
 	"ddr_regs":	ddr_regs_lan966x,
+	"ddr_speed":	lan966x_speeds,
     },
     "19660445": {		// LAN966X B0 BL2U responds with chipid
 	"name":		"LAN966X B0",
@@ -76,6 +80,7 @@ const platforms = {
 	"ddr_cfg":	ddr_cfg_lan966x,
 	"ddr_diag":	ddr_diag_regs_lan966x,
 	"ddr_regs":	ddr_regs_lan966x,
+	"ddr_speed":	lan966x_speeds,
     },
     "0969a445": {
 	"name":		"LAN969X A0",
@@ -84,6 +89,7 @@ const platforms = {
 	"ddr_cfg":	ddr_cfg_lan969x,
 	"ddr_diag":	ddr_diag_regs_lan969x,
 	"ddr_regs":	ddr_regs_lan969x,
+	"ddr_speed":	lan969x_speeds,
     },
 };
 
@@ -788,7 +794,33 @@ function ddrUIsetup(name, prefix, plf)
 		} else {
 		    ri.classList.add("input_normal");
 		}
+		// Must have all fields
+		ri.setAttribute("required", "required");
+		if (grpname == "info") {
+		    // Special case: speed
+		    if (regname == "speed") {
+			const speeds = plf["ddr_speed"];
+			if (speeds.length == 1) {
+			    ri.setAttribute("readonly", "readonly");
+			    ri.value = speeds[0];
+			} else {
+			    ri.setAttribute("pattern", speeds.join('|'));
+			}
+		    }
+		    // Special case: bus_width
+		    if (regname == "bus_width") {
+			ri.setAttribute("pattern", "8|16");
+		    }
+		} else {
+		    ri.setAttribute("pattern", "0x[0-9a-fA-F]{1,8}");
+		}
 		tdi.appendChild(ri);
+		if (grpname == "info") {
+		    const p = ri.getAttribute("pattern");
+		    if (p) {
+			tdi.appendChild(document.createTextNode(" Valid values: " + p));
+		    }
+		}
 		tr.appendChild(tdi);
 	    }
 	    newTab.appendChild(tr);
@@ -1028,6 +1060,8 @@ function getDDRFromForm(template)
 	    let inp = document.getElementById(regname);
 	    if (inp) {
 		let value = inp.value;
+		if (!inp.validity.valid)
+		    throw(grpname + "." + regname + ": Invalid value " + "\"" + value + "\"");
 		if (regname !== "version") {
 		    if (value.length == 0)
 			throw(grpname + "." + regname + ": Should not be empty");
