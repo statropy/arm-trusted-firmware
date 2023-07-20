@@ -717,6 +717,18 @@ function createRegHelp(regname, reg)
     return div;
 }
 
+function generateDatalist(id, choices)
+{
+    const d = document.createElement("datalist");
+    d.setAttribute("id", id);
+    choices.forEach((opt) => {
+	const o = document.createElement("option");
+	o.setAttribute("value", opt);
+	d.appendChild(o);
+    });
+    return d;
+}
+
 function ddrUIsetup(name, prefix, plf)
 {
     const topdiv = document.getElementById(name);
@@ -787,6 +799,7 @@ function ddrUIsetup(name, prefix, plf)
 		const tdi = document.createElement("td");
 		tdi.classList.add("reg_input_col");
 		const ri = document.createElement("input");
+		let choices = [];
 		ri.setAttribute("id", regname);
 		if (regname == "version") {
 		    ri.classList.add("input_wide");
@@ -804,22 +817,25 @@ function ddrUIsetup(name, prefix, plf)
 			    ri.setAttribute("readonly", "readonly");
 			    ri.value = speeds[0];
 			} else {
-			    ri.setAttribute("pattern", speeds.join('|'));
+			    choices = speeds;
 			}
 		    }
 		    // Special case: bus_width
 		    if (regname == "bus_width") {
-			ri.setAttribute("pattern", "8|16");
+			choices = [8, 16];
 		    }
 		} else {
 		    ri.setAttribute("pattern", "0x[0-9a-fA-F]{1,8}");
 		}
+		if (choices.length) {
+		    ri.setAttribute("pattern", choices.join('|'));
+		    const datalist = generateDatalist("list_" + regname, choices);
+		    tdi.appendChild(datalist);
+		    ri.setAttribute("list", datalist.getAttribute("id"));
+		}
 		tdi.appendChild(ri);
-		if (grpname == "info") {
-		    const p = ri.getAttribute("pattern");
-		    if (p) {
-			tdi.appendChild(document.createTextNode(" Valid values: " + p));
-		    }
+		if (choices.length) {
+		    tdi.appendChild(document.createTextNode(" Valid values: " + choices.join(', ')));
 		}
 		tr.appendChild(tdi);
 	    }
