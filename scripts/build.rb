@@ -132,7 +132,7 @@ OptionParser.new do |opts|
     opts.on("-l", "--linux-as-bl33", "Enable direct Linux booting") do
         $option[:linux_boot] = true
     end
-    opts.on("--bl33-blob <file>", "BL33 binary") do |p|
+    opts.on("--bl33_blob <file>", "BL33 binary") do |p|
         $option[:bl33_blob] = p
     end
     opts.on("-d", "--debug", "Enable DEBUG") do
