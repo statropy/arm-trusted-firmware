@@ -495,9 +495,11 @@ end
 # fwu fip post process
 fwu_fip = "#{build}/fwu_fip.bin"
 if File.exist?(fwu_fip)
-    jsf = "#{build}/fwu_app_#{$option[:platform]}.js"
+    # Until we have correct board detection for the SVB it will pose as an EVB (A0)
+    plat_app = $option[:platform] == 'lan969x_svb' ? 'lan969x_a0' : $option[:platform]
+    jsf = "#{build}/fwu_app_#{plat_app}.js"
     File.open(jsf, "w") { |f|
-        f.write("const #{$option[:platform]}_app = [\n");
+        f.write("const #{plat_app}_app = [\n");
         Base64.encode64(File.read(fwu_fip)).each_line { |l| l.chomp!; f.write("\t\"#{l}\",\n") }
         f.write("]\n");
     }

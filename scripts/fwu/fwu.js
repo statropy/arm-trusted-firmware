@@ -61,7 +61,7 @@ const otp_fields = [
 ]
 
 const lan966x_speeds = [1200];
-const lan969x_speeds = [1600, 1866, 2133, 2400, 2666];
+const lan969x_speeds = [1066, 1333, 1600, 1866, 2133, 2400, 2666];
 
 const platforms = {
     "00000000": {		//  LAN966X B0 BL1 responds *without* chipid
