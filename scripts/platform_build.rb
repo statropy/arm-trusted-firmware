@@ -79,7 +79,7 @@ build_platforms.each do |bp|
           ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
           ["build/#{bp}/#{bt}/nor.gpt.gz",   "#{dst}-nor.gpt.gz"],
           ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
-          ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"],
+          # ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"],
         ]
         if bv.match("bl2normal") && ba.match("auth")
           artifacts << ["build/#{bp}/#{bt}/fwu.html",      "fwu-#{bp}-#{bt}.html"]
