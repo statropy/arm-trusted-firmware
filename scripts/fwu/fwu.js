@@ -1543,6 +1543,7 @@ function startSerial()
         }
 
         var reader = new FileReader();
+	const fname = e.target.files[0].name;
         // Set OnLoad callback
         reader.onload = function(e) {
 	    // First, load raw file
@@ -1553,6 +1554,9 @@ function startSerial()
 		let cfg = convertYaml(loadedObj, plf["ddr_cfg"]);
 		// To form
 		populateCfg(cfg);
+		// Say we read the file
+		setStatus("File " + fname + " was read");
+		addTrace("Read DDR configuration: " + cfg.get("info").get("version"));
 	    } catch(e) {
 		setStatus("Invalid DDR configuration");
 		addTrace(e);
@@ -1562,6 +1566,9 @@ function startSerial()
 
         // Read file into memory as UTF-8
         reader.readAsText(e.target.files[0], "utf8");
+
+	// Reset value to allow re-trigger if loading same file again
+	e.target.value = '';
     });
 
     document.getElementById('ddr_config_write').addEventListener('click', async () => {
