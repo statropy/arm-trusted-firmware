@@ -9,7 +9,7 @@ build_types             = %I[debug release]
 build_authentifications = %I[auth ssk]
 build_variants          = %I[bl2normal bl33linux]
 
-build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp',
+build_variant_args      = { bl2normal: '',
                             bl33linux: '--linux-as-bl33' }
 build_auth_args         = { auth: '',
                             ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl31,bl32,bl33',

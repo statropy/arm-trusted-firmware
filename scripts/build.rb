@@ -126,9 +126,6 @@ OptionParser.new do |opts|
     opts.on("--ntfw-nvctr <counter>", "Set Non-trusted FW NV counter for FIP") do |c|
         $option[:nt_nvctr] = c
     end
-    opts.on("-x", "--variant X", "BL2 variant (noop)") do |v|
-        $option[:bl2variant] = v
-    end
     opts.on("-l", "--linux-as-bl33", "Enable direct Linux booting") do
         $option[:linux_boot] = true
     end
@@ -265,7 +262,6 @@ args += "PLAT=#{$option[:platform]} ARCH=#{$arch[:atf_arch]} "
 if $arch[:atf_arch] == "aarch32"
     args += " AARCH32_SP=sp_min "
 end
-args += "BL2_VARIANT=#{$option[:bl2variant].upcase} " if $option[:bl2variant]
 args += "BL32_EXTRA1=#{$option[:bl32extra1]} " if $option[:bl32extra1]
 args += "BL32_EXTRA2=#{$option[:bl32extra2]} " if $option[:bl32extra2]
 
@@ -491,22 +487,6 @@ if true
     do_cmd("gdisk -l #{gptfile}")
     do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
 end
-
-# fwu fip post process
-fwu_fip = "#{build}/fwu_fip.bin"
-if File.exist?(fwu_fip)
-    # Until we have correct board detection for the SVB it will pose as an EVB (A0)
-    plat_app = $option[:platform] == 'lan969x_svb' ? 'lan969x_a0' : $option[:platform]
-    jsf = "#{build}/fwu_app_#{plat_app}.js"
-    File.open(jsf, "w") { |f|
-        f.write("const #{plat_app}_app = [\n");
-        Base64.encode64(File.read(fwu_fip)).each_line { |l| l.chomp!; f.write("\t\"#{l}\",\n") }
-        f.write("]\n");
-    }
-end
-
-# Build FWU
-do_cmd("ruby ./scripts/html_inline.rb -i #{build} ./scripts/fwu/serial.html > #{build}/fwu.html")
 
 # DT's
 if File.exist? "#{build}/fdts/"
