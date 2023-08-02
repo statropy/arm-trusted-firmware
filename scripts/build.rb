@@ -78,6 +78,7 @@ $option = { :platform              => "lan966x_b0",
           }
 
 args = ""
+bl33 = ""
 
 OptionParser.new do |opts|
     opts.banner = "Usage: build.rb [options]"
@@ -125,9 +126,6 @@ OptionParser.new do |opts|
     end
     opts.on("--ntfw-nvctr <counter>", "Set Non-trusted FW NV counter for FIP") do |c|
         $option[:nt_nvctr] = c
-    end
-    opts.on("-l", "--linux-as-bl33", "Enable direct Linux booting") do
-        $option[:linux_boot] = true
     end
     opts.on("--bl33_blob <file>", "BL33 binary") do |p|
         $option[:bl33_blob] = p
@@ -222,6 +220,98 @@ def align_block(nblocks, align)
     return (nblocks.fdiv(align).ceil()) * align
 end
 
+def make_gpt(fip, gptfile, linux_boot)
+    # Get size of FIP
+    size = File.size?(fip)
+    # Convert size to sectors
+    fip_blocks = (size / 512.0).ceil();
+    # Align partitions to multiple of 2048
+    fip_blocks = (fip_blocks / 2048.0).ceil() * 2048;
+    # Reserve first 2048 blocks for partition table
+    main_partsize = 2048
+    # reserve last 64 blocks for backup partition table
+    back_partsize = 64
+    total_blocks = (fip_blocks * 2) + main_partsize + back_partsize
+    # Add env partition, 1MB
+    env_blocks = (1024 * 1024) / 512
+    total_blocks += env_blocks
+    if linux_boot
+        # 256M root
+        root_blocks = (256 * 1024 * 1024) / 512
+        total_blocks += root_blocks
+    else
+	# Add linux partition, 32MB
+	linux_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += linux_blocks
+	# Add linux bk partition, 32MB
+	linux_bk_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += linux_bk_blocks
+	# Add data partition, 32MB
+	data_blocks = (32 * 1024 * 1024) / 512
+	total_blocks += data_blocks
+    end
+    if $option[:gpt_data]
+        data_size = File.size?($option[:gpt_data])
+        # Convert size to sectors
+        data_blocks = (data_size / 512.0).ceil();
+        # Align partitions to multiple of 2048
+        data_blocks = (data_blocks / 2048.0).ceil() * 2048;
+        total_blocks += data_blocks
+    end
+    # Create partition file of appropriate size
+    do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=#{total_blocks}")
+    do_cmd("parted -s #{gptfile} mktable gpt")
+    # Add first main partition
+    p_start = main_partsize
+    p_end = p_start + fip_blocks -1
+    do_cmd("parted -s #{gptfile} mkpart fip #{p_start}s #{p_end}s")
+    # Inject data
+    do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+    # Add second backup partition
+    p_start += fip_blocks
+    p_end += fip_blocks
+    do_cmd("parted -s #{gptfile} mkpart fip.bak #{p_start}s #{p_end}s")
+    # Inject data
+    do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+    # Add U-Boot environment partition
+    p_start = p_end + 1
+    p_end += env_blocks
+    do_cmd("parted -s #{gptfile} mkpart Env #{p_start}s #{p_end}s")
+    # Add Linux partition
+    if linux_boot
+        # Add root partition
+        p_start = p_end + 1
+        p_end += root_blocks
+        do_cmd("parted -s #{gptfile} mkpart root #{p_start}s #{p_end}s")
+        # Inject data
+        root = $sdk_dir + $arch[:linux] + "rootfs.ext4"
+        do_cmd("dd status=none if=#{root} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+    else
+        # Add linux partiton
+        p_start = p_end + 1
+        p_end += linux_blocks
+        do_cmd("parted -s #{gptfile} mkpart Boot0 #{p_start}s #{p_end}s")
+        # Add linux backup partition
+        p_start = p_end + 1
+        p_end += linux_bk_blocks
+        do_cmd("parted -s #{gptfile} mkpart Boot1 #{p_start}s #{p_end}s")
+        # Add data partition
+        p_start = p_end + 1
+        p_end += data_blocks
+        do_cmd("parted -s #{gptfile} mkpart Data #{p_start}s #{p_end}s")
+    end
+    if $option[:gpt_data]
+        # Add data partition
+        p_start = p_end + 1
+        p_end = p_start + data_blocks - 1
+        do_cmd("parted -s #{gptfile} mkpart data #{p_start}s #{p_end}s")
+        # Inject data
+        do_cmd("dd status=none if=#{$option[:gpt_data]} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+    end
+    do_cmd("gdisk -l #{gptfile}")
+    do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
+end
+
 pdef = platforms[$option[:platform]]
 raise "Unknown platform: #{$option[:platform]}" unless pdef
 $arch = architectures[pdef[:arch]]
@@ -236,25 +326,20 @@ else
 end
 FileUtils.mkdir_p build
 
-sdk_dir = install_sdk()
-tc_conf = YAML::load( File.open( sdk_dir + "/.mscc-version" ) )
+$sdk_dir = install_sdk()
+tc_conf = YAML::load( File.open( $sdk_dir + "/.mscc-version" ) )
 install_toolchain(tc_conf["toolchain"])
 
 # Use SDK tools first in PATH
-ENV['PATH'] = "#{sdk_dir}/#{$arch[:linux]}/x86_64-linux/bin:" + ENV['PATH']
+ENV['PATH'] = "#{$sdk_dir}/#{$arch[:linux]}/x86_64-linux/bin:" + ENV['PATH']
 
 if $option[:bl33_blob]
-    args += "BL33=#{$option[:bl33_blob]} "
-elsif $option[:linux_boot]
-    kernel = sdk_dir + $arch[:linux] + "brsdk_standalone_#{pdef[:arch]}.itb"
-    args += "BL33=#{kernel} "
+    bl33 = $option[:bl33_blob]
 else
     if pdef[:uboot]
-        uboot = sdk_dir + "/" + pdef[:uboot]
-        args += "BL33=#{uboot} "
+        bl33 = $sdk_dir + "/" + pdef[:uboot]
     else
-        uboot = "bin/#{$option[:platform]}/u-boot.bin"
-        args += "BL33=#{uboot} "
+        bl33 = "bin/#{$option[:platform]}/u-boot.bin"
     end
 end
 
@@ -328,7 +413,8 @@ else
     end
 end
 
-cmd = "make #{args} #{targets}"
+# Normal build
+cmd = "make #{args} BL33=#{bl33} #{targets}"
 cmd = "cov-build --dir #{$cov_dir} #{cmd}" if $option[:coverity]
 puts cmd
 do_cmd cmd
@@ -343,6 +429,14 @@ if $option[:create_keys]
     exit 0
 end
 
+# Create Linux boot FIP
+if $arch[:linux]
+    kernel = $sdk_dir + $arch[:linux] + "brsdk_standalone_#{pdef[:arch]}.itb"
+    cmd = "make #{args} BL33=#{kernel} FIP_NAME=fip_linux.bin fip"
+    puts cmd
+    do_cmd cmd
+end
+
 lsargs = %w(bin gpt gz html)
 
 # produce GZIP FIP
@@ -350,8 +444,13 @@ fip = "#{build}/fip.bin"
 if File.exist?(fip)
     do_cmd("gzip -c #{fip} > #{fip}.gz")
 end
+# produce GZIP Linux FIP
+fip_linux = "#{build}/fip_linux.bin"
+if File.exist?(fip_linux)
+    do_cmd("gzip -c #{fip_linux} > #{fip_linux}.gz")
+end
 
-if !$option[:linux_boot] && pdef[:nor_gpt_size]
+if pdef[:nor_gpt_size]
     gptfile = "#{build}/nor.gpt"
     # Size of NOR
     size = pdef[:nor_gpt_size]
@@ -392,100 +491,10 @@ if !$option[:linux_boot] && pdef[:nor_gpt_size]
     do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
 end
 
-# MMC GPT file
-if true
-    gptfile = "#{build}/mmc.gpt"
-    begin
-        # Get size of FIP
-        size = File.size?(fip)
-        # Convert size to sectors
-        fip_blocks = (size / 512.0).ceil();
-        # Align partitions to multiple of 2048
-        fip_blocks = (fip_blocks / 2048.0).ceil() * 2048;
-        # Reserve first 2048 blocks for partition table
-        main_partsize = 2048
-        # reserve last 64 blocks for backup partition table
-        back_partsize = 64
-        total_blocks = (fip_blocks * 2) + main_partsize + back_partsize
-	# Add env partition, 1MB
-	env_blocks = (1024 * 1024) / 512
-	total_blocks += env_blocks
-        if $option[:linux_boot]
-            # 256M root
-            root_blocks = (256 * 1024 * 1024) / 512
-            total_blocks += root_blocks
-        else
-	    # Add linux partition, 32MB
-	    linux_blocks = (32 * 1024 * 1024) / 512
-	    total_blocks += linux_blocks
-	    # Add linux bk partition, 32MB
-	    linux_bk_blocks = (32 * 1024 * 1024) / 512
-	    total_blocks += linux_bk_blocks
-	    # Add data partition, 32MB
-	    data_blocks = (32 * 1024 * 1024) / 512
-	    total_blocks += data_blocks
-        end
-        if $option[:gpt_data]
-            data_size = File.size?($option[:gpt_data])
-            # Convert size to sectors
-            data_blocks = (data_size / 512.0).ceil();
-            # Align partitions to multiple of 2048
-            data_blocks = (data_blocks / 2048.0).ceil() * 2048;
-            total_blocks += data_blocks
-        end
-        # Create partition file of appropriate size
-        do_cmd("dd if=/dev/zero of=#{gptfile} bs=512 count=#{total_blocks}")
-        do_cmd("parted -s #{gptfile} mktable gpt")
-        # Add first main partition
-        p_start = main_partsize
-        p_end = p_start + fip_blocks -1
-        do_cmd("parted -s #{gptfile} mkpart fip #{p_start}s #{p_end}s")
-        # Inject data
-        do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
-        # Add second backup partition
-        p_start += fip_blocks
-        p_end += fip_blocks
-        do_cmd("parted -s #{gptfile} mkpart fip.bak #{p_start}s #{p_end}s")
-        # Inject data
-        do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
-        # Add U-Boot environment partition
-        p_start = p_end + 1
-        p_end += env_blocks
-        do_cmd("parted -s #{gptfile} mkpart Env #{p_start}s #{p_end}s")
-        # Add Linux partition
-        if $option[:linux_boot]
-            # Add root partition
-            p_start = p_end + 1
-            p_end += root_blocks
-            do_cmd("parted -s #{gptfile} mkpart root #{p_start}s #{p_end}s")
-            # Inject data
-            root = sdk_dir + $arch[:linux] + "rootfs.ext4"
-            do_cmd("dd status=none if=#{root} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
-        else
-            # Add linux partiton
-            p_start = p_end + 1
-            p_end += linux_blocks
-            do_cmd("parted -s #{gptfile} mkpart Boot0 #{p_start}s #{p_end}s")
-            # Add linux backup partition
-            p_start = p_end + 1
-            p_end += linux_bk_blocks
-            do_cmd("parted -s #{gptfile} mkpart Boot1 #{p_start}s #{p_end}s")
-            # Add data partition
-            p_start = p_end + 1
-            p_end += data_blocks
-            do_cmd("parted -s #{gptfile} mkpart Data #{p_start}s #{p_end}s")
-        end
-        if $option[:gpt_data]
-            # Add data partition
-            p_start = p_end + 1
-            p_end = p_start + data_blocks - 1
-            do_cmd("parted -s #{gptfile} mkpart data #{p_start}s #{p_end}s")
-            # Inject data
-            do_cmd("dd status=none if=#{$option[:gpt_data]} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
-        end
-    end
-    do_cmd("gdisk -l #{gptfile}")
-    do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
+# MMC GPT file - normal + linux
+make_gpt(fip, "#{build}/mmc.gpt", false)
+if File.exist?(fip_linux)
+    make_gpt(fip_linux, "#{build}/mmc-linux.gpt", true)
 end
 
 # DT's
