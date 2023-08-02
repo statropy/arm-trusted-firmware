@@ -67,6 +67,8 @@ build_platforms.each do |bp|
         ["build/#{bp}/#{bt}/fip.bin.gz",   "#{dst}.fip.gz"],
         ["build/#{bp}/#{bt}/mmc.gpt",      "#{dst}-mmc.gpt"],
         ["build/#{bp}/#{bt}/mmc.gpt.gz",   "#{dst}-mmc.gpt.gz"],
+        ["build/#{bp}/#{bt}/mmc-linux.gpt",    "#{dst}-mmc-linux.gpt"],
+        ["build/#{bp}/#{bt}/mmc-linux.gpt.gz", "#{dst}-mmc-linux.gpt.gz"],
         ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
         ["build/#{bp}/#{bt}/nor.gpt.gz",   "#{dst}-nor.gpt.gz"],
         ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
