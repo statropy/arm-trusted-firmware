@@ -19,7 +19,8 @@ OptionParser.new do |opts|
 end.order!
 
 File.open($option[:out], "w") { |f|
-    f.write("const #{$option[:platform]}_app = [\n");
+    f.write("const bl2u_platform = \"#{$option[:platform]}\";\n");
+    f.write("const bl2u_app = [\n");
     ARGV.each do |fwu_fip|
         Base64.encode64(File.read(fwu_fip)).each_line { |l| l.chomp!; f.write("\t\"#{l}\",\n") }
     end

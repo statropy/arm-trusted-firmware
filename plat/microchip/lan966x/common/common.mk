@@ -192,8 +192,8 @@ ${LAN966X_OTP_H}: scripts/otp.yaml
 	$(info Generating OTP headerfile)
 	$(Q)scripts/otpgen.rb  -y $< -g $@
 
-FWU_HTML := ${BUILD_PLAT}/fwu_app_${PLAT}.html
-FWU_JS   := ${BUILD_PLAT}/fwu_app_${PLAT}.js
+FWU_HTML := ${BUILD_PLAT}/fwu.html
+FWU_JS   := ${BUILD_PLAT}/fwu_app.js
 
 ${FWU_JS}: ${BUILD_PLAT}/${FWU_FIP_NAME}
 	./plat/microchip/scripts/mkjs.rb -p ${PLAT} -o ${FWU_JS} $<
