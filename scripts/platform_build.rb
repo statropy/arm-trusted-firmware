@@ -7,10 +7,6 @@ require 'pp'
 build_platforms         = %I[lan966x_b0 lan966x_lm lan969x_a0 lan969x_svb]
 build_types             = %I[debug release]
 build_authentifications = %I[auth ssk]
-build_variants          = %I[bl2normal bl33linux]
-
-build_variant_args      = { bl2normal: '', bl2noop: '--variant noop', bl2noop_otp: '--variant noop_otp',
-                            bl33linux: '--linux-as-bl33' }
 build_auth_args         = { auth: '',
                             ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl31,bl32,bl33',
                             bssk: '--encrypt-bssk keys/huk.bin --encrypt-images bl2,bl31,bl32,bl33' }
@@ -60,51 +56,53 @@ cleanup(true) if $option[:clean]
 pre_build
 build_platforms.each do |bp|
   build_types.each do |bt|
-    build_variants.each do |bv|
-      build_authentifications.each do |ba|
-        dst = "#{bp}-#{bt}"
-        # Loose stupid 'bl2normal' name
-        if !bv.match("bl2normal")
-          dst = "#{bv}/#{dst}-#{bv}"
-        end
-        # Loose stupid 'auth' name
-        if !ba.match("auth")
-          dst = "#{dst}-#{ba}"
-        end
-        artifacts = [
-          ["build/#{bp}/#{bt}/fip.bin",      "#{dst}.fip"],
-          ["build/#{bp}/#{bt}/fip.bin.gz",   "#{dst}.fip.gz"],
-          ["build/#{bp}/#{bt}/mmc.gpt",      "#{dst}-mmc.gpt"],
-          ["build/#{bp}/#{bt}/mmc.gpt.gz",   "#{dst}-mmc.gpt.gz"],
-          ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
-          ["build/#{bp}/#{bt}/nor.gpt.gz",   "#{dst}-nor.gpt.gz"],
-          ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
-          ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"],
-        ]
-        if bv.match("bl2normal") && ba.match("auth")
-          artifacts << ["build/#{bp}/#{bt}/fwu.html",      "fwu-#{bp}-#{bt}.html"]
-        end
-        cargs = "--#{bt} #{build_auth_args[ba]} -p #{bp} #{build_variant_args[bv]}"
-        cmd = "ruby scripts/build.rb #{cargs}"
-        cmd_clean = 'ruby scripts/build.rb distclean'
-        banner(artifacts, cmd)
+    build_authentifications.each do |ba|
+      dst = "#{bp}-#{bt}"
+      # Loose stupid 'auth' name
+      if !ba.match("auth")
+        dst = "#{dst}-#{ba}"
+      end
+      artifacts = [
+        ["build/#{bp}/#{bt}/fip.bin",      "#{dst}.fip"],
+        ["build/#{bp}/#{bt}/fip.bin.gz",   "#{dst}.fip.gz"],
+        ["build/#{bp}/#{bt}/mmc.gpt",      "#{dst}-mmc.gpt"],
+        ["build/#{bp}/#{bt}/mmc.gpt.gz",   "#{dst}-mmc.gpt.gz"],
+        ["build/#{bp}/#{bt}/fip_linux.bin",    "#{dst}-linux.fip"],
+        ["build/#{bp}/#{bt}/fip_linux.bin.gz", "#{dst}-linux.fip.gz"],
+        ["build/#{bp}/#{bt}/mmc-linux.gpt",    "#{dst}-mmc-linux.gpt"],
+        ["build/#{bp}/#{bt}/mmc-linux.gpt.gz", "#{dst}-mmc-linux.gpt.gz"],
+        ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
+        ["build/#{bp}/#{bt}/nor.gpt.gz",   "#{dst}-nor.gpt.gz"],
+        ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
+      ]
+      # Save cleartext FWU
+      if ba.match("auth")
+        artifacts << ["build/#{bp}/#{bt}/fwu.html",      "fwu-#{bp}-#{bt}.html"]
+      end
+      # Save cleartext+release BL1
+      if ba.match("auth") && bt.match("release")
+        artifacts << ["build/#{bp}/#{bt}/bl1.bin",       "#{dst}.bl1"]
+      end
+      cargs = "--#{bt} #{build_auth_args[ba]} -p #{bp}"
+      cmd = "ruby scripts/build.rb #{cargs}"
+      cmd_clean = 'ruby scripts/build.rb distclean'
+      banner(artifacts, cmd)
+      if $option[:dry_run]
+        puts "*Not* running:"
+        puts cmd_clean
+        puts cmd
+      else
+        system(cmd_clean)
+        system(cmd)
+        FileUtils.mkdir_p("artifacts")
+      end
+      artifacts.each do |from, to|
+        to = "artifacts/#{bp}/#{to}"
         if $option[:dry_run]
-          puts "*Not* running:"
-          puts cmd_clean
-          puts cmd
+          FileUtils.mv(from, to, verbose: true, noop: true) if !File.exist?(to) && File.exist?(from)
         else
-          system(cmd_clean)
-          system(cmd)
-          FileUtils.mkdir_p("artifacts")
-        end
-        artifacts.each do |from, to|
-          to = "artifacts/#{bp}/#{to}"
-          if $option[:dry_run]
-            FileUtils.mv(from, to, verbose: true, noop: true) if !File.exist?(to) && File.exist?(from)
-          else
-            FileUtils.mkdir_p(File.dirname(to))
-            FileUtils.mv(from, to, verbose: true) if !File.exist?(to) && File.exist?(from)
-          end
+          FileUtils.mkdir_p(File.dirname(to))
+          FileUtils.mv(from, to, verbose: true) if !File.exist?(to) && File.exist?(from)
         end
       end
     end

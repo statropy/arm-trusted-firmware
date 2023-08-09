@@ -199,3 +199,14 @@ FDT_SOURCES		+=	${LAN969X_PLAT_BOARD}/fdts/${PLAT}_tb_fw_config.dts
 
 # FW config
 $(eval $(call TOOL_ADD_PAYLOAD,${LAN969X_FW_CONFIG},--fw-config,${LAN969X_FW_CONFIG}))
+
+FWU_HTML := ${BUILD_PLAT}/fwu.html
+FWU_JS   := ${BUILD_PLAT}/fwu_app.js
+
+${FWU_JS}: ${BUILD_PLAT}/${FWU_FIP_NAME}
+	./plat/microchip/scripts/mkjs.rb -p ${PLAT} -o ${FWU_JS} $<
+
+${FWU_HTML}: ${FWU_JS}
+	./plat/microchip/scripts/html_inline.rb -i ${BUILD_PLAT} ./scripts/fwu/serial.html > ${FWU_HTML}
+
+all: ${FWU_HTML}

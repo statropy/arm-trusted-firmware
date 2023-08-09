@@ -67,29 +67,29 @@ const platforms = {
     "00000000": {		//  LAN966X B0 BL1 responds *without* chipid
 	"name":		"LAN966X B0",
 	"bl1_binary":	false,
-	"bl2u":		lan966x_b0_app,
 	"ddr_cfg":	ddr_cfg_lan966x,
 	"ddr_diag":	ddr_diag_regs_lan966x,
 	"ddr_regs":	ddr_regs_lan966x,
 	"ddr_speed":	lan966x_speeds,
+	"bl2u_compat":	["lan966x_b0"],
     },
     "19660445": {		// LAN966X B0 BL2U responds with chipid
 	"name":		"LAN966X B0",
 	"bl1_binary":	false,
-	"bl2u":		lan966x_b0_app,
 	"ddr_cfg":	ddr_cfg_lan966x,
 	"ddr_diag":	ddr_diag_regs_lan966x,
 	"ddr_regs":	ddr_regs_lan966x,
 	"ddr_speed":	lan966x_speeds,
+	"bl2u_compat":	["lan966x_b0"],
     },
     "0969a445": {
 	"name":		"LAN969X A0",
 	"bl1_binary":	true,
-	"bl2u":		lan969x_a0_app,
 	"ddr_cfg":	ddr_cfg_lan969x,
 	"ddr_diag":	ddr_diag_regs_lan969x,
 	"ddr_regs":	ddr_regs_lan969x,
 	"ddr_speed":	lan969x_speeds,
+	"bl2u_compat":	["lan969x_a0", "lan969x_svb"],
     },
 };
 
@@ -1421,9 +1421,11 @@ function startSerial()
 	let s = disableButtons("bl1", true);
 	try {
 	    setStatus("Downloading BL2U applet");
-	    const app = atob(plf["bl2u"].join(""));
+	    const app = atob(bl2u_app.join(""));
 	    if (app.length == 0)
-		throw "Empty application image - no BL2U support for " + plf["name"];
+		throw "Empty application image, unable to download";
+	    if (plf["bl2u_compat"].indexOf(bl2u_platform) == -1)
+		throw "No BL2U support for " + bl2u_platform + " - this is for chip family " + plf["name"];
 	    await downloadApp(port, app, plf["bl1_binary"]);
 	    await delaySkipInput(port, 2000);
 	    setActive(true);

@@ -192,11 +192,13 @@ ${LAN966X_OTP_H}: scripts/otp.yaml
 	$(info Generating OTP headerfile)
 	$(Q)scripts/otpgen.rb  -y $< -g $@
 
-ifdef BL1_SOURCES
-# Convert BL1 image to intel-hex format
-all : ${BUILD_PLAT}/bl1.hex
+FWU_HTML := ${BUILD_PLAT}/fwu.html
+FWU_JS   := ${BUILD_PLAT}/fwu_app.js
 
-${BUILD_PLAT}/bl1.hex: ${BUILD_PLAT}/bl1.bin
-	$(info Generating BL1 intel-hex image)
-	$(Q)$(OC) -I binary -O ihex ${BUILD_PLAT}/bl1.bin $@
-endif
+${FWU_JS}: ${BUILD_PLAT}/${FWU_FIP_NAME}
+	./plat/microchip/scripts/mkjs.rb -p ${PLAT} -o ${FWU_JS} $<
+
+${FWU_HTML}: ${FWU_JS}
+	./plat/microchip/scripts/html_inline.rb -i ${BUILD_PLAT} ./scripts/fwu/serial.html > ${FWU_HTML}
+
+all: ${FWU_HTML}
