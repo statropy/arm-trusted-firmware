@@ -74,10 +74,14 @@ build_platforms.each do |bp|
         ["build/#{bp}/#{bt}/nor.gpt",      "#{dst}-nor.gpt"],
         ["build/#{bp}/#{bt}/nor.gpt.gz",   "#{dst}-nor.gpt.gz"],
         ["build/#{bp}/#{bt}/#{bp}.img",    "#{dst}.img"],
-        # ["build/#{bp}/#{bt}/bl1.bin",      "#{dst}.bl1"],
       ]
+      # Save cleartext FWU
       if ba.match("auth")
         artifacts << ["build/#{bp}/#{bt}/fwu.html",      "fwu-#{bp}-#{bt}.html"]
+      end
+      # Save cleartext+release BL1
+      if ba.match("auth") && bt.match("release")
+        artifacts << ["build/#{bp}/#{bt}/bl1.bin",       "#{dst}.bl1"]
       end
       cargs = "--#{bt} #{build_auth_args[ba]} -p #{bp}"
       cmd = "ruby scripts/build.rb #{cargs}"
