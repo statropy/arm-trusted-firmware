@@ -10,6 +10,7 @@
   <script src="ddr_cfg_lan966x_b0.js"></script>
   <script src="ddr_cfg_lan969x_a0.js"></script>
   <script src="ddr_fields.js"></script>
+  <script src="ddr_config.js"></script>
   <script src="fwu.js"></script>
   <style>
 	img#logo {
@@ -408,6 +409,8 @@
 	<label for="tab-1" class="tab-label">Configuration I/O</label>
 	<div class="tab-content">
 	  Load <button type="button" id="bl2u_ddr_load">Configuration From Device</button>
+	  <br>
+	  Load <select id="bl2u_ddr_predef"></select> <button type="button" id="bl2u_ddr_predef_load">Predefined Configuration</button>
 	  <br>
 	  Load <input type="file" id="ddr_config_input" accept=".yaml">
 	  <br>

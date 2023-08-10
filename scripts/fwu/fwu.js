@@ -65,6 +65,7 @@ const lan969x_speeds = [1066, 1333, 1600, 1866, 2133, 2400, 2666];
 
 const platforms = {
     "00000000": {		//  LAN966X B0 BL1 responds *without* chipid
+	"arch":		"lan966x",
 	"name":		"LAN966X B0",
 	"bl1_binary":	false,
 	"ddr_cfg":	ddr_cfg_lan966x,
@@ -74,6 +75,7 @@ const platforms = {
 	"bl2u_compat":	["lan966x_b0"],
     },
     "19660445": {		// LAN966X B0 BL2U responds with chipid
+	"arch":		"lan966x",
 	"name":		"LAN966X B0",
 	"bl1_binary":	false,
 	"ddr_cfg":	ddr_cfg_lan966x,
@@ -83,6 +85,7 @@ const platforms = {
 	"bl2u_compat":	["lan966x_b0"],
     },
     "0969a445": {
+	"arch":		"lan969x",
 	"name":		"LAN969X A0",
 	"bl1_binary":	true,
 	"ddr_cfg":	ddr_cfg_lan969x,
@@ -1066,6 +1069,17 @@ function populateCfg(template)
     }
 }
 
+function populatePredef(plf)
+{
+    let sel = document.getElementById("bl2u_ddr_predef");
+    for (var i = 0; i < ddr_config.length; i++) {
+	const p = ddr_config[i];
+	if (p.info.platform == plf.arch) {
+	    sel.options[sel.options.length] = new Option(p.info.version, i);
+	}
+    }
+}
+
 function getDDRFromForm(template)
 {
     const cfg = new Map();
@@ -1336,6 +1350,17 @@ function startSerial()
 	}
     });
 
+    document.getElementById('bl2u_ddr_predef_load').addEventListener('click', async () => {
+	try {
+	    const sel = document.getElementById("bl2u_ddr_predef");
+	    const cfg = convertYaml(ddr_config[sel.value], plf["ddr_cfg"]);
+	    populateCfg(cfg);
+	    setStatus("DDR config loaded: " + cfg.get("info").get("version"));
+	} catch(e) {
+	    setStatus("Invalid configuration: " + e);
+	}
+    });
+
     document.getElementById('bl2u_ddr_init').addEventListener('click', async () => {
 	let s = disableButtons("bl2u_ddr", true);
 	try {
@@ -1522,6 +1547,7 @@ function startSerial()
 		setStatus("Identified device: " + plf["name"]);
 		if (version.match(/^BL2:/)) {
 		    addTrace("BL2U context detected");
+		    populatePredef(plf);
 		    setStage("bl2u");
 		} else {
 		    addTrace("Please select a BL1 command - or upload BL2U for firmware update functions");
