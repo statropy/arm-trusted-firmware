@@ -123,6 +123,8 @@ void lan969x_tz_finish(void)
 	mmio_setbits_32(TZPM_TZPCTL0(tzpm),
 			TZPM_TZPCTL0_QSPI0(1) |
 			TZPM_TZPCTL0_QSPI2(1) |
+			TZPM_TZPCTL0_MCAN0(1) |
+			TZPM_TZPCTL0_MCAN1(1) |
 			TZPM_TZPCTL0_SDMMC0(1) |
 			TZPM_TZPCTL0_SDMMC1(1));
 	mmio_setbits_32(TZPM_TZPCTL1(tzpm),
