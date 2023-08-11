@@ -43,6 +43,7 @@ static void setup_ns_access(uintptr_t gpv, uintptr_t tzpm)
 	mmio_write_32(GPV_SECURITY_CPU_REGS(gpv), BIT(0));
 	mmio_write_32(GPV_SECURITY_CSR_REGS(gpv), BIT(0));
 	mmio_write_32(GPV_SECURITY_DDR_CSS(gpv), BIT(0));
+	mmio_write_32(GPV_SECURITY_DDR_MAIN(gpv), BIT(0));
 	mmio_write_32(GPV_SECURITY_APB_CSS2(gpv), BIT(0)); /* OTP */
 	mmio_write_32(GPV_SECURITY_APB_MAIN3(gpv), BIT(2)|BIT(3)); /* TIMERS, WDT */
 }
