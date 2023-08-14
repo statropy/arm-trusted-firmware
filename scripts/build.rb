@@ -19,7 +19,7 @@ platforms = {
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
     "lan969x_a0"	=> Hash[
-        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-mchp_lan969x.bin",
+        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/release/u-boot-mchp_lan969x.bin",
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
     "lan969x_svb"	=> Hash[
@@ -41,7 +41,7 @@ architectures = {
         :bsp_arch => "arm64",
         :tc_dir   => "arm64-armv8_a-linux-gnu",
         :tc_prf   => "aarch64-armv8_a-linux-gnu",
-        :linux	  => "/arm64-armv8_a-linux-gnu/standalone_lan969x/release/",
+        :linux	  => "/arm64-armv8_a-linux-gnu/standalone/release/",
         :rom_sz   => 128 * 1024,
         :sram_sz  => 2 * 1024 * 1024,
         :atf_arch => "aarch64", ],
@@ -70,8 +70,8 @@ $option = { :platform              => "lan966x_b0",
             :create_keys           => false,
             :bl33_blob             => nil,
             :arch                  => "arm",
-            :sdk                   => "2023.02-112",
-            :sdk_branch            => "-brsdk.lan969x-v4",
+            :sdk                   => "2023.02.2-929",
+            :sdk_branch            => "-brsdk",
             :norimg                => true,
             :gptimg                => false,
             :ramusage              => true,
@@ -181,10 +181,10 @@ end
 
 def install_sdk()
     brsdk_name = "mscc-brsdk-#{$arch[:bsp_arch]}-#{$option[:sdk]}"
-    brsdk_base = "/opt/mscc/#{brsdk_name}#{$option[:sdk_branch]}"
+    brsdk_base = "/opt/mscc/#{brsdk_name}"
     if not File.exist?(brsdk_base)
         if File.exist?("/usr/local/bin/mscc-install-pkg") and detect_internal_network()
-            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}#{$option[:sdk_branch]} #{brsdk_name}#{$option[:sdk_branch]}"
+            do_cmd "sudo /usr/local/bin/mscc-install-pkg -t brsdk/#{$option[:sdk]}#{$option[:sdk_branch]} #{brsdk_name}"
         else
             puts "Please install the BSP: #{brsdk_name}.tar.gz into /opt/mscc/"
             puts ""
