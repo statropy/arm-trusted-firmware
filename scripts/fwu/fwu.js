@@ -1545,9 +1545,9 @@ function startSerial()
 	    plf = getPlatform(chip);
 	    if (plf) {
 		setStatus("Identified device: " + plf["name"]);
+		populatePredef(plf);
 		if (version.match(/^BL2:/)) {
 		    addTrace("BL2U context detected");
-		    populatePredef(plf);
 		    setStage("bl2u");
 		} else {
 		    addTrace("Please select a BL1 command - or upload BL2U for firmware update functions");
