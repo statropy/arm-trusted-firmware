@@ -181,8 +181,10 @@ static void axi_enable_ports(bool enable)
 	}
 }
 
-static int ecc_enable_scrubbing(void)
+static int ecc_enable_scrubbing(const struct ddr_config *cfg)
 {
+	uint32_t size = (cfg->info.size - 1) >> 1;
+
 	VERBOSE("Enable ECC scrubbing\n");
 
 	/* 1.  Disable AXI port. port_en = 0 */
@@ -197,13 +199,17 @@ static int ecc_enable_scrubbing(void)
 	/* 4. Data pattern = 0 */
 	mmio_write_32(DDR_UMCTL2_SBRWDATA0, 0);
 
-	/* 5. (skip) */
+	/* 5. Address range */
+	mmio_write_32(DDR_UMCTL2_SBRSTART0, 0);
+	mmio_write_32(DDR_UMCTL2_SBRRANGE0, size); /* 16bit words */
+	mmio_write_32(DDR_UMCTL2_SBRSTART1, 0);
+	mmio_write_32(DDR_UMCTL2_SBRRANGE1, 0);
 
 	/* 6. Enable SBR programming */
 	mmio_setbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
 
 	/* 7. Poll SBRSTAT.scrub_done */
-	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 1000000)) {
+	if (wait_reg_set(DDR_UMCTL2_SBRSTAT, SBRSTAT_SCRUB_DONE, 10000000)) {
 		DDR_FAILURE("Timeout: SBRSTAT.done not set: 0x%0x\n",
 			    mmio_read_32(DDR_UMCTL2_SBRSTAT));
 		return -ETIMEDOUT;
@@ -219,17 +225,20 @@ static int ecc_enable_scrubbing(void)
 	/* 9. Disable SBR programming */
 	mmio_clrbits_32(DDR_UMCTL2_SBRCTL, SBRCTL_SCRUB_EN);
 
-	/* 10. Normal scrub operation, mode = 0, interval = 100 */
-	/* 11. Enable SBR programming again  */
-	mmio_clrsetbits_32(DDR_UMCTL2_SBRCTL,
-			   SBRCTL_SCRUB_MODE | SBRCTL_SCRUB_INTERVAL,
-			   FIELD_PREP(SBRCTL_SCRUB_INTERVAL, 100) |
-			   FIELD_PREP(SBRCTL_SCRUB_EN, 1));
+	VERBOSE("Initial ECC scrubbing done\n");
+
+#if 0
+	/* 10+11: Enable SBR programming again if enabled and interval != 0 */
+	if (cfg->main.sbrctl & SBRCTL_SCRUB_EN &&
+	    FIELD_GET(SBRCTL_SCRUB_INTERVAL, cfg->main.sbrctl) != 0) {
+		mmio_write_32(DDR_UMCTL2_SBRCTL, cfg->main.sbrctl);
+		VERBOSE("Enabled ECC scrubbing\n");
+	}
+#endif
 
 	/* 12. Enable AXI port */
 	axi_enable_ports(true);
 
-	VERBOSE("Enabled ECC scrubbing\n");
 	return 0;
 }
 
@@ -410,9 +419,10 @@ int ddr_init(const struct ddr_config *cfg)
 
 	VERBOSE("ddr_init:start\n");
 
-	NOTICE("DDR: %s, %d MHz, %dMiB\n", cfg->info.name,
+	NOTICE("DDR: %s, %d MHz, %dMiB, ECC %s\n", cfg->info.name,
 	       cfg->info.speed,
-	       cfg->info.size / 1024 / 1024);
+	       cfg->info.size / 1024 / 1024,
+	       cfg->main.ecccfg0 & ECCCFG0_ECC_MODE ? "enabled" : "disabled");
 
 	/* Reset, start clocks at desired speed */
 	ret = ddr_reset(cfg, true);
@@ -474,9 +484,10 @@ int ddr_init(const struct ddr_config *cfg)
 	}
 
 	if (cfg->main.ecccfg0 & ECCCFG0_ECC_MODE) {
-		ret = ecc_enable_scrubbing();
-		if (ret)
-			return ret;
+		if (ecc_enable_scrubbing(cfg)) {
+			ERROR("ECC scrubbing init failed\n");
+			return -EIO;
+		}
 	}
 
 	VERBOSE("ddr_init:done\n");
