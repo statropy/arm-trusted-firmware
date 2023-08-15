@@ -128,7 +128,15 @@ bool trng_pack_entropy(uint32_t nbits, uint64_t *out)
 	}
 	const uint64_t mask = ~0ULL >> (BITS_PER_WORD - (nbits % BITS_PER_WORD));
 
-	out[to_fill - 1] &= mask;
+	/*
+	 * When zeroing out the bits that are not needed, check that the mask is
+	 * actually not 0. This can happen if the nbits is a multiple of
+	 * BITS_PER_WORD and in that case the last WORD will be 0. Thefore check
+	 * if all the bits in the last WORD are needed or not by checking the
+	 * mask to be different than 0.
+	 */
+	if (mask)
+		out[to_fill - 1] &= mask;
 
 	entropy_bit_index = (entropy_bit_index + nbits) % BITS_IN_POOL;
 	entropy_bit_size -= nbits;
