@@ -36,6 +36,8 @@ struct plat_io_policy {
 	int (*check)(const uintptr_t spec);
 };
 
+static bl32_params_t bl32_params;
+
 static const io_dev_connector_t *mmc_dev_con;
 static uintptr_t fip_dev_handle;
 static uintptr_t mmc_dev_handle;
@@ -777,7 +779,9 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 	switch (image_id) {
 	case BL32_IMAGE_ID:
 		//bl_mem_params->ep_info.args.arg0 = 0xdeadbeef;
-		bl_mem_params->ep_info.args.arg1 = (uintptr_t) &lan966x_fw_config;
+		bl32_params.fw_config = &lan966x_fw_config;
+		bl32_params.ddr_size = lan966x_ddr_size();
+		bl_mem_params->ep_info.args.arg1 = (uintptr_t) &bl32_params;
 		break;
 	case BL33_IMAGE_ID:
 		src = lan966x_get_boot_source();

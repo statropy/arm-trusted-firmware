@@ -23,6 +23,7 @@
 
 static image_info_t bl33_image_info;
 static entry_point_info_t bl33_ep_info;
+static uint32_t mem_size;
 
 #define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
 		LAN966X_SRAM_BASE,					\
@@ -84,7 +85,7 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 		    fit_load(&fit, FITIMG_PROP_KERNEL_TYPE) == EXIT_SUCCESS) {
 			/* Fixup DT, but allow to fail */
 			fit_fdt_update(&fit, PLAT_LAN966X_NS_IMAGE_BASE,
-				       PLAT_LAN966X_NS_IMAGE_SIZE,
+				       mem_size,
 				       bootargs);
 			NOTICE("Preparing to boot 32-bit Linux kernel\n");
 			/*
@@ -103,6 +104,8 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 		}
 	} else {
 		NOTICE("Direct boot of BL33 binary image\n");
+		next_image_info->args.arg0 = 0xbeedcafeULL;
+		next_image_info->args.arg1 = mem_size;
 	}
 
 	return next_image_info;
@@ -168,10 +171,17 @@ static void otp_cache_init(void)
 #pragma weak params_early_setup
 void params_early_setup(u_register_t plat_param_from_bl2)
 {
-	void *src_config = (void *) plat_param_from_bl2;
+	bl32_params_t *bl32_params = (bl32_params_t *) plat_param_from_bl2;
 
 	/* Get bl2 fw_config (OTP EMU) */
-	memcpy(&lan966x_fw_config, src_config, sizeof(lan966x_fw_config));
+	memcpy(&lan966x_fw_config, bl32_params->fw_config, sizeof(lan966x_fw_config));
+
+	/* Get DDR size, remember reserved BL32 DDR memory */
+	if (bl32_params->ddr_size > BL32_SIZE) {
+		mem_size = bl32_params->ddr_size - BL32_SIZE;
+	} else {
+		mem_size = PLAT_LAN966X_NS_IMAGE_SIZE;
+	}
 }
 
 static void lan966x_params_parse_helper(u_register_t param,

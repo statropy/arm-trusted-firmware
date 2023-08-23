@@ -11,6 +11,7 @@
 #include <plat_crypto.h>
 #include <lan96xx_common.h>
 
+/* BL1 -> BL2 */
 typedef struct {
 	void *fw_config;
 	void *mbedtls_heap_addr;
@@ -19,12 +20,19 @@ typedef struct {
 
 extern shared_memory_desc_t shared_memory_desc;
 
+/* BL2 -> BL32 */
+typedef struct {
+	void     *fw_config;
+	uint32_t ddr_size;
+} bl32_params_t;
+
 void lan966x_set_max_trace_level(void);
 void lan966x_reset_max_trace_level(void);
 
 void lan966x_console_init(void);
 void lan966x_timer_init(void);
 void lan966x_ddr_init(void);
+uint32_t lan966x_ddr_size(void);
 void lan966x_tz_init(void);
 void lan966x_tz_finish(void);
 void lan966x_crash_console(console_t *console);
