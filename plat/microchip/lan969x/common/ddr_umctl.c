@@ -29,6 +29,8 @@
 	} while (0)
 char ddr_failure_details[132];
 
+static uint32_t ddr_size;
+
 static const struct {
 	uint32_t mask;
 	const char *desc;
@@ -786,4 +788,11 @@ void lan966x_ddr_init(void *fdt)
 	err_off = ddr_test_addr_bus(PLAT_LAN969X_NS_IMAGE_BASE, PLAT_LAN969X_NS_IMAGE_SIZE, true);
 	if (err_off != 0)
 		PANIC("DDR address bus test @ 0x%08lx\n", err_off);
+
+	ddr_size = cur_ddr_cfg.info.size;
+}
+
+uint32_t lan966x_ddr_size(void)
+{
+	return ddr_size;
 }

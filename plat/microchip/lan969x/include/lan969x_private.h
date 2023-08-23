@@ -21,6 +21,8 @@ void lan966x_bootstrap_monitor(void);
 
 void lan966x_ddr_init(void *fdt);
 
+uint32_t lan966x_ddr_size(void);
+
 void lan969x_tz_init(void);
 
 void lan969x_tz_finish(void);

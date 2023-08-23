@@ -25,6 +25,7 @@
 static entry_point_info_t bl32_image_ep_info;
 static entry_point_info_t bl33_image_ep_info;
 static uintptr_t bl33_image_base;
+static uint32_t mem_size;
 
 static char fit_config[128], *fit_config_ptr;
 
@@ -118,7 +119,7 @@ void bl31_fit_unpack(void)
 		    fit_load(&fit, FITIMG_PROP_KERNEL_TYPE) == EXIT_SUCCESS) {
 			/* Fixup DT, but allow to fail */
 			fit_fdt_update(&fit, PLAT_LAN969X_NS_IMAGE_BASE,
-				       PLAT_LAN969X_NS_IMAGE_SIZE,
+				       mem_size ? mem_size : PLAT_LAN969X_NS_IMAGE_SIZE,
 				       bootargs);
 			NOTICE("Preparing to boot 64-bit Linux kernel\n");
 			/*
@@ -136,6 +137,8 @@ void bl31_fit_unpack(void)
 		}
 	} else {
 		NOTICE("Direct boot of BL33 binary image\n");
+		bl33_image_ep_info.args.arg0 = 0xbeedcafeULL;
+		bl33_image_ep_info.args.arg1 = mem_size;
 	}
 }
 
@@ -143,6 +146,9 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 				u_register_t arg2, u_register_t arg3)
 {
 	void *from_bl2 = (void *) arg0;
+
+	/* Save actual memory size */
+	mem_size = arg1;
 
 	/* Enable arch timer */
 	generic_delay_timer_init();
