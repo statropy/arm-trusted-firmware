@@ -25,7 +25,7 @@ BL32_SOURCES            +=      drivers/microchip/crypto/aes.c			\
 				plat/microchip/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_tbbr.c
 
+BL32_SOURCES            +=      $(LIBFIT_SRCS)
+
 include lib/libfit/libfit.mk
 include lib/libfdt/libfdt.mk
-
-${BUILD_PLAT}/bl32/bl32.elf: ${LIB_DIR}/libfit.a

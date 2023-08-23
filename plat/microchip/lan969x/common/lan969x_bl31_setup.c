@@ -5,6 +5,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
@@ -14,9 +15,12 @@
 #include <plat/common/platform.h>
 #include <plat/microchip/common/lan966x_gic.h>
 #include <libfit.h>
+#include <tf_gunzip.h>
 
 #include "lan969x_private.h"
 #include <otp_tags.h>
+
+#define PAGE_ALIGN(x, a)	(((x) + (a) - 1) & ~((a) - 1))
 
 static entry_point_info_t bl32_image_ep_info;
 static entry_point_info_t bl33_image_ep_info;
@@ -43,9 +47,68 @@ bool fit_plat_is_ns_addr(uintptr_t addr)
 	return true;
 }
 
+int fit_plat_default_address(const struct fit_context *fit, fit_prop_t prop, uintptr_t *addr)
+{
+	int ret = 0;
+
+	switch (prop) {
+	case FITIMG_PROP_KERNEL_TYPE:
+		*addr = PLAT_LAN969X_NS_IMAGE_BASE;
+		break;
+
+	case FITIMG_PROP_DT_TYPE:
+		*addr = PLAT_LAN969X_NS_IMAGE_LIMIT - SIZE_M(1);
+		break;
+
+	case FITIMG_PROP_RAMDISK_TYPE:
+		*addr = PLAT_LAN969X_NS_IMAGE_BASE + SIZE_M(32);
+		break;
+
+	default:
+		ret = -ENOENT;
+		break;
+	}
+
+	if (ret)
+		ERROR("fit: Default address for prop %d is UNDEFINED\n", prop);
+	else
+		INFO("fit: Default address for prop %d is: %p\n", prop, (void*) *addr);
+
+	return ret;
+}
+
+int fit_plat_uncompress(const struct fit_context *fit, uintptr_t dst,
+			uintptr_t src, size_t src_len, size_t *output_len)
+{
+	uintptr_t work_buf, out_buf, out_start, out_limit;
+	size_t work_len;
+	int ret;
+
+	/* Set up decompress params */
+	work_buf = (uintptr_t) fit->fit + fit_size(fit);
+	work_buf = PAGE_ALIGN(work_buf, SIZE_M(1));
+	work_len = SIZE_M(16);
+	out_start = out_buf = work_buf + work_len;
+	ret = fit_plat_default_address(fit, FITIMG_PROP_DT_TYPE, &out_limit);
+	if (ret)
+		return ret;
+	INFO("Unzip(src %08lx, src_len %zd, out %08lx, out_len %zd, work %08lx, work_len %zd)\n",
+	     src, src_len, out_buf, out_limit - out_start, work_buf, work_len);
+	ret = gunzip(&src, src_len, &out_buf, out_limit - out_start, work_buf, work_len);
+	if (ret == 0) {
+		size_t out_len = out_buf - out_start;
+		/* Move into place */
+		memcpy((void*) dst, (void*) out_start, out_len);
+		INFO("Uncompressed data, length now %zd bytes\n", out_len);
+		*output_len = out_len;
+	}
+
+	return ret;
+}
+
 void bl31_fit_unpack(void)
 {
-	const char *bootargs = "console=ttyS0,115200 loglevel=8";
+	const char *bootargs = "console=ttyAT0,115200 root=/dev/mmcblk0p4 rw rootwait loglevel=8";
 	struct fit_context fit;
 
 	if (fit_init_context(&fit, bl33_image_base) == EXIT_SUCCESS) {
@@ -57,7 +120,7 @@ void bl31_fit_unpack(void)
 			fit_fdt_update(&fit, PLAT_LAN969X_NS_IMAGE_BASE,
 				       PLAT_LAN969X_NS_IMAGE_SIZE,
 				       bootargs);
-			INFO("Preparing to boot 64-bit Linux kernel\n");
+			NOTICE("Preparing to boot 64-bit Linux kernel\n");
 			/*
 			 * According to the file ``Documentation/arm64/booting.txt`` of the
 			 * Linux kernel tree, Linux expects the physical address of the device
@@ -69,10 +132,10 @@ void bl31_fit_unpack(void)
 			bl33_image_ep_info.args.arg2 = 0ULL;
 			bl33_image_ep_info.args.arg3 = 0ULL;
 		} else {
-			NOTICE("Unpacking FIT image for Linux failed\n");
+			ERROR("Unpacking FIT image for Linux failed\n");
 		}
 	} else {
-		INFO("Direct boot of BL33 binary image\n");
+		NOTICE("Direct boot of BL33 binary image\n");
 	}
 }
 
@@ -94,7 +157,7 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	if (otp_tag_get_string(otp_tag_type_fit_config, fit_config, sizeof(fit_config)) > 0)
 		fit_config_ptr = fit_config;
 	else
-		fit_config_ptr = NULL;
+		fit_config_ptr = "lan9698_ev23x71a_0_at_lan969x";
 
 	/*
 	 * Check params passed from BL2 should not be NULL,

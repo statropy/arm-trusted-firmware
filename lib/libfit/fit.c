@@ -21,6 +21,26 @@ bool fit_plat_is_ns_addr(uintptr_t addr)
 	return false;
 }
 
+#pragma weak fit_plat_default_address
+int fit_plat_default_address(const struct fit_context *fit, fit_prop_t prop, uintptr_t *addr)
+{
+	/* None by default */
+	return -ENOENT;
+}
+
+#pragma weak fit_plat_uncompress
+int fit_plat_uncompress(const struct fit_context *fit, uintptr_t dst,
+			uintptr_t src, size_t src_len, size_t *out_len)
+{
+	/* No uncompress by default */
+	return -ENODEV;
+}
+
+size_t fit_size(const struct fit_context *context)
+{
+        return (size_t) fit_get_size(context->fit);
+}
+
 static int fit_check_image_format(const void *fit)
 {
 	if (fdt_getprop(fit, 0, FITIMG_DESC_PROP_STR, NULL) == NULL) {
@@ -110,15 +130,23 @@ static int fit_conf_get_default_node(const void *fit)
 	return node_offset;
 }
 
-static int fit_image_check_comp(const void *fit, int node_offset)
+static int fit_image_check_comp(const void *fit, int node_offset, bool *compressed)
 {
 	const char *val;
 
         /* Check compression property */
         val = (char *) fdt_getprop(fit, node_offset, FITIMG_COMP_PROP_STR, NULL);
-        if (val == NULL || strcmp("none", val) == 0)
+        if (val == NULL || strcmp("none", val) == 0) {
+		*compressed = false;
 		return 0;	/* No compression */
-	INFO("fit: Compression '%s' is NOT supported\n", val);
+	}
+#if defined(MCHP_LIBFIT_GZIP)
+        if (strcmp("gzip", val) == 0) {
+		*compressed = true;
+		return 0;	/* GZIP compression */
+	}
+#endif
+	ERROR("fit: Compression '%s' is NOT supported\n", val);
 	return -EPROTONOSUPPORT;
 }
 
@@ -146,13 +174,14 @@ static int fit_image_get_address(const void *fit, int node_offset, char *name,
 
 	cell = fdt_getprop(fit, node_offset, name, &node_length);
 	if (cell == NULL) {
-		ERROR("fit: Cell %s not found at offset 0x%08x\n", name, node_offset);
-		return -1;
+		/* Benign issue */
+		INFO("fit: Cell %s not found at offset 0x%08x\n", name, node_offset);
+		return -ENOENT;
 	}
 
 	if (node_length > sizeof(uintptr_t)) {
 		ERROR("fit: Unsupported %s address size\n", name);
-		return -1;
+		return -ENOTSUP;
 	}
 
 	cell_len = node_length >> 2;
@@ -166,9 +195,18 @@ static int fit_image_get_address(const void *fit, int node_offset, char *name,
 	return fit_plat_is_ns_addr(*load) ? 0 : -EINVAL;
 }
 
-int fit_image_get_load(const void *fit, int node_offset, uintptr_t *load)
+static int fit_image_get_load(const void *fit, fit_prop_t prop, int node_offset, uintptr_t *load)
 {
-	return fit_image_get_address(fit, node_offset, FITIMG_LOAD_PROP_STR, load);
+	int ret;
+
+	ret = fit_image_get_address(fit, node_offset, FITIMG_LOAD_PROP_STR, load);
+	if (ret) {
+		ret = fit_plat_default_address(fit, prop, load);
+		if (ret == 0)
+			INFO("fit: Using default value of %p\n", (void*) *load);
+	}
+
+	return ret;
 }
 
 int fit_image_get_entry(const void *fit, int node_offset, uintptr_t *entry)
@@ -245,12 +283,14 @@ const char *fit_property_2_str(fit_prop_t prop)
  */
 int fit_load(struct fit_context *context, fit_prop_t prop)
 {
+	bool compressed = false;
 	const char *prop_name;
 	const void *buf;
 	int node_offset, ret;
 	size_t size;
 	uintptr_t load_start, load_end, image_start, image_end;
 
+	/* Remember what we are working on */
 	prop_name = fit_property_2_str(prop);
 	if (!prop_name)
 		return -EINVAL;
@@ -262,7 +302,7 @@ int fit_load(struct fit_context *context, fit_prop_t prop)
 	}
 
 	/* Check compression */
-	if ((ret = fit_image_check_comp(context->fit, node_offset)))
+	if ((ret = fit_image_check_comp(context->fit, node_offset, &compressed)))
 		return ret;
 
 	/* get image data address and length */
@@ -271,7 +311,7 @@ int fit_load(struct fit_context *context, fit_prop_t prop)
 		return -ENOENT;
 	}
 
-	ret = fit_image_get_load(context->fit, node_offset, &load_start);
+	ret = fit_image_get_load(context->fit, prop, node_offset, &load_start);
 	if (ret == 0) {
 		/* Check for overwriting */
 		image_start = (uintptr_t) buf;
@@ -291,6 +331,14 @@ int fit_load(struct fit_context *context, fit_prop_t prop)
 			switch (prop) {
 			case FITIMG_PROP_KERNEL_TYPE:
 				ret = fit_image_get_entry(context->fit, node_offset, &context->entry);
+				if (ret) {
+					/* Silently set entry = start */
+					context->entry = load_start;
+					ret = 0;
+					INFO("fit: %s using default entrypoint %p\n",
+					     prop_name, (void*) load_start);
+				}
+
 				break;
 			case FITIMG_PROP_DT_TYPE:
 				context->dtb = load_start;
@@ -302,12 +350,21 @@ int fit_load(struct fit_context *context, fit_prop_t prop)
 			INFO("fit: Loading %s from %p to 0x%08lx, %zd bytes\n",
 			     prop_name, buf, load_start, size);
 
-			/* Move the data in place */
-			memmove((void*) load_start, buf, size);
+			if (compressed) {
+				ret = fit_plat_uncompress(context, load_start, (uintptr_t) buf, size, &size);
+				if (ret)
+					ERROR("fit: Error uncompressing %s: %d\n", prop_name, ret);
+				INFO("Uncompressed data to %zd bytes\n", size);
+			} else {
+				/* Move the data in place */
+				memmove((void*) load_start, buf, size);
+			}
 
 			/* We need to flush as we'll be in another CPU domain */
 			flush_dcache_range(load_start, size);
 		}
+	} else {
+		ERROR("fit: Error loading %s: %d\n", prop_name, ret);
 	}
 
 	return ret;

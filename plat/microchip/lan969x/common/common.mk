@@ -122,7 +122,9 @@ override BL2_SOURCES		:=	\
 				plat/microchip/lan969x/common/${ARCH}/plat_bl2_noop.S
 endif
 
-BL31_SOURCES		+=	${GICV2_SOURCES}				\
+BL31_SOURCES		+=	$(LIBFIT_SRCS)					\
+				$(ZLIB_SOURCES)					\
+				${GICV2_SOURCES}				\
 				${LAN969X_PLAT_COMMON}/lan969x_bl31_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_pm.c		\
 				${LAN969X_PLAT_COMMON}/lan969x_topology.c	\
@@ -136,6 +138,9 @@ BL31_SOURCES		+=	${GICV2_SOURCES}				\
 				plat/microchip/common/lan966x_sip_svc.c		\
 				plat/microchip/common/lan966x_sjtag.c		\
 				plat/microchip/lan966x/common/lan966x_gicv2.c
+
+# libfit must support unzip
+$(eval $(call add_define,MCHP_LIBFIT_GZIP))
 
 # We have/require TBB
 TRUSTED_BOARD_BOOT		:= 1

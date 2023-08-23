@@ -86,7 +86,7 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 			fit_fdt_update(&fit, PLAT_LAN966X_NS_IMAGE_BASE,
 				       PLAT_LAN966X_NS_IMAGE_SIZE,
 				       bootargs);
-			INFO("Preparing to boot 32-bit Linux kernel\n");
+			NOTICE("Preparing to boot 32-bit Linux kernel\n");
 			/*
 			 * According to the file ``Documentation/arm/Booting`` of the Linux
 			 * kernel tree, Linux expects:
@@ -99,10 +99,10 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 			next_image_info->args.arg1 = ~0U;
 			next_image_info->args.arg2 = fit.dtb;
 		} else {
-			NOTICE("Unpacking FIT image for Linux failed\n");
+			ERROR("Unpacking FIT image for Linux failed\n");
 		}
 	} else {
-		INFO("Direct boot of BL33 binary image\n");
+		NOTICE("Direct boot of BL33 binary image\n");
 	}
 
 	return next_image_info;

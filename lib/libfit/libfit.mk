@@ -8,5 +8,3 @@ LIBFIT_SRCS	:=	$(addprefix lib/libfit/,	\
 			fit.c)				\
 
 INCLUDES	+=	-Iinclude/lib/libfit
-
-$(eval $(call MAKE_LIB,fit))

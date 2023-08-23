@@ -8,6 +8,12 @@
 
 #include <libfdt.h>
 
+typedef enum {
+	FITIMG_PROP_KERNEL_TYPE,
+	FITIMG_PROP_DT_TYPE,
+	FITIMG_PROP_RAMDISK_TYPE
+} fit_prop_t;
+
 struct fit_context {
 	uint8_t *fit;
 	const char *cfg;
@@ -16,13 +22,9 @@ struct fit_context {
 	uintptr_t dtb;
 };
 
-typedef enum {
-	FITIMG_PROP_KERNEL_TYPE,
-	FITIMG_PROP_DT_TYPE,
-	FITIMG_PROP_RAMDISK_TYPE
-} fit_prop_t;
-
 bool fit_plat_is_ns_addr(uintptr_t addr);
+
+int fit_plat_default_address(const struct fit_context *fit, fit_prop_t prop, uintptr_t *addr);
 
 int fit_init_context(struct fit_context *context, uintptr_t fit_addr);
 
@@ -34,5 +36,7 @@ void fit_fdt_update(struct fit_context *context,
 		    uintptr_t mem_start,
 		    size_t mem_length,
 		    const char *bootargs);
+
+size_t fit_size(const struct fit_context *context);
 
 #endif /* _LIBFIT_H */
