@@ -23,7 +23,7 @@ platforms = {
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
     "lan969x_svb"	=> Hash[
-        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-mchp_lan969x.bin",
+        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/release/u-boot-mchp_lan969x.bin",
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
 }
