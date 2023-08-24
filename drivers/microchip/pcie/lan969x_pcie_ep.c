@@ -9,12 +9,15 @@
  *
  *         pcie: pcie@e00d0000 {
  *                 compatible = "microchip,pcie-ep";
+ *                 microchip,perst-gpio = <0 2>;
  *                 microchip,max-speed = <3>;
  *                 microchip,vendor-id = <0x1055>;
  *                 microchip,device-id = <0x9690>;
  *         };
  *
- * The 3 values are optional and will override the defaults.  The values
+ * The perst-gpio value is mandatory for the driver as this is needed to support
+ * the reset signal from the PCIe root-complex.
+ * The next 3 values are optional and will override the defaults.  The values
  * shown above are the default values.
  *
  * Please note that if there is no PCIe Link the configuration writes to the
@@ -31,6 +34,7 @@
 #include <common/debug.h>
 #include <common/fdt_wrappers.h>
 #include <drivers/delay_timer.h>
+#include <drivers/microchip/vcore_gpio.h>
 #include <lan969x_def.h>
 #include <lan969x_regs.h>
 #include <lib/mmio.h>
@@ -41,6 +45,8 @@ struct pcie_ep_config {
 	uint32_t max_link_speed;
 	uint32_t vendor_id;
 	uint32_t device_id;
+	int perst_gpio_no;
+	int perst_gpio_alt;
 };
 
 static bool pcie_ep_has_cmu_lock(void)
@@ -895,14 +901,11 @@ static int pcie_ep_state(void)
 	return 0;
 }
 
-static void pcie_ep_enable_perst(void)
+static void pcie_ep_enable_perst(const struct pcie_ep_config *cfg)
 {
-	uintptr_t devcpu_gcb = LAN969X_GCB_BASE;
-
-	INFO("pcie: Enable PERST on GPIO0 ALT2\n");
-	mmio_clrsetbits_32(GCB_GPIO_ALT(devcpu_gcb, 0), BIT(0), 0);
-	mmio_clrsetbits_32(GCB_GPIO_ALT1(devcpu_gcb, 0), BIT(0), 1);
-	mmio_clrsetbits_32(GCB_GPIO_ALT2(devcpu_gcb, 0), BIT(0), 0);
+	NOTICE("pcie: Enable PERST on GPIO %u ALT %u\n", cfg->perst_gpio_no,
+	       cfg->perst_gpio_alt);
+	vcore_gpio_set_alt(cfg->perst_gpio_no, cfg->perst_gpio_alt);
 }
 
 int pcie_ep_init(const struct pcie_ep_config *cfg)
@@ -911,7 +914,7 @@ int pcie_ep_init(const struct pcie_ep_config *cfg)
 	if (err)
 		return err;
 
-	pcie_ep_enable_perst();
+	pcie_ep_enable_perst(cfg);
 	err = pcie_ep_ctrl_init(cfg);
 	if (err)
 		return err;
@@ -921,13 +924,29 @@ int pcie_ep_init(const struct pcie_ep_config *cfg)
 
 static int lan969x_read_pcie_ep_config(void *fdt, struct pcie_ep_config *cfg)
 {
-	int node;
+	uint32_t gpio_info[2];
+	int node, ret;
 
 	node = fdt_node_offset_by_compatible(fdt, -1, "microchip,pcie-ep");
 	if (node < 0) {
 		NOTICE("pcie: No DT endpoint node\n");
 		return -ENOENT;
 	}
+
+	ret = fdt_read_uint32_array(fdt, node, "microchip,perst-gpio",
+				    ARRAY_SIZE(gpio_info), gpio_info);
+	if (ret) {
+		ERROR("pcie: missing PERST GPIO configuration\n");
+		return ret;
+	}
+
+	/* Sanity check of PERST GPIO information */
+	if (gpio_info[0] > 128 || gpio_info[1] > 7) {
+		WARN("pcie: invalid PERST GPIO configuration\n");
+		return -EINVAL;
+	}
+	cfg->perst_gpio_no = gpio_info[0];
+	cfg->perst_gpio_alt = gpio_info[1];
 
 	cfg->max_link_speed = fdt_read_uint32_default(fdt, node,
 						      "microchip,max-speed", 0);
