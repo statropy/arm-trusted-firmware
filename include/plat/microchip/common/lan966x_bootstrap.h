@@ -39,6 +39,8 @@
 #define BOOTSTRAP_RESET        'e'
 // Send DDR config (BL2U)
 #define BOOTSTRAP_DDR_CFG_SET  'C'
+// DDR init before data (BL2U)
+#define BOOTSTRAP_DDR_INIT     'd'
 // Read DDR config (BL2U)
 #define BOOTSTRAP_DDR_CFG_GET  'c'
 // Perform DDR test (BL2U)

@@ -156,13 +156,9 @@ static void handle_load_data(const bootstrap_req_t *req)
 		return;
 	}
 
-	/* Initialize DDR, possibly with defaults */
+	/* Make sure DDR is ready for data */
 	if (!ddr_was_initialized) {
-		ddr_was_initialized = ddr_init(&current_ddr_config) == 0;
-		if (!ddr_was_initialized) {
-			bootstrap_TxNack("DDR initialization error");
-			return;
-		}
+		bootstrap_TxNack("DDR must be initialized before data is sent");
 	}
 
 	/* Store data at start address of DDR memory (offset 0x0) */
@@ -562,6 +558,63 @@ static void handle_bind(const bootstrap_req_t *req)
 	}
 }
 
+static bool set_cache(bool cache)
+{
+	uint32_t attr;
+#if defined(PLAT_XLAT_TABLES_DYNAMIC)
+	int ret;
+#endif
+
+	attr = MT_RW | MT_NS | MT_EXECUTE_NEVER;
+	if (cache) {
+		attr |= MT_MEMORY;
+	} else {
+		attr |= MT_NON_CACHEABLE;
+	}
+
+#if defined(PLAT_XLAT_TABLES_DYNAMIC)
+	/* 1st remove old mapping */
+	mmap_remove_dynamic_region(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
+
+	/* Add region so attributes are updated */
+	ret = mmap_add_dynamic_region(LAN966X_DDR_BASE, LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE, attr);
+
+	if (ret != 0) {
+		bootstrap_TxNack("DDR mapping error");
+		return false;
+	}
+#else
+	if (cache) {
+		bootstrap_TxNack("No support for enabling the cache");
+		return false;
+	}
+#endif
+
+	return true;
+}
+
+static void handle_ddr_init(bootstrap_req_t *req)
+{
+	/* Initialize DDR, possibly with defaults */
+	/* Anycase, make sure cache is enabled */
+	if (!ddr_was_initialized) {
+		ddr_was_initialized = ddr_init(&current_ddr_config) == 0;
+		if (!ddr_was_initialized) {
+			bootstrap_TxNack("DDR initialization error");
+		} else {
+			if (!set_cache(true))
+				bootstrap_TxNack("CPU data cache could not be enabled");
+			else
+				bootstrap_TxAckStr("DDR was initialized");
+		}
+	} else {
+		if (!set_cache(true))
+			bootstrap_TxNack("CPU data cache could not be enabled");
+		else
+			bootstrap_TxAckStr("DDR already initialized");
+	}
+}
+
 static void handle_ddr_cfg_set(bootstrap_req_t *req)
 {
 #if defined(LAN966X_ASIC) || defined(LAN969X_ASIC)
@@ -588,43 +641,16 @@ static void handle_ddr_cfg_get(bootstrap_req_t *req)
 
 static void handle_ddr_test(bootstrap_req_t *req)
 {
+	bool cache = !!(req->arg0 & 1);
 	uintptr_t err_off;
-	uint32_t attr;
-	bool cache;
-#if defined(PLAT_XLAT_TABLES_DYNAMIC)
-	int ret;
-#endif
 
 	if (!ddr_was_initialized) {
 		bootstrap_TxNack("DDR not initialized");
 		return;
 	}
 
-	attr = MT_RW | MT_NS | MT_EXECUTE_NEVER;
-	cache = !!(req->arg0 & 1);
-	if (cache) {
-		attr |= MT_MEMORY;
-	} else {
-		attr |= MT_NON_CACHEABLE;
-	}
-
-#if defined(PLAT_XLAT_TABLES_DYNAMIC)
-	/* 1st remove old mapping */
-	mmap_remove_dynamic_region(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
-
-	/* Add region so attributes are updated */
-	ret = mmap_add_dynamic_region(LAN966X_DDR_BASE, LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE, attr);
-
-	if (ret != 0) {
-		bootstrap_TxNack("DDR mapping error");
-		return;
-	}
-#else
-	if (cache) {
-		bootstrap_TxNack("No support for enabling the cache");
-		return;
-	}
-#endif
+	if (!set_cache(cache))
+		return;		/* Error */
 
 	/* Now, do tests */
 
@@ -728,6 +754,8 @@ void lan966x_bl2u_bootstrap_monitor(void)
 			handle_otp_random(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTP_READ))	// L - Read OTP data
 			handle_otp_read(&req);
+		else if (is_cmd(&req, BOOTSTRAP_DDR_INIT))	// d - DDR init before data
+			handle_ddr_init(&req);
 		else if (is_cmd(&req, BOOTSTRAP_DDR_CFG_SET))	// C - Set DDR config
 			handle_ddr_cfg_set(&req);
 		else if (is_cmd(&req, BOOTSTRAP_DDR_CFG_GET))	// c - Get DDR config

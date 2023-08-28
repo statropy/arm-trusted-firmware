@@ -23,6 +23,7 @@ const CMD_BL2U_DDR_CFG_GET = 'c';
 const CMD_BL2U_DDR_TEST = 'T';
 const CMD_BL2U_DATA_HASH = 'H';
 const CMD_BL2U_REG_READ = 'x';
+const CMD_BL2U_DDR_INIT = 'd';
 
 let cur_stage = "connect";	// Initial "tab"
 let tracing = false;
@@ -1227,6 +1228,11 @@ function startSerial()
 	if (image.length) {
 	    let s = disableButtons("bl2u", true);
 	    try {
+		// Make sure the DDR is ready
+		await completeRequest(port, fmtReq(CMD_BL2U_DDR_INIT, 0));
+		addTrace("DDR initialized and cache enabled");
+
+		// Then proceed to download
 		await downloadApp(port, image, document.getElementById("binary").checked);
 		// Get data length & hash
 		dld = await getDataInfo(port);
