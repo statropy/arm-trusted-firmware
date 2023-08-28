@@ -24,17 +24,17 @@
 	* In: x0 - console base address
 	*     w1 - Baud rate divisor
 	* Out: return 1 on success else 0 on error
-	* Clobber list : w1
+	* Clobber list : w1, w2
 	* -----------------------------------------------
 	*/
 func console_flexcom_core_init
 	/* Disable the UART interrupt */
-	mov	w1, #0
-	str	w1, [x0, #USART_REG_IDR]
+	mov	w2, #0
+	str	w2, [x0, #USART_REG_IDR]
 
 	/* Skip reset if already at right baud rate */
-	ldr	w0, [x0, #USART_REG_BRGR]
-	cmp	w0, w1
+	ldr	w2, [x0, #USART_REG_BRGR]
+	cmp	w2, w1
 	beq	1f
 
 	/* Configure the baudrate */
