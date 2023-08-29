@@ -16,6 +16,7 @@
 #include <tools_share/firmware_encrypted.h>
 #include <tools_share/uuid.h>
 
+#include <lan96xx_common.h>
 #include <lan966x_sip_svc.h>
 #include <lan966x_sjtag.h>
 #include <lan966x_fw_bind.h>
@@ -35,13 +36,34 @@ DEFINE_SVC_UUID2(microchip_sip_svc_uid,
 		 0x10c149b6, 0xd31c, 0x4626, 0xaa, 0x79,
 		 0x15, 0x5c, 0xe7, 0x50, 0xbb, 0xf3);
 
+#pragma weak microchip_plat_ns_ddr_base
+uintptr_t microchip_plat_ns_ddr_base(void)
+{
+	return PLAT_LAN966X_NS_IMAGE_BASE;
+}
+
+#pragma weak microchip_plat_ns_ddr_size
+size_t microchip_plat_ns_ddr_size(void)
+{
+	return PLAT_LAN966X_NS_IMAGE_SIZE;
+}
+
+#pragma weak microchip_plat_do_reset
+u_register_t microchip_plat_do_reset(u_register_t reset_type)
+{
+	return SMC_ARCH_CALL_NOT_SUPPORTED;
+}
+
 static bool is_ns_ddr(uint32_t size, uintptr_t addr)
 {
-	if (size > PLAT_LAN966X_NS_IMAGE_SIZE)
+	size_t my_size = microchip_plat_ns_ddr_size();
+	uintptr_t my_base = microchip_plat_ns_ddr_base();
+
+	if (size > my_size)
 		return false;
-	if (addr < PLAT_LAN966X_NS_IMAGE_BASE)
+	if (addr < my_base)
 		return false;
-	if (addr + size > PLAT_LAN966X_NS_IMAGE_LIMIT)
+	if ((addr + size) > (my_base + my_size))
 		return false;
 
 	return true;
@@ -269,6 +291,14 @@ static uintptr_t sip_smc_handler(uint32_t smc_fid,
 	case SIP_SVC_NS_DECRYPT:
 		/* Handle NS encryption */
 		return sip_ns_decrypt(x1, x2, handle);
+
+	case SIP_SVC_GET_BOOTSRC:
+		SMC_RET2(handle, SMC_OK, lan966x_get_boot_source());
+		/* break is not required as SMC_RETx return */
+
+	case SIP_SVC_GET_DDR_SIZE:
+		SMC_RET2(handle, SMC_OK, microchip_plat_ns_ddr_size());
+		/* break is not required as SMC_RETx return */
 
 	default:
 		return microchip_plat_sip_handler(smc_fid, x1, x2, x3, x4,

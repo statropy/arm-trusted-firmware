@@ -20,6 +20,8 @@
 #define SIP_SVC_FW_BIND		0x8200ff06
 #define SIP_SVC_NS_ENCRYPT	0x8200ff07
 #define SIP_SVC_NS_DECRYPT	0x8200ff08
+#define SIP_SVC_GET_BOOTSRC	0x8200ff09
+#define SIP_SVC_GET_DDR_SIZE	0x8200ff0a
 
 /* SiP Service Calls version numbers */
 #define SIP_SVC_VERSION_MAJOR	0
@@ -58,5 +60,17 @@ static inline void init_enc_hdr(struct ns_enc_hdr *encp)
 	encp->algo = NS_ENC_ALG_GCM;
 	encp->flags = NS_ENC_WITH_BSSK;
 }
+
+uintptr_t microchip_plat_ns_ddr_base(void);
+size_t microchip_plat_ns_ddr_size(void);
+
+uintptr_t microchip_plat_sip_handler(uint32_t smc_fid,
+				     u_register_t x1,
+				     u_register_t x2,
+				     u_register_t x3,
+				     u_register_t x4,
+				     void *cookie,
+				     void *handle,
+				     u_register_t flags);
 
 #endif

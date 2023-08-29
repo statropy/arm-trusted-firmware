@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <lib/smccc.h>
 
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
@@ -25,7 +26,7 @@
 static entry_point_info_t bl32_image_ep_info;
 static entry_point_info_t bl33_image_ep_info;
 static uintptr_t bl33_image_base;
-static uint32_t mem_size;
+static size_t mem_size;
 
 static char fit_config[128], *fit_config_ptr;
 
@@ -38,6 +39,11 @@ static char fit_config[128], *fit_config_ptr;
 						BL_CODE_BASE,			\
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
+
+size_t microchip_plat_ns_ddr_size(void)
+{
+	return mem_size;
+}
 
 /* FIT platform check of address */
 bool fit_plat_is_ns_addr(uintptr_t addr)
@@ -137,8 +143,6 @@ void bl31_fit_unpack(void)
 		}
 	} else {
 		NOTICE("Direct boot of BL33 binary image\n");
-		bl33_image_ep_info.args.arg0 = 0xbeedcafeULL;
-		bl33_image_ep_info.args.arg1 = mem_size;
 	}
 }
 

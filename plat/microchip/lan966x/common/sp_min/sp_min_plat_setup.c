@@ -14,6 +14,7 @@
 #include <plat/arm/common/plat_arm.h>
 #include <plat/microchip/common/lan966x_gic.h>
 #include <libfit.h>
+#include <lib/smccc.h>
 
 #include <lan966x_private.h>
 #include <fw_config.h>
@@ -23,7 +24,7 @@
 
 static image_info_t bl33_image_info;
 static entry_point_info_t bl33_ep_info;
-static uint32_t mem_size;
+static size_t mem_size;
 
 #define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
 		LAN966X_SRAM_BASE,					\
@@ -53,6 +54,11 @@ static uint32_t mem_size;
 #endif
 
 static char fit_config[128], *fit_config_ptr;
+
+size_t microchip_plat_ns_ddr_size(void)
+{
+	return mem_size;
+}
 
 /* FIT platform check of address */
 bool fit_plat_is_ns_addr(uintptr_t addr)
@@ -104,8 +110,6 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 		}
 	} else {
 		NOTICE("Direct boot of BL33 binary image\n");
-		next_image_info->args.arg0 = 0xbeedcafeULL;
-		next_image_info->args.arg1 = mem_size;
 	}
 
 	return next_image_info;
