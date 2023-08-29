@@ -41,7 +41,7 @@ static const uintptr_t fip_base_addr = LAN966X_DDR_BASE;
 static uint32_t data_rcv_length;
 static struct ddr_config current_ddr_config;
 static const uintptr_t ddr_base_addr = LAN966X_DDR_BASE;
-static bool ddr_was_initialized;
+static bool ddr_was_initialized, cur_cache;
 
 #if defined(MCHP_SOC_LAN969X)
 extern const struct ddr_config lan969x_evb_ddr4_ddr_config;
@@ -565,6 +565,20 @@ static bool set_cache(bool cache)
 	int ret;
 #endif
 
+	if (cache == cur_cache) {
+		NOTICE("Cache already %s\n", cur_cache ? "enabled" : "disabled");
+		return true;
+	}
+
+	/* Handle cache state */
+	if (cur_cache) {
+		/* on -> off: flush */
+		flush_dcache_range(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
+	} else {
+		/* off -> on: Invalidate */
+		inv_dcache_range(LAN966X_DDR_BASE, LAN966X_DDR_MAX_SIZE);
+	}
+
 	attr = MT_RW | MT_NS | MT_EXECUTE_NEVER;
 	if (cache) {
 		attr |= MT_MEMORY;
@@ -590,6 +604,10 @@ static bool set_cache(bool cache)
 	}
 #endif
 
+	/* Update cache state */
+	cur_cache = cache;
+	NOTICE("Cache now %s\n", cur_cache ? "enabled" : "disabled");
+
 	return true;
 }
 
@@ -598,6 +616,7 @@ static void handle_ddr_init(bootstrap_req_t *req)
 	/* Initialize DDR, possibly with defaults */
 	/* Anycase, make sure cache is enabled */
 	if (!ddr_was_initialized) {
+		set_cache(false);
 		ddr_was_initialized = ddr_init(&current_ddr_config) == 0;
 		if (!ddr_was_initialized) {
 			bootstrap_TxNack("DDR initialization error");
