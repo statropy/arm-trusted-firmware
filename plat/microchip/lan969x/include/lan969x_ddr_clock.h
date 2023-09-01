@@ -11,10 +11,10 @@
 
 typedef struct {
 	uint32_t clock;
-	uint8_t divfi;
-	uint32_t divff;
 	uint8_t divq;
 	uint8_t divr;
+	uint8_t divfi;
+	uint32_t divff;
 } pll_cfg_t;
 
 const pll_cfg_t *lan969x_ddr_get_clock_cfg(int freq_mhz);
