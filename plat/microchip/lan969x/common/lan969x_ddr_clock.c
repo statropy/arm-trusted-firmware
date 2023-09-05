@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <lan969x_ddr_clock.h>
 #include <lib/mmio.h>
+#include <drivers/delay_timer.h>
 
 #include "lan969x_regs.h"
 
@@ -15,22 +16,18 @@
 static const pll_cfg_t pll_settings[2][DDR_CLK_OPTIONS] = {
 	{
 		/* 25 MHz reference clock */
-		{1066, 62, 16106127, 12, 3}, /* Actual 266,5 => ddr_speed/4 */
-		{1333, 65, 10905190, 10, 3}, /* Actual 333,25 => ddr_speed/4 */
-		{1600, 71,        0,  9, 3}, /* Actual 400 => ddr_speed/4 */
-		{1866, 64,  5200937,  7, 3}, /* Actual 466,5 => ddr_speed/4 */
-		{2133, 62, 16609444,  6, 3}, /* Actual 533,25 => ddr_speed/4 */
-		{2400, 71,        0,  6, 3}, /* Actual 600 => ddr_speed/4 */
-		{2666, 65, 10905190,  5, 3}, /* Actual 666,50 => ddr_speed/4 */
+		{1600, 6, 3, 47, 0},         /* Actual 400 => ddr_speed/4 */
+		{1866, 6, 3, 54, 16441672},  /* Actual 466,5 => ddr_speed/4 */
+		{2133, 6, 3, 62, 16609444},  /* Actual 533,25 => ddr_speed/4 */
+		{2400, 6, 3, 71, 0},	     /* Actual 600 => ddr_speed/4 */
+		{2666, 6, 3, 78, 16441672},  /* Actual 666,50 => ddr_speed/4 */
 	}, {
 		/* 39 MHz reference clock */
-		{1066, 70, 10656888, 12, 6}, /* Actual 266,5 => ddr_speed/4 */
-		{1333, 73, 10871636, 10, 6}, /* Actual 333,25 => ddr_speed/4 */
-		{1600, 79, 10737418,  9, 6}, /* Actual 400 => ddr_speed/4 */
-		{1866, 72,  2469606,  7, 6}, /* Actual 466,5 => ddr_speed/4 */
-		{2133, 70, 11220602,  6, 6}, /* Actual 533,25 => ddr_speed/4 */
-		{2400, 79, 10737418,  6, 6}, /* Actual 600 => ddr_speed/4 */
-		{2666, 73, 10871636,  5, 6}, /* Actual 666,50 => ddr_speed/4 */
+		{1600, 6, 6, 52, 12750684},  /* Actual 400 => ddr_speed/4 */
+		{1866, 6, 6, 61, 11703786},  /* Actual 466,5 => ddr_speed/4 */
+		{2133, 6, 6, 70, 11220602},  /* Actual 533,25 => ddr_speed/4 */
+		{2400, 6, 6, 79, 10737418},  /* Actual 600 => ddr_speed/4 */
+		{2666, 6, 6, 88, 9690520},   /* Actual 666,50 => ddr_speed/4 */
 	}
 };
 
@@ -53,7 +50,7 @@ const pll_cfg_t *lan969x_ddr_get_clock_cfg(int freq_mhz)
 
 void lan969x_ddr_set_clock_cfg(const pll_cfg_t *pll)
 {
-	uint8_t w;
+	uint32_t w, max;
 
 	/* Configure divfi, divff */
 	mmio_write_32(CHIP_TOP_DDR_PLL_FREQ_CFG(LAN969X_CHIP_TOP_BASE),
@@ -71,16 +68,32 @@ void lan969x_ddr_set_clock_cfg(const pll_cfg_t *pll)
 	mmio_setbits_32(CHIP_TOP_DDR_PLL_CFG(LAN969X_CHIP_TOP_BASE),
 			CHIP_TOP_DDR_PLL_CFG_ENA_CFG(1));
 
-	/* Toggle bypass to update output clock */
-	mmio_setbits_32(CHIP_TOP_DDR_PLL_FREQ_CFG(LAN969X_CHIP_TOP_BASE),
-			CHIP_TOP_DDR_PLL_FREQ_CFG_BYPASS_ENA(1U));
-	mmio_clrbits_32(CHIP_TOP_DDR_PLL_FREQ_CFG(LAN969X_CHIP_TOP_BASE),
-			CHIP_TOP_DDR_PLL_FREQ_CFG_BYPASS_ENA(1U));
+	/* Enable glitch free operation */
+	mmio_setbits_32(CHIP_TOP_DDR_PLL_CFG(LAN969X_CHIP_TOP_BASE),
+			CHIP_TOP_DDR_PLL_CFG_NEWDIV(1));
 
-	/* Wait for lock */
-	do {
+	/* Wait for DIVACK */
+	for (max = 20; max > 0; udelay(1)) {
 		w = mmio_read_32(CHIP_TOP_DDR_PLL_CFG(LAN969X_CHIP_TOP_BASE));
-	} while (CHIP_TOP_DDR_PLL_CFG_LOCK_STAT_X(w) == 0);
+		if (CHIP_TOP_DDR_PLL_CFG_DIVACK_X(w) == 1)
+			break;
+		if (--max == 0)
+			ERROR("clock: Timeout waiting for DIVACK\n");
+	}
+
+	/* Clear NEWDIV + ENA_CFG */
+	mmio_clrbits_32(CHIP_TOP_DDR_PLL_CFG(LAN969X_CHIP_TOP_BASE),
+			CHIP_TOP_DDR_PLL_CFG_ENA_CFG(1) |
+			CHIP_TOP_DDR_PLL_CFG_NEWDIV(1));
+
+	/* Wait for LOCK */
+	for (max = 20; max > 0; udelay(1)) {
+		w = mmio_read_32(CHIP_TOP_DDR_PLL_CFG(LAN969X_CHIP_TOP_BASE));
+		if (CHIP_TOP_DDR_PLL_CFG_LOCK_STAT_X(w) == 1)
+			break;
+		if (--max == 0)
+			ERROR("clock: Timeout waiting for LOCK\n");
+	}
 
 	INFO("Configured clock to %d MHz\n", pll->clock);
 }
