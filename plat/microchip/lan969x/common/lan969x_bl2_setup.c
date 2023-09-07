@@ -21,6 +21,7 @@
 #include "lan969x_private.h"
 #include "lan969x_regs.h"
 #include "lan969x_memmap.h"
+#include "plat_otp.h"
 
 /* Data structure which holds the extents of the trusted SRAM for BL2 */
 static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
@@ -114,6 +115,18 @@ void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_
 	bl2_early_platform_setup();
 }
 
+void lan969x_uvov_configure(void)
+{
+	uint32_t v;
+
+	/* 24:19 UVOV_MAG_TRIM => CFG (using legacy GPIOA field) */
+	v = otp_read_uvov_gpioa_trim();
+	VERBOSE("UVOV: mag_trim = %d\n", v);
+	mmio_clrsetbits_32(UVOV_TUNE(LAN969X_UVOV_BASE),
+			   UVOV_TUNE_TUNE_M_M,
+			   UVOV_TUNE_TUNE_M(v));
+}
+
 void bl2_platform_setup(void)
 {
 	/* IO */
@@ -121,6 +134,9 @@ void bl2_platform_setup(void)
 
 	/* SJTAG: Freeze mode and configuration */
 	lan966x_sjtag_configure();
+
+	/* UVOV OTP */
+	lan969x_uvov_configure();
 
 	/* Init tzpm */
 	lan969x_tz_init();
