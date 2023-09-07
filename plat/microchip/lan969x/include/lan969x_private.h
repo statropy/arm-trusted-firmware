@@ -10,6 +10,12 @@
 #include <stdint.h>
 #include <lan96xx_common.h>
 
+/* BL2 -> BL31 */
+typedef struct {
+	uint32_t ddr_size;
+	uint32_t board_number;
+} bl31_params_t;
+
 void lan969x_set_max_trace_level(void);
 
 void lan969x_console_init(void);

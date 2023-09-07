@@ -12,6 +12,10 @@
 	#address-cells = <1>;
 	#size-cells = <1>;
 
+	board: board {
+		board-number = <100>; /* For DT-based board identification */
+	};
+
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;

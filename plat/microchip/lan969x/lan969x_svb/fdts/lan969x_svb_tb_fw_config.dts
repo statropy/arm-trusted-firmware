@@ -28,3 +28,7 @@
 		spi-rx-bus-width = <4>;
 	};
 };
+
+&board {
+	board-number = <200>; /* Unable to probe SVB correctly */
+};

@@ -26,7 +26,7 @@
 static entry_point_info_t bl32_image_ep_info;
 static entry_point_info_t bl33_image_ep_info;
 static uintptr_t bl33_image_base;
-static size_t mem_size;
+static bl31_params_t bl31_params;
 
 static char fit_config[128], *fit_config_ptr;
 
@@ -42,7 +42,12 @@ static char fit_config[128], *fit_config_ptr;
 
 size_t microchip_plat_ns_ddr_size(void)
 {
-	return mem_size;
+	return bl31_params.ddr_size;
+}
+
+u_register_t microchip_plat_board_number(void)
+{
+	return bl31_params.board_number;
 }
 
 /* FIT platform check of address */
@@ -125,7 +130,7 @@ void bl31_fit_unpack(void)
 		    fit_load(&fit, FITIMG_PROP_KERNEL_TYPE) == EXIT_SUCCESS) {
 			/* Fixup DT, but allow to fail */
 			fit_fdt_update(&fit, PLAT_LAN969X_NS_IMAGE_BASE,
-				       mem_size,
+				       bl31_params.ddr_size,
 				       bootargs);
 			NOTICE("Preparing to boot 64-bit Linux kernel\n");
 			/*
@@ -150,9 +155,14 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 				u_register_t arg2, u_register_t arg3)
 {
 	void *from_bl2 = (void *) arg0;
+	bl31_params_t *params_bl2 = (bl31_params_t *) arg1;
 
-	/* Save actual memory size */
-	mem_size = arg1 ?: PLAT_LAN969X_NS_IMAGE_SIZE;
+	/* Save bl31 params */
+	if (params_bl2)
+		bl31_params = *params_bl2;
+	else {
+		bl31_params.ddr_size = PLAT_LAN969X_NS_IMAGE_SIZE;
+	}
 
 	/* Enable arch timer */
 	generic_delay_timer_init();
