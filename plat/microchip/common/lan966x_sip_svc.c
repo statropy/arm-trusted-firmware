@@ -48,10 +48,10 @@ size_t microchip_plat_ns_ddr_size(void)
 	return PLAT_LAN966X_NS_IMAGE_SIZE;
 }
 
-#pragma weak microchip_plat_do_reset
-u_register_t microchip_plat_do_reset(u_register_t reset_type)
+#pragma weak microchip_plat_board_number
+u_register_t microchip_plat_board_number(void)
 {
-	return SMC_ARCH_CALL_NOT_SUPPORTED;
+	return 0;
 }
 
 static bool is_ns_ddr(uint32_t size, uintptr_t addr)
@@ -298,6 +298,10 @@ static uintptr_t sip_smc_handler(uint32_t smc_fid,
 
 	case SIP_SVC_GET_DDR_SIZE:
 		SMC_RET2(handle, SMC_OK, microchip_plat_ns_ddr_size());
+		/* break is not required as SMC_RETx return */
+
+	case SIP_SVC_GET_BOARD_NO:
+		SMC_RET2(handle, SMC_OK, microchip_plat_board_number());
 		/* break is not required as SMC_RETx return */
 
 	default:
