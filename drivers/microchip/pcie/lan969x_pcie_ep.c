@@ -711,7 +711,7 @@ static int pcie_ep_serdes_init(void)
 			   PCIE_PHY_PCS_PHY_LINK_61_R_TAP_MAIN(0x1));
 	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_60(pcie_phy_pcs),
 			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_DLY_ADJ_EN_M,
-			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_DLY_ADJ_EN(0x1));
+			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_DLY_ADJ_EN(0x1U));
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_04(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_LANE_04_CFG_TAP_DLY_4_0_M,
 			   PCIE_PHY_PMA_PMA_LANE_04_CFG_TAP_DLY_4_0(0xE));
