@@ -778,10 +778,11 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 
 	switch (image_id) {
 	case BL32_IMAGE_ID:
-		//bl_mem_params->ep_info.args.arg0 = 0xdeadbeef;
 		bl32_params.fw_config = &lan966x_fw_config;
 		bl32_params.ddr_size = lan966x_ddr_size();
 		bl_mem_params->ep_info.args.arg1 = (uintptr_t) &bl32_params;
+		/* Passed between contexts */
+		flush_dcache_range(bl_mem_params->ep_info.args.arg1, sizeof(bl32_params));
 		break;
 	case BL33_IMAGE_ID:
 		src = lan966x_get_boot_source();
