@@ -776,32 +776,39 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 
 	assert(bl_mem_params);
 
+	src = lan966x_get_boot_source();
+	switch (src) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		off = fip_mmc_block_spec.offset;
+		break;
+	case BOOT_SOURCE_QSPI:
+		off = fip_qspi_block_spec.offset - LAN966X_QSPI0_MMAP;
+		break;
+	default:
+		off = 0xFFFFFFFF; /* Undefined offset */
+	}
+
 	switch (image_id) {
 	case BL32_IMAGE_ID:
 		bl32_params.fw_config = &lan966x_fw_config;
 		bl32_params.ddr_size = lan966x_ddr_size();
+		bl32_params.boot_offset = off;
 		bl_mem_params->ep_info.args.arg1 = (uintptr_t) &bl32_params;
 		/* Passed between contexts */
 		flush_dcache_range(bl_mem_params->ep_info.args.arg1, sizeof(bl32_params));
 		break;
 	case BL33_IMAGE_ID:
-		src = lan966x_get_boot_source();
-		switch (src) {
-		case BOOT_SOURCE_EMMC:
-		case BOOT_SOURCE_SDMMC:
-			off = fip_mmc_block_spec.offset;
-			break;
-		case BOOT_SOURCE_QSPI:
-			off = fip_qspi_block_spec.offset - LAN966X_QSPI0_MMAP;
-			break;
-		default:
-			off = 0xFFFFFFFF; /* Undefined offset */
-		}
 		/* Use GPR(1) and GPR(2) as BL33 might be linux */
 		/* src 31:16 is 'afea' as 'magic' */
+		/* The GPR(x) interface is kept to be backwards compatible */
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 1), 0xAFEA0000 | src);
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), off);
 		INFO("GPR: Set 'Loaded From' = src %d, offset %08x\n", src, off);
+		/* BL33 may update the boot offset */
+		bl32_params.boot_offset = off;
+		/* Passed between contexts */
+		flush_dcache_range((uintptr_t) &bl32_params, sizeof(bl32_params));
 		break;
 	default:
 		/* Do nothing in default case */

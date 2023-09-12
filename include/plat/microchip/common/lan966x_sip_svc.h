@@ -23,6 +23,7 @@
 #define SIP_SVC_GET_BOOTSRC	0x8200ff09
 #define SIP_SVC_GET_DDR_SIZE	0x8200ff0a
 #define SIP_SVC_GET_BOARD_NO	0x8200ff0b
+#define SIP_SVC_GET_BOOT_OFF	0x8200ff0c
 
 /* SiP Service Calls version numbers */
 #define SIP_SVC_VERSION_MAJOR	0
@@ -65,6 +66,7 @@ static inline void init_enc_hdr(struct ns_enc_hdr *encp)
 uintptr_t microchip_plat_ns_ddr_base(void);
 size_t microchip_plat_ns_ddr_size(void);
 u_register_t microchip_plat_board_number(void);
+u_register_t microchip_plat_boot_offset(void);
 
 uintptr_t microchip_plat_sip_handler(uint32_t smc_fid,
 				     u_register_t x1,

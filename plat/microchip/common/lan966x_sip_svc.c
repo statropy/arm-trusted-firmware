@@ -54,6 +54,12 @@ u_register_t microchip_plat_board_number(void)
 	return 0;
 }
 
+#pragma weak microchip_plat_boot_offset
+u_register_t microchip_plat_boot_offset(void)
+{
+	return 0;
+}
+
 static bool is_ns_ddr(uint32_t size, uintptr_t addr)
 {
 	size_t my_size = microchip_plat_ns_ddr_size();
@@ -302,6 +308,12 @@ static uintptr_t sip_smc_handler(uint32_t smc_fid,
 
 	case SIP_SVC_GET_BOARD_NO:
 		SMC_RET2(handle, SMC_OK, microchip_plat_board_number());
+		/* break is not required as SMC_RETx return */
+
+	case SIP_SVC_GET_BOOT_OFF:
+		SMC_RET3(handle, SMC_OK,
+			 lan966x_get_boot_source(),
+			 microchip_plat_boot_offset());
 		/* break is not required as SMC_RETx return */
 
 	default:

@@ -726,3 +726,8 @@ done:
 
 	return result;
 }
+
+size_t lan966x_get_boot_offset(void)
+{
+	return fip_block_spec.offset;
+}

@@ -14,6 +14,7 @@
 typedef struct {
 	uint32_t ddr_size;
 	uint32_t board_number;
+	size_t boot_offset;
 } bl31_params_t;
 
 void lan969x_set_max_trace_level(void);
@@ -28,6 +29,8 @@ void lan966x_bootstrap_monitor(void);
 void lan966x_ddr_init(void *fdt);
 
 uint32_t lan966x_ddr_size(void);
+
+size_t lan966x_get_boot_offset(void);
 
 void lan969x_tz_init(void);
 

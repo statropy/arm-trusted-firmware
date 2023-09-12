@@ -62,6 +62,7 @@ bl_params_t *plat_get_next_bl_params(void)
 	/* Setup arg1 beeing bl31 params struct */
 	bl31_params.ddr_size = lan966x_ddr_size();
 	bl31_params.board_number = plat_get_board(lan966x_get_dt());
+	bl31_params.boot_offset = lan966x_get_boot_offset();
 	ep_info->args.arg1 = (uintptr_t) &bl31_params;
 	/* Passed between contexts */
 	flush_dcache_range(ep_info->args.arg1, sizeof(bl31_params));

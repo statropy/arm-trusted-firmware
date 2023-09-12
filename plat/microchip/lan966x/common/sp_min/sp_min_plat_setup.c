@@ -25,6 +25,7 @@
 static image_info_t bl33_image_info;
 static entry_point_info_t bl33_ep_info;
 static size_t mem_size;
+static size_t boot_offset;
 
 #define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
 		LAN966X_SRAM_BASE,					\
@@ -58,6 +59,11 @@ static char fit_config[128], *fit_config_ptr;
 size_t microchip_plat_ns_ddr_size(void)
 {
 	return mem_size;
+}
+
+u_register_t microchip_plat_boot_offset(void)
+{
+	return boot_offset;
 }
 
 /* FIT platform check of address */
@@ -186,6 +192,8 @@ void params_early_setup(u_register_t plat_param_from_bl2)
 	} else {
 		mem_size = PLAT_LAN966X_NS_IMAGE_SIZE;
 	}
+
+	boot_offset = bl32_params->boot_offset;
 }
 
 static void lan966x_params_parse_helper(u_register_t param,

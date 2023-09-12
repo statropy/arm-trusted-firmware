@@ -24,6 +24,7 @@ extern shared_memory_desc_t shared_memory_desc;
 typedef struct {
 	void     *fw_config;
 	uint32_t ddr_size;
+	size_t   boot_offset;
 } bl32_params_t;
 
 void lan966x_set_max_trace_level(void);

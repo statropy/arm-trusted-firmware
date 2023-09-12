@@ -50,6 +50,11 @@ u_register_t microchip_plat_board_number(void)
 	return bl31_params.board_number;
 }
 
+u_register_t microchip_plat_boot_offset(void)
+{
+	return bl31_params.boot_offset;
+}
+
 /* FIT platform check of address */
 bool fit_plat_is_ns_addr(uintptr_t addr)
 {
