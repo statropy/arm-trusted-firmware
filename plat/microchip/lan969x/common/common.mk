@@ -151,6 +151,10 @@ CRASH_REPORTING			:= 1
 
 TRNG_SUPPORT			:= 1
 
+# Non-volatile counter values
+TFW_NVCTR_VAL			?=	2
+NTFW_NVCTR_VAL			?=	3
+
 # Enable stack protection
 ENABLE_STACK_PROTECTOR	 	:= strong
 
