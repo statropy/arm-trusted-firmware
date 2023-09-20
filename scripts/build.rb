@@ -28,6 +28,47 @@ platforms = {
         :nor_gpt_size   => 2*(1024 * 1024) ],
 }
 
+UNIT_1K = 1024
+UNIT_1M = UNIT_1K * UNIT_1K
+UNIT_1G = UNIT_1K * UNIT_1M
+
+mmc_part = [
+    Hash[
+        'name'	=> "fip",
+        'size'	=> 128 * UNIT_1M,
+    ],
+    Hash[
+        'name'	=> "fip.bak",
+        'size'	=> 128 * UNIT_1M,
+    ],
+    Hash[
+        'name'	=> "Env",
+        'size'	=> 2 * UNIT_1M,
+    ],
+    Hash[
+        'name'	=> "Env.bak",
+        'size'	=> 2 * UNIT_1M,
+    ],
+    Hash[
+        'name'	=> "Boot0",
+        'size'	=> UNIT_1G,
+        'type'	=> "ext4",
+    ],
+    Hash[
+        'name'	=> "Boot1",
+        'size'	=> UNIT_1G,
+        'type'	=> "ext4",
+    ],
+    Hash[
+        'name'	=> "Data",
+        'size'	=> 0,           # Extend
+        'type'	=> "ext4",
+    ],
+]
+
+# Assume 4G = 3.6GiB eMMC capacity
+mmc_gpt_size = 3 * UNIT_1G + 648 * UNIT_1M
+
 architectures = {
     "arm" => Hash[
         :bsp_arch => "arm",
@@ -312,6 +353,49 @@ def make_gpt(fip, gptfile, linux_boot)
     do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
 end
 
+def make_gpt_table(parts, gptfile, fip, dev_size)
+    align_blocks = 2048
+    max_blocks = (dev_size / 512) - 64
+    # Iterate partitions and calculate sector-based size
+    sum = 0
+    parts.each do |p|
+        size = p['size']
+        if (size % 512) != 0
+            raise "Uneven partition #{p['name']} at size #{size}"
+        end
+        if size == 0
+            p['blocks'] = max_blocks - sum - align_blocks
+        else
+            # To blocks
+            size /= 512
+            # Align partitions to multiple of 2048
+            size = (size / 2048.0).ceil() * 2048;
+            p['blocks'] = size
+        end
+        sum += size
+    end
+    # Create partition file of appropriate size
+    do_cmd("dd if=/dev/zero of=#{gptfile} conv=sparse bs=1M count=#{dev_size / UNIT_1M}")
+    do_cmd("parted -s #{gptfile} mktable gpt")
+    p_start = align_blocks
+    # Create each partition, fill only "fip" with data
+    parts.each do |p|
+        type = p['type'] ? p['type'] : ""
+        p_end = p_start +  p['blocks'] - 1
+        do_cmd("parted -s #{gptfile} --align minimal mkpart #{p['name']} #{type} #{p_start}s #{p_end}s")
+        # Fill with data?
+        if p['name'] == "fip"
+            do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=512 conv=notrunc")
+        end
+        p_start = p_end + 1
+    end
+    # Truncate all but GPT and first fip
+    cutoff = 512 * (align_blocks + parts[0]['blocks'])
+    do_cmd("truncate -s #{cutoff} #{gptfile}")
+    do_cmd("gdisk -l #{gptfile}")
+    do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
+end
+
 pdef = platforms[$option[:platform]]
 raise "Unknown platform: #{$option[:platform]}" unless pdef
 $arch = architectures[pdef[:arch]]
@@ -492,7 +576,8 @@ if pdef[:nor_gpt_size]
 end
 
 # MMC GPT file - normal + linux
-make_gpt(fip, "#{build}/mmc.gpt", false)
+make_gpt_table(mmc_part, "#{build}/mmc.gpt", fip, mmc_gpt_size)
+
 if File.exist?(fip_linux)
     make_gpt(fip_linux, "#{build}/mmc-linux.gpt", true)
 end
