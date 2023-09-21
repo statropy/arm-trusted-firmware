@@ -40,15 +40,25 @@ BLOCK_SIZE = 512
 # aligned and sized to this magnitude.
 GPT_ALIGN_BLOCKS = 2048
 
+# Size of GPT tables reserved for partitions
+GPT_TABLE_SIZE = 34
+
 mmc_part = [
-    { 'name' => "fip",     'size' => 128 * UNIT_1M, },
-    { 'name' => "fip.bak", 'size' => 128 * UNIT_1M, },
-    { 'name' => "Env",     'size' => 2 * UNIT_1M, },
-    { 'name' => "Env.bak", 'size' => 2 * UNIT_1M, },
-    { 'name' => "Boot0",   'size' => UNIT_1G, 'type' => "ext4", },
-    { 'name' => "Boot1",   'size' => UNIT_1G, 'type' => "ext4", },
+    { name: "fip",     size: 128 * UNIT_1M, },
+    { name: "fip.bak", size: 128 * UNIT_1M, },
+    { name: "Env",     size: 2 * UNIT_1M, },
+    { name: "Env.bak", size: 2 * UNIT_1M, },
+    { name: "Boot0",   size: UNIT_1G, 'type': "ext4", },
+    { name: "Boot1",   size: UNIT_1G, 'type': "ext4", },
     # Last partition extend till end
-    { 'name' => "Data",    'size' => 0, 'type'	=> "ext4", },
+    { name: "Data",    size: 0, 'type'	=> "ext4", },
+]
+
+nor_part = [
+    { name: "fip",     size: 960 * UNIT_1K, },
+    { name: "fip.bak", size: 960 * UNIT_1K, },
+    # Last partition extend till end
+    { name: "Env",     size: -0, },
 ]
 
 # Assume 4G = 3.6GiB eMMC capacity
@@ -246,51 +256,55 @@ def align_block(nblocks, align)
     return (nblocks.fdiv(align).ceil()) * align
 end
 
-def make_gpt_image(parts, gptfile, part_data, dev_size, truncate_part)
-    max_blocks = (dev_size / BLOCK_SIZE) - GPT_ALIGN_BLOCKS
+def make_gpt_image(parts, gptfile, part_data, dev_size, align_blocks, truncate_part)
+    # Reserve primary and backup tables
+    max_blocks = (dev_size / BLOCK_SIZE) - 2*align_block(GPT_TABLE_SIZE, align_blocks)
     # Iterate partitions and calculate sector-based size
     sum = 0
     parts.each do |p|
-        size = p['size']
+        size = p[:size]
         if (size % BLOCK_SIZE) != 0
-            raise "Uneven partition #{p['name']} at size #{size}"
+            raise "Uneven partition #{p[:name]} at size #{size}"
         end
         if size == 0
-            p['blocks'] = max_blocks - sum - GPT_ALIGN_BLOCKS
+            p[:blocks] = max_blocks - sum - align_blocks
         else
             # To blocks
             size /= BLOCK_SIZE
             # Align partitions to multiple of 2048
-            size = (size / GPT_ALIGN_BLOCKS.to_f).ceil() * GPT_ALIGN_BLOCKS;
-            p['blocks'] = size
+            size = (size / align_blocks.to_f).ceil() * align_blocks;
+            p[:blocks] = size
         end
         sum += size
     end
     # Create partition file of appropriate size
     do_cmd("dd if=/dev/zero of=#{gptfile} conv=sparse bs=1M count=#{dev_size / UNIT_1M}")
     do_cmd("parted -s #{gptfile} mktable gpt")
-    p_start = GPT_ALIGN_BLOCKS
-    # Create each partition, fill only "fip" with data
+    # Reserve first 34 blocks for primary partition table
+    p_start = align_block(GPT_TABLE_SIZE, align_blocks)
+    # Create each partition, fill some with data
     parts.each do |p|
-        name = p['name']
-        type = p['type'] ? p['type'] : ""
-        p_end = p_start +  p['blocks'] - 1
+        name = p[:name]
+        type = p[:type] ? p[:type] : ""
+        p_end = p_start +  p[:blocks] - 1
         do_cmd("parted -s #{gptfile} --align minimal mkpart #{name} #{type} #{p_start}s #{p_end}s")
         # Fill with data?
         if data = part_data.fetch(name, false)
             # Convert data size to sectors
             data_size = File.size?(data)
-            data_blocks = align_block((data_size / BLOCK_SIZE.to_f).ceil(), GPT_ALIGN_BLOCKS)
-            p['data_blocks'] = data_blocks
-            raise "#{name}: partion data (#{data_blocks}) exceeds capacity (#{p['blocks']})" if data_blocks > p['blocks']
+            data_blocks = align_block((data_size / BLOCK_SIZE.to_f).ceil(), align_blocks)
+            p[:data_blocks] = data_blocks
+            raise "#{name}: partion data (#{data_blocks}) exceeds capacity (#{p[:blocks]})" if data_blocks > p[:blocks]
             do_cmd("dd status=none if=#{data} of=#{gptfile} seek=#{p_start} bs=#{BLOCK_SIZE} conv=notrunc")
         end
-        p['start_offset'] = p_start
+        p[:start_offset] = p_start
         p_start = p_end + 1
     end
     # Truncate after the last data block of partition data
-    cutoff = BLOCK_SIZE * (GPT_ALIGN_BLOCKS + parts[truncate_part]['start_offset'] + parts[truncate_part]['data_blocks'])
-    do_cmd("truncate -s #{cutoff} #{gptfile}")
+    if truncate_part
+        cutoff = BLOCK_SIZE * (align_blocks + parts[truncate_part][:start_offset] + parts[truncate_part][:data_blocks])
+        do_cmd("truncate -s #{cutoff} #{gptfile}")
+    end
     do_cmd("gdisk -l #{gptfile}")
     do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
 end
@@ -435,53 +449,18 @@ end
 
 if pdef[:nor_gpt_size]
     gptfile = "#{build}/nor.gpt"
-    # Size of NOR
-    size = pdef[:nor_gpt_size]
-    # Alignment in blocks (erase-size)
-    align_blocks = 4096 / BLOCK_SIZE;
-    # Size in blocks
-    total_blocks = (size / BLOCK_SIZE.to_f).ceil();
-    # Create partition file of appropriate size
-    do_cmd("dd if=/dev/zero of=#{gptfile} bs=#{BLOCK_SIZE} count=#{total_blocks}")
-    do_cmd("parted -s #{gptfile} mktable gpt")
-    # FIP size
-    fip_size = File.size?(fip)
-    # Convert size to sectors
-    fip_blocks = align_block((fip_size / BLOCK_SIZE.to_f).ceil(), align_blocks)
-    # Reserve first 34 blocks for partition table
-    partsize = 34
-    # Add fip
-    p_start = align_block(partsize, align_blocks)
-    p_end = p_start + fip_blocks - 1
-    do_cmd("parted -s #{gptfile} --align minimal mkpart fip #{p_start}s #{p_end}s")
-    # Inject data
-    do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=#{BLOCK_SIZE} conv=notrunc")
-    # Add second backup partition
-    p_start += fip_blocks
-    p_end += fip_blocks
-    do_cmd("parted -s #{gptfile} --align minimal mkpart fip.bak #{p_start}s #{p_end}s")
-    # Inject data
-    do_cmd("dd status=none if=#{fip} of=#{gptfile} seek=#{p_start} bs=#{BLOCK_SIZE} conv=notrunc")
-    # Environment
-    p_start = total_blocks - ((128 * 1024) / BLOCK_SIZE);
-    # Check for overflow
-    if p_end >= p_start
-        raise "GPT FIP overflow, #{p_end} >= #{p_start}"
-    end
-    p_end = total_blocks - align_block(partsize, align_blocks)
-    do_cmd("parted -s #{gptfile} --align minimal mkpart Env #{p_start}s #{p_end}s")
-    do_cmd("parted -s #{gptfile} unit s print all")
-    do_cmd("gzip < #{gptfile} > #{gptfile}.gz")
+    part_data = { 'fip' => fip, 'fip.bak' => fip }
+    make_gpt_image(nor_part, "#{build}/nor.gpt", part_data, pdef[:nor_gpt_size], 4096 / BLOCK_SIZE, false)
 end
 
 # MMC GPT file - normal + linux
 part_data = { 'fip' => fip }
-make_gpt_image(mmc_part, "#{build}/mmc.gpt", part_data, mmc_gpt_size, 0)
+make_gpt_image(mmc_part, "#{build}/mmc.gpt", part_data, mmc_gpt_size, GPT_ALIGN_BLOCKS, 0)
 
 if File.exist?(fip_linux)
     part_data = { 'fip' => fip_linux, 'fip.bak' => fip_linux,
                   'Boot0' => $sdk_dir + $arch[:linux] + "rootfs.ext4" }
-    make_gpt_image(mmc_part, "#{build}/mmc-linux.gpt", part_data, mmc_gpt_size, 4)
+    make_gpt_image(mmc_part, "#{build}/mmc-linux.gpt", part_data, mmc_gpt_size, GPT_ALIGN_BLOCKS, 4)
 end
 
 # DT's
