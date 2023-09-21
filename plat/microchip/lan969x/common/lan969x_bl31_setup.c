@@ -125,7 +125,7 @@ int fit_plat_uncompress(const struct fit_context *fit, uintptr_t dst,
 
 void bl31_fit_unpack(void)
 {
-	const char *bootargs = "console=ttyAT0,115200 root=/dev/mmcblk0p4 rw rootwait loglevel=8";
+	const char *bootargs = "console=ttyAT0,115200 root=/dev/mmcblk0p5 rw rootwait loglevel=8";
 	struct fit_context fit;
 
 	if (fit_init_context(&fit, bl33_image_base) == EXIT_SUCCESS) {

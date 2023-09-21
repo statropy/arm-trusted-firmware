@@ -82,7 +82,7 @@ bool fit_plat_is_ns_addr(uintptr_t addr)
  ******************************************************************************/
 entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 {
-	const char *bootargs = "console=ttyS0,115200 root=/dev/mmcblk0p4 rw rootwait loglevel=8";
+	const char *bootargs = "console=ttyS0,115200 root=/dev/mmcblk0p5 rw rootwait loglevel=8";
 	struct fit_context fit;
 	entry_point_info_t *next_image_info = &bl33_ep_info;
 	image_info_t *image = &bl33_image_info;
