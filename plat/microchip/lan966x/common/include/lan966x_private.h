@@ -20,12 +20,15 @@ typedef struct {
 
 extern shared_memory_desc_t shared_memory_desc;
 
-/* BL2 -> BL32 */
+/* BL2 -> BL32, using GPR(3-5) */
+/* NOTE: Never delete members, add new data at end */
 typedef struct {
-	void     *fw_config;
 	uint32_t ddr_size;
 	size_t   boot_offset;
 } bl32_params_t;
+
+/* GPR(3) = tag below, GPR(4) = size, GPR(5) = ptr */
+#define BL32_PTR_TAG	0xabedcafe
 
 void lan966x_set_max_trace_level(void);
 void lan966x_reset_max_trace_level(void);

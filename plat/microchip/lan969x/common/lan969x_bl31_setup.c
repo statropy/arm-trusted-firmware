@@ -163,7 +163,9 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	bl31_params_t *params_bl2 = (bl31_params_t *) arg1;
 
 	/* Save bl31 params */
-	if (params_bl2)
+	if (params_bl2 &&
+	    params_bl2->magic == BL31_MAGIC_TAG &&
+	    params_bl2->size == sizeof(bl31_params_t))
 		bl31_params = *params_bl2;
 	else {
 		bl31_params.ddr_size = PLAT_LAN969X_NS_IMAGE_SIZE;

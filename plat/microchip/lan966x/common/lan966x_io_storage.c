@@ -791,12 +791,16 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 
 	switch (image_id) {
 	case BL32_IMAGE_ID:
-		bl32_params.fw_config = &lan966x_fw_config;
+		bl_mem_params->ep_info.args.arg1 = (uintptr_t) &lan966x_fw_config;
+		/* Setup params struct */
 		bl32_params.ddr_size = lan966x_ddr_size();
 		bl32_params.boot_offset = off;
-		bl_mem_params->ep_info.args.arg1 = (uintptr_t) &bl32_params;
+		/* Pass bl32_params through GPR(3-5) */
+		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 3), BL32_PTR_TAG);
+		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 4), sizeof(bl32_params));
+		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 5), (uintptr_t) &bl32_params);
 		/* Passed between contexts */
-		flush_dcache_range(bl_mem_params->ep_info.args.arg1, sizeof(bl32_params));
+		flush_dcache_range((uintptr_t) &bl32_params, sizeof(bl32_params));
 		break;
 	case BL33_IMAGE_ID:
 		/* Use GPR(1) and GPR(2) as BL33 might be linux */
