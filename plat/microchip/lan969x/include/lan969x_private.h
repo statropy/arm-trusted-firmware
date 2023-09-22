@@ -11,7 +11,11 @@
 #include <lan96xx_common.h>
 
 /* BL2 -> BL31 */
+#define BL31_MAGIC_TAG   0xcbedcafe
+/* NOTE: Never delete members, add new data at end */
 typedef struct {
+	uint32_t magic;		/* BL31_MAGIC_TAG */
+	size_t size;		/* Size of struct */
 	uint32_t ddr_size;
 	uint32_t board_number;
 	size_t boot_offset;

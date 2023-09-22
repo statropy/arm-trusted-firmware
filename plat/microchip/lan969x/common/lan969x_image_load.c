@@ -60,6 +60,8 @@ bl_params_t *plat_get_next_bl_params(void)
 	ep_info = &param_node->ep_info;
 
 	/* Setup arg1 beeing bl31 params struct */
+	bl31_params.magic = BL31_MAGIC_TAG;
+	bl31_params.size = sizeof(bl31_params_t);
 	bl31_params.ddr_size = lan966x_ddr_size();
 	bl31_params.board_number = plat_get_board(lan966x_get_dt());
 	bl31_params.boot_offset = lan966x_get_boot_offset();
