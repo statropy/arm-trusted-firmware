@@ -22,6 +22,8 @@
 #include <plat_crypto.h>
 #include <plat_otp.h>
 
+#include "lan966x_regs.h"
+
 static image_info_t bl33_image_info;
 static entry_point_info_t bl33_ep_info;
 static size_t mem_size;
@@ -181,19 +183,31 @@ static void otp_cache_init(void)
 #pragma weak params_early_setup
 void params_early_setup(u_register_t plat_param_from_bl2)
 {
-	bl32_params_t *bl32_params = (bl32_params_t *) plat_param_from_bl2;
+	void *src_config = (void *) plat_param_from_bl2;
 
 	/* Get bl2 fw_config (OTP EMU) */
-	memcpy(&lan966x_fw_config, bl32_params->fw_config, sizeof(lan966x_fw_config));
+	memcpy(&lan966x_fw_config, src_config, sizeof(lan966x_fw_config));
 
-	/* Get DDR size, remember reserved BL32 DDR memory */
-	if (bl32_params->ddr_size > BL32_SIZE) {
-		mem_size = bl32_params->ddr_size - BL32_SIZE;
-	} else {
-		mem_size = PLAT_LAN966X_NS_IMAGE_SIZE;
+	if (mmio_read_32(CPU_GPR(LAN966X_CPU_BASE, 3)) == BL32_PTR_TAG &&
+	    mmio_read_32(CPU_GPR(LAN966X_CPU_BASE, 4)) == sizeof(bl32_params_t)) {
+		bl32_params_t *bl32_params = (bl32_params_t *)
+			mmio_read_32(CPU_GPR(LAN966X_CPU_BASE, 5));
+
+		/* Get DDR size, remember reserved BL32 DDR memory */
+		if (bl32_params->ddr_size > BL32_SIZE) {
+			mem_size = bl32_params->ddr_size - BL32_SIZE;
+		} else {
+			mem_size = PLAT_LAN966X_NS_IMAGE_SIZE;
+		}
+
+		/* Record boot offset */
+		boot_offset = bl32_params->boot_offset;
+
+		/* Nuke GPR's, not used anymore */
+		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 3), 0);
+		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 4), 0);
+		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 5), 0);
 	}
-
-	boot_offset = bl32_params->boot_offset;
 }
 
 static void lan966x_params_parse_helper(u_register_t param,
