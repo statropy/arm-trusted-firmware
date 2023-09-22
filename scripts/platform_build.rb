@@ -82,6 +82,7 @@ build_platforms.each do |bp|
       # Save cleartext+release BL1
       if ba.match("auth") && bt.match("release")
         artifacts << ["build/#{bp}/#{bt}/bl1.bin",       "#{dst}.bl1"]
+        artifacts << ["build/#{bp}/#{bt}/fwu_fip.bin",   "#{dst}-fwu_fip.bin"]
       end
       cargs = "--#{bt} #{build_auth_args[ba]} -p #{bp}"
       cmd = "ruby scripts/build.rb #{cargs}"
