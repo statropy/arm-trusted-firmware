@@ -64,8 +64,9 @@ const otp_fields = [
 const lan966x_speeds = [1200];
 const lan969x_speeds = [1600, 1866, 2133, 2400, 2666];
 
-const platforms = {
-    "00000000": {		//  LAN966X B0 BL1 responds *without* chipid
+const platforms = [
+    {			  //  LAN966X B0 BL1 responds *without* chipid
+	"chips":	["00000000", "19660445"],
 	"arch":		"lan966x",
 	"name":		"LAN966X B0",
 	"bl1_binary":	false,
@@ -75,17 +76,9 @@ const platforms = {
 	"ddr_speed":	lan966x_speeds,
 	"bl2u_compat":	["lan966x_b0"],
     },
-    "19660445": {		// LAN966X B0 BL2U responds with chipid
-	"arch":		"lan966x",
-	"name":		"LAN966X B0",
-	"bl1_binary":	false,
-	"ddr_cfg":	ddr_cfg_lan966x,
-	"ddr_diag":	ddr_diag_regs_lan966x,
-	"ddr_regs":	ddr_regs_lan966x,
-	"ddr_speed":	lan966x_speeds,
-	"bl2u_compat":	["lan966x_b0"],
-    },
-    "0969a445": {
+    {
+	"chips":	["09691445", "09692445", "09693445", "09694445", "09695445", "09696445",
+			 "09697445", "09698445", "09699445", "0969a445", "0969b445", "0969c445", ],
 	"arch":		"lan969x",
 	"name":		"LAN969X A0",
 	"bl1_binary":	true,
@@ -95,7 +88,7 @@ const platforms = {
 	"ddr_speed":	lan969x_speeds,
 	"bl2u_compat":	["lan969x_a0", "lan969x_svb"],
     },
-};
+];
 
 function validResponse(r)
 {
@@ -167,7 +160,11 @@ class BootstrapRequestTransformer {
 
 function getPlatform(value)
 {
-    return platforms[value];
+    for (var p of platforms) {
+	if (p["chips"].includes(value))
+	    return p;
+    }
+    return null;
 }
 
 function fmtHex(arg)
