@@ -15,6 +15,7 @@
 #include <drivers/microchip/qspi.h>
 #include <drivers/spi_nor.h>
 
+#include "lan966x_def.h"
 #include "lan966x_regs.h"
 
 #define SPI_READY_TIMEOUT_US	40000U

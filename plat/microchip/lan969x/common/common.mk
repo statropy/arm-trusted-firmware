@@ -53,6 +53,7 @@ PLAT_BL_COMMON_SOURCES	:=	${FDT_WRAPPERS_SOURCES}			\
 				${LAN969X_PLAT_COMMON}/lan969x_tbbr.c	\
 				${LAN969X_CONSOLE_SOURCES}		\
 				${LAN969X_STORAGE_SOURCES}		\
+				$(ZLIB_SOURCES)				\
 				drivers/delay_timer/delay_timer.c	\
 				drivers/delay_timer/generic_delay_timer.c \
 				drivers/microchip/clock/lan966x_clock.c \
@@ -87,8 +88,7 @@ BL2_SOURCES		+=	common/desc_image_load.c			\
 				plat/microchip/common/lan966x_sjtag.c		\
 				plat/microchip/lan969x/common/lan969x_io_storage.c
 
-BL2U_SOURCES		+=	$(ZLIB_SOURCES)					\
-				drivers/arm/tzc/tzc400.c			\
+BL2U_SOURCES		+=	drivers/arm/tzc/tzc400.c			\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2u_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
 				plat/microchip/common/lan966x_bootstrap.c	\
@@ -123,7 +123,6 @@ override BL2_SOURCES		:=	\
 endif
 
 BL31_SOURCES		+=	$(LIBFIT_SRCS)					\
-				$(ZLIB_SOURCES)					\
 				${GICV2_SOURCES}				\
 				${LAN969X_PLAT_COMMON}/lan969x_bl31_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_pm.c		\

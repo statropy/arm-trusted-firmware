@@ -10,9 +10,11 @@ require 'base64'
 platforms = {
     "lan966x_b0"	=> Hash[
         :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-mchp_lan966x_evb.bin",
+        :loglevel => 10,
         :arch  => "arm" ],
     "lan966x_lm"	=> Hash[
         :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-mchp_lan966x_evb.bin",
+        :loglevel => 10,
         :arch  => "arm" ],
     "lan969x_sr"	=> Hash[
         :uboot => "arm64-armv8_a-linux-gnu/bootloaders/lan969x/u-boot-mchp_lan969x.bin",
@@ -20,10 +22,12 @@ platforms = {
         :nor_gpt_size   => 2*(1024 * 1024) ],
     "lan969x_a0"	=> Hash[
         :uboot => "arm64-armv8_a-linux-gnu/bootloaders/release/u-boot-mchp_lan969x.bin",
+        :loglevel => 30,
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
     "lan969x_svb"	=> Hash[
         :uboot => "arm64-armv8_a-linux-gnu/bootloaders/release/u-boot-mchp_lan969x.bin",
+        :loglevel => 30,
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
 }
@@ -91,7 +95,6 @@ bssk_derive_key = [
 ]
 
 $option = { :platform              => "lan966x_b0",
-            :loglevel              => 30,
             :encrypt               => false,
             :debug                 => true,
             :rot                   => "keys/rotprivk_ecdsa.pem",
@@ -110,7 +113,7 @@ $option = { :platform              => "lan966x_b0",
             :sdk_branch            => "-brsdk",
             :norimg                => true,
             :gptimg                => false,
-            :ramusage              => true,
+            :ramusage              => false,
           }
 
 args = ""
@@ -398,7 +401,7 @@ if $option[:clean] || $option[:coverity]
     FileUtils.mkdir $cov_dir
 end
 
-args += "LOG_LEVEL=#{$option[:loglevel]} " if $option[:loglevel]
+args += "LOG_LEVEL=#{pdef[:loglevel]} " if pdef[:loglevel]
 
 if $option[:create_keys]
     targets = "certificates"

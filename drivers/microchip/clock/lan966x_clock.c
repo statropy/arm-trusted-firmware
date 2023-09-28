@@ -9,6 +9,7 @@
 #include <drivers/microchip/lan966x_clock.h>
 #include <lib/mmio.h>
 
+#include "platform_def.h"
 #include "lan966x_regs.h"
 
 #if defined(MCHP_SOC_LAN966X)

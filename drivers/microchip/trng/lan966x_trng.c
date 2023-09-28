@@ -10,6 +10,7 @@
 #include <plat/common/plat_trng.h>
 #include <lib/mmio.h>
 
+#include <platform_def.h>
 #include "lan966x_regs.h"
 
 static bool lan966x_trng_init_done;

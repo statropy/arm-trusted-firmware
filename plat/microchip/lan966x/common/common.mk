@@ -86,6 +86,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				${LAN966X_CONSOLE_SOURCES}				\
 				${LAN966X_STORAGE_SOURCES}				\
 				${XLAT_TABLES_LIB_SRCS}					\
+				$(ZLIB_SOURCES)						\
 				common/desc_image_load.c				\
 				drivers/delay_timer/delay_timer.c			\
 				drivers/delay_timer/generic_delay_timer.c		\
@@ -103,6 +104,9 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
 				plat/microchip/lan966x/common/lan966x_strapping.c	\
 				drivers/microchip/trng/lan966x_trng.c
+
+# Disable BL1 for now
+override NEED_BL1	:= no
 
 BL1_SOURCES		+=	\
 				plat/microchip/common/lan966x_bootstrap.c		\
@@ -125,9 +129,7 @@ BL2_SOURCES		+=	\
 				plat/microchip/lan966x/common/lan966x_tbbr.c		\
 				plat/microchip/lan966x/common/lan966x_tz.c
 
-BL2U_SOURCES		+=	\
-				$(ZLIB_SOURCES)						\
-				plat/microchip/common/ddr_test.c			\
+BL2U_SOURCES		+=	plat/microchip/common/ddr_test.c			\
 				plat/microchip/common/lan966x_bootstrap.c		\
 				plat/microchip/common/lan966x_fw_bind.c			\
 				plat/microchip/common/plat_bl2u_bootstrap.c		\

@@ -16,7 +16,7 @@
 #include "lan966x_fw_bind.h"
 #include "aes.h"
 
-static inline bool is_aligned(const void *ptr)
+static inline bool is_aligned_word(const void *ptr)
 {
 	return ((uintptr_t)(ptr) & 3U) == 0U;
 }
@@ -209,14 +209,14 @@ fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t fip_length)
 	toc_header = (fip_toc_header_t *)fip_base_addr;
 
 	/* Address ought to be 4-byte aligned */
-	if (!is_aligned(toc_header))
+	if (!is_aligned_word(toc_header))
 		return FW_FIP_ALIGN;
 
 	/* Setup reference pointer to ToC Entry 0 */
 	toc_entry = (fip_toc_entry_t *)(fip_base_addr + sizeof(fip_toc_header_t));
 
 	/* Address ought to be 4-byte aligned */
-	if (!is_aligned(toc_entry))
+	if (!is_aligned_word(toc_entry))
                 return FW_FIP_ALIGN;
 
 	/* Check for valid FIP data */
@@ -246,7 +246,7 @@ fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t fip_length)
 		enc_img_hdr = (struct fw_enc_hdr *) (fip_base_addr + (uint32_t) toc_entry->offset_address);
 
 		/* Address ought to be 4-byte aligned */
-		if (!is_aligned(enc_img_hdr))
+		if (!is_aligned_word(enc_img_hdr))
 			return FW_FIP_ALIGN;
 
 		/* Are we below top? */

@@ -9,6 +9,7 @@
 #include <lib/mmio.h>
 #include <drivers/delay_timer.h>
 
+#include "platform_def.h"
 #include "lan969x_regs.h"
 
 #define DDR_CLK_OPTIONS	7

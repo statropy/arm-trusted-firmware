@@ -373,7 +373,7 @@ static int sd_switch(unsigned int mode, unsigned char group,
 	int ret;
 
 	ret = ops->prepare(0, (uintptr_t)&sd_switch_func_status,
-			   sizeof(sd_switch_func_status));
+			   sizeof(sd_switch_func_status), false);
 	if (ret != 0) {
 		return ret;
 	}

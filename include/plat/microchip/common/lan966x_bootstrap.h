@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <string.h>
+
 // BOOTSTRAP Start-Of-Frame
 #define BOOTSTRAP_SOF          '>'
 

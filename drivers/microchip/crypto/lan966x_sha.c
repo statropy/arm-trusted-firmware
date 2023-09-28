@@ -10,6 +10,7 @@
 #include <lib/mmio.h>
 #include <sha.h>
 
+#include <platform_def.h>
 #include "lan966x_regs.h"
 
 #define SHA_SHA_IDATAR(b, n)	(SHA_SHA_IDATAR0(b) + (n * 4))

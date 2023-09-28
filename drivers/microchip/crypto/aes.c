@@ -12,6 +12,7 @@
 #include <mbedtls/md.h>
 #include <aes.h>
 
+#include "platform_def.h"
 #include "lan966x_regs.h"
 
 #define AES_KEYLEN_128	0

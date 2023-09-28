@@ -8,6 +8,7 @@
 #include <common/debug.h>
 #include <drivers/auth/crypto_mod.h>
 #include <lib/mmio.h>
+#include <string.h>
 #include <mbedtls/bignum.h>
 #include <mbedtls/ecdsa.h>
 #include <mbedtls/error.h>
@@ -16,6 +17,8 @@
 #include "inc/CryptoLib_JumpTable_pb.h"
 
 #include <pkcl.h>
+
+#include "lan966x_def.h"
 
 #define PKCL_RAM_OFFSET 0x1000
 

@@ -31,6 +31,7 @@
 #include <lib/mmio.h>
 #include <drivers/microchip/tz_matrix.h>
 
+#include <platform_def.h>
 #include "lan966x_regs.h"
 
 static uintptr_t reg_base = LAN966X_HMATRIX2_BASE;

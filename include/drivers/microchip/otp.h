@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "platform_def.h"
+
 #if defined(MCHP_SOC_LAN966X)
 #define OTP_MEM_SIZE	SIZE_K(8)
 #elif defined(MCHP_SOC_LAN969X)

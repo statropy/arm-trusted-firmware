@@ -5,12 +5,14 @@
  */
 
 #include <assert.h>
+#include <string.h>
 
 #include <drivers/microchip/vcore_gpio.h>
 #include <drivers/microchip/emmc.h>
 #include <fw_config.h>
 #include <lan96xx_mmc.h>
 
+#include "platform_def.h"
 #include "lan966x_regs.h"
 
 #pragma weak plat_lan966x_pinConfig

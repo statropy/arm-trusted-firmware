@@ -9,6 +9,7 @@
 #include <common/debug.h>
 #include <errno.h>
 
+#include <arch_helpers.h>
 #include <lib/libfdt/libfdt.h>
 #include <lib/libfit/libfit.h>
 
