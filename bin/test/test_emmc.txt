@@ -1,0 +1,20 @@
+
+The test_emmc.bin file is used for running the built-in-system-test harness on
+the EVB board.
+The *.bin file needs to be flashed to the first LBA address of 0x0 inside the
+eMMC device. Afterwards the test suite will adjust different speed modes and
+bus width settings and compare the transfered data with the expected test pattern.
+
+Tested eMMC configuration modes:
+
+10 MHz - 1 bit bus width
+10 MHz - 4 bit bus width
+10 MHz - 8 bit bus width
+
+26 MHz - 1 bit bus width
+26 MHz - 4 bit bus width
+26 MHz - 8 bit bus width
+
+52 MHz - 1 bit bus width
+52 MHz - 4 bit bus width
+52 MHz - 8 bit bus width

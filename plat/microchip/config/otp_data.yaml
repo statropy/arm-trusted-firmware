@@ -1,0 +1,7 @@
+---
+- field: OTP_TBBR_ROTPK
+  file: keys/rotpk_ecdsa_sha256.bin
+- field: OTP_TBBR_HUK
+  file: keys/huk.bin
+- field: OTP_TBBR_SSK
+  file: keys/ssk.bin

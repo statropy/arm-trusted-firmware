@@ -1,0 +1,344 @@
+/*
+ * Copyright (C) 2021 Microchip Technology Inc. and its subsidiaries.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#include <drivers/microchip/otp.h>
+#include <drivers/microchip/vcore_gpio.h>
+#include <lan966x_regs.h>
+#include <lan96xx_common.h>
+#include <lib/mmio.h>
+#include <plat_otp.h>
+#include <platform_def.h>
+#include <errno.h>
+
+#if defined(MCHP_SOC_LAN966X)
+#define PCIE_MAX_SPEED_CODE	2 /* 5 GT/s */
+#elif defined(MCHP_SOC_LAN969X)
+#define PCIE_MAX_SPEED_CODE	3 /* 8 GT/s */
+#endif
+
+#define MAX_BARS	5		/* Maximum number of configurable bars */
+#define OTP_BAR_SIZE	(MAX_BARS*2)	/* Address and size information */
+
+typedef enum {
+	LAN966X_DEVICE_ID,
+	LAN966X_VENDOR_ID,
+	LAN966X_SUBSYS_DEVICE_ID,
+	LAN966X_SUBSYS_VENDOR_ID
+} lan966x_pcie_id;
+
+#define PCIE_BAR_REG(B)		PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B(LAN966X_PCIE_DBI_BASE)
+#define PCIE_BAR_MASK(B)	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_REGION_EN_M |	\
+				PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_MATCH_MODE_M |	\
+				PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_BAR_NUM_M
+#define PCIE_BAR_VALUE(B)	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_REGION_EN_M |	\
+				PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_MATCH_MODE_M |	\
+				PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_IATU_REGION_CTRL_2_OFF_INBOUND_## B ##_BAR_NUM(B)
+#define PCIE_BAR_TARGET_REG(B)	PCIE_DBI_IATU_LWR_TARGET_ADDR_OFF_INBOUND_ ## B(LAN966X_PCIE_DBI_BASE)
+#define PCIE_BAR_MASK_REG(B)	PCIE_DBI_BAR ## B ##_MASK_REG(LAN966X_PCIE_DBI_BASE)
+
+static const struct {
+	uint32_t bar_start;
+	uint32_t bar_size;
+	uintptr_t bar_reg;
+	uint32_t bar_mask;
+	uint32_t bar_value;
+	uintptr_t bar_target_reg;
+	uintptr_t bar_mask_reg;
+} lan966x_pcie_bar_config[] = {
+	{
+		/* CSR */
+		0xe2000000,
+		 0x2000000,
+		PCIE_BAR_REG(0),
+		PCIE_BAR_MASK(0),
+		PCIE_BAR_VALUE(0),
+		PCIE_BAR_TARGET_REG(0),
+		PCIE_BAR_MASK_REG(0)
+	},
+	{
+		/* CPU */
+		0xe0000000,
+		 0x1000000,
+		PCIE_BAR_REG(1),
+		PCIE_BAR_MASK(1),
+		PCIE_BAR_VALUE(1),
+		PCIE_BAR_TARGET_REG(1),
+		PCIE_BAR_MASK_REG(1)
+	},
+#if defined(MCHP_SOC_LAN966X)
+	{
+		/* QSPI1 */
+		0x40000000,
+		  0x800000,
+		PCIE_BAR_REG(2),
+		PCIE_BAR_MASK(2),
+		PCIE_BAR_VALUE(2),
+		PCIE_BAR_TARGET_REG(2),
+		PCIE_BAR_MASK_REG(2)
+	},
+	{
+		/* PI */
+		0x48000000,
+		  0x800000,
+		PCIE_BAR_REG(3),
+		PCIE_BAR_MASK(3),
+		PCIE_BAR_VALUE(3),
+		PCIE_BAR_TARGET_REG(3),
+		PCIE_BAR_MASK_REG(3)
+	},
+	{
+		/* SRAM */
+		LAN966X_SRAM_BASE,
+		LAN966X_SRAM_SIZE,
+		PCIE_BAR_REG(4),
+		PCIE_BAR_MASK(4),
+		PCIE_BAR_VALUE(4),
+		PCIE_BAR_TARGET_REG(4),
+		PCIE_BAR_MASK_REG(4)
+	},
+#elif defined(MCHP_SOC_LAN969X)
+	{
+		/* Unused */
+		0x0,
+		0x0,
+		PCIE_BAR_REG(2),
+		PCIE_BAR_MASK(2),
+		PCIE_BAR_VALUE(2),
+		PCIE_BAR_TARGET_REG(2),
+		PCIE_BAR_MASK_REG(2)
+	},
+	{
+		/* Unused */
+		0x0,
+		0x0,
+		PCIE_BAR_REG(3),
+		PCIE_BAR_MASK(3),
+		PCIE_BAR_VALUE(3),
+		PCIE_BAR_TARGET_REG(3),
+		PCIE_BAR_MASK_REG(3)
+	},
+	{
+		/* Unused */
+		0x0,
+		0x0,
+		PCIE_BAR_REG(4),
+		PCIE_BAR_MASK(4),
+		PCIE_BAR_VALUE(4),
+		PCIE_BAR_TARGET_REG(4),
+		PCIE_BAR_MASK_REG(4)
+	},
+#endif
+};
+
+static void lan966x_config_pcie_id(lan966x_pcie_id id, uint32_t defvalue, const char *name)
+{
+	uint32_t value, mask, ival;
+	uintptr_t addr;
+	int ret;
+
+	switch (id) {
+	case LAN966X_DEVICE_ID:
+		ret = otp_read_otp_pcie_device_id((uint8_t *)&value, OTP_OTP_PCIE_DEVICE_ID_BITS/8);
+		break;
+	case LAN966X_VENDOR_ID:
+		ret = otp_read_otp_pcie_vendor_id((uint8_t *)&value, OTP_OTP_PCIE_VENDOR_ID_BITS/8);
+		break;
+	case LAN966X_SUBSYS_DEVICE_ID:
+		ret = otp_read_otp_pcie_subsys_device_id((uint8_t *)&value, OTP_OTP_PCIE_SUBSYS_DEVICE_ID_BITS/8);
+		break;
+	case LAN966X_SUBSYS_VENDOR_ID:
+		ret = otp_read_otp_pcie_subsys_vendor_id((uint8_t *)&value, OTP_OTP_PCIE_SUBSYS_VENDOR_ID_BITS/8);
+		break;
+	}
+	if (ret == 0) {
+		if (value != 0) {
+		} else {
+			INFO("Empty OTP PCIe %s id\n", name);
+			value = defvalue;
+		}
+	} else {
+		ERROR("Could not read OTP PCIe %s id\n", name);
+		value = defvalue;
+	}
+	switch (id) {
+	case LAN966X_DEVICE_ID:
+		addr = PCIE_DBI_DEVICE_ID_VENDOR_ID_REG(LAN966X_PCIE_DBI_BASE);
+		mask = PCIE_DBI_DEVICE_ID_VENDOR_ID_REG_PCI_TYPE0_DEVICE_ID_M;
+		ival = PCIE_DBI_DEVICE_ID_VENDOR_ID_REG_PCI_TYPE0_DEVICE_ID(value);
+		break;
+	case LAN966X_VENDOR_ID:
+		addr = PCIE_DBI_DEVICE_ID_VENDOR_ID_REG(LAN966X_PCIE_DBI_BASE);
+		mask = PCIE_DBI_DEVICE_ID_VENDOR_ID_REG_PCI_TYPE0_VENDOR_ID_M;
+		ival = PCIE_DBI_DEVICE_ID_VENDOR_ID_REG_PCI_TYPE0_VENDOR_ID(value);
+		break;
+	case LAN966X_SUBSYS_DEVICE_ID:
+		addr = PCIE_DBI_SUBSYSTEM_ID_SUBSYSTEM_VENDOR_ID_REG(LAN966X_PCIE_DBI_BASE);
+		mask = PCIE_DBI_SUBSYSTEM_ID_SUBSYSTEM_VENDOR_ID_REG_SUBSYS_DEV_ID_M;
+		ival = PCIE_DBI_SUBSYSTEM_ID_SUBSYSTEM_VENDOR_ID_REG_SUBSYS_DEV_ID(value);
+		break;
+	case LAN966X_SUBSYS_VENDOR_ID:
+		addr = PCIE_DBI_SUBSYSTEM_ID_SUBSYSTEM_VENDOR_ID_REG(LAN966X_PCIE_DBI_BASE);
+		mask = PCIE_DBI_SUBSYSTEM_ID_SUBSYSTEM_VENDOR_ID_REG_SUBSYS_VENDOR_ID_M;
+		ival = PCIE_DBI_SUBSYSTEM_ID_SUBSYSTEM_VENDOR_ID_REG_SUBSYS_VENDOR_ID(value);
+		break;
+	}
+	INFO("Set PCIe %s id: 0x%04x\n", name, ival);
+	mmio_clrsetbits_32(addr, mask, ival);
+}
+
+static int lan966x_validate_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_size)
+{
+	INFO("Validate OTP BAR[%d]: offset: 0x%08x, size: %u\n", bar, otp_start, otp_size);
+
+	if (otp_size == 0) /* Disabled BAR is OK */
+		return 0;
+	if (otp_start & (otp_size - 1)) /* Invalid start address according to size */
+		return -EIO;
+	return 0;
+}
+
+static void lan966x_config_pcie_bar(int bar, uint32_t otp_start, uint32_t otp_size, int status)
+{
+	uint32_t start = lan966x_pcie_bar_config[bar].bar_start;
+	uint32_t size = lan966x_pcie_bar_config[bar].bar_size;
+
+	if (status == 0) {
+		INFO("OTP BAR[%d]: offset: 0x%08x, size: %u\n", bar, otp_start, otp_size);
+		if (otp_start != 0 && otp_size != 0) {
+			start = otp_start;
+			size = otp_size;
+		} else if (otp_start != 0 && otp_size == 0) {
+			size = 0;
+		}
+	}
+	if (size != 0) {
+		uint32_t mask = size - 1;
+
+		INFO("Enable PCIe BAR[%d]: offset: 0x%08x, mask: 0x%x\n", bar, start, mask);
+		mmio_clrsetbits_32(lan966x_pcie_bar_config[bar].bar_reg,
+				   lan966x_pcie_bar_config[bar].bar_mask,
+				   lan966x_pcie_bar_config[bar].bar_value);
+		mmio_write_32(lan966x_pcie_bar_config[bar].bar_target_reg, start);
+		mmio_write_32(lan966x_pcie_bar_config[bar].bar_mask_reg, mask);
+	} else {
+		INFO("Disable PCIe BAR[%d]\n", bar);
+		mmio_write_32(lan966x_pcie_bar_config[bar].bar_mask_reg, 0);
+	}
+}
+
+void lan966x_pcie_init(void)
+{
+	uint32_t bar[OTP_BAR_SIZE];
+	uint32_t cls;
+	int ret, idx;
+
+	switch (lan966x_get_strapping()) {
+	case LAN966X_STRAP_PCIE_ENDPOINT:
+		//INFO("PCIe endpoint mode\n");
+		break;
+	default:
+		return;
+	}
+
+#if defined(MCHP_SOC_LAN969X)
+	/* Configure PCIe_PERSTn: GPIO = ALT3 */
+	vcore_gpio_set_alt(0, 3);
+
+	/* PHY reset */
+	mmio_setbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
+	/* PHY SD de-assert */
+	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_EXT_CFG_RST(1));
+	/* PHY de-assert */
+	mmio_clrbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(LAN969X_PCIE_PHY_WRAP_BASE),
+			PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
+#endif
+
+	/* Stop PCIe Link Training and enable writing */
+	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(LAN966X_PCIE_CFG_BASE),
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(0) |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(0));
+	mmio_clrsetbits_32(PCIE_DBI_MISC_CONTROL_1_OFF(LAN966X_PCIE_DBI_BASE),
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN_M,
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN(1));
+	/* Set class and revision id */
+	ret = otp_read_otp_pcie_dev((uint8_t *)&cls, OTP_PCIE_DEV_SIZE);
+	if (ret == 0) {
+		if (cls == 0) {
+			INFO("Set default PCIe device class info\n");
+			cls = 0x02000000;
+		}
+	} else {
+		ERROR("Could not read OTP PCIe device class info\n");
+		cls = 0x02000000;
+	}
+	INFO("Set PCIe device class/subclass/progif/revid: 0x%08x\n", cls);
+	mmio_write_32(PCIE_DBI_CLASS_CODE_REVISION_ID(LAN966X_PCIE_DBI_BASE), cls);
+
+	/* Set Device and Vendor IDs */
+	lan966x_config_pcie_id(LAN966X_DEVICE_ID, 0x9660, "device");
+	lan966x_config_pcie_id(LAN966X_VENDOR_ID, 0x1055, "vendor");
+	lan966x_config_pcie_id(LAN966X_SUBSYS_DEVICE_ID, 0x9660, "subsys_device");
+	lan966x_config_pcie_id(LAN966X_SUBSYS_VENDOR_ID, 0x1055, "subsys_vendor");
+
+	ret = otp_read_otp_pcie_bars((uint8_t *)bar, OTP_PCIE_BARS_SIZE);
+
+	/* Validate Base Address Register values read from the OTP */
+	if (ret == 0) {
+		for (idx = 0; idx < MAX_BARS; ++idx) {
+			ret = lan966x_validate_pcie_bar(idx, bar[idx], bar[idx+MAX_BARS]);
+			if (ret)
+				break; /* Use hardcoded default BARs */
+		}
+	}
+
+	/* Configure Base Address Registers to map to local address space */
+	for (idx = 0; idx < MAX_BARS; ++idx)
+		lan966x_config_pcie_bar(idx, bar[idx], bar[idx+MAX_BARS], ret);
+
+	/* Configure Maximum Link Speed */
+	ret = otp_read_otp_pcie_flags_max_link_speed();
+	if (ret == 0) {
+		ret = PCIE_MAX_SPEED_CODE;
+	}
+	ret = MIN(PCIE_MAX_SPEED_CODE, ret); /* Make sure we don't exceed max */
+	mmio_clrsetbits_32(PCIE_DBI_LINK_CAPABILITIES_REG(LAN966X_PCIE_DBI_BASE),
+			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED_M,
+			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED(ret));
+	INFO("Set PCIe max link speed: %d\n", ret);
+
+	/* Start PCIe Link Training and disable writing */
+	mmio_clrsetbits_32(PCIE_DBI_MISC_CONTROL_1_OFF(LAN966X_PCIE_DBI_BASE),
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN_M,
+			   PCIE_DBI_MISC_CONTROL_1_OFF_DBI_RO_WR_EN(0));
+	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(LAN966X_PCIE_CFG_BASE),
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
+			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(1) |
+			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
+
+	/* Read protect region 4 of the OTP (keys) */
+#if defined(OTP_OTP_READ_PROTECT)
+	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE), BIT(4), BIT(4));
+	ret = mmio_read_32(OTP_OTP_READ_PROTECT(LAN966X_OTP_BASE));
+#elif defined(OTP_OTP_READ_PROTECT0)
+	mmio_clrsetbits_32(OTP_OTP_READ_PROTECT0(LAN966X_OTP_BASE), BIT(4), BIT(4));
+	ret = mmio_read_32(OTP_OTP_READ_PROTECT0(LAN966X_OTP_BASE));
+#else
+#error Platform read protect issue
+#endif
+	INFO("OTP Read Protected regions: 0x%x\n", ret);
+
+	/* Go to sleep */
+	asm volatile (
+		"sleep_loop:"
+		"    wfi ;"
+		"    b sleep_loop;"
+	);
+}

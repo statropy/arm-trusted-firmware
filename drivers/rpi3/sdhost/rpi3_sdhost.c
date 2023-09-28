@@ -20,7 +20,7 @@
 static void rpi3_sdhost_initialize(void);
 static int rpi3_sdhost_send_cmd(struct mmc_cmd *cmd);
 static int rpi3_sdhost_set_ios(unsigned int clk, unsigned int width);
-static int rpi3_sdhost_prepare(int lba, uintptr_t buf, size_t size);
+static int rpi3_sdhost_prepare(int lba, uintptr_t buf, size_t size, bool is_write);
 static int rpi3_sdhost_read(int lba, uintptr_t buf, size_t size);
 static int rpi3_sdhost_write(int lba, uintptr_t buf, size_t size);
 
@@ -288,7 +288,7 @@ static int rpi3_sdhost_send_cmd(struct mmc_cmd *cmd)
 			rpi3_sdhost_waitcommand();
 
 			/* Also we need to call prepare to clean the buffer */
-			rpi3_sdhost_prepare(0, (uintptr_t)NULL, 8);
+			rpi3_sdhost_prepare(0, (uintptr_t)NULL, 8, false);
 		}
 	}
 
@@ -449,7 +449,7 @@ static int rpi3_sdhost_set_ios(unsigned int clk, unsigned int width)
 	return 0;
 }
 
-static int rpi3_sdhost_prepare(int lba, uintptr_t buf, size_t size)
+static int rpi3_sdhost_prepare(int lba, uintptr_t buf, size_t size, bool is_write)
 {
 	uintptr_t reg_base = rpi3_sdhost_params.reg_base;
 	size_t blocks;

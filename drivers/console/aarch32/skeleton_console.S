@@ -66,10 +66,10 @@ func console_xxx_register
 	finish_console_register xxx putc=1, getc=1, flush=1
 
 	/* Jump here if hardware init fails or parameters are invalid. */
-register_fail:
-	mov	r0, #0
-	bx	lr
-endfunc console_xxx_register
+    register_fail:
+    	mov	r0, #0
+    	bx	lr
+    endfunc console_xxx_register
 
 	/* --------------------------------------------------------
 	 * int console_xxx_putc(int c, console_xxx_t *console)

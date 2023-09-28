@@ -11,9 +11,12 @@
 
 #include <uuid.h>
 
+#include <export/common/tbbr/tbbr_img_def_exp.h>
+
 #define TOC_HEADER_SERIAL_NUMBER 0x12345678
 
 typedef struct toc_entry {
+	int           id;
 	char         *name;
 	uuid_t        uuid;
 	char         *cmdline_name;

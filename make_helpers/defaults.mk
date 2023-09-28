@@ -142,6 +142,9 @@ ENABLE_FEAT_AMUv1p1		:= 0
 # Flag to enable CSV2_2 extension.
 ENABLE_FEAT_CSV2_2 		:= 0
 
+# By default BL2 encryption disabled
+ENCRYPT_BL2			:= 0
+
 # Flag to enable access to the HCRX_EL2 register by setting SCR_EL3.HXEn.
 ENABLE_FEAT_HCX			:= 0
 
@@ -181,6 +184,9 @@ ENCRYPT_BL31			:= 0
 
 # By default BL32 encryption disabled
 ENCRYPT_BL32			:= 0
+
+# By default BL33 encryption disabled
+ENCRYPT_BL33			:= 0
 
 # Default dummy firmware encryption key
 ENC_KEY	:= 1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef

@@ -1,0 +1,404 @@
+---
+- accessor: true
+  area: 0
+  name: OTP_PRG
+  size: 4
+  address: 0
+  desc: Indicates which parts of HW OTP memory have been programmed and are now write
+    protected.
+  fields:
+  - name: OTP_PRG_FEAT_DIS
+    width: 1
+    desc: 'Set to ‘1’ to indicate that the FEAT_DIS has been programmed. Note: Setting
+      this bit write protects the FEAT_DIS memory; OTP HW shall prevent writing to
+      this memory once this bit is set.'
+    offset: 3
+  - name: OTP_PRG_PARTID
+    width: 1
+    desc: 'Set to ‘1’ to indicate that the PARTID has been programmed. Note: Setting
+      this bit write protects the PARTID memory; OTP HW shall prevent writing to this
+      memory once this bit is set.'
+    offset: 2
+  - name: OTP_PRG_JTAG_UUID
+    width: 1
+    desc: |-
+      Set to ‘1’ to indicate that JTAG_UUID has been programmed.
+      Note: Setting this bit write protects the JTAG_UUID memory; OTP HW shall prevent writing to this memory once this bit is set.
+    offset: 1
+  - name: OTP_PRG_SECURE_JTAG
+    width: 1
+    desc: |-
+      Set to ‘1’ to indicate that SECURE_JTAG has been programmed.
+      Note: Setting this bit write protects the SECURE_JTAG memory; OTP
+      HW shall prevent writing to this memory once this bit is set.
+    offset: 0
+  prod_ate: true
+  prod_cust: true
+  init_hw: X
+
+
+- accessor: true
+  area: 0
+  name: FEAT_DIS
+  size: 1
+  address: 4
+  desc: Indicates which features are disabled. status will is reflected in CPU:CPU_REGS:OTP_STAT
+  fields:
+  - name: RTE_DISABLE
+    width: 1
+    desc: RTE is disabled for LAN9668
+    offset: 5
+  - name: SERDES2_DISABLE
+    width: 1
+    desc: SERDES2 is disabled for LAN9662
+    offset: 4
+  - name: CAN_DISABLE
+    width: 1
+    desc: Set to ‘1’ to disable CAN.
+    offset: 3
+  - name: CPU_SEC_DBG_DISABLE
+    width: 1
+    desc: Set to ‘1’ to disable secure debug for the CPU.
+    offset: 2
+  - name: CPU_DBG_DISABLE
+    width: 1
+    desc: Set to ‘1’ to disable debug for the CPU.
+    offset: 1
+  - name: CPU_DISABLE
+    width: 1
+    desc: Set to ‘1’ to disable the internal CPU.
+    offset: 0
+  prod_ate: true
+  init_hw: X
+
+
+- accessor: true
+  area: 0
+  name: PARTID
+  size: 2
+  address: 5
+  desc: 'Indicates the Part ID. Is reflected in DEVCPU_GCB:CHIP_REGS:CHIP_ID.PART_ID '
+  fields: []
+  prod_ate: true
+  init_hw: X
+
+- name: TST_TRK
+  area: 0
+  size: 1
+  address: 7
+  desc: Test tracking
+  fields: []
+  prod_probe: true
+
+- accessor: true
+  area: 0
+  name: SERIAL_NUMBER
+  size: 8
+  address: 8
+  desc: Production serial number
+  fields: []
+  init_boot: BL2
+
+
+- name: SECURE_JTAG
+  area: 0
+  size: 4
+  address: 16
+  desc: Indicates the Secure JTAG mode of operation.
+  fields:
+  - accessor: true
+    name: JTAG_DISABLE
+    width: 1
+    desc: When set JTAG mode is set to “Closed”. This has priority over JTAG_MODE[1:0]
+      setting.
+    offset: 27
+  - accessor: true
+    name: JTAG_MODE
+    width: 2
+    desc: |-
+      JTAG Mode of operation:
+      §   00b - Open: Full JTAG access to CPU and boundary scan/test controller. Default state of the device.
+      §   01b - Secure Mode 1: CPU JTAG access only available via secret key based challenge/response authentication. IEEE 1149.1 boundary scan supported when locked. Access to all other test modes are available after device is unlocked.
+      §   10b - Secure Mode 2: JTAG access only available via secret key based challenge/response authentication. IEEE 1149.1 boundary scan not supported when locked.
+      §   11b - Closed: Access is permanently disabled to both JTAG controllers.
+      The value of this 2 bit field is forwarded to SJTAG:SJTAG_REGS:CTL.SJTAG_MODE
+    offset: 0
+  prod_cust: true
+  init_hw: X
+
+
+- name: WAFER_TRK
+  area: 0
+  size: 7
+  address: 20
+  desc: 'Wafer tracking info '
+  fields: []
+  prod_probe: true
+
+
+- accessor: true
+  name: JTAG_UUID
+  area: 0
+  size: 10
+  address: 0x20
+  desc: 'Contains the 10-byte JTAG UUID. '
+  fields: []
+  prod_ate: true
+  init_hw: X
+
+- name: TRIM
+  area: 0
+  size: 8
+  emu: false
+  address: 0x30
+  accessor: true
+  desc:
+  fields:
+  - name: UVOV_GPIOB_TRIM
+    width: 6
+    desc: Trimming value for UVOV_GPIOB. Corresponding register = UVOV:UVOV_CFG[0]
+    offset: 37
+    accessor: true
+  - name: UVOV_BOOT_TRIM
+    width: 6
+    desc: Trimming value for UVOV_BOOT. Corresponding register = UVOV:UVOV_CFG[1]
+    offset: 31
+    accessor: true
+  - name: UVOV_RGMII_TRIM
+    width: 6
+    desc: Trimming value for UVOV_RGMII. Corresponding register = UVOV:UVOV_CFG[4]
+    offset: 25
+    accessor: true
+  - name: UVOV_GPIOA_TRIM
+    width: 6
+    desc: Trimming value for UVOV_GPIOA. Corresponding register = UVOV:UVOV_CFG[5]
+    offset: 19
+    accessor: true
+  - name: COM_BIAS_BG_TC_TRIM
+    width: 5
+    desc: USB AFE bias TC trim value (common for all units (bench characterization))
+    offset: 14
+  - name: COM_BIAS_BG_MAG_TRIM
+    width: 6
+    desc: USB AFE bias MAG trim value (Found in ATE trim sequence, vary part-to-part)
+    offset: 8
+    accessor: true
+  - name: COM_RBIAS_TC_TRIM
+    width: 2
+    desc: USB AFE rbias TC trim value (common for all units (bench characterization))
+    offset: 6
+  - name: COM_RBIAS_MAG_TRIM
+    width: 6
+    desc: USB AFE rbias MAG trim value (Found in ATE trim sequence, vary part-to-part)
+    offset: 0
+    accessor: true
+
+
+- name: PROTECT_OTP_WRITE
+  init_hw: X
+  area: 1
+  size: 4
+  address: 64
+  desc: Indicates which regions of OTP memory are write protected.
+  fields:
+  - name: OTP_WRITE_PROTECT
+    width: 8
+    desc: |-
+      Each bit in the OTP_WRITE_PROTECT[7:0] field corresponds to a region of OTP memory with bit 0 = region 0, bit 1 = region 1 etc.
+      Writing a ‘1’ to a bit in the OTP_WRITE_PROTECT[7:0] field locks the corresponding region permanently from being written to.
+    offset: 0
+
+
+- name: PROTECT_REGION_ADDR
+  init_hw: X
+  area: 2
+  size: 32
+  address: 68
+  desc:
+  fields:
+  - name: PROTECT_REGION0_START_ADDR
+    width: 16
+    desc: Start address of protected region 0.
+    offset: 0
+  - name: PROTECT_REGION0_END_ADDR
+    width: 16
+    desc: End address of protected region 0.
+    offset: 16
+  prod_cust: true
+
+- name: OTP_PCIE_FLAGS
+  area: 3
+  size: 4
+  emu: false
+  address: 0x64
+  desc: PCIe link control
+  fields:
+  - name: OTP_PCIE_FLAGS_MAX_LINK_SPEED
+    accessor: true
+    width: 3
+    desc: Sets maximum supported link speed
+      - 1 = 2.5 GT/s
+      - 2 = 5.0 GT/s
+      Any higher value will automatically be downgraded to 5.0 GT/s
+    offset: 0
+
+- name: OTP_PCIE_DEV
+  accessor: true
+  size: 4
+  area: 3
+  emu: false
+  desc: Sets the PCIe basic device information.  See
+    https://pcisig.com/sites/default/files/files/PCI_Code-ID_r_1_11__v24_Jan_2019.pdf
+    for details on the fields.
+  address: 0x68
+  fields:
+  - name: OTP_PCIE_DEV_BASE_CLASS_CODE
+    width: 8
+    offset: 24
+    emu: false
+    desc: Sets the device class.
+  - name: OTP_PCIE_DEV_SUB_CLASS_CODE
+    width: 8
+    offset: 16
+    emu: false
+    desc: Sets the device subclass.
+  - name: OTP_PCIE_DEV_PROG_IF
+    width: 8
+    offset: 8
+    emu: false
+    desc: Sets the device programming interface.
+  - name: OTP_PCIE_DEV_REVISION_ID
+    width: 8
+    offset: 0
+    emu: false
+    desc: Sets the revision number of the PCIe implementation
+
+- name: OTP_PCIE_ID
+  area: 3
+  emu: false
+  size: 8
+  desc: Sets the PCIe device ID
+  address: 0x6C
+  fields:
+  - name: OTP_PCIE_DEVICE_ID
+    accessor: true
+    width: 16
+    offset: 0
+    emu: false
+    desc: Sets the PCIe device ID
+  - name: OTP_PCIE_VENDOR_ID
+    accessor: true
+    width: 16
+    offset: 16
+    emu: false
+    desc: Sets the PCIe vendor ID
+  - name: OTP_PCIE_SUBSYS_DEVICE_ID
+    accessor: true
+    width: 16
+    offset: 32
+    emu: false
+    desc: Sets the PCIe subsystem device ID
+  - name: OTP_PCIE_SUBSYS_VENDOR_ID
+    accessor: true
+    width: 16
+    offset: 48
+    emu: false
+    desc: Sets the PCIe subsystem vendor ID
+
+- name: OTP_PCIE_BARS
+  accessor: true
+  area: 3
+  emu: false
+  size: 40
+  desc: "Sets the PCIe BAR address and size information.
+  The layout consists of 10 32bit words like this:
+       [ bar0_addr, bar1_addr, bar2_addr, bar3_addr, bar4_addr, bar5_addr
+         bar0_size, bar1_size, bar2_size, bar3_size, bar4_size, bar5_size ]
+    If a BAR address and size both are 0 then a suitable default will be used
+    instead.
+    If a BAR address is non-zero and the size is zero then the BAR is disabled.
+    If a BAR address and size both are non-zero then these will configure the
+    BAR."
+  address: 0x74
+  fields: []
+
+- accessor: true
+  area: 4
+  emu: true
+  name: OTP_TBBR_ROTPK
+  size: 32
+  desc: SHA-256 has of the Root of trust Public Key. See <<TBBR>> for detailed description.
+  address: 0x100
+  fields: []
+
+- accessor: true
+  area: 4
+  emu: true
+  name: OTP_TBBR_HUK
+  size: 32
+  desc: TODO...
+  address: 0x120
+  fields: []
+
+- accessor: true
+  area: 4
+  emu: true
+  name: OTP_TBBR_EK
+  size: 32
+  desc: Endorsement key. TODO, See <<TBBR>> for details.
+  address: 0x140
+  fields: []
+
+- accessor: true
+  area: 4
+  emu: true
+  name: OTP_TBBR_SSK
+  size: 32
+  desc: Endorsement key. TODO, See <<TBBR>> for details.
+  address: 0x160
+  fields: []
+
+- accessor: true
+  area: 4
+  emu: true
+  name: OTP_SJTAG_SSK
+  size: 32
+  desc: Endorsement key. TODO, See <<TBBR>> for details.
+  address: 0x180
+  fields: []
+
+#- accessor: true
+#  area: 4
+#  emu: true
+#  name: OTP_FLAGS1
+#  size: 4
+#  address: 0x1A0
+#  desc:
+#  prod_cust: true
+
+- accessor: true
+  area: 4
+  emu: true
+  name: OTP_STRAP_DISABLE_MASK
+  size: 2
+  address: 0x1A4
+  desc: This is a mask of disabled strapping values. Default is 0, meaning all strap modes are allowed.
+  fields: []
+
+- accessor: true
+  area: 5
+  emu: true
+  name: OTP_TBBR_NTNVCT
+  size: 32
+  desc: TODO
+  address: 0x200
+  fields: []
+
+- accessor: true
+  area: 5
+  emu: true
+  name: OTP_TBBR_TNVCT
+  size: 32
+  desc: TODO
+  address: 0x220
+  fields: []

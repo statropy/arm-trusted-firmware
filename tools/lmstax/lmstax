@@ -1,0 +1,57 @@
+#!/bin/env ruby
+
+require 'fileutils'
+require 'optparse'
+require 'tmpdir'
+
+def do_cmd(cmd)
+    puts cmd if $option[:verbose]
+    system(cmd)
+    if !$?.success?
+        raise("\"#{cmd}\" failed.")
+    end
+end
+
+$option = {
+    :fiptool => "tools/fiptool/fiptool",
+}
+
+OptionParser.new do |opts|
+    opts.banner = "Usage: build.rb [options]"
+    opts.version = 0.1
+    opts.on("-f", "--fiptool <path>", "Define path for fiptool") do |p|
+        $option[:fiptool] = p
+    end
+    opts.on("-i", "--input <path>", "Define path for input fip") do |p|
+        $option[:input] = p
+    end
+    opts.on("-o", "--output <path>", "Define path for output image") do |p|
+        $option[:output] = p
+    end
+    opts.on("-v", "--verbose", "Verbose output") do
+        $option[:verbose] = true
+    end
+end.order!
+
+fiptool = $option[:fiptool]
+
+ntargs = [
+    Hash[:opt => "--nt-fw", 		:file => "nt-fw.bin"],
+    Hash[:opt => "--nt-fw-key-cert", 	:file => "nt-fw-key-cert.bin"],
+    Hash[:opt => "--nt-fw-cert",	:file => "nt-fw-cert.bin"],
+]
+
+build = File.dirname($option[:output])
+
+Dir.mktmpdir(nil, build) { |dir|
+    nt_fip = dir + "/nt_fip.bin"
+    tw_fip = dir + "/tw_fip.bin"
+    do_cmd("#{fiptool} unpack --out #{dir} #{$option[:input]}");
+    do_cmd("#{fiptool} create " + (ntargs.map{|x| "#{x[:opt]} #{dir}/#{x[:file]}" }.join(" ")) + " " + nt_fip)
+    do_cmd("#{fiptool} remove --out #{tw_fip} " + (ntargs.map{|x| "#{x[:opt]}" }.join(" ")) + " " + $option[:input])
+    raise "TW fip too large" if (File.size(tw_fip) >= (1024 * 128))
+    raise "NT fip too large" if (File.size(nt_fip) >= (1024 * 832))
+    do_cmd("truncate -s 128KiB #{tw_fip}")
+    do_cmd("truncate -s 832KiB #{nt_fip}")
+    do_cmd("cat #{tw_fip} #{nt_fip} #{nt_fip} > #{$option[:output]}")
+}

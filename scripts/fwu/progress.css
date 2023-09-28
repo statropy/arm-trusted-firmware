@@ -1,0 +1,25 @@
+// $dark: #28404e;
+// $light: #27e1ae;
+.progressbar {
+  position: relative;
+}
+.progressbar svg {
+  width: 114px;
+  height: 114px;
+}
+.progressbar svg .bg {
+  fill: none;
+  stroke-width: 10px;
+  stroke: #1b2a33;
+}
+.progressbar svg .progress {
+  fill: none;
+  stroke-width: 8px;
+  stroke: #5489ab;
+  stroke-linecap: round;
+  stroke-dasharray: 326.56;
+  stroke-dashoffset: 326.56;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: all 1s ease;
+}

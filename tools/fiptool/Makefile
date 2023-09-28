@@ -47,7 +47,7 @@ else
   Q :=
 endif
 
-INCLUDE_PATHS := -I../../include/tools_share  -I${OPENSSL_DIR}/include
+INCLUDE_PATHS := -I../../include/tools_share  -I${OPENSSL_DIR}/include  -I../../include  -I../../include
 
 HOSTCC ?= gcc
 

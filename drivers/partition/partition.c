@@ -18,7 +18,7 @@
 #include <drivers/partition/mbr.h>
 #include <plat/common/platform.h>
 
-static uint8_t mbr_sector[PLAT_PARTITION_BLOCK_SIZE];
+static uint8_t mbr_sector[PLAT_PARTITION_BLOCK_SIZE] __aligned(16);
 static partition_entry_list_t list;
 
 #if LOG_LEVEL >= LOG_LEVEL_VERBOSE
@@ -238,7 +238,7 @@ int load_partition_table(unsigned int image_id)
 	result = load_mbr_header(image_handle, &mbr_entry);
 	if (result != 0) {
 		WARN("Failed to access image id=%u (%i)\n", image_id, result);
-		return result;
+		goto out;
 	}
 	if (mbr_entry.type == PARTITION_TYPE_GPT) {
 		result = load_gpt_header(image_handle);
@@ -250,6 +250,7 @@ int load_partition_table(unsigned int image_id)
 		result = load_mbr_entries(image_handle);
 	}
 
+out:
 	io_close(image_handle);
 	return result;
 }

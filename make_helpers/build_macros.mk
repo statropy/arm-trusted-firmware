@@ -442,6 +442,7 @@ endef
 # MAKE_LIB macro defines the targets and options to build each BL image.
 # Arguments:
 #   $(1) = Library name
+#   $(2) = Extra
 define MAKE_LIB
         $(eval BUILD_DIR  := ${BUILD_PLAT}/lib$(1))
         $(eval LIB_DIR    := ${BUILD_PLAT}/lib)
@@ -468,6 +469,9 @@ LIBWRAPPER = -lwrappers
 endif
 
 all: ${LIB_DIR}/lib$(1).a
+
+# Allow for library-only (internal) includes and defines
+${OBJS}: CFLAGS += $(2)
 
 ${LIB_DIR}/lib$(1).a: $(OBJS)
 	$$(ECHO) "  AR      $$@"

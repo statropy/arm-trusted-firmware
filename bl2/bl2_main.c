@@ -109,6 +109,11 @@ void bl2_main(void)
 
 #if !BL2_AT_EL3 && !ENABLE_RME
 #ifndef __aarch64__
+	/* NB: Since we're keeping 'next_bl_ep_info' in stack with MMU
+	 * and cache turned on, we better make sure to flush this when
+	 * we disable the MMU & cache!
+	 */
+	flush_dcache_range((uintptr_t) &next_bl_ep_info, sizeof(next_bl_ep_info));
 	/*
 	 * For AArch32 state BL1 and BL2 share the MMU setup.
 	 * Given that BL2 does not map BL1 regions, MMU needs

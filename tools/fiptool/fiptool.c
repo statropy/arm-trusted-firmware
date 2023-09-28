@@ -18,6 +18,7 @@
 
 #include "fiptool.h"
 #include "tbbr_config.h"
+#include "firmware_encrypted.h"
 
 #define OPT_TOC_ENTRY 0
 #define OPT_PLAT_TOC_FLAGS 1
@@ -290,6 +291,17 @@ static void uuid_from_str(uuid_t *u, const char *s)
 		log_errx("Invalid UUID: %s", s);
 }
 
+static int uuid_to_image_id(const uuid_t *uuid)
+{
+	toc_entry_t *toc_entry = toc_entries;
+
+	for (; toc_entry->cmdline_name != NULL; toc_entry++) {
+		if (memcmp(&toc_entry->uuid, uuid, sizeof(uuid_t)) == 0)
+			return toc_entry->id;
+	}
+	return -1;
+}
+
 static int parse_fip(const char *filename, fip_toc_header_t *toc_header_out)
 {
 	struct BLD_PLAT_STAT st;
@@ -479,6 +491,15 @@ static int info_cmd(int argc, char *argv[])
 
 		if (image == NULL)
 			continue;
+		if (verbose) {
+			int image_id = uuid_to_image_id(&image->toc_e.uuid);
+
+			if (image_id >= 0) {
+				printf("%02d: ", uuid_to_image_id(&image->toc_e.uuid));
+			} else {
+				printf("  : ");
+			}
+		}
 		printf("%s: offset=0x%llX, size=0x%llX, cmdline=\"--%s\"",
 		       desc->name,
 		       (unsigned long long)image->toc_e.offset_address,
@@ -493,6 +514,15 @@ static int info_cmd(int argc, char *argv[])
 			md_print(md, sizeof(md));
 		}
 #endif
+		if (verbose) {
+			char buffer[40];
+
+			uuid_to_str(buffer, sizeof(buffer), &image->toc_e.uuid);
+			printf(", uuid=%s", buffer);
+			if (*((uint32_t *)image->buffer) == ENC_HEADER_MAGIC) {
+				printf(", encrypted");
+			}
+		}
 		putchar('\n');
 	}
 

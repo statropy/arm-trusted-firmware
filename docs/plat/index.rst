@@ -16,6 +16,8 @@ Platform Ports
    hikey960
    intel-agilex
    intel-stratix10
+   lan966x-sunrise
+   lan966x-evb
    marvell/index
    mt8183
    mt8186

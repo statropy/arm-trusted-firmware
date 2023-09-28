@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Secure Boot Management</title>
+  <script src="crc32c.js"></script>
+  <script src="sha256.js"></script>
+  <script src="js-yaml.js"></script>
+  <script src="fwu_app.js"></script>
+  <script src="ddr_cfg_lan966x_b0.js"></script>
+  <script src="ddr_cfg_lan969x_a0.js"></script>
+  <script src="ddr_fields.js"></script>
+  <script src="ddr_config.js"></script>
+  <script src="fwu.js"></script>
+  <style>
+	img#logo {
+	    position: absolute;
+	    top: 10px;
+	    right: 2px;
+	}
+	textarea {
+	    font-size: 12px;
+	    width: 100%;
+	}
+	.feedback {
+	    font-style: italic;
+	}
+	.changed {
+	    background-color: yellow;
+	};
+	.warning {
+	    border: 1px solid;
+	    margin: 8px 8px;
+	    padding: 8px 8px;
+	    text-color: white;
+	    background-color: red;
+	}
+	.reg_form {
+	    font-family: monospace;
+	    font-size: 14px;
+	    padding: 8px;
+	}
+	table.reg_form td {
+	    padding: 2px;
+	}
+	td.reg_text_col span:hover {
+	    cursor: pointer;
+	    text-decoration: underline;
+	}
+	.input_wide {
+	    width: 30em;
+	}
+	.input_normal {
+	    width: 7em;
+	}
+	input:invalid {
+	    border: 2px solid red;
+	}
+	.ddr_reghelp {
+	    background-color: white;
+	    color: black;
+	    border: 1px solid;
+	    padding: 5px;
+	}
+	.ddr_reghelp th {
+	    text-align: left;
+	}
+	div.ddr-reg-data {
+	    overflow: auto;
+	    height: 11.5rem;
+	    width: 90%;
+	}
+	table.ddr-reg-data {
+	    border-spacing; 0px;
+	}
+	table.ddr-reg-data > tr > td {
+	    padding: 0px 5px 0px 5px;
+	    font-family: monospace;
+	    font-size: 14px;
+	}
+	.horizontal_div {
+	    display: flex;
+	    flex-direction: row;
+	    justify-content: left;
+	    align-items: start;
+	}
+  </style>
+  <link rel="stylesheet" href="tabs.css">
+  <link rel="stylesheet" href="progress.css">
+</head>
+<body onload="startSerial()">
+  <h1>LAN96xx Secure boot management</h1>
+  <img id="logo" src="microchip.png">
+  <div id="browser_check" style="display:none" class="warning">
+    <h3>Warning!</h3>
+    <p>
+      You seem not to be using a supported browser. Please use only
+      Google 'Chrome' or Microsoft 'Edge' browsers, and if so - a
+      current version. This tool will not work otherwise.
+    </p>
+  </div>
+  <div id="connect">
+    <h2>Select communication port</h2>
+    <p>
+      First you need to connect your device to your computer, using an
+      USB or RS-232 port as defined by your PC and the device you want
+      to manage.
+    </p>
+    <p>
+      The device you have connected should be strapped for using
+      "Bootstrap Mode" using board DIP switches. Refer to hardware
+      documentation for details.
+      <ul>
+	<li>LAN966X: '1000'b or '0111'b</li>
+	<li>LAN969X: '1010'b.
+      </ul>
+    </p>
+    <p>
+      You should also make sure your browser support HTML5 and has
+      JavaScript enabled. Chrome or MS Edge is recommended.
+    </p>
+    <p>
+      You may also wish to enable the JavaScript console for detailed
+      insight into device interaction. For 'Chrome' this is key <tt>Ctrl-Shift-I</tt>.
+    </p>
+    <select id="baudrate">
+      <option value="115200">115200 baud</option>
+      <option value="921600">921600 baud</option>
+    </select>
+    <button type="button" id="port_select">Connect device</button>
+  </div>
+  <div id="bl1" style="display:none">
+    <h2>BL1 bootstrap</h2>
+    <p>
+      You are now in the built-in <em>BL1</em> context, and you may
+      select the functions supported here. You will most likely want
+      to change to the <em>BL2U</em> context.
+    </p>
+    <div class="tabs">
+      <div class="tab">
+	<input type="radio" name="bl1-css-tabs" id="bl1-tab-1" checked class="tab-switch">
+	<label for="bl1-tab-1" class="tab-label">BL2U</label>
+	<div class="tab-content">
+	  <p>
+	    To perform firmware upgrade, and other functions such as device
+	    firmware encryption you should change to the <em>BL2U</em>
+	    context. This implies uploading the associated
+	    BL2U <samp>fwu_fip</samp> which will then be replacing BL1
+	    temporarily.
+	  </p>
+	  <button type="button" id="bl1_download">Download BL2U</button>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl1-css-tabs" id="bl1-tab-2" class="tab-switch">
+	<label for="bl1-tab-2" class="tab-label">SJTAG</label>
+	<div class="tab-content">
+	  <p>
+	    Secure JTAG (SJTAG) is a feature that allow you to unlock
+	    a secured JTAG port, providing the SJTAG key for this
+	    particular device. The JTAG port can be locked by writing
+	    certain fields in the OTP.
+	    <br>
+	    In order to unlock, first obtain the challenge from the
+	    device. If SJTAG is enabled, you can then provide the key
+	    (copy/paste), and then unlock.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<button type="button" id="bl1_sjtag_challenge">SJTAG Get Challenge</button>
+	      </td>
+	      <td id="bl1_sjtag_challenge_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl1_sjtag_unlock">SJTAG Unlock</button>
+		Key <input id="bl1_sjtag_unlock_key" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	      </td>
+	      <td id="bl1_sjtag_unlock_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl1-css-tabs" id="bl1-tab-3" class="tab-switch">
+	<label for="bl1-tab-3" class="tab-label">OTP</label>
+	<div class="tab-content">
+	  <p>
+	    Note that all OTP Program Random/Set operations <em>cannot</em>
+	    be undone, and may render your device inoperable. Use with caution!
+	    <br>
+	    Note: You may also use <em>BL2U</em> to program OTP, this
+	    context also allow you to read back OTP data for
+	    verification.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<button type="button" id="bl1_otp_set_rnd">OTP Program Random Data</button> to
+		<select id="bl1_otp_set_rnd_fld"></select>
+	      </td>
+	      <td id="bl1_otp_set_rnd_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl1_otp_set_data">OTP Set</button> to
+		<select id="bl1_otp_set_data_fld"></select>
+		Data <input id="bl1_otp_set_data_buf" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	      </td>
+	      <td id="bl1_otp_set_data_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl1-css-tabs" id="bl1-tab-4" class="tab-switch">
+	<label for="bl1-tab-4" class="tab-label">Settings</label>
+	<div class="tab-content">
+	  <p>
+	    These settings are mostly usable for advanced users. Use at own risk.
+	  </p>
+	  <table class="settings">
+	    <tr>
+	      <td width="20%">
+		Enable trace <input type="checkbox" id="enable_trace">
+	      </td>
+	      <td>
+		Enabling this will add detailed trace output of all messages
+		between the managed device in the <em>JavaScript</em> console
+                of your browser. This is typically found in
+		<samp>Settings|Developer Tools</samp> (or F-12 on MS Edge).
+              </td>
+            </tr>
+          </table>
+	</div>
+      </div>
+    </div>
+  </div>
+  <div id="bl2u" style="display:none">
+    <h2>BL2U bootstrap</h2>
+    <p>
+      You are in the downloaded <em>BL2U</em> context, which enables
+      firmware associated functions and OTP read/write/randomize capabilities.
+      You can also enter DDR configuration or
+      <button type="button" id="bl2u_reset">Reset to BL1</button>
+      mode if desired.
+    </p>
+    <div class="tabs">
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-1" checked class="tab-switch">
+	<label for="bl2u-tab-1" class="tab-label">Image types</label>
+	<div class="tab-content">
+	  <p>
+	    For firmware update you should start by uploading
+	    either the <samp>FIP</samp> with a firmware upgrade, or a full
+	    Flash image.
+	  </p>
+	  <ul>
+	    <li>
+	      Updating NOR flash differ per platform, depending if GPT is
+	      used on the NOR device:
+	      <ul>
+		<li>
+		  LAN966X: No GPT. The FIP <em>is</em> the Flash image.
+		  Image is called <samp>x.fip</samp> or <samp>x.fip.gz</samp>.
+		</li>
+		<li>
+		  LAN969X: GPT is used. The NOR flash image is
+		  called <samp>nor.gpt</samp> or <samp>nor.gpt.gz</samp>.
+		</li>
+	      </ul>
+	    <li>For eMMC the Flash image is a GPT image called <samp>mmc.gpt</samp> or <samp>mmc.gpt.gz</samp>.</li>
+	  </ul>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-2" class="tab-switch">
+	<label for="bl2u-tab-2" class="tab-label">Upload Image</label>
+	<div class="tab-content">
+	  <p>
+	    Note: You may upload <samp>GZIP</samp>'ed files, and they will
+	    automatically be unzipped when received.
+	  </p>
+	  <p>
+	    First choose the appropriate file for the operation you
+	    wish to perform, the hit <samp>Upload file</samp>.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<input type="file" id="file_select">
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_upload">Upload file</button>
+		<input type="checkbox" id="binary" checked> Use binary upload
+	      </td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-3" class="tab-switch">
+	<label for="bl2u-tab-3" class="tab-label">Write Image</label>
+	<div class="tab-content">
+	  <p>
+	    The <em>binding</em> operation re-encrypts a FIP
+	    image with the BSSK key. The uploaded FIP must be
+	    encrypted with the SSK. This will ensure firmware
+	    cannot be copied from the device. Binding is
+	    optional, and can only be used on FIP images.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_bind">Bind FIP</button>
+	      </td>
+	      <td id="bl2u_bind_fip_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_write_fip">Write FIP Image</button> to
+		<select id="bl2u_write_fip_device">
+		  <option value="0">eMMC</option>
+		  <option value="1">NOR Flash</option>
+		</select>
+		Verify: <input type="checkbox" checked id="verify_fip_write">
+	      </td>
+	      <td id="bl2u_write_fip_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_write_image">Write Flash Image</button> to
+		<select id="bl2u_write_image_device">
+		  <option value="0">eMMC</option>
+		  <option value="1">NOR Flash</option>
+		</select>
+		Verify: <input type="checkbox" checked id="verify_image_write">
+	      </td>
+	      <td id="bl2u_write_image_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-4" class="tab-switch">
+	<label for="bl2u-tab-4" class="tab-label">OTP operations</label>
+	<div class="tab-content">
+	  <p>
+	    Note that all OTP Program Random/Set operations <em>cannot</em>
+	    be undone, and may render your device inoperable. Use with caution!
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_otp_read">OTP Read</button> from
+		<select id="bl2u_otp_read_fld"></select>
+	      </td>
+	      <td id="bl2u_otp_read_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_otp_set_rnd">OTP Program Random Data</button> to
+		<select id="bl2u_otp_set_rnd_fld"></select>
+	      </td>
+	      <td id="bl2u_otp_set_rnd_feedback" class="feedback"></td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_otp_set_data">OTP Set</button> to
+		<select id="bl2u_otp_set_data_fld"></select>
+		Data <input id="bl2u_otp_set_data_buf" placeholder="XX:XX:XX:... X=hex digit" type="text" size="16"/>
+	      </td>
+	      <td id="bl2u_otp_set_data_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-5" class="tab-switch">
+	<label for="bl2u-tab-5" class="tab-label">DDR configuration</label>
+	<div class="tab-content">
+	  <p>
+	    DDR configuration mode allow you to tweak the existing DDR
+	    configuration parameters, upload and save DDR
+	    configurations to <samp>YAML</samp> format.
+	  </p>
+	  <button type="button" id="bl2u_ddr_mode_enter">Enter DDR configuration</button>
+	</div>
+      </div>
+    </div>
+  </div>
+  <div id="bl2u_ddr" style="display:none">
+    <h2>DDR configuration mode</h2>
+    <p>
+      You are now in the DDR configuration mode, which allows you to
+      load alternate DDR configurations and test out the
+      behaviour. You can
+      <button type="button" id="bl2u_ddr_mode_exit">exit back</button>
+      to the normal BL2U mode if desired.
+      </p>
+    <div id="bl2u_ddr_pane" class="tabs">
+      <div class="tab">
+	<input type="radio" name="css-tabs" id="tab-1" checked class="tab-switch">
+	<label for="tab-1" class="tab-label">Configuration I/O</label>
+	<div class="tab-content">
+	  Load <button type="button" id="bl2u_ddr_load">Configuration From Device</button>
+	  <br>
+	  Load <select id="bl2u_ddr_predef"></select> <button type="button" id="bl2u_ddr_predef_load">Predefined Configuration</button>
+	  <br>
+	  Load <input type="file" id="ddr_config_input" accept=".yaml">
+	  <br>
+	  Save <button type="button" id="ddr_config_write">Configuration To File</button>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="css-tabs" id="tab-2" class="tab-switch">
+	<label for="tab-2" class="tab-label">Deployment</label>
+	<div class="tab-content">
+	  <button type="button" id="bl2u_ddr_init">Initialize DDR</button>
+	  <br>
+	  <button type="button" id="bl2u_ddr_test">Run DDR tests</button>
+	  Cache: <input type="checkbox" id="enable_cache">
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="css-tabs" id="tab-3" class="tab-switch">
+	<label for="tab-3" class="tab-label">Diagnostics</label>
+	<div class="tab-content">
+	  <button type="button" id="bl2u_ddr_read_regs" style="position: absolute; top: 3px; right: 3px;">Refresh</button>
+	  <div id="ddr_reg_diagnostics" class="ddr-reg-data">
+	  </div>
+	</div>
+      </div>
+    </div>
+    <div id="bl2u_ddr_reghelp" style="display:none">
+    </div>
+  </div>
+  <div id="booting" style="display:none">
+    <h2>Booting</h2>
+    <p>The device is now booting.  Remember to reset device strappings
+      for automatic boot at next reset if so desired.
+    </p>
+  </div>
+  <table>
+    <tr>
+      <td id="activity" style="display:none">
+	<svg width="36" height="36" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><style>.spinner_ajPY{transform-origin:center;animation:spinner_AtaB .75s infinite linear}@keyframes spinner_AtaB{100%{transform:rotate(360deg)}}</style><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" class="spinner_ajPY"/>
+	</svg>
+	&nbsp;
+      </td>
+      <td class="progressbar" style="display:none">
+	<svg>
+	  <style>
+	    text {
+		fill: white;
+	    }
+	    text.percentage {
+		font: bold 30px sans-serif;
+	    }
+	  </style>
+	  <text x="50%" y="50%" text-anchor="middle" class="percentage">100</text>
+	  <text x="50%" y="70%" text-anchor="middle" class="pct_unit">%</text>
+	  <circle class="bg"       cx="57" cy="57" r="52"></circle>
+	  <circle class="progress" cx="57" cy="57" r="52"></circle>
+	</svg>
+	&nbsp;&nbsp;
+      </td>
+      <td>
+	<h2>Status:
+	  <span id="status">Disconnected</span>
+	</h2>
+      </td>
+    </tr>
+  </table>
+  <h3>Transaction Log</h3>
+  <textarea cols="30" rows="15" id="log"></textarea>
+</body>
+</html>

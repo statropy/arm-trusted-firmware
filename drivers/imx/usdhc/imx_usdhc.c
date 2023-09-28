@@ -20,7 +20,7 @@
 static void imx_usdhc_initialize(void);
 static int imx_usdhc_send_cmd(struct mmc_cmd *cmd);
 static int imx_usdhc_set_ios(unsigned int clk, unsigned int width);
-static int imx_usdhc_prepare(int lba, uintptr_t buf, size_t size);
+static int imx_usdhc_prepare(int lba, uintptr_t buf, size_t size, bool is_write);
 static int imx_usdhc_read(int lba, uintptr_t buf, size_t size);
 static int imx_usdhc_write(int lba, uintptr_t buf, size_t size);
 
@@ -265,7 +265,7 @@ static int imx_usdhc_set_ios(unsigned int clk, unsigned int width)
 	return 0;
 }
 
-static int imx_usdhc_prepare(int lba, uintptr_t buf, size_t size)
+static int imx_usdhc_prepare(int lba, uintptr_t buf, size_t size, bool is_write)
 {
 	uintptr_t reg_base = imx_usdhc_params.reg_base;
 

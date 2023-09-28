@@ -1,3 +1,34 @@
+Microchip/UNG Trusted Firmware-A
+================================
+
+This software has been modified by Microchip Technology Inc. to add
+support for the following SoC:
+
+* `lan966x_b0`: LAN966X revision B - BL1 secure bootrom
+
+Specifically, the platform `lan966x_sr` is an internal development
+platform and should not be used (and is not supported).
+
+It is possible to build the software by following the normal TFA
+guidelines, but the (Ruby) wrapper `scripts/build.rb` script is
+offered as it ensures using the proper options for the platform. Refer
+to the script help (`--help` option).
+
+You should be able to compile the software using Ubuntu 22.04, but in
+order to shield you from platform software issues, you should consider
+using docker, along with a wrapper script - see
+https://github.com/microchip-ung/docker-run for more info. So with
+docker install, just run `dr ./scripts/build.rb ...`. (At first run it
+docker will download a docker image, but after that the overhead is
+minimal).
+
+.. warning::
+   The keys found in the `keys/` directory are *purely* for
+   demonstration purposes and *must* be replaced with own keys before
+   software deployment.
+
+*Orignial TF-A Readme file below:*
+
 Trusted Firmware-A
 ==================
 
@@ -48,4 +79,3 @@ that is available through `trustedfirmware.org`_.
 .. _Arm A-Profile architectures: https://developer.arm.com/architectures/cpu-architecture/a-profile
 .. _view the full documentation: https://www.trustedfirmware.org/docs/tf-a
 .. _trustedfirmware.org: http://www.trustedfirmware.org
-

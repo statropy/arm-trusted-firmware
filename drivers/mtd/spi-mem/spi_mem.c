@@ -12,7 +12,9 @@
 #include <lib/utils_def.h>
 #include <libfdt.h>
 
+#if !defined(SPI_MEM_DEFAULT_SPEED_HZ)
 #define SPI_MEM_DEFAULT_SPEED_HZ 100000U
+#endif
 
 /*
  * struct spi_slave - Representation of a SPI slave.
@@ -284,6 +286,34 @@ int spi_mem_init_slave(void *fdt, int bus_node, const struct spi_bus_ops *ops)
 		spi_slave.mode = mode;
 		spi_slave.ops = ops;
 	}
+
+	return spi_mem_set_speed_mode();
+}
+
+/*
+ * spi_mem_init_slave_default() - SPI slave device initializationwo fdt.
+ * @ops: The SPI bus ops defined.
+ *
+ * This function first checks that @ops are supported and then tries to find
+ * a SPI slave device.
+ *
+ * Return: 0 in case of success, a negative error code otherwise.
+ */
+int spi_mem_init_slave_default(const struct spi_bus_ops *ops,
+			       int mode, int max_hz)
+{
+	int ret;
+
+	ret = spi_mem_check_bus_ops(ops);
+	if (ret != 0) {
+		return ret;
+	}
+
+	/* Defaults */
+	spi_slave.cs = 0;
+	spi_slave.max_hz = max_hz;
+	spi_slave.mode = mode;
+	spi_slave.ops = ops;
 
 	return spi_mem_set_speed_mode();
 }

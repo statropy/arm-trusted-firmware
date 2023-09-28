@@ -123,7 +123,7 @@ struct dw_idmac_desc {
 static void dw_init(void);
 static int dw_send_cmd(struct mmc_cmd *cmd);
 static int dw_set_ios(unsigned int clk, unsigned int width);
-static int dw_prepare(int lba, uintptr_t buf, size_t size);
+static int dw_prepare(int lba, uintptr_t buf, size_t size, bool is_write);
 static int dw_read(int lba, uintptr_t buf, size_t size);
 static int dw_write(int lba, uintptr_t buf, size_t size);
 
@@ -339,7 +339,7 @@ static int dw_set_ios(unsigned int clk, unsigned int width)
 	return 0;
 }
 
-static int dw_prepare(int lba, uintptr_t buf, size_t size)
+static int dw_prepare(int lba, uintptr_t buf, size_t size, bool is_write)
 {
 	struct dw_idmac_desc *desc;
 	int desc_cnt, i, last;

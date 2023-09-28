@@ -1334,7 +1334,7 @@ endif
 BL2_SOURCES := $(sort ${BL2_SOURCES})
 
 $(if ${BL2}, $(eval $(call TOOL_ADD_IMG,bl2,--${FIP_BL2_ARGS})),\
-	$(eval $(call MAKE_BL,bl2,${FIP_BL2_ARGS})))
+	$(eval $(call MAKE_BL,bl2,${FIP_BL2_ARGS},,$(ENCRYPT_BL2))))
 endif
 
 ifeq (${NEED_SCP_BL2},yes)
@@ -1384,7 +1384,7 @@ endif
 
 # Add the BL33 image if required by the platform
 ifeq (${NEED_BL33},yes)
-$(eval $(call TOOL_ADD_IMG,bl33,--nt-fw))
+$(eval $(call TOOL_ADD_IMG,bl33,--nt-fw,,$(ENCRYPT_BL33)))
 endif
 
 ifeq (${NEED_BL2U},yes)
