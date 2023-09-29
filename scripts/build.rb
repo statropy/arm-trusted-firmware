@@ -10,7 +10,7 @@ require 'base64'
 platforms = {
     "lan966x_b0"	=> Hash[
         :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-mchp_lan966x_evb.bin",
-        :loglevel => 10,
+        :loglevel => 30,
         :arch  => "arm" ],
     "lan966x_lm"	=> Hash[
         :uboot => "arm-cortex_a8-linux-gnu/bootloaders/lan966x/u-boot-mchp_lan966x_evb.bin",
@@ -113,7 +113,7 @@ $option = { :platform              => "lan966x_b0",
             :sdk_branch            => "-brsdk",
             :norimg                => true,
             :gptimg                => false,
-            :ramusage              => false,
+            :ramusage              => true,
           }
 
 args = ""

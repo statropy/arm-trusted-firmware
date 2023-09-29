@@ -34,6 +34,9 @@ FIP_ALIGN		:= 4
 # Must be zero on aarch32
 ENABLE_SVE_FOR_NS		:=	0
 
+# Save some memory for GUIDs not used
+$(eval $(call add_define,GPT_NO_GUID))
+
 # Pass LAN966x_MAX_CPUS_PER_CLUSTER to the build system.
 $(eval $(call add_define,LAN966x_MAX_CPUS_PER_CLUSTER))
 
@@ -44,6 +47,10 @@ include lib/xlat_tables_v2/xlat_tables.mk
 include lib/zlib/zlib.mk
 
 $(info Including platform TBBR)
+# Mbed TLS heap size is smal as we only use the asn1 parsing functions
+# digest, signature and crypto algorithm are done by other library.
+# NB: Only affects BL1 due to heap sharing
+$(eval $(call add_define_val,TF_MBEDTLS_HEAP_SIZE,5120U))
 include drivers/microchip/crypto/lan966x_crypto.mk
 
 # MCHP SOC family
@@ -104,9 +111,6 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				plat/microchip/lan966x/common/lan966x_common.c		\
 				plat/microchip/lan966x/common/lan966x_strapping.c	\
 				drivers/microchip/trng/lan966x_trng.c
-
-# Disable BL1 for now
-override NEED_BL1	:= no
 
 BL1_SOURCES		+=	\
 				plat/microchip/common/lan966x_bootstrap.c		\
