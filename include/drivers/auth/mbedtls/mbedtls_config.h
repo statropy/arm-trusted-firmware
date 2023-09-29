@@ -130,6 +130,7 @@
  * 11264 = 11*1024
  * 7168  = 7*1024
  */
+#if !defined(TF_MBEDTLS_HEAP_SIZE)
 #if TF_MBEDTLS_USE_ECDSA
 #define TF_MBEDTLS_HEAP_SIZE		U(13312)
 #elif TF_MBEDTLS_USE_RSA
@@ -139,6 +140,7 @@
 #define TF_MBEDTLS_HEAP_SIZE		U(11264)
 #endif
 #endif
+#endif	/* defined(TF_MBEDTLS_HEAP_SIZE) */
 
 /*
  * Warn if errors from certain functions are ignored.
