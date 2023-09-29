@@ -267,6 +267,7 @@ const partition_entry_t *get_partition_entry(const char *name)
 	return NULL;
 }
 
+#if !defined(GPT_NO_GUID)
 const partition_entry_t *get_partition_entry_by_type(const uuid_t *type_uuid)
 {
 	int i;
@@ -292,6 +293,7 @@ const partition_entry_t *get_partition_entry_by_uuid(const uuid_t *part_uuid)
 
 	return NULL;
 }
+#endif
 
 const partition_entry_list_t *get_partition_entry_list(void)
 {

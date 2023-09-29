@@ -58,8 +58,10 @@ int parse_gpt_entry(gpt_entry_t *gpt_entry, partition_entry_t *entry)
 	entry->length = (uint64_t)(gpt_entry->last_lba -
 				   gpt_entry->first_lba + 1) *
 			PLAT_PARTITION_BLOCK_SIZE;
+#if !defined(GPT_NO_GUID)
 	guidcpy(&entry->part_guid, &gpt_entry->unique_uuid);
 	guidcpy(&entry->type_guid, &gpt_entry->type_uuid);
+#endif
 
 	return 0;
 }
