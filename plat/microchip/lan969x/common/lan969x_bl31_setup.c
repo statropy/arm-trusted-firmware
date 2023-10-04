@@ -10,12 +10,13 @@
 
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
+#include <drivers/microchip/tz_matrix.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
+#include <libfit.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/lan966x_gic.h>
-#include <libfit.h>
 #include <tf_gunzip.h>
 
 #include "lan969x_private.h"
@@ -29,6 +30,11 @@ static uintptr_t bl33_image_base;
 static bl31_params_t bl31_params;
 
 static char fit_config[128], *fit_config_ptr;
+
+#define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
+		LAN969X_SRAM_BASE,					\
+		LAN969X_SRAM_SIZE,					\
+		MT_MEMORY | MT_RW | MT_SECURE)
 
 #define MAP_BL31_TOTAL	MAP_REGION_FLAT(				\
 					BL31_BASE,			\
@@ -220,6 +226,7 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 void bl31_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
+		MAP_SRAM_TOTAL,
 		MAP_BL31_TOTAL,
 		ARM_MAP_BL_RO,
 		{0}
@@ -251,4 +258,30 @@ entry_point_info_t *bl31_plat_get_next_image_ep_info(uint32_t type)
 		return &bl32_image_ep_info;
 
 	return NULL;
+}
+
+void bl31_plat_runtime_setup(void)
+{
+	uint32_t srtop, sasplit, ssr;
+
+	NOTICE("Runtime initialization NOW\n");
+	/* Wipe re-purposed SRAM */
+	memset((void *)BL2_BASE, 0, BL2_SIZE);
+	flush_dcache_range((uintptr_t)BL2_BASE, BL2_SIZE);
+	memset((void *)BL1_RW_BASE, 0, BL1_RW_SIZE);
+	flush_dcache_range((uintptr_t)BL1_RW_BASE, BL1_RW_SIZE);
+
+
+	/* Enable SRAM for NS access */
+	/* HSEL0: NS (1MB) */
+	srtop = MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_1M);
+	sasplit = MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_1M);
+	ssr = MATRIX_LANSECH_NS(0);
+	/* HSEL1: S (128K BL31) */
+	/* HSEL1: NS (896K) */
+	srtop |= MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_1M);
+	sasplit |= MATRIX_SASPLIT(1, MATRIX_SRTOP_VALUE_128K);
+	/* ssr(1) is zero = S for LA(HSEL1) */
+	matrix_configure_slave_security(MATRIX_SLAVE_FLEXRAM0,
+					srtop, sasplit, ssr);
 }

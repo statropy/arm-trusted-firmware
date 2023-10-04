@@ -80,8 +80,8 @@
 /*
  * BL31
  */
-#define BL31_BASE		BL2_LIMIT
-#define BL31_SIZE		(LAN969X_SRAM_SIZE - BL2_SIZE - BL1_RW_SIZE)
+#define BL31_BASE		(LAN969X_SRAM_BASE + SIZE_M(1))
+#define BL31_SIZE		SIZE_K(128)
 #define BL31_LIMIT		(BL31_BASE + BL31_SIZE)
 
 /* NS image */
