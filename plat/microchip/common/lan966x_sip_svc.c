@@ -60,6 +60,14 @@ u_register_t microchip_plat_boot_offset(void)
 	return 0;
 }
 
+#pragma weak microchip_plat_sram_info
+u_register_t microchip_plat_sram_info(u_register_t index,
+				      u_register_t *addr,
+				      u_register_t *size)
+{
+	return SMC_ARCH_CALL_NOT_SUPPORTED;
+}
+
 static bool is_ns_ddr(uint32_t size, uintptr_t addr)
 {
 	size_t my_size = microchip_plat_ns_ddr_size();
@@ -314,6 +322,19 @@ static uintptr_t sip_smc_handler(uint32_t smc_fid,
 			 lan966x_get_boot_source(),
 			 microchip_plat_boot_offset());
 		/* break is not required as SMC_RETx return */
+
+	case SIP_SVC_SRAM_INFO:
+	{
+		u_register_t ret, addr, size;
+
+		ret = microchip_plat_sram_info(x1, &addr, &size);
+		if (ret == SMC_OK) {
+			SMC_RET3(handle, ret, addr, size);
+		}
+		/* Failure */
+		SMC_RET3(handle, ret, 0, 0);
+		/* break is not required as SMC_RETx return */
+	}
 
 	default:
 		return microchip_plat_sip_handler(smc_fid, x1, x2, x3, x4,

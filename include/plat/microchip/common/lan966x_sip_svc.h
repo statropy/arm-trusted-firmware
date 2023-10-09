@@ -24,10 +24,11 @@
 #define SIP_SVC_GET_DDR_SIZE	0x8200ff0a
 #define SIP_SVC_GET_BOARD_NO	0x8200ff0b
 #define SIP_SVC_GET_BOOT_OFF	0x8200ff0c
+#define SIP_SVC_SRAM_INFO	0x8200ff0d
 
 /* SiP Service Calls version numbers */
 #define SIP_SVC_VERSION_MAJOR	0
-#define SIP_SVC_VERSION_MINOR	1
+#define SIP_SVC_VERSION_MINOR	2
 
 /* This is used as a signature to validate the encryption header */
 #define NS_ENC_HEADER_MAGIC		0xAA64BE05U
@@ -67,6 +68,10 @@ uintptr_t microchip_plat_ns_ddr_base(void);
 size_t microchip_plat_ns_ddr_size(void);
 u_register_t microchip_plat_board_number(void);
 u_register_t microchip_plat_boot_offset(void);
+
+u_register_t microchip_plat_sram_info(u_register_t index,
+				      u_register_t *addr,
+				      u_register_t *size);
 
 uintptr_t microchip_plat_sip_handler(uint32_t smc_fid,
 				     u_register_t x1,

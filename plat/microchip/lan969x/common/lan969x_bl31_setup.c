@@ -46,6 +46,14 @@ static char fit_config[128], *fit_config_ptr;
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
 
+/* 1st block of 1M */
+#define HSEL0_ADDR	LAN969X_SRAM_BASE
+#define HSEL0_SIZE	SIZE_M(1)
+
+/* 2nd block of 1M minus bl31 */
+#define HSEL1_ADDR	(HSEL0_ADDR + HSEL0_SIZE + BL31_SIZE)
+#define HSEL1_SIZE	(SIZE_M(1) - BL31_SIZE)
+
 size_t microchip_plat_ns_ddr_size(void)
 {
 	return bl31_params.ddr_size;
@@ -59,6 +67,25 @@ u_register_t microchip_plat_board_number(void)
 u_register_t microchip_plat_boot_offset(void)
 {
 	return bl31_params.boot_offset;
+}
+
+u_register_t microchip_plat_sram_info(u_register_t index,
+				      u_register_t *addr,
+				      u_register_t *size)
+{
+	if (index == 0) {
+		*addr = HSEL0_ADDR;
+		*size = HSEL0_SIZE;
+		return SMC_OK;
+	}
+
+	if (index == 1) {
+		*addr = HSEL1_ADDR;
+		*size = HSEL1_SIZE;
+		return SMC_OK;
+	}
+
+	return SMC_ARCH_CALL_INVAL_PARAM;
 }
 
 /* FIT platform check of address */
