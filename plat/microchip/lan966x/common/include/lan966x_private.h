@@ -25,6 +25,7 @@ extern shared_memory_desc_t shared_memory_desc;
 typedef struct {
 	uint32_t ddr_size;
 	size_t   boot_offset;
+	uint32_t bl2_version;
 } bl32_params_t;
 
 /* GPR(3) = tag below, GPR(4) = size, GPR(5) = ptr */

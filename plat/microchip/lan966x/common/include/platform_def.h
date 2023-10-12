@@ -13,6 +13,11 @@
 
 #include "lan966x_def.h"
 
+/* BL2 current version */
+#define PLAT_BL2_VERSION		U(0x00010001)
+#define PLAT_BL2_VERSION_MAJOR(x)	(x >> 16U)
+#define PLAT_BL2_VERSION_MINOR(x)	(x & 0xFFFFU)
+
 /*
  * Generic platform constants
  */

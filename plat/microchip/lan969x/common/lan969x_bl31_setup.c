@@ -88,6 +88,11 @@ u_register_t microchip_plat_sram_info(u_register_t index,
 	return SMC_ARCH_CALL_INVAL_PARAM;
 }
 
+u_register_t microchip_plat_bl2_version(void)
+{
+	return bl31_params.bl2_version;
+}
+
 /* FIT platform check of address */
 bool fit_plat_is_ns_addr(uintptr_t addr)
 {
@@ -291,7 +296,8 @@ void bl31_plat_runtime_setup(void)
 {
 	uint32_t srtop, sasplit, ssr;
 
-	NOTICE("Runtime initialization NOW\n");
+	INFO("NS Runtime initialization performed now\n");
+
 	/* Wipe re-purposed SRAM */
 	memset((void *)BL2_BASE, 0, BL2_SIZE);
 	flush_dcache_range((uintptr_t)BL2_BASE, BL2_SIZE);

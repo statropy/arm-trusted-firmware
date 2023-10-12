@@ -68,6 +68,12 @@ u_register_t microchip_plat_sram_info(u_register_t index,
 	return SMC_ARCH_CALL_NOT_SUPPORTED;
 }
 
+#pragma weak microchip_plat_bl2_version
+u_register_t microchip_plat_bl2_version(void)
+{
+	return 0;
+}
+
 static bool is_ns_ddr(uint32_t size, uintptr_t addr)
 {
 	size_t my_size = microchip_plat_ns_ddr_size();
@@ -335,6 +341,11 @@ static uintptr_t sip_smc_handler(uint32_t smc_fid,
 		SMC_RET3(handle, ret, 0, 0);
 		/* break is not required as SMC_RETx return */
 	}
+
+	case SIP_SVC_BL2_VERSION:
+		SMC_RET2(handle, SMC_OK,
+			 microchip_plat_bl2_version());
+		/* break is not required as SMC_RETx return */
 
 	default:
 		return microchip_plat_sip_handler(smc_fid, x1, x2, x3, x4,

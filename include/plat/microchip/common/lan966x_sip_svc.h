@@ -25,6 +25,7 @@
 #define SIP_SVC_GET_BOARD_NO	0x8200ff0b
 #define SIP_SVC_GET_BOOT_OFF	0x8200ff0c
 #define SIP_SVC_SRAM_INFO	0x8200ff0d
+#define SIP_SVC_BL2_VERSION	0x8200ff0e
 
 /* SiP Service Calls version numbers */
 #define SIP_SVC_VERSION_MAJOR	0
@@ -72,6 +73,8 @@ u_register_t microchip_plat_boot_offset(void);
 u_register_t microchip_plat_sram_info(u_register_t index,
 				      u_register_t *addr,
 				      u_register_t *size);
+
+u_register_t microchip_plat_bl2_version(void);
 
 uintptr_t microchip_plat_sip_handler(uint32_t smc_fid,
 				     u_register_t x1,

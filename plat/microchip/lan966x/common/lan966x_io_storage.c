@@ -795,6 +795,7 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 		/* Setup params struct */
 		bl32_params.ddr_size = lan966x_ddr_size();
 		bl32_params.boot_offset = off;
+		bl32_params.bl2_version = PLAT_BL2_VERSION;
 		/* Pass bl32_params through GPR(3-5) */
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 3), BL32_PTR_TAG);
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 4), sizeof(bl32_params));
@@ -809,10 +810,6 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 1), 0xAFEA0000 | src);
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 2), off);
 		INFO("GPR: Set 'Loaded From' = src %d, offset %08x\n", src, off);
-		/* BL33 may update the boot offset */
-		bl32_params.boot_offset = off;
-		/* Passed between contexts */
-		flush_dcache_range((uintptr_t) &bl32_params, sizeof(bl32_params));
 		break;
 	default:
 		/* Do nothing in default case */
