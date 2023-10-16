@@ -30,6 +30,11 @@ platforms = {
         :loglevel => 30,
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
+    "lan969x_lm"	=> Hash[
+        :uboot => "arm64-armv8_a-linux-gnu/bootloaders/release/u-boot-mchp_lan969x.bin",
+        :loglevel => 40,
+        :arch  => "arm64",
+        :nor_gpt_size   => 2*(1024 * 1024) ],
 }
 
 UNIT_1K = 1024

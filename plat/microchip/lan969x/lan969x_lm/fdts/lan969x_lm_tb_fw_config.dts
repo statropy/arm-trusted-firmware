@@ -1,0 +1,24 @@
+/*
+ * Copyright (c) 2022, Microchip Technology Inc. and its subsidiaries.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/dts-v1/;
+
+#include "lan969x.dtsi"
+
+&qspi0 {
+	status = "okay";
+	spi-flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <25000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+	};
+};
+
+&board {
+	board-number = <201>; /* Unable to probe LMSTAX correctly */
+};
