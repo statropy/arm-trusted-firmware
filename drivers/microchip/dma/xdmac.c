@@ -23,7 +23,7 @@ static uintptr_t base = LAN969X_XDMAC_BASE;
 #define CH_OFF(b, c)	(b + (c * CH_SZ))
 
 static uint32_t cc_memset =
-	XDMAC_XDMAC_CC_CH0_PERID_CH0(0x7f)				|
+	XDMAC_XDMAC_CC_CH0_PERID_CH0(XDMA_NONE)				|
 	XDMAC_XDMAC_CC_CH0_TYPE_CH0(AT_XDMAC_CC_TYPE_MEM_TRAN)  	|
 	XDMAC_XDMAC_CC_CH0_MEMSET_CH0(AT_XDMAC_CC_MEMSET_HW_MODE)	|
 	XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_UBS_AM)		|
@@ -31,13 +31,12 @@ static uint32_t cc_memset =
 	XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN);
 
 static uint32_t cc_memcpy =
-	XDMAC_XDMAC_CC_CH0_PERID_CH0(0x7f)				|
 	XDMAC_XDMAC_CC_CH0_TYPE_CH0(AT_XDMAC_CC_TYPE_MEM_TRAN)		|
 	XDMAC_XDMAC_CC_CH0_SAM_CH0(AT_XDMAC_CC_SAM_INCREMENTED_AM)	|
 	XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_INCREMENTED_AM)	|
 	XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN);
 
-#define MAX_TIMEOUT_US	(20 * 1000U)	/* 20ms */
+#define MAX_TIMEOUT_US	(400 * 1000U)	/* 400ms */
 
 static void xdmac_channel_clear(uint8_t ch)
 {
@@ -137,14 +136,16 @@ void *xdmac_memset(void *_dst, int val, size_t len)
 			(dst | len), len) ? NULL : _dst;
 }
 
-void *xdmac_memcpy(void *_dst, const void *_src, size_t len)
+void *xdmac_memcpy(void *_dst, const void *_src, size_t len, int flags, int periph)
 {
 	uint8_t ch = 0;
 	uint32_t dst, src;
 
 	/* Cache cleaning, XDMAC is *not* cache aware */
-	flush_dcache_range((uintptr_t) _src, len);
-	inv_dcache_range((uintptr_t) _dst, len);
+	if (flags & XDMA_FROM_MEM)
+		flush_dcache_range((uintptr_t) _src, len);
+	if (flags & XDMA_TO_MEM)
+		inv_dcache_range((uintptr_t) _dst, len);
 
 	/* Convert args from 64 bit */
 	src = (uintptr_t) _src;
@@ -153,7 +154,7 @@ void *xdmac_memcpy(void *_dst, const void *_src, size_t len)
 	/* Start the operation */
 	return xdmac_go(ch,
 			dst, src,
-			cc_memcpy, 0,
+			cc_memcpy | XDMAC_XDMAC_CC_CH0_PERID_CH0(periph), 0,
 			(src | dst | len), len) ? NULL : _dst;
 }
 
