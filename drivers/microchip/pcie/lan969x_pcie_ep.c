@@ -9,13 +9,13 @@
  *
  *         pcie: pcie@e00d0000 {
  *                 compatible = "microchip,pcie-ep";
- *                 microchip,perst-gpio = <0 2>;
+ *                 microchip,perst_gpio = <0 2>;
  *                 microchip,max-speed = <3>;
  *                 microchip,vendor-id = <0x1055>;
  *                 microchip,device-id = <0x9690>;
  *         };
  *
- * The perst-gpio value is mandatory for the driver as this is needed to support
+ * The perst_gpio value is mandatory for the driver as this is needed to support
  * the reset signal from the PCIe root-complex.
  * The next 3 values are optional and will override the defaults.  The values
  * shown above are the default values.
@@ -1018,7 +1018,7 @@ static int lan969x_read_pcie_ep_config(void *fdt, struct pcie_ep_config *cfg)
 		return -ENOENT;
 	}
 
-	ret = fdt_read_uint32_array(fdt, node, "microchip,perst-gpio",
+	ret = fdt_read_uint32_array(fdt, node, "microchip,perst_gpio",
 				    ARRAY_SIZE(gpio_info), gpio_info);
 	if (ret) {
 		ERROR("pcie: missing PERST GPIO configuration\n");

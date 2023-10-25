@@ -35,6 +35,11 @@ platforms = {
         :loglevel => 40,
         :arch  => "arm64",
         :nor_gpt_size   => 2*(1024 * 1024) ],
+    "lan969x_pcie"	=> Hash[
+        :uboot => nil,
+        :loglevel => 30,
+        :arch  => "arm64",
+        :nor_gpt_size   => 2*(1024 * 1024) ],
 }
 
 UNIT_1K = 1024
@@ -127,7 +132,7 @@ bl33 = ""
 OptionParser.new do |opts|
     opts.banner = "Usage: build.rb [options]"
     opts.version = 0.1
-    opts.on("-p", "--platform <platform>", "Build for given platform") do |p|
+    opts.on("-p", "--platform <platform>", "Build for given platform: #{platforms.keys.join(', ')}") do |p|
         $option[:platform] = p
     end
     opts.on("-r", "--root-of-trust <keyfile>", "Set ROT key file") do |k|

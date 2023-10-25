@@ -130,10 +130,5 @@
 			#size-cells = <0>;
 			status = "disabled";
 		};
-
-		pcie: pcie@e00d0000 {
-			      compatible = "microchip,pcie-ep";
-			      microchip,perst-gpio = <0 2>;
-		};
 	};
 };
