@@ -41,6 +41,29 @@
 #include <libfdt.h>
 #include <platform_def.h>
 
+#define PCIE_BAR_REG(_base, _barno) \
+	PCIE_DBI_BAR ## _barno ##_REG(_base)
+#define PCIE_BAR_MASK_REG(_base, _barno) \
+	PCIE_DBI_BAR ## _barno ##_MASK_REG(_base)
+#define PCIE_BAR_ATU_REG(_base, _barno) \
+	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno(_base)
+#define PCIE_BAR_ATU_TARGET_REG(_base, _barno) \
+	PCIE_DBI_IATU_LWR_TARGET_ADDR_OFF_INBOUND_ ## _barno(_base)
+#define PCIE_BAR_ATU_MASK(_barno) \
+	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##\
+	_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##_REGION_EN_M | \
+	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##\
+	_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##_MATCH_MODE_M | \
+	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##\
+	_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##_BAR_NUM_M
+#define PCIE_BAR_ATU_VALUE(_barno) \
+	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##\
+	_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##_REGION_EN_M | \
+	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##\
+	_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##_MATCH_MODE_M | \
+	PCIE_DBI_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##\
+	_IATU_REGION_CTRL_2_OFF_INBOUND_## _barno ##_BAR_NUM(_barno)
+
 struct pcie_ep_config {
 	uint32_t max_link_speed;
 	uint32_t vendor_id;
@@ -49,29 +72,83 @@ struct pcie_ep_config {
 	int perst_gpio_alt;
 };
 
+enum pcie_ep_access_type {
+	PCIE_CMU_ACCESS = 0,
+	PCIE_LANE_ACCESS = 1,
+};
+
+#define BAR0_START	0xe2000000	/* CSR */
+#define BAR0_SIZE	 0x2000000	/* 32MB */
+#define BAR1_START	0xe0000000	/* CPU peripherals */
+#define BAR1_SIZE	 0x1000000	/* 16MB */
+#define BAR4_START	  0x100000	/* SRAM */
+#define BAR4_SIZE	   0x20000	/* 128KB */
+
 static bool pcie_ep_has_cmu_lock(void)
 {
 	uintptr_t pcie_phy_pma = LAN969X_PCIE_PHY_PMA_BASE;
 	uint32_t value;
 
+	INFO("pcie: Enable check of CMU lock\n");
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_CMU_ACCESS);
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_30(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_30_R_PLL_DLOL_EN_M,
 			   PCIE_PHY_PMA_PMA_CMU_30_R_PLL_DLOL_EN(1));
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_42(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_42_R_LOL_RESET_M,
 			   PCIE_PHY_PMA_PMA_CMU_42_R_LOL_RESET(1));
+	mdelay(1);
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_42(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_42_R_LOL_RESET_M,
 			   PCIE_PHY_PMA_PMA_CMU_42_R_LOL_RESET(0));
-	mdelay(100);
+	mdelay(1);
 
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 0);
 	value = mmio_read_32(PCIE_PHY_PMA_PMA_CMU_E0(pcie_phy_pma));
 
 	INFO("pcie: PLL Loss Of Lock: 0x%lx\n",
 	       PCIE_PHY_PMA_PMA_CMU_E0_PLL_LOL_UDL_X(value));
 
+	INFO("pcie: PLL VCO CTune: 0x%lx\n",
+	       PCIE_PHY_PMA_PMA_CMU_E0_READ_VCO_CTUNE_3_0(value));
+
 	return !PCIE_PHY_PMA_PMA_CMU_E0_PLL_LOL_UDL_X(value);
+}
+
+static void pcie_ep_reset_pipe(bool enable)
+{
+	uintptr_t pcie_phy_wrap = LAN969X_PCIE_PHY_WRAP_BASE;
+
+	mmio_clrsetbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(pcie_phy_wrap),
+			   PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST_M,
+			   PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(enable));
+}
+
+static void pcie_ep_calibrate_vco(bool enable)
+{
+	uintptr_t pcie_phy_pma = LAN969X_PCIE_PHY_PMA_BASE;
+
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_CMU_ACCESS);
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_42(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_CMU_42_R_EN_PRE_CAL_VCO_M,
+			   PCIE_PHY_PMA_PMA_CMU_42_R_EN_PRE_CAL_VCO(enable));
+}
+
+static bool pcie_ep_wait_for_cmu_lock(const struct pcie_ep_config *cfg)
+{
+	uintptr_t pcie_phy_pma = LAN969X_PCIE_PHY_PMA_BASE;
+	uint32_t lol = 1, perst;
+
+	INFO("pcie: Wait for CMU lock\n");
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_CMU_ACCESS);
+	while (lol != 0) {
+		perst = gpio_get_value(cfg->perst_gpio_no);
+		if (perst == 0)
+			return false;
+		lol = PCIE_PHY_PMA_PMA_CMU_E0_PLL_LOL_UDL_X(
+			mmio_read_32(PCIE_PHY_PMA_PMA_CMU_E0(pcie_phy_pma)));
+	}
+	INFO("pcie: CMU in lock\n");
+	return true;
 }
 
 static bool pcie_ep_has_rx_lock(void)
@@ -79,7 +156,7 @@ static bool pcie_ep_has_rx_lock(void)
 	uintptr_t pcie_phy_pma = LAN969X_PCIE_PHY_PMA_BASE;
 	uint32_t value;
 
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 1);
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_LANE_ACCESS);
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_82(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_LANE_82_R_LOL_RESET_M,
 			   PCIE_PHY_PMA_PMA_LANE_82_R_LOL_RESET(0));
@@ -90,7 +167,7 @@ static bool pcie_ep_has_rx_lock(void)
 			   PCIE_PHY_PMA_PMA_LANE_84_R_LOL_CLR_M,
 			   PCIE_PHY_PMA_PMA_LANE_84_R_LOL_CLR(0));
 
-	mdelay(100);
+	mdelay(1);
 
 	value = mmio_read_32(PCIE_PHY_PMA_PMA_LANE_DF(pcie_phy_pma));
 
@@ -100,22 +177,69 @@ static bool pcie_ep_has_rx_lock(void)
 	return !PCIE_PHY_PMA_PMA_LANE_DF_LOL_UDL_X(value);
 }
 
-static int pcie_ep_serdes_init(void)
+static void pcie_ep_ssc_clock(void)
 {
-	uintptr_t pcie_phy_wrap = LAN969X_PCIE_PHY_WRAP_BASE;
 	uintptr_t pcie_phy_pma = LAN969X_PCIE_PHY_PMA_BASE;
 	uintptr_t pcie_phy_pcs = LAN969X_PCIE_PHY_PCS_BASE;
+
+	/* Setting up PCS for Spread spectrum clocking according to GUC mail August 22 2019 */
+	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_3E(pcie_phy_pcs),
+			   PCIE_PHY_PCS_PHY_LINK_3E_R_LOWER_SKPOS_RECEPTION_M,
+			   PCIE_PHY_PCS_PHY_LINK_3E_R_LOWER_SKPOS_RECEPTION(0x1));
+	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_3E(pcie_phy_pcs),
+			   PCIE_PHY_PCS_PHY_LINK_3E_R_SEP_REFCLK_SSC_M,
+			   PCIE_PHY_PCS_PHY_LINK_3E_R_SEP_REFCLK_SSC(0x1));
+	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_32(pcie_phy_pcs),
+			   PCIE_PHY_PCS_PHY_LINK_32_R_SSC_EN_M,
+			   PCIE_PHY_PCS_PHY_LINK_32_R_SSC_EN(0x0));
+
+	/* Setting up macro for PCIe clocking structure depending on board design */
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_LANE_ACCESS);
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_7F(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_LANE_7F_R_ASSERT_PPM_7_0_M,
+			   PCIE_PHY_PMA_PMA_LANE_7F_R_ASSERT_PPM_7_0(0xFF));
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_80(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_LANE_80_R_ASSERT_PPM_9_8_M,
+			   PCIE_PHY_PMA_PMA_LANE_80_R_ASSERT_PPM_9_8(0x3));
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_7D(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_LANE_7D_R_DEASSERT_PPM_7_0_M,
+			   PCIE_PHY_PMA_PMA_LANE_7D_R_DEASSERT_PPM_7_0(0xE0));
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_7E(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_LANE_7E_R_DEASSERT_PPM_9_8_M,
+			   PCIE_PHY_PMA_PMA_LANE_7E_R_DEASSERT_PPM_9_8(0x3));
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_78(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_LANE_78_R_TIME_DEASSERT_7_0_M,
+			   PCIE_PHY_PMA_PMA_LANE_78_R_TIME_DEASSERT_7_0(0xD4));
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_79(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_LANE_79_R_TIME_DEASSERT_15_8_M,
+			   PCIE_PHY_PMA_PMA_LANE_79_R_TIME_DEASSERT_15_8(0x30));
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_7A(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_LANE_7A_R_TIME_ASSERT_7_0_M,
+			   PCIE_PHY_PMA_PMA_LANE_7A_R_TIME_ASSERT_7_0(0xD4));
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_7B(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_LANE_7B_R_TIME_ASSERT_15_8_M,
+			   PCIE_PHY_PMA_PMA_LANE_7B_R_TIME_ASSERT_15_8(0x30));
+}
+
+static void pcie_ep_serdes_reset(void)
+{
+	uintptr_t pcie_phy_wrap = LAN969X_PCIE_PHY_WRAP_BASE;
 
 	INFO("pcie: PHY register block reset\n");
 	mmio_clrsetbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(pcie_phy_wrap),
 			   PCIE_PHY_WRAP_PCIE_PHY_CFG_EXT_CFG_RST_M,
 			   PCIE_PHY_WRAP_PCIE_PHY_CFG_EXT_CFG_RST(1));
 
-	mdelay(1);
+	udelay(1);
 	INFO("pcie: Releasing PHY register block reset\n");
 	mmio_clrsetbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(pcie_phy_wrap),
 			   PCIE_PHY_WRAP_PCIE_PHY_CFG_EXT_CFG_RST_M,
 			   PCIE_PHY_WRAP_PCIE_PHY_CFG_EXT_CFG_RST(0));
+}
+
+static int pcie_ep_serdes_init(void)
+{
+	uintptr_t pcie_phy_pma = LAN969X_PCIE_PHY_PMA_BASE;
 
 	/* Setting up PCS registers different than default according to GUC
 	 * config application note v002
@@ -123,7 +247,7 @@ static int pcie_ep_serdes_init(void)
 	/* New July 7th REXT10K internal setting was missing (is in config
 	 * app note)
 	 */
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 0);
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_CMU_ACCESS);
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_00(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_00_CFG_PLL_TP_SEL_1_0_M,
 			   PCIE_PHY_PMA_PMA_CMU_00_CFG_PLL_TP_SEL_1_0(0x3));
@@ -134,7 +258,7 @@ static int pcie_ep_serdes_init(void)
 	/* Commands that makes PC link using macro registers/HWT pins -
 	 * used by default
 	 */
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 1);
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_LANE_ACCESS);
 
 	/* The modification below makes phymode=3 work and was confirmed by
 	 * GUC to be correct - included in configuration application note v003
@@ -163,12 +287,9 @@ static int pcie_ep_serdes_init(void)
 			   PCIE_PHY_PMA_PMA_LANE_9F_R_RXEQ_RATECHG_REG_M,
 			   PCIE_PHY_PMA_PMA_LANE_9F_R_RXEQ_RATECHG_REG(0));
 
-	mdelay(1);
 	/* Config application note Table 2.1-1 */
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 0);
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_42(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_CMU_42_R_EN_PRE_CAL_VCO_M,
-			   PCIE_PHY_PMA_PMA_CMU_42_R_EN_PRE_CAL_VCO(1));
+	pcie_ep_calibrate_vco(true);
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_CMU_ACCESS);
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_42(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_42_R_AUTO_PWRCHG_EN_M,
 			   PCIE_PHY_PMA_PMA_CMU_42_R_AUTO_PWRCHG_EN(0));
@@ -227,20 +348,16 @@ static int pcie_ep_serdes_init(void)
 			   PCIE_PHY_PMA_PMA_CMU_4E_CFG_RSEL_GEN34_2_0_M,
 			   PCIE_PHY_PMA_PMA_CMU_4E_CFG_RSEL_GEN34_2_0(0x5));
 
-	INFO("pcie: Reset CMU after configuration\n");
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_44(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_CMU_44_R_PLL_RSTN_M,
-			   PCIE_PHY_PMA_PMA_CMU_44_R_PLL_RSTN(0));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_44(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_CMU_44_R_PLL_RSTN_M,
-			   PCIE_PHY_PMA_PMA_CMU_44_R_PLL_RSTN(1));
-
-	pcie_ep_has_cmu_lock();
+	/* Enable LOL signal */
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_CMU_ACCESS);
+	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_30(pcie_phy_pma),
+			   PCIE_PHY_PMA_PMA_CMU_30_R_PLL_DLOL_EN_M,
+			   PCIE_PHY_PMA_PMA_CMU_30_R_PLL_DLOL_EN(1));
 
 	/* New for Laguna from Table 2.1-5 in app note version 003 -
 	 * settings different that default only
 	 */
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 1);
+	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), PCIE_LANE_ACCESS);
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_93(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_LANE_93_R_RX_PCIE_GEN12_FROM_HWT_M,
 			   PCIE_PHY_PMA_PMA_LANE_93_R_RX_PCIE_GEN12_FROM_HWT(0));
@@ -258,7 +375,6 @@ static int pcie_ep_serdes_init(void)
 			   PCIE_PHY_PMA_PMA_LANE_9F_R_SUM_SETCM_EN_REG(1));
 
 	/* Config application note Table 2.1-6 */
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 1);
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_42(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_LANE_42_CFG_CDR_KF_GEN1_2_0_M,
 			   PCIE_PHY_PMA_PMA_LANE_42_CFG_CDR_KF_GEN1_2_0(1));
@@ -674,72 +790,6 @@ static int pcie_ep_serdes_init(void)
 			   PCIE_PHY_PMA_PMA_LANE_05_CFG_TAP_DLY2_3_0_M,
 			   PCIE_PHY_PMA_PMA_LANE_05_CFG_TAP_DLY2_3_0(0xA));
 
-	/* TX EQ settings for long PCIe connections - not from config app note! */
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 1);
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_02(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_02_CFG_EN_ADV_M,
-			   PCIE_PHY_PMA_PMA_LANE_02_CFG_EN_ADV(0x0));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_02(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_02_CFG_EN_MAIN_M,
-			   PCIE_PHY_PMA_PMA_LANE_02_CFG_EN_MAIN(0x1));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_02(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_02_CFG_EN_DLY_M,
-			   PCIE_PHY_PMA_PMA_LANE_02_CFG_EN_DLY(0x0));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_02(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_02_CFG_EN_DLY2_M,
-			   PCIE_PHY_PMA_PMA_LANE_02_CFG_EN_DLY2(0x0));
-	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_60(pcie_phy_pcs),
-			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_ADV_ADJ_EN_M,
-			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_ADV_ADJ_EN(0x1));
-	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_60(pcie_phy_pcs),
-			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_ADV_ADJ_OFFSET_M,
-			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_ADV_ADJ_OFFSET(0x6));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_03(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_03_CFG_TAP_ADV_4_0_M,
-			   PCIE_PHY_PMA_PMA_LANE_03_CFG_TAP_ADV_4_0(0x6));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_F7(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_F7_CFG_TAP_ADV_GEN2_M,
-			   PCIE_PHY_PMA_PMA_LANE_F7_CFG_TAP_ADV_GEN2(0x6));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_F8(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_F8_CFG_TAP_ADV_GEN3_M,
-			   PCIE_PHY_PMA_PMA_LANE_F8_CFG_TAP_ADV_GEN3(0x6));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_F9(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_F9_CFG_TAP_ADV_GEN4_M,
-			   PCIE_PHY_PMA_PMA_LANE_F9_CFG_TAP_ADV_GEN4(0x6));
-	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_61(pcie_phy_pcs),
-			   PCIE_PHY_PCS_PHY_LINK_61_R_TAP_MAIN_M,
-			   PCIE_PHY_PCS_PHY_LINK_61_R_TAP_MAIN(0x1));
-	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_60(pcie_phy_pcs),
-			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_DLY_ADJ_EN_M,
-			   PCIE_PHY_PCS_PHY_LINK_60_R_TAP_DLY_ADJ_EN(0x1U));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_04(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_04_CFG_TAP_DLY_4_0_M,
-			   PCIE_PHY_PMA_PMA_LANE_04_CFG_TAP_DLY_4_0(0xE));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_FA(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_FA_CFG_TAP_DLY_GEN2_M,
-			   PCIE_PHY_PMA_PMA_LANE_FA_CFG_TAP_DLY_GEN2(0xE));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_FB(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_FB_CFG_TAP_DLY_GEN3_M,
-			   PCIE_PHY_PMA_PMA_LANE_FB_CFG_TAP_DLY_GEN3(0xE));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_FC(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_FC_CFG_TAP_DLY_GEN4_M,
-			   PCIE_PHY_PMA_PMA_LANE_FC_CFG_TAP_DLY_GEN4(0xE));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_05(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_05_CFG_TAP_DLY2_3_0_M,
-			   PCIE_PHY_PMA_PMA_LANE_05_CFG_TAP_DLY2_3_0(0x0));
-	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_04(pcie_phy_pcs),
-			   PCIE_PHY_PCS_PHY_LINK_04_R_EN_PRE_EMPH_G1_M,
-			   PCIE_PHY_PCS_PHY_LINK_04_R_EN_PRE_EMPH_G1(0x1));
-	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_04(pcie_phy_pcs),
-			   PCIE_PHY_PCS_PHY_LINK_04_R_EN_PRE_EMPH_G2_M,
-			   PCIE_PHY_PCS_PHY_LINK_04_R_EN_PRE_EMPH_G2(0x1));
-	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_05(pcie_phy_pcs),
-			   PCIE_PHY_PCS_PHY_LINK_05_R_EN_PRE_EMPH_G3_M,
-			   PCIE_PHY_PCS_PHY_LINK_05_R_EN_PRE_EMPH_G3(0x1));
-	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_05(pcie_phy_pcs),
-			   PCIE_PHY_PCS_PHY_LINK_05_R_EN_PRE_EMPH_G4_M,
-			   PCIE_PHY_PCS_PHY_LINK_05_R_EN_PRE_EMPH_G4(0x1));
-
 	/* Setting maximum amplitude
 	 * Amplitude settings of 4 from configuration note caused link
 	 * failure on partner. Setting to 3 for maximum amplitude
@@ -759,33 +809,6 @@ static int pcie_ep_serdes_init(void)
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_52(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_LANE_52_CFG_IBIAS_TUNE_RESERVE_5_0_M,
 			   PCIE_PHY_PMA_PMA_LANE_52_CFG_IBIAS_TUNE_RESERVE_5_0(0x3F));
-
-	/* Reset oscal after configuration */
-	mmio_write_32(PCIE_PHY_PMA_PMA_CMU_FF(pcie_phy_pma), 1);
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_0B(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_0B_CFG_RESETB_OSCAL_AFE_M,
-			   PCIE_PHY_PMA_PMA_LANE_0B_CFG_RESETB_OSCAL_AFE(0));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_0B(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_0B_CFG_RESETB_OSCAL_AFE_M,
-			   PCIE_PHY_PMA_PMA_LANE_0B_CFG_RESETB_OSCAL_AFE(1));
-	/* Reset rx after configuration */
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_83(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_83_R_CDR_RSTN_M,
-			   PCIE_PHY_PMA_PMA_LANE_83_R_CDR_RSTN(0));
-	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_LANE_83(pcie_phy_pma),
-			   PCIE_PHY_PMA_PMA_LANE_83_R_CDR_RSTN_M,
-			   PCIE_PHY_PMA_PMA_LANE_83_R_CDR_RSTN(1));
-
-	INFO("pcie: Wait for Pipe clock to be stable\n");
-	mdelay(10);
-	/* Perform PIPE reset */
-	mmio_clrsetbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(pcie_phy_wrap),
-			   PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST_M,
-			   PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(1));
-	mmio_clrsetbits_32(PCIE_PHY_WRAP_PCIE_PHY_CFG(pcie_phy_wrap),
-			   PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST_M,
-			   PCIE_PHY_WRAP_PCIE_PHY_CFG_PIPE_RST(0));
-
 	return 0;
 }
 
@@ -794,10 +817,7 @@ static void pcie_ep_ctrl_ena_cfg(const struct pcie_ep_config *cfg)
 	uintptr_t pcie_cfg = LAN969X_PCIE_CFG_BASE;
 	uintptr_t pcie_dbi = LAN969X_PCIE_DBI_BASE;
 
-	INFO("pcie: Disable automatic link initialization and training\n");
-	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(pcie_cfg),
-			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M,
-			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(0));
+	INFO("pcie: Enable access to EP configuration\n");
 	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(pcie_cfg),
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(0));
@@ -813,10 +833,7 @@ static void pcie_ep_ctrl_dis_cfg(const struct pcie_ep_config *cfg)
 	uintptr_t pcie_cfg = LAN969X_PCIE_CFG_BASE;
 	uintptr_t pcie_dbi = LAN969X_PCIE_DBI_BASE;
 
-	INFO("pcie: Enable automatic link initialization and training\n");
-	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(pcie_cfg),
-			   PCIE_CFG_PCIE_CFG_LTSSM_ENA_M,
-			   PCIE_CFG_PCIE_CFG_LTSSM_ENA(1));
+	INFO("pcie: Disable access to EP configuration\n");
 	mmio_clrsetbits_32(PCIE_CFG_PCIE_CFG(pcie_cfg),
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS_M,
 			   PCIE_CFG_PCIE_CFG_DBI_RO_WR_DIS(1));
@@ -826,34 +843,59 @@ static void pcie_ep_ctrl_dis_cfg(const struct pcie_ep_config *cfg)
 	mdelay(1);
 }
 
+static void pcie_ep_config_bars(const struct pcie_ep_config *cfg)
+{
+	uintptr_t pcie_dbi = LAN969X_PCIE_DBI_BASE;
+
+        INFO("Enable BAR0: start: 0x%08x, mask: 0x%x\n", BAR0_START,
+             BAR0_SIZE - 1);
+        mmio_clrsetbits_32(PCIE_BAR_ATU_REG(pcie_dbi, 0),
+			   PCIE_BAR_ATU_MASK(0),
+			   PCIE_BAR_ATU_VALUE(0));
+	mmio_write_32(PCIE_BAR_ATU_TARGET_REG(pcie_dbi, 0), BAR0_START);
+	mmio_write_32(PCIE_BAR_REG(pcie_dbi, 0), BAR0_START);
+	mmio_write_32(PCIE_BAR_MASK_REG(pcie_dbi, 0), BAR0_SIZE - 1);
+
+        INFO("Enable BAR1: start: 0x%08x, mask: 0x%x\n", BAR1_START,
+             BAR1_SIZE - 1);
+        mmio_clrsetbits_32(PCIE_BAR_ATU_REG(pcie_dbi, 1),
+			   PCIE_BAR_ATU_MASK(1),
+			   PCIE_BAR_ATU_VALUE(1));
+	mmio_write_32(PCIE_BAR_ATU_TARGET_REG(pcie_dbi, 1), BAR1_START);
+	mmio_write_32(PCIE_BAR_REG(pcie_dbi, 1), BAR1_START);
+	mmio_write_32(PCIE_BAR_MASK_REG(pcie_dbi, 1), BAR1_SIZE - 1);
+
+	INFO("pcie: Disable BAR2 and BAR3\n");
+	mmio_write_32(PCIE_BAR_MASK_REG(pcie_dbi, 2), 0);
+	mmio_write_32(PCIE_BAR_MASK_REG(pcie_dbi, 3), 0);
+
+        INFO("Enable BAR4: start: 0x%08x, mask: 0x%x\n", BAR4_START,
+             BAR4_SIZE - 1);
+        mmio_clrsetbits_32(PCIE_BAR_ATU_REG(pcie_dbi, 4),
+			   PCIE_BAR_ATU_MASK(4),
+			   PCIE_BAR_ATU_VALUE(4));
+	mmio_write_32(PCIE_BAR_ATU_TARGET_REG(pcie_dbi, 4), BAR4_START);
+	mmio_write_32(PCIE_BAR_REG(pcie_dbi, 4), BAR4_START);
+	mmio_write_32(PCIE_BAR_MASK_REG(pcie_dbi, 4), BAR4_SIZE - 1);
+}
+
 static int pcie_ep_ctrl_init(const struct pcie_ep_config *cfg)
 {
 	uintptr_t pcie_dbi = LAN969X_PCIE_DBI_BASE;
 
-	NOTICE("pcie: Enable controller - wait for link up\n");
+	INFO("pcie: Enable controller\n");
 	pcie_ep_ctrl_ena_cfg(cfg);
-
-	/* Setup PCIe controller - compliance test settings */
-	mmio_clrsetbits_32(PCIE_DBI_DEVICE_CAPABILITIES_REG(pcie_dbi),
-			   PCIE_DBI_DEVICE_CAPABILITIES_REG_PCIE_CAP_FLR_CAP_M,
-			   PCIE_DBI_DEVICE_CAPABILITIES_REG_PCIE_CAP_FLR_CAP(1));
-	mmio_clrsetbits_32(PCIE_DBI_DEVICE_CAPABILITIES2_REG(pcie_dbi),
-			   PCIE_DBI_DEVICE_CAPABILITIES2_REG_PCIE_CAP2_10_BIT_TAG_COMP_SUPPORT_M,
-			   PCIE_DBI_DEVICE_CAPABILITIES2_REG_PCIE_CAP2_10_BIT_TAG_COMP_SUPPORT(1));
-	mmio_clrsetbits_32(PCIE_DBI_LINK_CAPABILITIES_REG(pcie_dbi),
-			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_L0S_EXIT_LATENCY_M,
-			   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_L0S_EXIT_LATENCY(7));
 
 	INFO("pcie: Configure DT values\n");
 	if (cfg->max_link_speed) {
-		NOTICE("pcie: Max Link Speed: %u\n", cfg->max_link_speed);
+		INFO("pcie: Max Link Speed: %u\n", cfg->max_link_speed);
 		mmio_clrsetbits_32(PCIE_DBI_LINK_CAPABILITIES_REG(pcie_dbi),
 				   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED_M,
 				   PCIE_DBI_LINK_CAPABILITIES_REG_PCIE_CAP_MAX_LINK_SPEED(cfg->max_link_speed));
 	}
 
 	if (cfg->vendor_id) {
-		NOTICE("pcie: VendorID: 0x%04x\n", cfg->vendor_id);
+		INFO("pcie: VendorID: 0x%04x\n", cfg->vendor_id);
 		mmio_clrsetbits_32(PCIE_DBI_DEVICE_ID_VENDOR_ID_REG(pcie_dbi),
 			PCIE_DBI_DEVICE_ID_VENDOR_ID_REG_PCI_TYPE0_VENDOR_ID_M,
 			PCIE_DBI_DEVICE_ID_VENDOR_ID_REG_PCI_TYPE0_VENDOR_ID(cfg->vendor_id));
@@ -863,7 +905,7 @@ static int pcie_ep_ctrl_init(const struct pcie_ep_config *cfg)
 	}
 
 	if (cfg->device_id) {
-		NOTICE("pcie: DeviceID: 0x%04x\n", cfg->device_id);
+		INFO("pcie: DeviceID: 0x%04x\n", cfg->device_id);
 		mmio_clrsetbits_32(PCIE_DBI_DEVICE_ID_VENDOR_ID_REG(pcie_dbi),
 			PCIE_DBI_DEVICE_ID_VENDOR_ID_REG_PCI_TYPE0_DEVICE_ID_M,
 			PCIE_DBI_DEVICE_ID_VENDOR_ID_REG_PCI_TYPE0_DEVICE_ID(cfg->device_id));
@@ -872,12 +914,7 @@ static int pcie_ep_ctrl_init(const struct pcie_ep_config *cfg)
 			PCIE_DBI_SUBSYSTEM_ID_SUBSYSTEM_VENDOR_ID_REG_SUBSYS_DEV_ID(cfg->device_id));
 	}
 
-	/* Disable BAR2 and BAR3 as the map to SRAM which is located add an
-	 * unssupported address, and is not to be used via external CPU
-	 */
-	INFO("pcie: Disable BAR2 and BAR3\n");
-	mmio_write_32(PCIE_DBI_BAR2_MASK_REG(pcie_dbi), 0);
-	mmio_write_32(PCIE_DBI_BAR3_MASK_REG(pcie_dbi), 0);
+	pcie_ep_config_bars(cfg);
 
 	pcie_ep_ctrl_dis_cfg(cfg);
 
@@ -894,32 +931,80 @@ static int pcie_ep_state(void)
 
 	mdelay(1);
 	value = mmio_read_32(PCIE_CFG_PCIE_STAT(pcie_cfg));
-	NOTICE("pcie: Checking link status: 0x%x\n", value);
-	NOTICE("pcie:   LTSSM: 0x%lx\n", PCIE_CFG_PCIE_STAT_LTSSM_STATE_X(value));
-	NOTICE("pcie:    LINK: 0x%lx\n", PCIE_CFG_PCIE_STAT_LINK_STATE_X(value));
-	NOTICE("pcie:      PM: 0x%lx\n", PCIE_CFG_PCIE_STAT_PM_STATE_X(value));
+	INFO("pcie: Checking link status: 0x%x\n", value);
+	INFO("pcie:   LTSSM: 0x%lx\n", PCIE_CFG_PCIE_STAT_LTSSM_STATE_X(value));
+	INFO("pcie:    LINK: 0x%lx\n", PCIE_CFG_PCIE_STAT_LINK_STATE_X(value));
+	INFO("pcie:      PM: 0x%lx\n", PCIE_CFG_PCIE_STAT_PM_STATE_X(value));
 	return 0;
 }
 
-static void pcie_ep_enable_perst(const struct pcie_ep_config *cfg)
+static void pcie_ep_config_perst(const struct pcie_ep_config *cfg)
 {
-	NOTICE("pcie: Enable PERST on GPIO %u ALT %u\n", cfg->perst_gpio_no,
-	       cfg->perst_gpio_alt);
-	vcore_gpio_set_alt(cfg->perst_gpio_no, cfg->perst_gpio_alt);
+    INFO("pcie: Enable PERST on GPIO %u ALT %u\n", cfg->perst_gpio_no,
+         cfg->perst_gpio_alt);
+    vcore_gpio_set_alt(cfg->perst_gpio_no, cfg->perst_gpio_alt);
 }
 
-int pcie_ep_init(const struct pcie_ep_config *cfg)
+static void pcie_ep_wait_for_perst_high(const struct pcie_ep_config *cfg)
 {
-	int err = pcie_ep_serdes_init();
-	if (err)
-		return err;
+	int val = 0;
 
-	pcie_ep_enable_perst(cfg);
-	err = pcie_ep_ctrl_init(cfg);
-	if (err)
-		return err;
+	INFO("pcie: Wait until PERST is high\n");
+	while (val == 0) {
+		val = gpio_get_value(cfg->perst_gpio_no);
+	}
+}
 
-	return pcie_ep_state();
+static void pcie_ep_wait_for_perst_low(const struct pcie_ep_config *cfg)
+{
+	int val = 1;
+
+	INFO("pcie: Wait until PERST is low\n");
+	while (val != 0) {
+		val = gpio_get_value(cfg->perst_gpio_no);
+	}
+}
+
+void pcie_ep_init(const struct pcie_ep_config *cfg)
+{
+	/* Measurements shows that PERST goes high before there is a clock
+	 * signal, and the EP needs to be completely configured after maximum
+	 * 20ms after PERST goes high, so this is the procedure:
+	 *
+	 * 1) Set PCIe PHY macro reset (PIPE reset)
+	 * 2) Configure CMU+LANE, and set
+	 *    pcie_phy_pma pma_cmu_42 r_en_pre_cal_vco 1
+	 * 3) Wait on PERST=1 (quick polling!)
+	 * 4) Release PHY macro reset
+	 * 5) Check for CMU lock and PERST 0 (quick polling!)
+	 * 5a) If PERST=0: goto step 1
+	 * 5b) If CMU not locked  goto 5
+	 * 6) Wait 1us to ensure PHY reset is completed
+	 * 7) Configure PCIe controller
+	 * 8) Wait for PERST=0: reset phy and wait for PERST=1
+	 */
+	NOTICE("pcie: Config EP\n");
+	pcie_ep_serdes_reset();
+reset_phy:
+	pcie_ep_reset_pipe(true);
+	pcie_ep_config_perst(cfg);
+	pcie_ep_ssc_clock();
+	pcie_ep_serdes_init();
+	while (true) {
+		pcie_ep_wait_for_perst_high(cfg);
+		pcie_ep_reset_pipe(false);
+		mdelay(1);
+		if (!pcie_ep_wait_for_cmu_lock(cfg)) {
+			goto reset_phy;
+		}
+		INFO("pcie: Wait 1us to ensure PHY reset is completed");
+		udelay(1);
+		pcie_ep_ctrl_init(cfg);
+		pcie_ep_state();
+		/* EP is operational so watch for for PERST going low */
+		pcie_ep_wait_for_perst_low(cfg);
+		pcie_ep_reset_pipe(true);
+	}
 }
 
 static int lan969x_read_pcie_ep_config(void *fdt, struct pcie_ep_config *cfg)
@@ -929,7 +1014,7 @@ static int lan969x_read_pcie_ep_config(void *fdt, struct pcie_ep_config *cfg)
 
 	node = fdt_node_offset_by_compatible(fdt, -1, "microchip,pcie-ep");
 	if (node < 0) {
-		NOTICE("pcie: No DT endpoint node\n");
+		INFO("pcie: No DT endpoint node\n");
 		return -ENOENT;
 	}
 
