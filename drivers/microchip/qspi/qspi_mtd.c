@@ -8,22 +8,22 @@
 #include <errno.h>
 #include <string.h>
 
-#include <platform_def.h>
-
 #include <common/debug.h>
 #include <common/fdt_wrappers.h>
+#include <drivers/delay_timer.h>
 #include <drivers/io/io_driver.h>
 #include <drivers/io/io_mtd.h>
-#include <drivers/spi_mem.h>
-#include <fw_config.h>
-#include <lib/utils.h>
-#include <lib/libfdt/libfdt.h>
-#include <drivers/delay_timer.h>
 #include <drivers/microchip/lan966x_clock.h>
-#include <lib/mmio.h>
+#include <drivers/microchip/qspi.h>
+#include <drivers/microchip/xdmac.h>
+#include <drivers/spi_mem.h>
 #include <drivers/spi_nor.h>
 #include <plat/microchip/common/duff_memcpy.h>
-#include <drivers/microchip/qspi.h>
+#include <fw_config.h>
+#include <lib/libfdt/libfdt.h>
+#include <lib/mmio.h>
+#include <lib/utils.h>
+#include <platform_def.h>
 
 #define MHZ	1000000U
 #define MHZ_NS	(1000U * MHZ)
@@ -667,12 +667,14 @@ static int mchp_qspi_mem(const struct spi_mem_op *op,
 
 	/* Move the data */
 	if (op->data.dir == SPI_MEM_DATA_IN) {
-		duff_memcpy(op->data.buf, (void *) (LAN969X_QSPI0_MMAP + offset), op->data.nbytes);
+		xdmac_memcpy(op->data.buf, (void *) (LAN969X_QSPI0_MMAP + offset), op->data.nbytes,
+			     XDMA_TO_MEM, XDMA_QSPI0_RX);
 
 		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_RBUSY, "SR:RBUSY"))
 			return -ETIMEDOUT;
 	} else {
-		duff_memcpy((void *) (LAN969X_QSPI0_MMAP + offset), op->data.buf, op->data.nbytes);
+		xdmac_memcpy((void *) (LAN969X_QSPI0_MMAP + offset), op->data.buf, op->data.nbytes,
+			    XDMA_FROM_MEM, XDMA_QSPI0_TX);
 
 		/* Wait 'Last Write Access' */
 		if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_LWRA, "ISR:LWRA"))

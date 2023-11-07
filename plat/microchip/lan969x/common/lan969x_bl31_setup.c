@@ -10,12 +10,13 @@
 
 #include <common/bl_common.h>
 #include <drivers/generic_delay_timer.h>
+#include <drivers/microchip/tz_matrix.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
+#include <libfit.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <plat/microchip/common/lan966x_gic.h>
-#include <libfit.h>
 #include <tf_gunzip.h>
 
 #include "lan969x_private.h"
@@ -30,6 +31,11 @@ static bl31_params_t bl31_params;
 
 static char fit_config[128], *fit_config_ptr;
 
+#define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
+		LAN969X_SRAM_BASE,					\
+		LAN969X_SRAM_SIZE,					\
+		MT_MEMORY | MT_RW | MT_SECURE)
+
 #define MAP_BL31_TOTAL	MAP_REGION_FLAT(				\
 					BL31_BASE,			\
 					BL31_END - BL31_BASE,		\
@@ -39,6 +45,14 @@ static char fit_config[128], *fit_config_ptr;
 						BL_CODE_BASE,			\
 						BL_CODE_END - BL_CODE_BASE,	\
 						MT_CODE | MT_SECURE)
+
+/* 1st block of 1M */
+#define HSEL0_ADDR	LAN969X_SRAM_BASE
+#define HSEL0_SIZE	SIZE_M(1)
+
+/* 2nd block of 1M minus bl31 */
+#define HSEL1_ADDR	(HSEL0_ADDR + HSEL0_SIZE + BL31_SIZE)
+#define HSEL1_SIZE	(SIZE_M(1) - BL31_SIZE)
 
 size_t microchip_plat_ns_ddr_size(void)
 {
@@ -53,6 +67,30 @@ u_register_t microchip_plat_board_number(void)
 u_register_t microchip_plat_boot_offset(void)
 {
 	return bl31_params.boot_offset;
+}
+
+u_register_t microchip_plat_sram_info(u_register_t index,
+				      u_register_t *addr,
+				      u_register_t *size)
+{
+	if (index == 0) {
+		*addr = HSEL0_ADDR;
+		*size = HSEL0_SIZE;
+		return SMC_OK;
+	}
+
+	if (index == 1) {
+		*addr = HSEL1_ADDR;
+		*size = HSEL1_SIZE;
+		return SMC_OK;
+	}
+
+	return SMC_ARCH_CALL_INVAL_PARAM;
+}
+
+u_register_t microchip_plat_bl2_version(void)
+{
+	return bl31_params.bl2_version;
 }
 
 /* FIT platform check of address */
@@ -220,6 +258,7 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 void bl31_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
+		MAP_SRAM_TOTAL,
 		MAP_BL31_TOTAL,
 		ARM_MAP_BL_RO,
 		{0}
@@ -251,4 +290,31 @@ entry_point_info_t *bl31_plat_get_next_image_ep_info(uint32_t type)
 		return &bl32_image_ep_info;
 
 	return NULL;
+}
+
+void bl31_plat_runtime_setup(void)
+{
+	uint32_t srtop, sasplit, ssr;
+
+	INFO("NS Runtime initialization performed now\n");
+
+	/* Wipe re-purposed SRAM */
+	memset((void *)BL2_BASE, 0, BL2_SIZE);
+	flush_dcache_range((uintptr_t)BL2_BASE, BL2_SIZE);
+	memset((void *)BL1_RW_BASE, 0, BL1_RW_SIZE);
+	flush_dcache_range((uintptr_t)BL1_RW_BASE, BL1_RW_SIZE);
+
+
+	/* Enable SRAM for NS access */
+	/* HSEL0: NS (1MB) */
+	srtop = MATRIX_SRTOP(0, MATRIX_SRTOP_VALUE_1M);
+	sasplit = MATRIX_SASPLIT(0, MATRIX_SRTOP_VALUE_1M);
+	ssr = MATRIX_LANSECH_NS(0);
+	/* HSEL1: S (128K BL31) */
+	/* HSEL1: NS (896K) */
+	srtop |= MATRIX_SRTOP(1, MATRIX_SRTOP_VALUE_1M);
+	sasplit |= MATRIX_SASPLIT(1, MATRIX_SRTOP_VALUE_128K);
+	/* ssr(1) is zero = S for LA(HSEL1) */
+	matrix_configure_slave_security(MATRIX_SLAVE_FLEXRAM0,
+					srtop, sasplit, ssr);
 }

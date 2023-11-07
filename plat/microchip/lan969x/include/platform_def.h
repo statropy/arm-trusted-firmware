@@ -13,6 +13,11 @@
 
 #include "lan969x_def.h"
 
+/* BL2 current version */
+#define PLAT_BL2_VERSION		U(0x00010001)
+#define PLAT_BL2_VERSION_MAJOR(x)	(x >> 16U)
+#define PLAT_BL2_VERSION_MINOR(x)	(x & 0xFFFFU)
+
 /*
  * Generic platform constants
  */
@@ -80,14 +85,21 @@
 /*
  * BL31
  */
-#define BL31_BASE		BL2_LIMIT
-#define BL31_SIZE		(LAN969X_SRAM_SIZE - BL2_SIZE - BL1_RW_SIZE)
+#define BL31_BASE		(LAN969X_SRAM_BASE + SIZE_M(1))
+#define BL31_SIZE		SIZE_K(128)
 #define BL31_LIMIT		(BL31_BASE + BL31_SIZE)
 
 /* NS image */
+#if defined(LAN969X_LMSTAX)
+/* NS is in 'left-over' SRAM between BL31-BL1RW */
+#define PLAT_LAN969X_NS_IMAGE_BASE	BL31_LIMIT
+#define PLAT_LAN969X_NS_IMAGE_LIMIT	BL1_RW_BASE
+#define PLAT_LAN969X_NS_IMAGE_SIZE	(PLAT_LAN969X_NS_IMAGE_LIMIT-PLAT_LAN969X_NS_IMAGE_BASE)
+#else
 #define PLAT_LAN969X_NS_IMAGE_BASE	LAN969X_DDR_BASE
 #define PLAT_LAN969X_NS_IMAGE_SIZE	LAN969X_DDR_ATF_SIZE
 #define PLAT_LAN969X_NS_IMAGE_LIMIT	(PLAT_LAN969X_NS_IMAGE_BASE + PLAT_LAN969X_NS_IMAGE_SIZE)
+#endif
 
 /*
  * Default FlexCom console

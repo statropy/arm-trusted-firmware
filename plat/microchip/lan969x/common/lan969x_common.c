@@ -49,11 +49,20 @@ lan966x_fw_config_t lan966x_fw_config __aligned(CACHE_WRITEBACK_GRANULE);
 		BL31_SIZE,					\
 		MT_MEMORY | MT_RW | MT_SECURE)
 
+#if defined(LAN969X_LMSTAX) && (defined(IMAGE_BL2) || defined(IMAGE_BL31))
+/* Map NS SRAM as S for BL2/BL31 */
+#define LAN969X_MAP_NS_MEM					\
+	MAP_REGION_FLAT(					\
+		PLAT_LAN969X_NS_IMAGE_BASE,			\
+		PLAT_LAN969X_NS_IMAGE_SIZE,			\
+		MT_MEMORY | MT_RW)
+#else
 #define LAN969X_MAP_NS_MEM					\
 	MAP_REGION_FLAT(					\
 		PLAT_LAN969X_NS_IMAGE_BASE,			\
 		PLAT_LAN969X_NS_IMAGE_SIZE,			\
 		MT_MEMORY | MT_RW | MT_NS)
+#endif
 
 #ifdef IMAGE_BL1
 const mmap_region_t plat_arm_mmap[] = {

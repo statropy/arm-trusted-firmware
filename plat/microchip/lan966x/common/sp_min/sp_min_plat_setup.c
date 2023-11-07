@@ -28,6 +28,7 @@ static image_info_t bl33_image_info;
 static entry_point_info_t bl33_ep_info;
 static size_t mem_size;
 static size_t boot_offset;
+static uint32_t bl2_version;
 
 #define MAP_SRAM_TOTAL   MAP_REGION_FLAT(				\
 		LAN966X_SRAM_BASE,					\
@@ -66,6 +67,11 @@ size_t microchip_plat_ns_ddr_size(void)
 u_register_t microchip_plat_boot_offset(void)
 {
 	return boot_offset;
+}
+
+u_register_t microchip_plat_bl2_version(void)
+{
+	return bl2_version;
 }
 
 /* FIT platform check of address */
@@ -202,6 +208,9 @@ void params_early_setup(u_register_t plat_param_from_bl2)
 
 		/* Record boot offset */
 		boot_offset = bl32_params->boot_offset;
+
+		/* Record bl2 version */
+		bl2_version = bl32_params->bl2_version;
 
 		/* Nuke GPR's, not used anymore */
 		mmio_write_32(CPU_GPR(LAN966X_CPU_BASE, 3), 0);

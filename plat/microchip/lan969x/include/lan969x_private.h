@@ -19,6 +19,7 @@ typedef struct {
 	uint32_t ddr_size;
 	uint32_t board_number;
 	size_t boot_offset;
+	uint32_t bl2_version;
 } bl31_params_t;
 
 void lan969x_set_max_trace_level(void);
