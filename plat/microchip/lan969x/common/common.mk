@@ -80,6 +80,7 @@ BL1_SOURCES		+=	lib/cpus/aarch64/cortex_a53.S			\
 
 BL2_SOURCES		+=	common/desc_image_load.c			\
 				drivers/arm/tzc/tzc400.c			\
+				drivers/microchip/pcie/lan969x_pcie_ep.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_mem_params_desc.c \
 				${LAN969X_PLAT_COMMON}/lan969x_bl2_setup.c	\
 				${LAN969X_PLAT_COMMON}/lan969x_tz.c		\
@@ -158,10 +159,6 @@ ENABLE_STACK_PROTECTOR	 	:= strong
 
 ifneq (${ENABLE_STACK_PROTECTOR},0)
 PLAT_BL_COMMON_SOURCES  +=      plat/microchip/common/lan966x_stack_protector.c
-endif
-
-ifneq (${LAN969X_PCIE},0)
-BL2_SOURCES		+=	drivers/microchip/pcie/lan969x_pcie_ep.c
 endif
 
 # Tune compiler for Cortex-A53
