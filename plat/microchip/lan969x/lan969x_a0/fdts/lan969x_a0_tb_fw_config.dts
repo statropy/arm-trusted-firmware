@@ -10,7 +10,7 @@
 #include "lan969x-ddr.dtsi"
 
 &emmc_clk {
-	clock-frequency = <104000000>;
+	clock-frequency = <52000000>;
 };
 
 &sdmmc0 {
