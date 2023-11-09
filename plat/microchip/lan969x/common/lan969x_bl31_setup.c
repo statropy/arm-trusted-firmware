@@ -317,4 +317,7 @@ void bl31_plat_runtime_setup(void)
 	/* ssr(1) is zero = S for LA(HSEL1) */
 	matrix_configure_slave_security(MATRIX_SLAVE_FLEXRAM0,
 					srtop, sasplit, ssr);
+	/* - and DMAC NS SRAM access */
+	matrix_configure_slave_security(MATRIX_SLAVE_FLEXRAM1,
+					srtop, sasplit, ssr);
 }
