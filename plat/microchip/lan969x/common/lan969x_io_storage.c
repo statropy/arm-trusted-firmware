@@ -48,7 +48,22 @@ static uintptr_t memmap_dev_handle;
 static uintptr_t mtd_dev_handle;
 static uintptr_t enc_dev_handle;
 
+/* QSPI NOR layout for T/NT dual bl33 */
+#define T_FW_FIP_SIZE	120
+#define NOR_SEL_SIZE	8
+#define CONFIG_SIZE	256
+#define NT_FIP_SIZE	((2048 - T_FW_FIP_SIZE - NOR_SEL_SIZE - CONFIG_SIZE) / 2) /* 832K */
+
+#define LAN969X_QSPI0_SEL_OFFSET	(1024 * (T_FW_FIP_SIZE))
+#define LAN969X_QSPI0_FIP_OFFSET	(LAN969X_QSPI0_SEL_OFFSET + (1024 * NOR_SEL_SIZE))
+#define LAN969X_QSPI0_FIP1_OFFSET	(LAN969X_QSPI0_FIP_OFFSET)
+#define LAN969X_QSPI0_FIP2_OFFSET	(LAN969X_QSPI0_FIP_OFFSET + (1024 * NT_FIP_SIZE))
+
 static uint8_t mmc_buf[MMC_BUF_SIZE] __attribute__ ((aligned (MMC_BLOCK_SIZE)));
+
+#if defined(IMAGE_BL2) && defined(LAN969X_LMSTAX)
+static bool primary_image_failure;
+#endif
 
 static const io_block_dev_spec_t mmc_dev_spec = {
 	.buffer = {
@@ -77,6 +92,10 @@ enum {
 	FIP_SELECT_DEFAULT,	/* "fip" */
 	FIP_SELECT_FALLBACK,	/* "fip.bak" */
 	FIP_SELECT_RAW,		/* Start of device */
+#if defined(IMAGE_BL2) && defined(LAN969X_LMSTAX)
+	FIP_SELECT_NOR_NT_FIP1,	/* NOR-Raw */
+	FIP_SELECT_NOR_NT_FIP2,	/* NOR-Raw */
+#endif
 };
 static int fip_select;
 static bool fip_spec_valid;
@@ -387,20 +406,79 @@ static void lan969x_io_init_spi_mtd(void)
 				&mtd_dev_handle);
 	assert(io_result == 0);
 }
+
+#define NOR_IMAGE_SEL_MAGIC 0x638945a5
+struct nor_image_select {
+	uint32_t magic[4];	/* magic - ~magic - magic - ~magic */
+	uint32_t data[16];
+};
+
+#if defined(IMAGE_BL2) && defined(LAN969X_LMSTAX)
+static int nor_get_dual_fip_offset(bool primary)
+{
+	/* We use MTD access layer */
+	struct nor_image_select sel;
+	size_t nread;
+
+	/* Read selector data */
+	if (spi_nor_read(LAN969X_QSPI0_SEL_OFFSET, (uintptr_t) &sel, sizeof(sel), &nread) != 0 ||
+	    nread != sizeof(sel))
+		goto natural;
+
+	/* Do we have an initialized FIP select marker? */
+	if (sel.magic[0] == NOR_IMAGE_SEL_MAGIC &&
+	    sel.magic[1] == (uint32_t) ~NOR_IMAGE_SEL_MAGIC &&
+	    sel.magic[2] == NOR_IMAGE_SEL_MAGIC &&
+	    sel.magic[3] == (uint32_t) ~NOR_IMAGE_SEL_MAGIC) {
+		int i, ct;
+
+		/* Then count one bits */
+		for (ct = i = 0; i < ARRAY_SIZE(sel.data); i++)
+			ct += __builtin_popcount(sel.data[i]);
+
+		VERBOSE("QSPI0: Have marker - count %d\n", ct);
+		if ((ct % 2) == 0)
+			goto natural;
+
+		/* Odd = flipped: backwards order */
+		return primary ? LAN969X_QSPI0_FIP2_OFFSET : LAN969X_QSPI0_FIP1_OFFSET;
+	} else {
+		VERBOSE("QSPI0: No FIP select marker\n");
+	}
+
+	/* No marker or even count: natural order */
+natural:
+	return primary ? LAN969X_QSPI0_FIP1_OFFSET : LAN969X_QSPI0_FIP2_OFFSET;
+}
+#endif
+
 static bool lan969x_get_fip_addr(int fip_src)
 {
 	const char *name;
 	const partition_entry_t *entry;
 
-	if (fip_src == FIP_SELECT_RAM_FIP)
+	switch (fip_src) {
+	case FIP_SELECT_RAM_FIP:
 		return false;	/* Ignore */
 
-	if (fip_src == FIP_SELECT_RAW) {
+	case FIP_SELECT_RAW:
 		/* Try to use non-gpt fallback values */
 		NOTICE("Assuming FIP start at device origin\n");
 		fip_block_spec.offset = 0;
 		fip_block_spec.length = SIZE_M(2); /* Conservative default */
 		return true;
+
+#if defined(IMAGE_BL2) && defined(LAN969X_LMSTAX)
+	case FIP_SELECT_NOR_NT_FIP1:
+	case FIP_SELECT_NOR_NT_FIP2:
+		fip_block_spec.offset = nor_get_dual_fip_offset(fip_src == FIP_SELECT_NOR_NT_FIP1);
+		fip_block_spec.length = NT_FIP_SIZE;
+		NOTICE("Try FIP at offset %08zx\n", fip_block_spec.offset);
+		return true;
+#endif
+
+	default:
+		break;
 	}
 
 	name = (fip_src == FIP_SELECT_DEFAULT) ?
@@ -625,7 +703,12 @@ int bl2_plat_handle_pre_image_load(unsigned int image_id)
 {
 	/* Start with the default FIP */
 	fip_select = FIP_SELECT_DEFAULT;
-
+#if defined(LAN969X_LMSTAX)
+	if (lan966x_get_boot_source() == BOOT_SOURCE_QSPI) {
+		/* Skip loading from 'default' FIP */
+		fip_select = FIP_SELECT_NOR_NT_FIP1;
+	}
+#endif
 	fip_spec_valid = lan969x_get_fip_addr(fip_select);
 
 	return 0;
@@ -656,6 +739,10 @@ void plat_handle_image_error(unsigned int image_id, int err)
 		INFO("AUTH: Invalidate parent image: %d\n", image_id);
 		auth_img_flags[image_id] &= ~IMG_FLAG_AUTHENTICATED;
 	}
+#if defined(LAN969X_LMSTAX)
+	if (fip_select == FIP_SELECT_NOR_NT_FIP1)
+		primary_image_failure = true;
+#endif
 #endif
 }
 
@@ -678,6 +765,18 @@ int plat_try_next_boot_source(void)
 		fip_spec_valid = lan969x_get_fip_addr(fip_select);
 		return 1;	/* Try again */
 	}
+#if defined(IMAGE_BL2) && defined(LAN969X_LMSTAX)
+	if (fip_select == FIP_SELECT_RAW) {
+		fip_select = FIP_SELECT_NOR_NT_FIP1;
+		fip_spec_valid = lan969x_get_fip_addr(fip_select);
+		return 1;	/* Try again */
+	}
+	if (fip_select == FIP_SELECT_NOR_NT_FIP1) {
+		fip_select = FIP_SELECT_NOR_NT_FIP2;
+		fip_spec_valid = lan969x_get_fip_addr(fip_select);
+		return 1;	/* Try again */
+	}
+#endif
 	return 0;		/* No more */
 }
 
