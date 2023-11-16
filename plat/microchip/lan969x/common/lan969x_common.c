@@ -338,7 +338,7 @@ bool plat_mmc_use_dma(void)
 int plat_mmc_max_speed(enum mmc_device_type dev)
 {
 	if (dev == MMC_IS_EMMC)
-		return 1040000000;
+		return 2000000000;
 	assert(dev = MMC_IS_SD);
 	/* Too defensive? - TBD */
 	return 50000000;

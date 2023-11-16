@@ -116,7 +116,9 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq, unsigned i
 		base_clock = lan966x_clk_get_baseclk_freq();
 		new_ccr &= ~SDMMC_CCR_CLKGSEL;
 
-		if (SD_clock_freq == base_clock) {
+		if (SD_clock_freq >= base_clock) {
+			/* Can't go higher than base clock */
+			SD_clock_freq = base_clock;
 			clk_div = 0;
 		} else {
 			clk_div = (((base_clock / SD_clock_freq) % 2) ?
@@ -126,11 +128,13 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq, unsigned i
 		break;
 
 	case SDMMC_CLK_CTRL_PROG_MODE:
-		/* Switch to programmable clock mode, only for SR FPGA */
+		/* Switch to programmable clock mode, only for ASIC */
 		mult_clock = lan966x_clk_get_multclk_freq();
 		new_ccr |= SDMMC_CCR_CLKGSEL;
 
-		if (SD_clock_freq == mult_clock) {
+		if (SD_clock_freq >= mult_clock) {
+			/* Can't go higher than base clock */
+			SD_clock_freq = mult_clock;
 			clk_div = 0;
 		} else {
 			clk_div = DIV_ROUND_UP_2EVAL(mult_clock, SD_clock_freq) - 1;
