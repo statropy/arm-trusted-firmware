@@ -17,6 +17,7 @@
 static const pll_cfg_t pll_settings[2][DDR_CLK_OPTIONS] = {
 	{
 		/* 25 MHz reference clock */
+		{1333, 6, 3, 38, 16609444},  /* Actual 333,25 => ddr_speed/4 */
 		{1600, 6, 3, 47, 0},         /* Actual 400 => ddr_speed/4 */
 		{1866, 6, 3, 54, 16441672},  /* Actual 466,5 => ddr_speed/4 */
 		{2133, 6, 3, 62, 16609444},  /* Actual 533,25 => ddr_speed/4 */
@@ -24,6 +25,7 @@ static const pll_cfg_t pll_settings[2][DDR_CLK_OPTIONS] = {
 		{2666, 6, 3, 78, 16441672},  /* Actual 666,50 => ddr_speed/4 */
 	}, {
 		/* 39 MHz reference clock */
+		{1333, 6, 6, 42, 13233868},  /* Actual 333,25 => ddr_speed/4 */
 		{1600, 6, 6, 52, 12750684},  /* Actual 400 => ddr_speed/4 */
 		{1866, 6, 6, 61, 11703786},  /* Actual 466,5 => ddr_speed/4 */
 		{2133, 6, 6, 70, 11220602},  /* Actual 533,25 => ddr_speed/4 */
