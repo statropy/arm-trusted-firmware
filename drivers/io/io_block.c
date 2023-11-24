@@ -296,6 +296,22 @@ static int block_read(io_entity_t *entity, uintptr_t buffer, size_t length,
 		 */
 		lba = (cur->file_pos + cur->base) / block_size;
 
+#if defined(IO_BLOCK_DIRECT_COPY_BLOCK_ALIGN)
+		/* Optimization - see if we can read directly into (aligned) buffer */
+		if (skip == 0 && ((buffer + count) & (IO_BLOCK_DIRECT_COPY_BLOCK_ALIGN - 1U)) == 0) {
+			const size_t dir_blk_sz = IO_BLOCK_DIRECT_COPY_BLOCK_ALIGN;
+			request = DIV_ROUND_UP_2EVAL(left, dir_blk_sz) * dir_blk_sz;
+			nbytes = ops->read(lba, buffer + count, request);
+			assert(nbytes > 0U);
+			/* We might have read too much, trim */
+			nbytes = MIN(nbytes, left);
+			cur->file_pos += nbytes;
+			count += nbytes;
+			/* We should be done now, lower level permitting */
+			continue;
+		}
+#endif
+
 		if ((skip + left) > buf->length) {
 			/*
 			 * The underlying read buffer is too small to

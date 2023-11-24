@@ -41,7 +41,7 @@ enum {
 };
 
 #define	LAN966X_CLK_FREQ_QPIO0		25000000	// 25MHz
-#define	LAN966X_CLK_FREQ_SDMMC		100000000	// 100MHz
+#define	LAN966X_CLK_FREQ_SDMMC		200000000	// 200MHz
 
 int lan966x_clk_disable(unsigned int clock);
 int lan966x_clk_enable(unsigned int clock);

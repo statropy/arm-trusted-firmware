@@ -116,7 +116,9 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq, unsigned i
 		base_clock = lan966x_clk_get_baseclk_freq();
 		new_ccr &= ~SDMMC_CCR_CLKGSEL;
 
-		if (SD_clock_freq == base_clock) {
+		if (SD_clock_freq >= base_clock) {
+			/* Can't go higher than base clock */
+			SD_clock_freq = base_clock;
 			clk_div = 0;
 		} else {
 			clk_div = (((base_clock / SD_clock_freq) % 2) ?
@@ -126,11 +128,13 @@ static unsigned char lan966x_set_clk_freq(unsigned int SD_clock_freq, unsigned i
 		break;
 
 	case SDMMC_CLK_CTRL_PROG_MODE:
-		/* Switch to programmable clock mode, only for SR FPGA */
+		/* Switch to programmable clock mode, only for ASIC */
 		mult_clock = lan966x_clk_get_multclk_freq();
 		new_ccr |= SDMMC_CCR_CLKGSEL;
 
-		if (SD_clock_freq == mult_clock) {
+		if (SD_clock_freq >= mult_clock) {
+			/* Can't go higher than base clock */
+			SD_clock_freq = mult_clock;
 			clk_div = 0;
 		} else {
 			clk_div = DIV_ROUND_UP_2EVAL(mult_clock, SD_clock_freq) - 1;
@@ -708,12 +712,10 @@ static int lan966x_recover_error(unsigned int error_int_status)
 	return 0;
 }
 
-static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
+static int lan966x_mmc_set_ios(unsigned int clock, unsigned int width)
 {
-	static uint8_t width_codes[] = {1, 4, 8};
+	static const char *width_codes[] = {"1 bit", "4 bits", "8 bits", "reserved3", "reserved4", "4 bits DDR", "8 bits DDR"};
 	uint8_t bus_width = 0u;
-	uint32_t clock = 0u;
-	int max_speed;
 
 	VERBOSE("MMC: ATF CB set_ios() \n");
 
@@ -722,9 +724,11 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 		bus_width = SDMMC_HC1R_DW_1_BIT;
 		break;
 	case MMC_BUS_WIDTH_4:
+	case MMC_BUS_WIDTH_DDR_4:
 		bus_width = SDMMC_HC1R_DW_4_BIT;
 		break;
 	case MMC_BUS_WIDTH_8:
+	case MMC_BUS_WIDTH_DDR_8:
 		/* Check if hardware supports 8-bit bus width capabilities */
 		if ((sdhci_read_32(reg_base, SDMMC_CA0R) & SDMMC_CA0R_ED8SUP) == SDMMC_CA0R_ED8SUP) {
 			bus_width = SDMMC_HC1R_EXTDW;
@@ -738,19 +742,9 @@ static int lan966x_mmc_set_ios(unsigned int clk, unsigned int width)
 
 	mmc_setbits_8(reg_base, SDMMC_HC1R, bus_width);
 
-	/* Mainly, the desired clock rate should be adjusted by the fw_config
-	 * parameter. This check prevents that the maximum allowed clock
-	 * settings are exceeded depending on the respective mmc device. */
-	max_speed = plat_mmc_max_speed(lan966x_params.mmc_dev_type);
-	if (clk >= max_speed) {
-		clock = max_speed;
-	} else {
-		clock = clk;
-	}
-
-	INFO("MMC: %d MHz, width %d bits, %s\n",
-	     clock / 1000000U, width_codes[width],
-	     use_dma ? "SDMA" : "No DMA");
+	NOTICE("MMC: %d MHz, %s, %s\n",
+	       clock / 1000000U, width_codes[width],
+	       use_dma ? "SDMA" : "No DMA");
 
 	if (lan966x_set_clk_freq(clock, SDMMC_CLK_CTRL_PROG_MODE)) {
 		return -1;
@@ -887,18 +881,9 @@ static const struct mmc_ops lan966x_ops = {
 
 void lan966x_mmc_init(lan966x_mmc_params_t * params, struct mmc_device_info *info)
 {
-	int retVal;
+	int retVal, max_speed;
 
 	VERBOSE("MMC: lan966x_mmc_init() \n");
-
-#if defined(LAN966X_EMMC_TESTS)
-	/* When the EVB board is used and LAN966X_EMMC_TESTS is enabled, the
-	 * previously called lan966x_get_boot_source() function will return
-	 * BOOT_SOURCE_QSPI. Since this is a special test mode, this boot_source
-	 * is not considered and supported here. Therefore, the default eMMC
-	 * values needs to be set here. */
-	lan966x_params.mmc_dev_type = MMC_IS_EMMC;
-#endif
 
 	assert((params != 0) &&
 	       ((params->reg_base & MMC_BLOCK_MASK) == 0) &&
@@ -910,6 +895,10 @@ void lan966x_mmc_init(lan966x_mmc_params_t * params, struct mmc_device_info *inf
 		params->clk_rate = MMC_DEFAULT_SPEED;
 		WARN("MMC: Clock speed not set - using %d\n", params->clk_rate);
 	}
+
+	/* Adjust clock rate according to platform max speed */
+	max_speed = plat_mmc_max_speed(params->mmc_dev_type);
+	params->clk_rate = MIN(params->clk_rate, max_speed);
 
 	if ((params->bus_width != MMC_BUS_WIDTH_1) &&
 	    (params->bus_width != MMC_BUS_WIDTH_4) &&

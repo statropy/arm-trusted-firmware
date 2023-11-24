@@ -154,6 +154,11 @@ static int mmc_set_ext_csd(unsigned int ext_cmd, unsigned int value)
 		return ret;
 	}
 
+	if (ext_cmd == CMD_EXTCSD_HS_TIMING) {
+		/* When changing speed, don't check using CMD13 */
+		return 0;
+	}
+
 	do {
 		ret = mmc_device_state();
 		if (ret < 0) {
@@ -227,31 +232,158 @@ static int mmc_sd_switch(unsigned int bus_width)
 	return 0;
 }
 
+static int mmc_read_ext_csd(void)
+{
+	int ret;
+
+	ret = ops->prepare(0, (uintptr_t)&mmc_ext_csd,
+			   sizeof(mmc_ext_csd), false);
+	if (ret != 0) {
+		return ret;
+	}
+
+	/* MMC CMD8: SEND_EXT_CSD */
+	ret = mmc_send_cmd(MMC_CMD(8), 0, MMC_RESPONSE_R1, NULL);
+	if (ret != 0) {
+		return ret;
+	}
+
+	ret = ops->read(0, (uintptr_t)&mmc_ext_csd,
+			sizeof(mmc_ext_csd));
+	if (ret != 0) {
+		return ret;
+	}
+
+	do {
+		ret = mmc_device_state();
+		if (ret < 0) {
+			return ret;
+		}
+	} while (ret != MMC_STATE_TRAN);
+
+	return 0;
+}
+
+static int mmc_switch_emmc(unsigned int clk, unsigned int bus_width)
+{
+	static const char *hs_modes[] = {"Standard", "HS", "HS200", "HS400"};
+	static const struct {
+		uint32_t dev_mask;
+		uint32_t hs_mode;
+		uint32_t bus_width;
+		unsigned int min_clock, max_clock;
+	} modes[] = {
+		{
+			MMC_DEV_TYPE_HS_26MHZ,
+			MMC_BOOT_MODE_HS_TIMING,
+			BIT(MMC_BUS_WIDTH_1) | BIT(MMC_BUS_WIDTH_4) | BIT(MMC_BUS_WIDTH_8),
+			0U, 26000000U,
+		}, {
+			MMC_DEV_TYPE_HS_52MHZ,
+			MMC_BOOT_MODE_HS_TIMING,
+			BIT(MMC_BUS_WIDTH_1) | BIT(MMC_BUS_WIDTH_4) | BIT(MMC_BUS_WIDTH_8),
+			0U, 52000000U,
+		}, {
+			MMC_DEV_TYPE_SDR_HS200_18V | MMC_DEV_TYPE_SDR_HS200_12V,
+			MMC_BOOT_MODE_HS200,
+			BIT(MMC_BUS_WIDTH_4) | BIT(MMC_BUS_WIDTH_8),
+			0U, 200000000U,
+		}
+	};
+	int i, ret;
+
+	/* Try bumping speed with proper ext_csd data at hand */
+	uint8_t hs_mode, dt = mmc_ext_csd[CMD_EXTCSD_DEVICE_TYPE];
+	for (i = 0; i < ARRAY_SIZE(modes); i++) {
+		if (dt & modes[i].dev_mask &&
+		    clk >= modes[i].min_clock && clk <= modes[i].max_clock &&
+		    modes[i].bus_width & BIT(bus_width)) {
+			hs_mode = modes[i].hs_mode;
+			VERBOSE("Using MMC mode %d, hs_mode %d, dt = %02x\n", i, hs_mode, dt);
+			goto found;
+		}
+	}
+
+	NOTICE("MMC using fallback mode, card DEVICE_TYPE = %02x\n", dt);
+	clk = MIN(clk, 26000000U); /* Clamp clock */
+	bus_width = MMC_BUS_WIDTH_1; /* Very defensive */
+	hs_mode = MMC_BOOT_MODE_BACKWARD;
+
+found:
+	VERBOSE("MMC selecting %s mode, bus width code %d, clock = %d\n",
+		hs_modes[hs_mode], bus_width, clk);
+
+	/* Now, set bus width */
+	ret = mmc_set_ext_csd(CMD_EXTCSD_BUS_WIDTH, bus_width);
+	if (ret != 0) {
+		NOTICE("MMC set bus width %d error: %d\n", bus_width, ret);
+		return ret;
+	}
+
+	/* Set timing interface mode */
+	ret = mmc_set_ext_csd(CMD_EXTCSD_HS_TIMING, hs_mode);
+	if (ret) {
+		NOTICE("MMC set timing interface %d error: %d\n", hs_mode, ret);
+		return ret;
+	}
+
+	/* Now set actual clock+bw in controller */
+	ret = ops->set_ios(clk, bus_width);
+	if (ret) {
+		NOTICE("MMC set clock error: %d\n", ret);
+		return ret;
+	}
+
+	/* Check device state now the clock has been set */
+	do {
+		ret = mmc_device_state();
+		if (ret < 0) {
+			return ret;
+		}
+	} while (ret != MMC_STATE_TRAN);
+
+	/* Read EXT to check clock change */
+	ret = mmc_read_ext_csd();
+	if (ret != 0) {
+		ERROR("MMC unable to read EXT_CSD after clock change: %d\n", ret);
+		return ret;
+	}
+	if (mmc_ext_csd[CMD_EXTCSD_HS_TIMING] == hs_mode) {
+		VERBOSE("MMC change to %s mode verified\n", hs_modes[hs_mode]);
+	} else {
+		ERROR("MMC unable to change mode: expect %d, got %d\n",
+		      hs_mode, mmc_ext_csd[CMD_EXTCSD_HS_TIMING]);
+	}
+
+	return 0;
+}
+
 static int mmc_set_ios(unsigned int clk, unsigned int bus_width)
 {
 	int ret;
-	unsigned int width = bus_width;
 
 	if (mmc_dev_info->mmc_dev_type != MMC_IS_EMMC) {
-		if (width == MMC_BUS_WIDTH_8) {
+		if (bus_width == MMC_BUS_WIDTH_8) {
 			WARN("Wrong bus config for SD-card, force to 4\n");
-			width = MMC_BUS_WIDTH_4;
+			bus_width = MMC_BUS_WIDTH_4;
 		}
-		ret = mmc_sd_switch(width);
+		ret = mmc_sd_switch(bus_width);
 		if (ret != 0) {
 			return ret;
 		}
 	} else if (mmc_csd.spec_vers == 4U) {
-		ret = mmc_set_ext_csd(CMD_EXTCSD_BUS_WIDTH,
-				      (unsigned int)width);
+		/* Read EXT_CSD to negociate speed properly */
+		ret = mmc_read_ext_csd();
 		if (ret != 0) {
 			return ret;
 		}
+
+		return mmc_switch_emmc(clk, bus_width);
 	} else {
 		VERBOSE("Wrong MMC type or spec version\n");
 	}
 
-	return ops->set_ios(clk, width);
+	return ops->set_ios(clk, bus_width);
 }
 
 static int mmc_fill_device_info(void)
@@ -266,31 +398,6 @@ static int mmc_fill_device_info(void)
 	switch (mmc_dev_info->mmc_dev_type) {
 	case MMC_IS_EMMC:
 		mmc_dev_info->block_size = MMC_BLOCK_SIZE;
-
-		ret = ops->prepare(0, (uintptr_t)&mmc_ext_csd,
-				   sizeof(mmc_ext_csd), false);
-		if (ret != 0) {
-			return ret;
-		}
-
-		/* MMC CMD8: SEND_EXT_CSD */
-		ret = mmc_send_cmd(MMC_CMD(8), 0, MMC_RESPONSE_R1, NULL);
-		if (ret != 0) {
-			return ret;
-		}
-
-		ret = ops->read(0, (uintptr_t)&mmc_ext_csd,
-				sizeof(mmc_ext_csd));
-		if (ret != 0) {
-			return ret;
-		}
-
-		do {
-			ret = mmc_device_state();
-			if (ret < 0) {
-				return ret;
-			}
-		} while (ret != MMC_STATE_TRAN);
 
 		nb_blocks = (mmc_ext_csd[CMD_EXTCSD_SEC_CNT] << 0) |
 			    (mmc_ext_csd[CMD_EXTCSD_SEC_CNT + 1] << 8) |
