@@ -118,6 +118,9 @@ void lan969x_tz_finish(void)
 {
 	uintptr_t tzpm = LAN969X_TZPM_BASE;
 
+	/* Reset Silex SRAM */
+	memset((void*) LAN969X_SILEX_RAM_BASE, 0, LAN969X_SILEX_RAM_SIZE);
+
 	/* Magic key to unlock protection */
 	mmio_write_32(TZPM_TZPM_KEY(tzpm), 0x12AC4B5D);
 	mmio_setbits_32(TZPM_TZPCTL0(tzpm),
@@ -133,6 +136,8 @@ void lan969x_tz_finish(void)
 			TZPM_TZPCTL1_FLEXCOM1(1) |
 			TZPM_TZPCTL1_FLEXCOM2(1) |
 			TZPM_TZPCTL1_FLEXCOM3(1));
+	mmio_setbits_32(TZPM_TZPCTL2(tzpm),
+			TZPM_TZPCTL2_PKE(1));
 	mmio_setbits_32(TZPM_TZPCTL3(tzpm),
 			TZPM_TZPCTL3_FDMA(1));
 	/* Reset key to reestablish protection */
