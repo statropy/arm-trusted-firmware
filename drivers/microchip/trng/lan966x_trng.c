@@ -15,6 +15,8 @@
 
 static bool lan966x_trng_init_done;
 
+#define TRNG_READY_TIMEOUT_US	2000U /* 2ms */
+
 uuid_t plat_trng_uuid = {
 	{0xcf, 0x32, 0x0f, 0x5a},
 	{0x0b, 0xec},
@@ -45,6 +47,24 @@ uint32_t lan966x_trng_read(void)
 	return mmio_read_32(TRNG_TRNG_ODATA(LAN966X_TRNG_BASE));
 }
 
+static bool plat_entropy_read(uint32_t *data)
+{
+	uint64_t timeout = timeout_init_us(TRNG_READY_TIMEOUT_US);
+
+	/* Wait for data rdy */
+	while (!timeout_elapsed(timeout)) {
+		/* data ready? */
+		if (mmio_read_32(TRNG_TRNG_ISR(LAN966X_TRNG_BASE)) &
+		    TRNG_TRNG_ISR_DATRDY_ISR_M) {
+			/* then, read the data and return it */
+			*data = mmio_read_32(TRNG_TRNG_ODATA(LAN966X_TRNG_BASE));
+			return true;
+		}
+	}
+	ERROR("Timeout waiting for TRNG ready\n");
+	return false;
+}
+
 void plat_entropy_setup(void)
 {
 	lan966x_trng_init();
@@ -53,9 +73,15 @@ void plat_entropy_setup(void)
 bool plat_get_entropy(uint64_t *out)
 {
 	uint64_t entropy;
-	entropy = lan966x_trng_read();
+	uint32_t data;
+
+	if (!plat_entropy_read(&data))
+		return false;
+	entropy = data;
 	entropy <<= 32;
-	entropy |= lan966x_trng_read();
+	if (!plat_entropy_read(&data))
+		return false;
+	entropy |= data;
 	*out = entropy;
 	return true;
 }
