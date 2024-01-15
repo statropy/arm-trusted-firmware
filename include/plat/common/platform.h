@@ -37,6 +37,7 @@ struct bl_params;
 struct mmap_region;
 struct spm_mm_boot_info;
 struct sp_res_desc;
+struct fw_enc_hdr;
 enum fw_enc_status_t;
 
 /*******************************************************************************
@@ -425,5 +426,13 @@ int plat_fwu_set_metadata_image_source(unsigned int image_id,
 				       uintptr_t *image_spec);
 void plat_fwu_set_images_source(const struct fwu_metadata *metadata);
 uint32_t plat_fwu_get_boot_idx(void);
+
+/*******************************************************************************
+ * MCHP Streaming Encryption support
+ ******************************************************************************/
+
+void plat_decrypt_context_enter(const struct fw_enc_hdr *hdr,
+				const uint8_t *key, size_t key_len, unsigned int key_flags);
+void plat_decrypt_leave(void);
 
 #endif /* PLATFORM_H */

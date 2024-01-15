@@ -42,6 +42,17 @@ static int enc_file_close(io_entity_t *entity);
 static int enc_dev_init(io_dev_info_t *dev_info, const uintptr_t init_params);
 static int enc_dev_close(io_dev_info_t *dev_info);
 
+#pragma weak plat_decrypt_context_enter
+void plat_decrypt_context_enter(const struct fw_enc_hdr *hdr,
+				const uint8_t *key, size_t key_len, unsigned int key_flags)
+{
+}
+
+#pragma weak plat_decrypt_context_leave
+void plat_decrypt_context_leave(void)
+{
+}
+
 static inline int is_valid_header(struct fw_enc_hdr *hdr)
 {
 	if (hdr->magic == ENC_HEADER_MAGIC)
@@ -188,14 +199,6 @@ static int enc_file_read(io_entity_t *entity, uintptr_t buffer, size_t length,
 		return -ENOENT;
 	}
 
-	result = io_read(backend_handle, buffer, length, &bytes_read);
-	if (result != 0) {
-		WARN("Failed to read encrypted payload (%i)\n", result);
-		return -ENOENT;
-	}
-
-	*length_read = bytes_read;
-
 	result = plat_get_enc_key_info(fw_enc_status, key, &key_len, &key_flags,
 				       (uint8_t *)&uuid_spec->uuid,
 				       sizeof(uuid_t));
@@ -204,12 +207,26 @@ static int enc_file_read(io_entity_t *entity, uintptr_t buffer, size_t length,
 		return -ENOENT;
 	}
 
+	/* Allow for streaming io decrypt */
+	plat_decrypt_context_enter(&header, key, key_len, key_flags);
+
+	result = io_read(backend_handle, buffer, length, &bytes_read);
+	if (result != 0) {
+		WARN("Failed to read encrypted payload (%i)\n", result);
+		return -ENOENT;
+	}
+
+	*length_read = bytes_read;
+
 	result = crypto_mod_auth_decrypt(header.dec_algo,
 					 (void *)buffer, *length_read, key,
 					 key_len, key_flags, header.iv,
 					 header.iv_len, header.tag,
 					 header.tag_len);
 	memset(key, 0, key_len);
+
+	/* Disable streaming io decrypt */
+	plat_decrypt_context_leave();
 
 	if (result != 0) {
 		ERROR("File decryption failed (%i)\n", result);
