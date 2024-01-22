@@ -168,6 +168,11 @@ void bl31_fit_unpack(void)
 
 	if (fit_init_context(&fit, bl33_image_base) == EXIT_SUCCESS) {
 		INFO("Unpacking FIT image @ %p\n", fit.fit);
+		/* Get FIT config name from OTP */
+		if (otp_tag_get_string(otp_tag_type_fit_config, fit_config, sizeof(fit_config)) > 0)
+			fit_config_ptr = fit_config;
+		else
+			fit_config_ptr = "lan9698_ev23x71a_0_at_lan969x";
 		if (fit_select(&fit, fit_config_ptr) == EXIT_SUCCESS &&
 		    fit_load(&fit, FITIMG_PROP_DT_TYPE) == EXIT_SUCCESS &&
 		    fit_load(&fit, FITIMG_PROP_KERNEL_TYPE) == EXIT_SUCCESS) {
@@ -217,12 +222,6 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 
 	/* Console */
 	lan969x_console_init();
-
-	/* Read this up front to cache */
-	if (otp_tag_get_string(otp_tag_type_fit_config, fit_config, sizeof(fit_config)) > 0)
-		fit_config_ptr = fit_config;
-	else
-		fit_config_ptr = "lan9698_ev23x71a_0_at_lan969x";
 
 	/*
 	 * Check params passed from BL2 should not be NULL,
