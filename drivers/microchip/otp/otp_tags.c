@@ -21,6 +21,11 @@
 #define OTP_TAG_GET_CONT(tag) (((0xff & (uint16_t)tag[7]) / 16) & 0x1)
 #define OTP_TAG_GET_TAG(tag)  ((((uint16_t)tag[7]) & 0x4) | tag[6])
 
+static bool otp_tag_empty(uint8_t *tag_raw)
+{
+	return otp_all_zero(tag_raw, OTP_TAG_ENTRY_LENGTH);
+}
+
 static bool otp_tag_valid(uint8_t *tag_raw)
 {
 	uint8_t size;
@@ -124,7 +129,15 @@ int otp_tag_get(enum otp_tag_type tag, void *buf, size_t buf_size)
 	for (i = OTP_TAG_OFFSET; i < OTP_MAX_SIZE; i += OTP_TAG_ENTRY_LENGTH) {
 		ret = otp_read_bytes_raw(i, sizeof(tag_raw), tag_raw);
 
-		if (ret || !otp_tag_valid(tag_raw))
+		if (ret)
+			return ret;
+
+		/* Exit at first empty tag */
+		if (otp_tag_empty(tag_raw))
+			break;
+
+		/* Skip deleted tags */
+		if(!otp_tag_valid(tag_raw))
 			continue;
 
 		if (tag == OTP_TAG_GET_TAG(tag_raw))
