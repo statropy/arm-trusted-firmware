@@ -102,6 +102,7 @@ PLAT_BL_COMMON_SOURCES	+=	\
 				drivers/delay_timer/generic_delay_timer.c		\
 				drivers/microchip/clock/lan966x_clock.c			\
 				drivers/microchip/crypto/lan966x_sha.c			\
+				drivers/microchip/dma/xdmac.c				\
 				drivers/microchip/otp/otp.c				\
 				drivers/microchip/tz_matrix/tz_matrix.c			\
 				lib/cpus/aarch32/cortex_a7.S				\

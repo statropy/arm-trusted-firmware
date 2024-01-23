@@ -13,6 +13,7 @@
 #include <drivers/delay_timer.h>
 #include <drivers/microchip/lan966x_clock.h>
 #include <drivers/microchip/qspi.h>
+#include <drivers/microchip/xdmac.h>
 #include <drivers/spi_nor.h>
 
 #include "lan966x_def.h"
@@ -640,12 +641,14 @@ static int qspi_exec_op(struct spi_mem_op *op)
 
 	/* Move the data */
 	if (op->data.dir == SPI_MEM_DATA_IN) {
-		memcpy(op->data.buf, (void *) (LAN966X_QSPI0_MMAP + iar), op->data.nbytes);
+		xdmac_memcpy(op->data.buf, (void *) (LAN966X_QSPI0_MMAP + iar), op->data.nbytes,
+			     XDMA_DIR_MEM_TO_MEM, XDMA_QSPI0_RX);
 
 		if (qspi_wait_flag_clear(reg_base + QSPI_SR, QSPI_SR_RBUSY, "SR:RBUSY"))
 			return -ETIMEDOUT;
 	} else {
-		memcpy((void *) (LAN966X_QSPI0_MMAP + iar), op->data.buf, op->data.nbytes);
+		xdmac_memcpy((void *) (LAN966X_QSPI0_MMAP + iar), op->data.buf, op->data.nbytes,
+			     XDMA_DIR_MEM_TO_MEM, XDMA_QSPI0_TX);
 
 		/* Wait 'Last Write Access' */
 		if (qspi_wait_flag_set(reg_base + QSPI_ISR, QSPI_ISR_LWRA, "ISR:LWRA"))
@@ -914,7 +917,8 @@ int qspi_write(uint32_t offset, const void *buf, size_t len)
 int qspi_read(unsigned int offset, uintptr_t buffer, size_t length,
 	      size_t *length_read)
 {
-	memcpy((void *) buffer, (const void *) (LAN966X_QSPI0_MMAP + offset), length);
+	xdmac_memcpy((void *) buffer, (void *) (LAN966X_QSPI0_MMAP + offset), length,
+		     XDMA_DIR_MEM_TO_MEM, XDMA_QSPI0_RX);
 	*length_read = length;
 
 	return 0;
