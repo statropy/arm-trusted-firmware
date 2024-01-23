@@ -81,11 +81,6 @@ void bl2u_early_platform_setup(struct meminfo *mem_layout, void *plat_info)
 void bl2u_plat_arch_setup(void)
 {
 
-#if USE_COHERENT_MEM
-	/* Ensure ARM platforms dont use coherent memory in BL2U */
-	assert((BL_COHERENT_RAM_END - BL_COHERENT_RAM_BASE) == 0U);
-#endif
-
 	const mmap_region_t bl_regions[] = {
 		MAP_BL2U_TOTAL,
 		ARM_MAP_BL_RO,

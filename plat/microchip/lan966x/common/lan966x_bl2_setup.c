@@ -52,14 +52,6 @@ static meminfo_t bl2_tzram_layout __aligned(CACHE_WRITEBACK_GRANULE);
 						MT_CODE | MT_SECURE)
 #endif
 
-#if USE_COHERENT_MEM
-#define ARM_MAP_BL_COHERENT_RAM		MAP_REGION_FLAT(			\
-						BL_COHERENT_RAM_BASE,		\
-						BL_COHERENT_RAM_END		\
-							- BL_COHERENT_RAM_BASE, \
-						MT_DEVICE | MT_RW | MT_SECURE)
-#endif
-
 /*******************************************************************************
  * Perform the very early platform specific architectural setup here. At the
  * moment this is only initializes the mmu in a quick and dirty way.
@@ -72,9 +64,6 @@ void bl2_plat_arch_setup(void)
 		MAP_PKCL_CODE,
 		MAP_PKCL_DATA,
 		ARM_MAP_BL_RO,
-#if USE_COHERENT_MEM
-		ARM_MAP_BL_COHERENT_RAM,
-#endif
 		{0}
 	};
 

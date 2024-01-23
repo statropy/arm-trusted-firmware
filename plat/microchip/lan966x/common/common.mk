@@ -22,6 +22,9 @@ LAN966x_MAX_CPUS_PER_CLUSTER	:= 1
 # Default number of threads per CPU on FVP
 LAN966x_MAX_PE_PER_CPU	:= 1
 
+# No coherent memory, we're single core
+USE_COHERENT_MEM	:= 0
+
 # To compile with highest log level (VERBOSE) set value to 50
 LOG_LEVEL := 40
 
