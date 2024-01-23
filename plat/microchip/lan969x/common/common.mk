@@ -17,6 +17,9 @@ include drivers/microchip/crypto/lan969x_crypto.mk
 # MCHP SOC family
 $(eval $(call add_define,MCHP_SOC_LAN969X))
 
+# Use QSPI pipelined XDMA
+$(eval $(call add_define,XDMAC_PIPELINE_SUPPPORT))
+
 LAN969X_PLAT		:=	plat/microchip/lan969x
 LAN969X_PLAT_BOARD	:=	${LAN969X_PLAT}/${PLAT}
 LAN969X_PLAT_COMMON	:=	${LAN969X_PLAT}/common

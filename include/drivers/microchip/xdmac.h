@@ -71,6 +71,27 @@ struct xdmac_req {
 void xdmac_bzero(void *dst, size_t count);
 void xdmac_memcpy(void *dst, const void *src, size_t len, int dir, int periph);
 
+#if defined(XDMAC_PIPELINE_SUPPPORT)
+void xdmac_qspi_pipeline_read(void *dst, const void *src, size_t len);
+int xdmac_qspi_get_sha(const void *data, size_t len, int sha_type, void *hash, size_t hash_len);
+bool xdmac_qspi_is_decrypted(const void *dst, size_t len,
+			     const void *key, unsigned int key_len,
+			     const void *tag, unsigned int tag_len);
+#else
+static inline
+int xdmac_qspi_get_sha(const void *data, size_t len, int sha_type, void *hash, size_t hash_len)
+{
+	return -1;
+}
+static inline
+bool xdmac_qspi_is_decrypted(const void *dst, size_t len,
+			     const void *key, unsigned int key_len,
+			     const void *tag, unsigned int tag_len)
+{
+	return false;
+}
+#endif
+
 void xdmac_make_req(struct xdmac_req *req, int ch, int dir, int periph, uintptr_t dst, uintptr_t src, size_t len);
 void xdmac_setup_xfer(int ch, void *dst, const void *src, size_t len, int dir, int periph);
 void xdmac_execute_xfers(uint32_t mask);

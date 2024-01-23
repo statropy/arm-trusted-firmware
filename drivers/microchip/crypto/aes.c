@@ -262,6 +262,9 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 {
 	int rc;
 
+	if (xdmac_qspi_is_decrypted(data_ptr, len, key, key_len, tag, tag_len))
+		return CRYPTO_SUCCESS;
+
 	VERBOSE("aes-gcm-decrypt: data_len %zd, key_len %d, iv_len %d, tag_len %d\n",
 		len, key_len, iv_len, tag_len);
 

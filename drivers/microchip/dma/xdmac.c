@@ -153,20 +153,34 @@ static void xdmac_wait_idle(int ch)
 	plat_error_handler(-EIO);
 }
 
-static void xdmac_start(int ch)
+static void xdmac_start(uint32_t channel_list)
 {
-	/* Enable Block End Interrupt */
-	mmio_setbits_32(XDMAC_XDMAC_CIE_CH0(CH_OFF(base, ch)), AT_XDMAC_CIE_BIE);
-	/* Enable GIE channel Interrupt */
-	mmio_setbits_32(XDMAC_XDMAC_GIE(base), BIT(ch));
-	/* Enable Channel: GE */
-	mmio_setbits_32(XDMAC_XDMAC_GE(base), BIT(ch));
+	uint32_t w = channel_list;
+
+	/* Set Enable Block End Interrupt for channels */
+	while (w) {
+		int i = __builtin_ffs(w) - 1;
+		mmio_setbits_32(XDMAC_XDMAC_CIE_CH0(CH_OFF(base, i)), AT_XDMAC_CIE_BIE);
+		w &= ~BIT(i);
+	}
+
+	/* Enable GIE channel Interrupts - write-only register */
+	mmio_write_32(XDMAC_XDMAC_GIE(base), channel_list);
+	/* Enable Channels: GE - write-only register */
+	mmio_write_32(XDMAC_XDMAC_GE(base), channel_list);
 }
 
-static void xdmac_exec(int ch)
+/* channel_list: Bitmask of channels to complete */
+void xdmac_execute_xfers(uint32_t channel_list)
 {
-	xdmac_start(ch);
-	xdmac_wait_idle(ch);
+	/* First start the channels */
+	xdmac_start(channel_list);
+
+	while (channel_list) {
+		int i = __builtin_ffs(channel_list) - 1;
+		xdmac_wait_idle(i);
+		channel_list &= ~BIT(i);
+	}
 }
 
 void xdmac_bzero(void *dst, size_t len)
@@ -182,7 +196,7 @@ void xdmac_bzero(void *dst, size_t len)
 	xdmac_setup_req(&req);
 
 	/* Start and await the operation completion */
-	xdmac_exec(ch);
+	xdmac_execute_xfers(BIT(ch));
 }
 
 static void _xdmac_memcpy(int ch, void *dst, const void *src, size_t len, int dir, int periph)
@@ -203,7 +217,7 @@ static void _xdmac_memcpy(int ch, void *dst, const void *src, size_t len, int di
 	xdmac_setup_req(&req);
 
 	/* Start and await the operation completion */
-	xdmac_exec(ch);
+	xdmac_execute_xfers(BIT(ch));
 }
 
 void xdmac_setup_xfer(int ch, void *dst, const void *src, size_t len, int dir, int periph)
@@ -211,25 +225,6 @@ void xdmac_setup_xfer(int ch, void *dst, const void *src, size_t len, int dir, i
 	struct xdmac_req req;
 	xdmac_make_req(&req, ch, dir, periph, (uintptr_t) dst, (uintptr_t) src, len);
 	xdmac_setup_req(&req);
-}
-
-void xdmac_execute_xfers(uint32_t mask)
-{
-	uint32_t w;
-
-	w = mask;
-	while (w) {
-		int i = __builtin_ffs(w) - 1;
-		xdmac_start(i);
-		w &= ~BIT(i);
-	}
-
-	w = mask;
-	while (w) {
-		int i = __builtin_ffs(w) - 1;
-		xdmac_wait_idle(i);
-		w &= ~BIT(i);
-	}
 }
 
 void xdmac_memcpy(void *dst, const void *src, size_t len, int dir, int periph)
@@ -244,3 +239,198 @@ void xdmac_show_version(void)
 	     (uint32_t) XDMAC_XDMAC_VERSION_VERSION_X(w),
 	     (uint32_t) XDMAC_XDMAC_VERSION_MFN_X(w));
 }
+
+#if defined(XDMAC_PIPELINE_SUPPPORT)
+
+#define PDMA_BLOCK_SIZE	SIZE_K(16U)
+
+static struct pipeline_state {
+	uintptr_t dst, src;
+	size_t len;
+	int sha_type;
+	uint8_t hash[32];
+	/* Decryption */
+	bool streaming_decrypt, was_decrypted;
+	struct {
+		struct fw_enc_hdr fw_hdr;
+		uint8_t key[ENC_MAX_KEY_SIZE];
+		size_t key_len;
+	} decrypt;
+} xdma_pipeline;
+
+static void _xdmac_qspi_pipeline_read(void *dst, const void *src, size_t len)
+{
+	struct pipeline_state *pdma = &xdma_pipeline;
+	struct xdmac_req dmas[4],
+		*mem = &dmas[0],
+		*dec_tx = &dmas[1],
+		*dec_rx = &dmas[2],
+		*sha = &dmas[3];
+	size_t read = 0, decrypted = 0, hashed = 0;
+
+	pdma->src = (uintptr_t) src;
+	pdma->dst = (uintptr_t) dst;
+	pdma->len = len;
+	/* We make an educated guess on which SHA may be requested -
+	 * since we are calculating this ahead of time. */
+	pdma->sha_type = SHA_MR_ALGO_SHA256;
+
+	/* Invalidate dst cache */
+	inv_dcache_range(pdma->dst, len);
+
+	/* Setup DMA chain */
+	xdmac_make_req(mem, 0, XDMA_DIR_MEM_TO_MEM, XDMA_NONE, pdma->dst, pdma->src, len);
+	xdmac_make_req(dec_tx, 1, XDMA_DIR_MEM_TO_DEV, XDMA_AES_TX, AES_AES_IDATAR0(LAN966X_AES_BASE), pdma->dst, len);
+	xdmac_make_req(dec_rx, 2, XDMA_DIR_DEV_TO_MEM, XDMA_AES_RX, pdma->dst, AES_AES_ODATAR0(LAN966X_AES_BASE), len);
+	xdmac_make_req(sha, 3, XDMA_DIR_MEM_TO_DEV, XDMA_SHA_TX, SHA_SHA_IDATAR0(LAN966X_SHA_BASE), pdma->dst, len);
+
+	void *sha_ctx = sha_calc_init(pdma->sha_type, len, sizeof(pdma->hash));
+
+	if (pdma->streaming_decrypt) {
+		aes_gcm_decrypt_start(len,
+				      pdma->decrypt.key, pdma->decrypt.key_len,
+				      pdma->decrypt.fw_hdr.iv, pdma->decrypt.fw_hdr.iv_len);
+	}
+
+	while (hashed < len) {
+		uint32_t channel_list = 0;
+
+		/* Need to read more data? */
+		if (read < len) {
+			mem->len = MIN((size_t) PDMA_BLOCK_SIZE, len - read);
+			/* Ready QSPI read to memory block transfer */
+			channel_list |= xdmac_setup_req(mem);
+			VERBOSE("QSPI read start: %d bytes, DST offset %08x\n", mem->len, mem->dst);
+		}
+
+		if (pdma->streaming_decrypt) {
+			/* Need to decrypt data? */
+			if (decrypted < read) {
+				uint32_t chunk = MIN((size_t) PDMA_BLOCK_SIZE, read - decrypted);
+				/* Ready tx/rx inplace decrypt */
+				dec_tx->len = chunk;
+				channel_list |= xdmac_setup_req(dec_tx);
+				dec_rx->len = chunk;
+				channel_list |= xdmac_setup_req(dec_rx);
+				VERBOSE("AES decrypt start: %d bytes, SRC offset %08x\n", dec_tx->len, dec_tx->src);
+			}
+		} else {
+			decrypted = read; /* Cleartext */
+		}
+
+		/* Need to hash data? */
+		if (hashed < decrypted) {
+			sha->len = MIN((size_t) PDMA_BLOCK_SIZE, decrypted - hashed);
+			/* Ready SHA update round */
+			channel_list |= xdmac_setup_req(sha);
+			VERBOSE("SHA hash start: %d bytes, SRC offset %08x\n", sha->len, sha->src);
+		}
+
+		assert(channel_list != 0); /* Inside loop we always have xfers to do */
+
+		VERBOSE("DMA start: mask %02x: read %zd, decrypted %zd, hashed %zd\n",
+			channel_list, read, decrypted, hashed);
+
+		xdmac_execute_xfers(channel_list);
+
+		/* Update read state */
+		if (channel_list & BIT(mem->ch)) {
+			VERBOSE("QSPI read done: %d bytes, DST offset %08x\n", mem->len, mem->dst);
+			read += mem->len;
+			mem->dst += mem->len;
+			mem->src += mem->len;
+		}
+
+		/* Update SHA hash state */
+		if (channel_list & BIT(dec_tx->ch)) {
+			VERBOSE("AES decrypt done: %d bytes, SRC offset %08x\n", dec_tx->len, dec_tx->src);
+			decrypted += dec_tx->len;
+			dec_tx->src += dec_tx->len;
+			dec_rx->dst += dec_tx->len;
+		}
+
+		/* Update SHA hash state */
+		if (channel_list & BIT(sha->ch)) {
+			VERBOSE("SHA hash done: %d bytes, SRC offset %08x\n", sha->len, sha->src);
+			hashed += sha->len;
+			sha->src += sha->len;
+		}
+	}
+
+	if (pdma->streaming_decrypt) {
+		pdma->was_decrypted =
+			aes_gcm_decrypt_finish(pdma->decrypt.fw_hdr.tag, pdma->decrypt.fw_hdr.tag_len) == 0;
+	}
+
+	sha_calc_finish(sha_ctx, pdma->hash);
+}
+
+void xdmac_qspi_pipeline_read(void *dst, const void *src, size_t len)
+{
+	struct pipeline_state *pdma = &xdma_pipeline;
+	if (len >= 2*PDMA_BLOCK_SIZE) {
+		_xdmac_qspi_pipeline_read(dst, src, len);
+	} else {
+		pdma->len = 0;	/* Invalid */
+		_xdmac_memcpy(0, dst, src, len, XDMA_DIR_MEM_TO_MEM, XDMA_QSPI0_RX);
+	}
+}
+
+void plat_decrypt_context_enter(const struct fw_enc_hdr *hdr,
+				const uint8_t *key, size_t key_len, unsigned int key_flags)
+{
+	struct pipeline_state *pdma = &xdma_pipeline;
+	assert(key_len <= ENC_MAX_KEY_SIZE);
+	pdma->streaming_decrypt = true;
+	pdma->was_decrypted = false;
+	pdma->decrypt.key_len = key_len;
+	memcpy(pdma->decrypt.key, key, key_len);
+	pdma->decrypt.fw_hdr = *hdr;
+}
+
+void plat_decrypt_context_leave(void)
+{
+	struct pipeline_state *pdma = &xdma_pipeline;
+	pdma->streaming_decrypt = false;
+	/* Clear all metadata and key */
+	memset(&pdma->decrypt, 0, sizeof(pdma->decrypt));
+}
+
+int xdmac_qspi_get_sha(const void *data, size_t len, int sha_type, void *hash, size_t hash_len)
+{
+	struct pipeline_state *pdma = &xdma_pipeline;
+
+	if (!pdma->streaming_decrypt &&
+	    len > 0 &&
+	    pdma->len == len &&
+	    pdma->sha_type == sha_type &&
+	    pdma->dst == (uintptr_t) data &&
+	    sizeof(pdma->hash) <= hash_len) {
+		memcpy(hash, pdma->hash, sizeof(pdma->hash));
+		return 0;
+	}
+
+	/* No data */
+	return -1;
+}
+
+bool xdmac_qspi_is_decrypted(const void *dst, size_t len,
+			     const void *key, unsigned int key_len,
+			     const void *tag, unsigned int tag_len)
+{
+	struct pipeline_state *pdma = &xdma_pipeline;
+
+	if (pdma->was_decrypted &&
+	    pdma->len == len &&
+	    pdma->dst == (uintptr_t) dst &&
+	    pdma->decrypt.key_len == key_len &&
+	    memcmp(pdma->decrypt.key, key, key_len) == 0 &&
+	    pdma->decrypt.fw_hdr.tag_len == tag_len &&
+	    memcmp(pdma->decrypt.fw_hdr.tag, tag, tag_len) == 0) {
+		/* Data is ALREADY decrypted */
+		return true;
+	}
+	/* Data is NOT decrypted */
+	return false;
+}
+#endif

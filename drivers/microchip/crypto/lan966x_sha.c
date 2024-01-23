@@ -221,6 +221,12 @@ int sha_calc(lan966x_sha_type_t hash_type, const void *input, size_t len, void *
 	if (hinfo == NULL || hash_len < hinfo->hash_len)
 		return -1;
 
+	/* Do we have this pre-calculated from pipelined read? */
+	if (xdmac_qspi_get_sha(input, len, hash_type, hash, hinfo->hash_len) == 0) {
+		/* Yes - use pre-calculated SHA */
+		return 0;
+	}
+
 	struct hash_state *st = _sha_init(hash_type, len, NULL, hinfo->hash_len);
 
 	_sha_update(st, input, len);
@@ -230,10 +236,17 @@ int sha_calc(lan966x_sha_type_t hash_type, const void *input, size_t len, void *
 
 int sha_verify(lan966x_sha_type_t hash_type, const void *input, size_t len, const void *hash, size_t hash_len)
 {
+	uint8_t cached_hash[MAX_HASH_LEN];
 	const hash_info_t *hinfo = sha_get_info(hash_type);
 
 	if (hinfo == NULL || hash_len < hinfo->hash_len)
 		return -1;
+
+	if (xdmac_qspi_get_sha(input, len, hash_type, cached_hash, hinfo->hash_len) == 0) {
+		/* Got cached SHA from QSPI/DMA */
+		return memcmp(hash, cached_hash, hinfo->hash_len) == 0 ?
+			CRYPTO_SUCCESS : CRYPTO_ERR_SIGNATURE;
+	}
 
 	struct hash_state *st = _sha_init(hash_type, len, hash, hash_len);
 
