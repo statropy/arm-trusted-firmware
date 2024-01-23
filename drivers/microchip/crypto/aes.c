@@ -4,13 +4,16 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
 #include <common/debug.h>
 #include <drivers/auth/crypto_mod.h>
+#include <drivers/delay_timer.h>
+#include <drivers/microchip/aes.h>
+#include <drivers/microchip/xdmac.h>
 #include <endian.h>
+#include <lib/libc/errno.h>
 #include <lib/mmio.h>
 #include <mbedtls/md.h>
-#include <aes.h>
+#include <plat/common/platform.h>
 
 #include "platform_def.h"
 #include "lan966x_regs.h"
@@ -30,11 +33,16 @@
 #define AES_BLOCK_LEN	(4 * 4)	/* 4 32-bits unit */
 #define AES_IV_LEN	(3 * 4)	/* 3 32-bits unit */
 
+#define AES_SMOD_DMA	2U
+
 #define AES_AES_KEYWR(b, n)	(AES_AES_KEYWR0(b) + (n * 4))
 #define AES_AES_IVR(b, n)	(AES_AES_IVR0(b) + (n * 4))
 #define AES_AES_IDATAR(b, n)	(AES_AES_IDATAR0(b) + (n * 4))
 #define AES_AES_ODATAR(b, n)	(AES_AES_ODATAR0(b) + (n * 4))
 #define AES_AES_TAGR(b, n)	(AES_AES_TAGR0(b) + (n * 4))
+
+#define AES_DMA_CH_TX	0
+#define AES_DMA_CH_RX	1
 
 static const uint32_t base = LAN966X_AES_BASE;
 
@@ -58,13 +66,15 @@ static void unaligned_put32(void *p, uint32_t w)
 	bp[3] = w >> 24;
 }
 
-#define MAX_WAIT_LOOP 10000
+#define MAX_TIMEOUT_US	(1000U)	/* 1ms */
 static uint32_t aes_wait_flag(uint32_t mask)
 {
-	int tmo;
+	uint64_t timeout;
 	uint32_t s;
 
-	for (tmo = MAX_WAIT_LOOP; tmo > 0; tmo--) {
+	timeout = timeout_init_us(MAX_TIMEOUT_US);
+	/* Wait for ISR status */
+	while (true) {
 		s = mmio_read_32(AES_AES_ISR(base));
 		if (mask & s)
 			break;
@@ -72,9 +82,11 @@ static uint32_t aes_wait_flag(uint32_t mask)
 			s = mmio_read_32(AES_AES_WPSR(base));
 			WARN("WPSR: %08x\n", s);
 		}
+		if (timeout_elapsed(timeout)) {
+			ERROR("AES: Timeout awaiting ISR flag %08x, have 0x%08x\n", mask, s);
+			plat_error_handler(-ETIMEDOUT);
+		}
 	}
-
-	assert(tmo > 0);
 
 	return s;
 }
@@ -104,7 +116,7 @@ static int aes_setkey(bool cipher, const unsigned char *key,
 	}
 
 	mmio_write_32(AES_AES_MR(base),
-		      AES_AES_MR_SMOD(0) | /* Manual start */
+		      AES_AES_MR_SMOD(AES_SMOD_DMA) | /* Always use DMA */
 		      AES_AES_MR_CIPHER(cipher) | /* Decrypt = 0 / Encrypt = 1 */
 		      AES_AES_MR_KEYSIZE(kc) |
 		      AES_AES_MR_OPMOD(AES_OPMOD_GCM) |
@@ -126,7 +138,8 @@ static int aes_setkey(bool cipher, const unsigned char *key,
 	return CRYPTO_SUCCESS;
 }
 
-static void aes_process(uint8_t *data, size_t len)
+/* Note - this code is unused as we always use DMA */
+static void aes_process_mmio(uint8_t *data, size_t len)
 {
 	size_t nb;
 	int nw, i;
@@ -154,6 +167,26 @@ static void aes_process(uint8_t *data, size_t len)
 		data += nb;
 		len -= nb;
 	}
+}
+
+static void aes_process_dma(uint8_t *data, size_t len)
+{
+	/* TX: SRAM -> AES */
+	xdmac_setup_xfer(AES_DMA_CH_TX, (void*) (uintptr_t) AES_AES_IDATAR0(base), data, len,
+			 XDMA_DIR_MEM_TO_DEV, XDMA_AES_TX);
+	/* RX: AES -> SRAM */
+	xdmac_setup_xfer(AES_DMA_CH_RX, data, (const void*) (uintptr_t) AES_AES_ODATAR0(base), len,
+			 XDMA_DIR_DEV_TO_MEM, XDMA_AES_RX);
+	xdmac_execute_xfers(BIT(AES_DMA_CH_TX) | BIT(AES_DMA_CH_RX));
+}
+
+static void aes_process(uint8_t *data, size_t len)
+{
+	/* Using DMA transfer mode? */
+	if (AES_AES_MR_SMOD_X(mmio_read_32(AES_AES_MR(base))) == AES_SMOD_DMA)
+		aes_process_dma(data, len);
+	else
+		aes_process_mmio(data, len);
 }
 
 static int aes_get_tag(uint8_t *tag, size_t tag_len)
@@ -189,6 +222,8 @@ static int aes_check_tag(const uint8_t *tag, size_t tag_len)
 
 	rc = (diff != 0) ? CRYPTO_ERR_DECRYPTION : CRYPTO_SUCCESS;
 
+	VERBOSE("aes-check-tag: tag_len %zd: ret %d\n", tag_len, rc);
+
 	return rc;
 }
 
@@ -197,6 +232,9 @@ int aes_setup(bool encrypt, size_t len,
 	      const void *iv, unsigned int iv_len)
 {
 	int rc;
+
+	VERBOSE("aes-setup: encrypt %d, data_len %zd, key_len %d, iv_len %d\n",
+		encrypt, len, key_len, iv_len);
 
 	/* NIST recommendation: 96 bits/12 bytes */
 	if (iv_len != AES_IV_LEN) {
@@ -233,6 +271,33 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 
 	/* Now run data through decrypt */
 	aes_process(data_ptr, len);
+
+	/* Check GTAG */
+	rc = aes_check_tag(tag, tag_len);
+
+	return rc;
+}
+
+int aes_gcm_decrypt_start(size_t data_len,
+			  const void *key, unsigned int key_len,
+			  const void *iv, unsigned int iv_len)
+{
+	int rc;
+
+	rc = aes_setup(false, data_len, key, key_len, iv, iv_len);
+
+	return rc;
+}
+
+void aes_gcm_decrypt_update(void *data_ptr, size_t len)
+{
+	/* Now run data through decrypt */
+	aes_process(data_ptr, len);
+}
+
+int aes_gcm_decrypt_finish(const void *tag, unsigned int tag_len)
+{
+	int rc;
 
 	/* Check GTAG */
 	rc = aes_check_tag(tag, tag_len);

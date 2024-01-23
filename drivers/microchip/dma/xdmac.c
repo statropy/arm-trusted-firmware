@@ -206,6 +206,32 @@ static void _xdmac_memcpy(int ch, void *dst, const void *src, size_t len, int di
 	xdmac_exec(ch);
 }
 
+void xdmac_setup_xfer(int ch, void *dst, const void *src, size_t len, int dir, int periph)
+{
+	struct xdmac_req req;
+	xdmac_make_req(&req, ch, dir, periph, (uintptr_t) dst, (uintptr_t) src, len);
+	xdmac_setup_req(&req);
+}
+
+void xdmac_execute_xfers(uint32_t mask)
+{
+	uint32_t w;
+
+	w = mask;
+	while (w) {
+		int i = __builtin_ffs(w) - 1;
+		xdmac_start(i);
+		w &= ~BIT(i);
+	}
+
+	w = mask;
+	while (w) {
+		int i = __builtin_ffs(w) - 1;
+		xdmac_wait_idle(i);
+		w &= ~BIT(i);
+	}
+}
+
 void xdmac_memcpy(void *dst, const void *src, size_t len, int dir, int periph)
 {
 	_xdmac_memcpy(0, dst, src, len, dir, periph);

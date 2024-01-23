@@ -14,6 +14,14 @@ int aes_gcm_decrypt(void *data_ptr, size_t len, const void *key,
 		    unsigned int iv_len, const void *tag,
 		    unsigned int tag_len);
 
+int aes_gcm_decrypt_start(size_t data_len,
+			  const void *key, unsigned int key_len,
+			  const void *iv, unsigned int iv_len);
+
+void aes_gcm_decrypt_update(void *data_ptr, size_t len);
+
+int aes_gcm_decrypt_finish(const void *tag, unsigned int tag_len);
+
 int aes_gcm_encrypt(void *data_ptr, size_t len,
 		    const void *key, unsigned int key_len,
 		    const void *iv, unsigned int iv_len,

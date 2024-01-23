@@ -71,4 +71,8 @@ struct xdmac_req {
 void xdmac_bzero(void *dst, size_t count);
 void xdmac_memcpy(void *dst, const void *src, size_t len, int dir, int periph);
 
+void xdmac_make_req(struct xdmac_req *req, int ch, int dir, int periph, uintptr_t dst, uintptr_t src, size_t len);
+void xdmac_setup_xfer(int ch, void *dst, const void *src, size_t len, int dir, int periph);
+void xdmac_execute_xfers(uint32_t mask);
+
 #endif  /* MICROCHIP_XDMAC */
