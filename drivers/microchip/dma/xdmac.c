@@ -6,9 +6,15 @@
 
 #include <assert.h>
 #include <common/debug.h>
-#include <lib/mmio.h>
-#include <drivers/microchip/xdmac.h>
 #include <drivers/delay_timer.h>
+#include <drivers/microchip/aes.h>
+#include <drivers/microchip/sha.h>
+#include <drivers/microchip/xdmac.h>
+#include <lib/libc/errno.h>
+#include <lib/mmio.h>
+#include <plat/common/platform.h>
+#include <platform_def.h>
+#include <tools_share/firmware_encrypted.h>
 
 #include "lan966x_regs.h"
 #include "xdmac_priv.h"
@@ -22,41 +28,103 @@ static uintptr_t base = LAN969X_XDMAC_BASE;
 #define CH_SZ		(XDMAC_XDMAC_CIE_CH1(0) - XDMAC_XDMAC_CIE_CH0(0))
 #define CH_OFF(b, c)	(b + (c * CH_SZ))
 
-static uint32_t cc_memset =
-	XDMAC_XDMAC_CC_CH0_PERID_CH0(XDMA_NONE)				|
-	XDMAC_XDMAC_CC_CH0_TYPE_CH0(AT_XDMAC_CC_TYPE_MEM_TRAN)  	|
-	XDMAC_XDMAC_CC_CH0_MEMSET_CH0(AT_XDMAC_CC_MEMSET_HW_MODE)	|
-	XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_UBS_AM)		|
-	XDMAC_XDMAC_CC_CH0_SAM_CH0(AT_XDMAC_CC_SAM_INCREMENTED_AM)	|
-	XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN);
-
-static uint32_t cc_memcpy =
-	XDMAC_XDMAC_CC_CH0_TYPE_CH0(AT_XDMAC_CC_TYPE_MEM_TRAN)		|
-	XDMAC_XDMAC_CC_CH0_SAM_CH0(AT_XDMAC_CC_SAM_INCREMENTED_AM)	|
-	XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_INCREMENTED_AM)	|
-	XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN);
-
 #define MAX_TIMEOUT_US	(400 * 1000U)	/* 400ms */
 
-static void xdmac_channel_clear(uint8_t ch)
+#define MAX_CHANNEL	16U
+
+static inline int xdmac_compute_cc(int dir, int periph)
 {
-	/* Disable channel by Global Channel Disable Register */
-       mmio_write_32(XDMAC_XDMAC_GD(base), BIT(ch));
-       /* Clear pending irq(s) by reading channel status register */
-       (void) mmio_read_32(XDMAC_XDMAC_CIS_CH0(CH_OFF(base, ch)));
+	int cc = 0;
+
+	if (dir == XDMA_DIR_DEV_TO_MEM) {
+		cc =
+			XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_INCREMENTED_AM) |
+			XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN) |
+			XDMAC_XDMAC_CC_CH0_TYPE_CH0(AT_XDMAC_CC_TYPE_PER_TRAN) ;
+	} else if (dir == XDMA_DIR_MEM_TO_DEV) {
+		cc =
+			XDMAC_XDMAC_CC_CH0_SAM_CH0(AT_XDMAC_CC_SAM_INCREMENTED_AM) |
+			XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN) |
+			XDMAC_XDMAC_CC_CH0_DSYNC_CH0(1U) |
+			XDMAC_XDMAC_CC_CH0_TYPE_CH0(AT_XDMAC_CC_TYPE_PER_TRAN) ;
+	} else if (dir == XDMA_DIR_MEM_TO_MEM) {
+		cc =
+			XDMAC_XDMAC_CC_CH0_TYPE_CH0(AT_XDMAC_CC_TYPE_MEM_TRAN)		|
+			XDMAC_XDMAC_CC_CH0_SAM_CH0(AT_XDMAC_CC_SAM_INCREMENTED_AM)	|
+			XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_INCREMENTED_AM)	|
+			XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN);
+	} else if (dir == XDMA_DIR_BZERO) {
+		cc =
+			XDMAC_XDMAC_CC_CH0_TYPE_CH0(AT_XDMAC_CC_TYPE_MEM_TRAN)		|
+			XDMAC_XDMAC_CC_CH0_MEMSET_CH0(AT_XDMAC_CC_MEMSET_HW_MODE)	|
+			XDMAC_XDMAC_CC_CH0_DAM_CH0(AT_XDMAC_CC_DAM_UBS_AM)		|
+			XDMAC_XDMAC_CC_CH0_SAM_CH0(AT_XDMAC_CC_SAM_INCREMENTED_AM)	|
+			XDMAC_XDMAC_CC_CH0_MBSIZE_CH0(AT_XDMAC_CC_MBSIZE_SIXTEEN);
+
+	}
+
+	cc |= XDMAC_XDMAC_CC_CH0_PERID_CH0(periph);
+
+	return cc;
 }
 
-static int xdmac_exec(uint8_t ch)
+void xdmac_make_req(struct xdmac_req *req, int ch, int dir, int periph, uintptr_t dst, uintptr_t src, size_t len)
+{
+	req->ch = ch;
+	req->dir = dir;
+	req->periph = periph;
+	req->dst = dst;
+	req->src = src;
+	req->len = len;
+}
+
+static uint32_t xdmac_setup_req(const struct xdmac_req *req)
+{
+	int ch = req->ch;
+	int csize = AT_XDMAC_CSIZE_16;
+	int dwidth;
+	uint32_t cfg;
+
+	VERBOSE("%d: dir %d periph %d dst %08x src %08x len %d\n",
+		req->ch, req->dir, req->periph,
+		req->dst, req->src, req->len);
+
+	assert(req->len <= AT_XDMAC_MBR_UBC_UBLEN_MAX);
+
+	if (req->periph == XDMA_SHA_TX) {
+		dwidth = AT_XDMAC_CC_DWIDTH_WORD;
+	} else if (req->periph == XDMA_AES_RX || req->periph == XDMA_AES_TX) {
+		dwidth = AT_XDMAC_CC_DWIDTH_WORD;
+		csize = AT_XDMAC_CSIZE_4; /* DS mandates this for CTR, GCM */
+	} else {
+		dwidth = xdmac_align_width(req->src | req->dst);
+		if (!is_aligned(req->len, 1 << dwidth))
+			dwidth = AT_XDMAC_CC_DWIDTH_BYTE;
+	}
+	cfg = XDMAC_XDMAC_CC_CH0_DWIDTH_CH0(dwidth) |
+		XDMAC_XDMAC_CC_CH0_CSIZE_CH0(csize) |
+		xdmac_compute_cc(req->dir, req->periph);
+
+	/* Disable channel by Global Channel Disable Register */
+	mmio_write_32(XDMAC_XDMAC_GD(base), BIT(ch));
+
+	/* Clear pending irq(s) by reading channel status register */
+	(void) mmio_read_32(XDMAC_XDMAC_CIS_CH0(CH_OFF(base, ch)));
+
+	/* Set up transfer registers */
+	mmio_write_32(XDMAC_XDMAC_CDA_CH0(CH_OFF(base, ch)), req->dst);
+	mmio_write_32(XDMAC_XDMAC_CSA_CH0(CH_OFF(base, ch)), req->src);
+	mmio_write_32(XDMAC_XDMAC_CDS_MSP_CH0(CH_OFF(base, ch)), 0); /* Used for bzero */
+	mmio_write_32(XDMAC_XDMAC_CUBC_CH0(CH_OFF(base, ch)), req->len >> dwidth);
+	mmio_write_32(XDMAC_XDMAC_CC_CH0(CH_OFF(base, ch)), cfg);
+
+	return BIT(ch);		/* Return channel mask to wait for */
+}
+
+static void xdmac_wait_idle(int ch)
 {
 	uint64_t timeout;
 	uint32_t w;
-
-	/* Enable Block End Interrupt */
-	mmio_setbits_32(XDMAC_XDMAC_CIE_CH0(CH_OFF(base, ch)), AT_XDMAC_CIE_BIE);
-	/* Enable GIE channel Interrupt */
-	mmio_setbits_32(XDMAC_XDMAC_GIE(base), BIT(ch));
-	/* Enable Channel: GE */
-	mmio_setbits_32(XDMAC_XDMAC_GE(base), BIT(ch));
 
 	/* Wait not busy */
 	timeout = timeout_init_us(MAX_TIMEOUT_US);
@@ -66,8 +134,8 @@ static int xdmac_exec(uint8_t ch)
 		if ((w & BIT(ch)) == 0)
 			break;	/* Not busy, continue */
 		if (timeout_elapsed(timeout)) {
-			ERROR("XDMAC: Timout awaiting GS_STX(%d) clear, 0x%08x\n", ch, w);
-			return -1;
+			ERROR("XDMAC(%d): Timeout awaiting GS_STX clear, 0x%08x\n", ch, w);
+			plat_error_handler(-ETIMEDOUT);
 		}
 	}
 
@@ -75,87 +143,72 @@ static int xdmac_exec(uint8_t ch)
 	w = mmio_read_32(XDMAC_XDMAC_CIS_CH0(CH_OFF(base, ch)));
 	VERBOSE("XDMAC: CIS(%d): %08x\n", ch, w);
 	if (w & AT_XDMAC_CIS_BIS)
-		return 0;	/* Block End Irq: We're done */
+		return;	/* Block End Irq: We're done */
 	if (w & AT_XDMAC_CIS_ERROR) {
 		ERROR("XDMAC(%d): Transfer error: %08x\n", ch, w);
-		return -1;
+		plat_error_handler(-EIO);
 	}
 
 	ERROR("XDMAC(%d): Channel has no status: %08x\n", ch, w);
-	return -1;
+	plat_error_handler(-EIO);
 }
 
-static int xdmac_go(uint8_t ch,
-		    uint32_t dst, uint32_t src,
-		    uint32_t cc, uint32_t cds_msp,
-		    uint32_t align, uint32_t len)
+static void xdmac_start(int ch)
 {
-	uint32_t dwidth, cubc;
-
-	/* Determine data width */
-	dwidth = xdmac_align_width(align);
-	cc |= XDMAC_XDMAC_CC_CH0_DWIDTH_CH0(dwidth);
-
-	/* Convert length to *one* microblock by data width */
-	cubc = len >> dwidth;
-	assert(cubc <= AT_XDMAC_MBR_UBC_UBLEN_MAX);
-
-	VERBOSE("DMA %d algn %x => dwidth %d bytes cubc %d blks, cc = 0x%08x\n", len, align, 1 << dwidth, cubc, cc);
-
-	/* Clear channel */
-	xdmac_channel_clear(ch);
-
-	/* Set up transfer registers */
-	mmio_write_32(XDMAC_XDMAC_CDA_CH0(CH_OFF(base, ch)), dst);
-	mmio_write_32(XDMAC_XDMAC_CSA_CH0(CH_OFF(base, ch)), src);
-	mmio_write_32(XDMAC_XDMAC_CDS_MSP_CH0(CH_OFF(base, ch)), cds_msp);
-	mmio_write_32(XDMAC_XDMAC_CUBC_CH0(CH_OFF(base, ch)), cubc);
-	mmio_write_32(XDMAC_XDMAC_CC_CH0(CH_OFF(base, ch)), cc);
-
-	return xdmac_exec(ch);
+	/* Enable Block End Interrupt */
+	mmio_setbits_32(XDMAC_XDMAC_CIE_CH0(CH_OFF(base, ch)), AT_XDMAC_CIE_BIE);
+	/* Enable GIE channel Interrupt */
+	mmio_setbits_32(XDMAC_XDMAC_GIE(base), BIT(ch));
+	/* Enable Channel: GE */
+	mmio_setbits_32(XDMAC_XDMAC_GE(base), BIT(ch));
 }
 
-void *xdmac_memset(void *_dst, int val, size_t len)
+static void xdmac_exec(int ch)
 {
-	uint8_t ch = 0, b = val;
-	uint32_t dst, msp;
+	xdmac_start(ch);
+	xdmac_wait_idle(ch);
+}
+
+void xdmac_bzero(void *dst, size_t len)
+{
+	int ch = 0; /* Always use channel 0 */
+	uintptr_t dst_va = (uintptr_t) dst;
+	struct xdmac_req req;
 
 	/* Cache cleaning, XDMAC is *not* cache aware */
-	inv_dcache_range((uintptr_t) _dst, len);
+	inv_dcache_range(dst_va, len);
 
-	/* Convert args to 32bit */
-	dst = (uintptr_t) _dst;
+	xdmac_make_req(&req, ch, XDMA_DIR_BZERO, XDMA_NONE, dst_va, 0, len);
+	xdmac_setup_req(&req);
 
-	/* Pattern */
-	msp = b | (b << 8) | (b << 16) | (b << 24);
-
-	/* Start the operation */
-	return xdmac_go(ch,
-			dst, 0,
-			cc_memset, msp,
-			(dst | len), len) ? NULL : _dst;
+	/* Start and await the operation completion */
+	xdmac_exec(ch);
 }
 
-void *xdmac_memcpy(void *_dst, const void *_src, size_t len, int flags, int periph)
+static void _xdmac_memcpy(int ch, void *dst, const void *src, size_t len, int dir, int periph)
 {
-	uint8_t ch = 0;
-	uint32_t dst, src;
+	uintptr_t src_va = (uintptr_t) src;
+	uintptr_t dst_va = (uintptr_t) dst;
 
 	/* Cache cleaning, XDMAC is *not* cache aware */
-	if (flags & XDMA_FROM_MEM)
-		flush_dcache_range((uintptr_t) _src, len);
-	if (flags & XDMA_TO_MEM)
-		inv_dcache_range((uintptr_t) _dst, len);
+	if (dir == XDMA_DIR_MEM_TO_DEV || dir == XDMA_DIR_MEM_TO_MEM) {
+		flush_dcache_range(src_va, len);
+	}
+	if (dir == XDMA_DIR_DEV_TO_MEM || dir == XDMA_DIR_MEM_TO_MEM) {
+		inv_dcache_range(dst_va, len);
+	}
 
-	/* Convert args from 64 bit */
-	src = (uintptr_t) _src;
-	dst = (uintptr_t) _dst;
+	struct xdmac_req req;
+	xdmac_make_req(&req, ch, dir, periph, dst_va, src_va, len);
+	xdmac_setup_req(&req);
 
-	/* Start the operation */
-	return xdmac_go(ch,
-			dst, src,
-			cc_memcpy | XDMAC_XDMAC_CC_CH0_PERID_CH0(periph), 0,
-			(src | dst | len), len) ? NULL : _dst;
+	/* Start and await the operation completion */
+	xdmac_exec(ch);
+}
+
+void xdmac_memcpy(void *dst, const void *src, size_t len, int dir, int periph)
+{
+	_xdmac_memcpy(0, dst, src, len, dir, periph);
 }
 
 void xdmac_show_version(void)

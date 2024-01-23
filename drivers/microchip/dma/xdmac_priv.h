@@ -6,8 +6,6 @@
 #ifndef _XDMAC_PRIV_H_
 #define _XDMAC_PRIV_H_
 
-#define AT_XDMAC_MBR_UBC_UBLEN_MAX	0xFFFFFFUL	/* Maximum Microblock Length */
-
 #define AT_XDMAC_CC_TYPE_MEM_TRAN	0x0	/* Memory to Memory Transfer */
 #define AT_XDMAC_CC_TYPE_PER_TRAN	0x1	/* Peripheral to Memory or Memory to Peripheral Transfer */
 #define AT_XDMAC_CC_MBSIZE_SINGLE	0x0
@@ -58,6 +56,18 @@
 #define AT_XDMAC_CIS_ROIS	BIT(6)	/* Request Overflow Interrupt Status Bit */
 #define AT_XDMAC_CIS_TCIS	BIT(7)	/* Transfer Count Overflow Interrupt Status Bit */
 #define AT_XDMAC_CIS_ERROR	GENMASK(7, 4) /* Error conditions 7-4 */
+
+#define AT_XDMAC_MBR_UBC_UBLEN_MAX      0xFFFFFFUL      /* Maximum Microblock Length */
+
+#define AT_XDMAC_MAX_CHAN       16
+#define AT_XDMAC_MAX_CSIZE      16      /* 16 data */
+#define AT_XDMAC_MAX_DWIDTH     8       /* 64 bits */
+
+#define AT_XDMAC_CSIZE_1	0
+#define AT_XDMAC_CSIZE_2	1
+#define AT_XDMAC_CSIZE_4	2
+#define AT_XDMAC_CSIZE_8	3
+#define AT_XDMAC_CSIZE_16	4
 
 static inline uint32_t xdmac_align_width(uintptr_t addr)
 {

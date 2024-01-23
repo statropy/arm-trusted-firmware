@@ -668,13 +668,13 @@ static int mchp_qspi_mem(const struct spi_mem_op *op,
 	/* Move the data */
 	if (op->data.dir == SPI_MEM_DATA_IN) {
 		xdmac_memcpy(op->data.buf, (void *) (LAN969X_QSPI0_MMAP + offset), op->data.nbytes,
-			     XDMA_TO_MEM, XDMA_QSPI0_RX);
+			     XDMA_DIR_MEM_TO_MEM, XDMA_NONE);
 
 		if (mchp_qspi_wait_flag_clear(QSPI_SR, QSPI_SR_RBUSY, "SR:RBUSY"))
 			return -ETIMEDOUT;
 	} else {
 		xdmac_memcpy((void *) (LAN969X_QSPI0_MMAP + offset), op->data.buf, op->data.nbytes,
-			    XDMA_FROM_MEM, XDMA_QSPI0_TX);
+			     XDMA_DIR_MEM_TO_MEM, XDMA_NONE);
 
 		/* Wait 'Last Write Access' */
 		if (mchp_qspi_wait_flag_set(QSPI_ISR, QSPI_ISR_LWRA, "ISR:LWRA"))
