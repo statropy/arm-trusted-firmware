@@ -23,7 +23,7 @@ int lan966x_derive_key(const lan966x_key32_t *in,
 	memcpy(buf, in->b, LAN966X_KEY32_LEN);
 	memcpy(buf + LAN966X_KEY32_LEN, salt->b, LAN966X_KEY32_LEN);
 
-	ret = sha_calc(SHA_MR_ALGO_SHA256, buf, sizeof(buf), out->b);
+	ret = sha_calc(SHA_MR_ALGO_SHA256, buf, sizeof(buf), out->b, sizeof(out->b));
 
 	/* Don't leak */
 	memset(buf, 0, sizeof(buf));

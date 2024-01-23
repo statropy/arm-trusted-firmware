@@ -146,13 +146,13 @@ static uintptr_t sip_fw_bind(uintptr_t fip, uint32_t size, void *handle)
 		lan966x_key32_t sha_in, sha_out;
 		fw_bind_res_t res;
 
-		sha_calc(SHA_MR_ALGO_SHA256, (void*) fip, size, sha_in.b);
+		sha_calc(SHA_MR_ALGO_SHA256, (void*) fip, size, sha_in.b, sizeof(sha_in.b));
 
 		res = lan966x_bind_fip(fip, size);
 		if (res) {
 			SMC_RET1(handle, -res);
 		} else {
-			sha_calc(SHA_MR_ALGO_SHA256, (void*) fip, size, sha_out.b);
+			sha_calc(SHA_MR_ALGO_SHA256, (void*) fip, size, sha_out.b, sizeof(sha_out.b));
 			flush_dcache_range(fip, size);
 			SMC_RET3(handle, SMC_ARCH_CALL_SUCCESS, sha_in.w[0], sha_out.w[0]);
 		}

@@ -705,7 +705,7 @@ static void handle_data_hash(bootstrap_req_t *req)
 	}
 
 	/* Calc hash */
-	sha_calc(SHA_MR_ALGO_SHA256, (void*) fip_base_addr, data_rcv_length, data_sig.b);
+	sha_calc(SHA_MR_ALGO_SHA256, (void*) fip_base_addr, data_rcv_length, data_sig.b, sizeof(data_sig.b));
 	/* Return hash, length */
 	bootstrap_TxAckData_arg(data_sig.b, sizeof(data_sig.b), data_rcv_length);
 }

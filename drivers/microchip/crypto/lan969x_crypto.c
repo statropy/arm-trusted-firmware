@@ -269,7 +269,7 @@ static int verify_signature(void *data_ptr, unsigned int data_len,
 		ret = CRYPTO_ERR_SIGNATURE;
 		goto end1;
 	}
-	ret = sha_calc(lan966x_shatype(md_info), data_ptr, data_len, hash);
+	ret = sha_calc(lan966x_shatype(md_info), data_ptr, data_len, hash, sizeof(hash));
 	if (ret != 0) {
 		ret = CRYPTO_ERR_SIGNATURE;
 		goto end1;
