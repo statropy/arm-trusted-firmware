@@ -4,7 +4,7 @@ require 'fileutils'
 require 'optparse'
 require 'pp'
 
-build_platforms         = %I[lan966x_b0 lan966x_lm lan969x_a0 lan969x_lm lan969x_svb]
+build_platforms         = %I[lan966x_b0 lan966x_lm lan969x_a0 lan969x_lm lan969x_svb lan969x_pcie]
 build_types             = %I[debug release]
 build_authentifications = %I[auth ssk]
 build_auth_args         = { auth: '',
