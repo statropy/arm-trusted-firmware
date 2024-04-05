@@ -2,12 +2,10 @@ Microchip/UNG Trusted Firmware-A
 ================================
 
 This software has been modified by Microchip Technology Inc. to add
-support for the following SoC:
+support for the following SoC's:
 
 * `lan966x_b0`: LAN966X revision B - BL1 secure bootrom
-
-Specifically, the platform `lan966x_sr` is an internal development
-platform and should not be used (and is not supported).
+* `lan969x_a0`: LAN969X revision A - BL1 secure bootrom
 
 It is possible to build the software by following the normal TFA
 guidelines, but the (Ruby) wrapper `scripts/build.rb` script is
