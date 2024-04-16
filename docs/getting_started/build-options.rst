@@ -490,7 +490,8 @@ Common build options
    through feature specific build flags are supported by the PE or not by
    validating them either at boot phase or at runtime based on the value
    possessed by the feature flag (0 to 2) and report error messages at an early
-   stage.
+   stage. This flag will also enable errata ordering checking for ``DEBUG``
+   builds.
 
    This prevents and benefits us from EL3 runtime exceptions during context save
    and restore routines guarded by these build flags. Henceforth validating them
@@ -623,7 +624,7 @@ Common build options
    +---------------------------+------------------------------------+
    |         KEY_ALG           |        Possible key sizes          |
    +===========================+====================================+
-   |           rsa             | 1024 , 2048 (default), 3072, 4096* |
+   |           rsa             | 1024 , 2048 (default), 3072, 4096  |
    +---------------------------+------------------------------------+
    |          ecdsa            |            unavailable             |
    +---------------------------+------------------------------------+
@@ -631,10 +632,6 @@ Common build options
    +---------------------------+------------------------------------+
    |  ecdsa-brainpool-twisted  |            unavailable             |
    +---------------------------+------------------------------------+
-
-
-   * Only 2048 bits size is available with CryptoCell 712 SBROM release 1.
-     Only 3072 bits size is available with CryptoCell 712 SBROM release 2.
 
 -  ``HASH_ALG``: This build flag enables the user to select the secure hash
    algorithm. It accepts 3 values: ``sha256``, ``sha384`` and ``sha512``.
@@ -671,6 +668,19 @@ Common build options
    platforms which use BL2 to load/authenticate BL31 ``TRUSTED_BOARD_BOOT`` can
    be used and for the platforms which use ``RESET_TO_BL31`` platform owners
    should have mechanism to authenticate BL31.
+
+   This option defaults to 0.
+
+-  ``HARDEN_SLS``: used to pass -mharden-sls=all from the TF-A build
+   options to the compiler currently supporting only of the options.
+   GCC documentation:
+   https://gcc.gnu.org/onlinedocs/gcc/AArch64-Options.html#index-mharden-sls
+
+   An example usage:
+
+   .. code:: make
+
+      HARDEN_SLS := 1
 
    This option defaults to 0.
 

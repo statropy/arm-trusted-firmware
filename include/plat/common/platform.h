@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2022, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2024, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -73,6 +73,20 @@ unsigned int plat_my_core_pos(void);
 int plat_core_pos_by_mpidr(u_register_t mpidr);
 int plat_get_mbedtls_heap(void **heap_addr, size_t *heap_size);
 
+/*******************************************************************************
+ * Simple routine to determine whether a mpidr is valid or not.
+ ******************************************************************************/
+static inline bool is_valid_mpidr(u_register_t mpidr)
+{
+	int pos = plat_core_pos_by_mpidr(mpidr);
+
+	if ((pos < 0) || ((unsigned int)pos >= PLATFORM_CORE_COUNT)) {
+		return false;
+	}
+
+	return true;
+}
+
 #if STACK_PROTECTOR_ENABLED
 /*
  * Return a new value to be used for the stack protection's canary.
@@ -115,6 +129,7 @@ void plat_ic_set_spi_routing(unsigned int id, unsigned int routing_mode,
 void plat_ic_set_interrupt_pending(unsigned int id);
 void plat_ic_clear_interrupt_pending(unsigned int id);
 unsigned int plat_ic_set_priority_mask(unsigned int mask);
+unsigned int plat_ic_deactivate_priority(unsigned int mask);
 unsigned int plat_ic_get_interrupt_id(unsigned int raw);
 
 /*******************************************************************************
