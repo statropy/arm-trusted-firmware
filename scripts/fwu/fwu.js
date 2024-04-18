@@ -24,10 +24,14 @@ const CMD_BL2U_DDR_TEST = 'T';
 const CMD_BL2U_DATA_HASH = 'H';
 const CMD_BL2U_REG_READ = 'x';
 const CMD_BL2U_DDR_INIT = 'd';
+const CMD_BL2U_SRAM_INFO = 's';
+const CMD_BL2U_SEND_SRAM = 'J';
+const CMD_BL2U_WRITE_READBACK = 'j';
 
 let cur_stage = "connect";	// Initial "tab"
 let tracing = false;
 let port_reader;
+let filedata;
 
 const otp_max_offset = 8192;
 const otp_max_read = 256;
@@ -181,6 +185,41 @@ function ntohl(arg)
     return ret;
 }
 
+function toBinArray(str)
+{
+    return new Uint8Array(str.split('').map(function (ch) {
+	return ch.charCodeAt(0);
+    }));
+}
+
+async function compress(text)
+{
+    const cs = new CompressionStream("gzip");
+    const writer = cs.writable.getWriter();
+    // NB: Convert text to array to avoid UTF conversion issues
+    writer.write(toBinArray(text));
+    writer.close();
+    const output = [];
+    const reader = cs.readable.getReader();
+    let totalSize = 0;
+    // collect pieces
+    while (true) {
+	const { value, done } = await reader.read();
+	if (done)
+	    break;
+	output.push(value);
+	totalSize += value.byteLength;
+    }
+    const concatenated = new Uint8Array(totalSize);
+    let offset = 0;
+    // concat using 'set'
+    for (const array of output) {
+	concatenated.set(array, offset);
+	offset += array.byteLength;
+    }
+    return concatenated;
+}
+
 function hexString2Bin(s)
 {
     var bytes = s.split(":");
@@ -209,17 +248,20 @@ function fmtReq(cmdName, arg, data, binary)
 {
     var buf = cmdName + ',' + fmtHex(arg);
     if (data) {
+	let isArray = (data instanceof Uint8Array);
 	let encodedData = "";
 	buf += ',' + fmtHex(data.length);
 	if (binary) {
 	    buf += CMD_DELIM_BIN;
 	    for (var i = 0; i < data.length; i++) {
-		encodedData += String.fromCharCode(data.charCodeAt(i));
+		let d = isArray ? data[i] : data.charCodeAt(i);
+		encodedData += String.fromCharCode(d);
 	    }
 	} else {
 	    buf += CMD_DELIM_HEX;
 	    for (var i = 0; i < data.length; i++) {
-		encodedData += data.charCodeAt(i).toString(16).padStart(2, "0");
+		let d = isArray ? data[i] : data.charCodeAt(i);
+		encodedData += d.toString(16).padStart(2, "0");
 	    }
 	}
 	buf += encodedData;
@@ -358,7 +400,7 @@ function updateProgress(pct)
     text.innerHTML = pct;
 }
 
-async function downloadApp(port, appdata, binary)
+async function downloadApp(port, cmd, appdata, binary)
 {
     var completed = true;
     setStatus("Downloading " + appdata.length + " bytes " + (binary ? "binary" : "hex encoded") );
@@ -367,12 +409,16 @@ async function downloadApp(port, appdata, binary)
 	const chunkSize = 256;
 	let bytesSent = 0;
 
-	await completeRequest(port, fmtReq(CMD_SEND, appdata.length));
+	await completeRequest(port, fmtReq(cmd, appdata.length));
 
 	// Send data chunks
 	while (bytesSent < appdata.length) {
-	    let chunk = appdata.substr(bytesSent, chunkSize);
-	    //console.log("Sending at offset: %d", bytesSent);
+	    let chunk;
+	    if (appdata instanceof Uint8Array)
+		chunk = appdata.slice(bytesSent, bytesSent + chunkSize);
+	    else
+		chunk = appdata.substr(bytesSent, chunkSize);
+	    //console.log("Sending at offset: %d, len %d", bytesSent, chunk.length);
 	    await completeRequest(port, fmtReq(CMD_DATA, bytesSent, chunk, binary));
 	    bytesSent += chunk.length;
 	    if (bytesSent % 1024 == 0)
@@ -421,7 +467,6 @@ function setOpStatus(id, s)
 
 function setFeedbackStatus(id, s)
 {
-    console.log(s);
     setStatus(s);
     setOpStatus(id, s);
 }
@@ -440,6 +485,60 @@ async function doWrite(port, operation, cmd, dev, status_id)
 	setFeedbackStatus(status_id, rsp ? rsp : "Completed " + operation);
     } catch(e) {
 	setFeedbackStatus(status_id, "Failed " + operation + ": " + e);
+    } finally {
+	setActive(false);
+	restoreButtons(s);
+    }
+}
+
+async function doWriteInc(port, image, sram, dev, status_id)
+{
+    let s = disableButtons("bl2u", true);
+    let align = 4;
+    let pad = image.length % align;
+    if (pad > 0) {
+	image = image.padEnd(image.length + (align - pad), "\0");
+	console.log("Warning: Padded image to %d len, added %d bytes", image.length, (align - pad));
+    }
+    if (image.charCodeAt(0) == 0x1F && image.charCodeAt(1) == 0x8B) {
+	addTrace("Use uncompressed files only. Data will be compressed/decompressed on the fly.");
+	throw "Compressed files are not supported";
+    }
+    try {
+	const chunkSize = sram;
+	let bytesSent = 0;
+
+	// Send data 'SRAM' chunks
+	while (bytesSent < image.length) {
+	    const thisChunk = Math.min(chunkSize, (image.length - bytesSent));
+
+	    console.log("Bytes sent %d of %d, write %d bytes, chunksize %d", bytesSent, image.length, thisChunk, chunkSize);
+	    setFeedbackStatus(status_id, "Starting chunk download, offset " + bytesSent.toString(10));
+	    let chunk = image.substr(bytesSent, thisChunk);
+	    let gzipChunk = await compress(chunk);
+
+	    await downloadApp(port, CMD_BL2U_SEND_SRAM, gzipChunk, true)
+
+	    // Calculate reference SHA, uncompressed data
+	    var mySha = sha256ToString(sha256(chunk));
+
+	    // Write args
+	    setFeedbackStatus(status_id, "Writing data, offset " + bytesSent.toString(10));
+	    let argbuf = new Uint8Array([ntohl_val(dev), ntohl_val(bytesSent)].flat());
+	    setActive(true);
+	    const writeInfo = await completeRequest(port, fmtReq(CMD_BL2U_WRITE_READBACK, gzipChunk.length, argbuf, false));
+	    setActive(false);
+	    var remoteSha_read = sha256ToString(writeInfo["data"]);
+	    if (remoteSha_read != mySha)
+		throw "SHA256 mismatch @ Offset " + bytesSent.toString(10) + ": Should be " + mySha;
+
+	    setFeedbackStatus(status_id, "Verfied data, offset " + bytesSent.toString(10));
+	    bytesSent += chunk.length;
+	}
+
+	setFeedbackStatus(status_id, "Completed incremental write");
+    } catch(e) {
+	setFeedbackStatus(status_id, "Failed incremental write: " + e);
     } finally {
 	setActive(false);
 	restoreButtons(s);
@@ -1159,6 +1258,22 @@ function sha256ToString(sha)
     return hash;
 }
 
+function doRead(file)
+{
+    if (file.files && file.files[0]) {
+	var myFile = file.files[0];
+	var reader = new FileReader();
+
+	addTrace("Reading file: " + myFile.name);
+	reader.addEventListener('load', function (e) {
+	    console.log("Read Image: %d bytes", e.total);
+	    filedata = e.target.result;
+	});
+
+	reader.readAsBinaryString(myFile);
+    }
+}
+
 async function getDataInfo(port)
 {
     setActive(true);
@@ -1194,7 +1309,6 @@ function reportDuration(what, start, end)
 function startSerial()
 {
     var port;
-    var image;
     var sjtag_challenge;
     var settings_prev_stage;
     var plf;
@@ -1207,22 +1321,11 @@ function startSerial()
     }
 
     document.getElementById("file_select").addEventListener("change", function () {
-	if (this.files && this.files[0]) {
-	    var myFile = this.files[0];
-	    var reader = new FileReader();
-
-	    addTrace("Reading file: " + myFile.name);
-	    reader.addEventListener('load', function (e) {
-		console.log("Read Image: %d bytes", e.total);
-		image = e.target.result;
-	    });
-
-	    reader.readAsBinaryString(myFile);
-	}
+	doRead(this);
     });
 
     document.getElementById('bl2u_upload').addEventListener('click', async () => {
-	if (image.length) {
+	if (filedata.length) {
 	    let s = disableButtons("bl2u", true);
 	    try {
 		// Make sure the DDR is ready
@@ -1230,11 +1333,11 @@ function startSerial()
 		addTrace("DDR initialized and cache enabled");
 
 		// Then proceed to download
-		await downloadApp(port, image, document.getElementById("binary").checked);
+		await downloadApp(port, CMD_SEND, filedata, document.getElementById("binary").checked);
 		// Get data length & hash
 		dld = await getDataInfo(port);
 		var remoteSha = sha256ToString(dld["data"]);
-		var mySha = sha256ToString(sha256(image));
+		var mySha = sha256ToString(sha256(filedata));
 		if (remoteSha != mySha)
 		    throw "SHA256 mismatch: Should be " + mySha;
 		else
@@ -1295,6 +1398,29 @@ function startSerial()
 		    "the image contain valid data for the chosen device type.\n\n" +
                     "Can you confirm you want to perform this operation?"))
 	    doWrite(port, op, CMD_BL2U_IMAGE, verify | dev.value, 'bl2u_write_image_feedback');
+    });
+
+    document.getElementById("file_select_inc").addEventListener("change", function () {
+	doRead(this);
+    });
+
+    document.getElementById('bl2u_write_inc').addEventListener('click', async () => {
+	let fb = "bl2u_write_inc_feedback";
+	let s = disableButtons("bl2u", true);
+	try {
+	    let dev = document.getElementById('bl2u_write_inc_device');
+	    setOpStatus(fb, "");
+	    var rspSram = await completeRequest(port, fmtReq(CMD_BL2U_SRAM_INFO, 0));
+	    console.log("SRAM buffer is %dK", rspSram["arg"] / 1024);
+	    if (rspSram["arg"] == 0)
+		throw("SRAM download is not supported on this platform");
+	    await doWriteInc(port, filedata, rspSram["arg"], dev.value, fb);
+	} catch(e) {
+	    setStatus("SRAM: " + e);
+	    setOpStatus(fb, e);
+	} finally {
+	    restoreButtons(s);
+	}
     });
 
     document.getElementById('bl2u_otp_read').addEventListener('click', async () => {
@@ -1454,7 +1580,7 @@ function startSerial()
 		throw "Empty application image, unable to download";
 	    if (plf["bl2u_compat"].indexOf(bl2u_platform) == -1)
 		throw "No BL2U support for " + bl2u_platform + " - this is for chip family " + plf["name"];
-	    await downloadApp(port, app, plf["bl1_binary"]);
+	    await downloadApp(port, CMD_SEND, app, plf["bl1_binary"]);
 	    await delaySkipInput(port, 2000);
 	    setActive(true);
 	    let auth = await completeRequest(port, fmtReq(CMD_AUTH, 0));

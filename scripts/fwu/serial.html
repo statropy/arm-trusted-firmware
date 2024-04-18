@@ -276,7 +276,7 @@
       </div>
       <div class="tab">
 	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-2" class="tab-switch">
-	<label for="bl2u-tab-2" class="tab-label">Upload Image</label>
+	<label for="bl2u-tab-2" class="tab-label">Upload</label>
 	<div class="tab-content">
 	  <p>
 	    Note: You may upload <samp>GZIP</samp>'ed files, and they will
@@ -303,7 +303,7 @@
       </div>
       <div class="tab">
 	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-3" class="tab-switch">
-	<label for="bl2u-tab-3" class="tab-label">Write Image</label>
+	<label for="bl2u-tab-3" class="tab-label">Write</label>
 	<div class="tab-content">
 	  <p>
 	    The <em>binding</em> operation re-encrypts a FIP
@@ -346,7 +346,45 @@
       </div>
       <div class="tab">
 	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-4" class="tab-switch">
-	<label for="bl2u-tab-4" class="tab-label">OTP operations</label>
+	<label for="bl2u-tab-4" class="tab-label">Incremental</label>
+	<div class="tab-content">
+	  <p>
+	    This operation provides a combined upload and write, where
+	    the SRAM of the device is used for intermediate
+	    storage.
+	  </p>
+	  <p>
+	    The image file is incrementally uploaded in chunks
+	    according to the SRAM memory available. Chunks are
+	    compressed, de-compressed, written and verified
+	    sequentially.
+	  </p>
+	  <p style="color: red">
+	    Notice: SRAM may be limited or not available on a given
+	    platform. (Pre-) Compressed files are not supported.
+	  </p>
+	  <table>
+	    <tr>
+	      <td>
+		<input type="file" id="file_select_inc">
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_write_inc">Incremental Write Image</button>
+		<select id="bl2u_write_inc_device">
+		  <option value="0">eMMC</option>
+		  <option value="1">NOR Flash</option>
+		</select>
+	      </td>
+	      <td id="bl2u_write_inc_feedback" class="feedback"></td>
+	    </tr>
+	  </table>
+	</div>
+      </div>
+      <div class="tab">
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-5" class="tab-switch">
+	<label for="bl2u-tab-5" class="tab-label">OTP</label>
 	<div class="tab-content">
 	  <p>
 	    Note that all OTP Program Random/Set operations <em>cannot</em>
@@ -379,8 +417,8 @@
 	</div>
       </div>
       <div class="tab">
-	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-5" class="tab-switch">
-	<label for="bl2u-tab-5" class="tab-label">DDR configuration</label>
+	<input type="radio" name="bl2u-css-tabs" id="bl2u-tab-6" class="tab-switch">
+	<label for="bl2u-tab-6" class="tab-label">DDR</label>
 	<div class="tab-content">
 	  <p>
 	    DDR configuration mode allow you to tweak the existing DDR

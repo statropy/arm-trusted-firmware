@@ -43,6 +43,18 @@ static struct ddr_config current_ddr_config;
 static const uintptr_t ddr_base_addr = LAN966X_DDR_BASE;
 static bool ddr_was_initialized, cur_cache;
 
+#if defined(LAN969X_SRAM_SIZE)
+#define SRAM_BUFFER BL2_LIMIT
+#define SRAM_SIZE   (LAN969X_SRAM_SIZE - BL1_RW_SIZE - BL2U_SIZE)
+#else
+#define SRAM_BUFFER NULL
+#define SRAM_SIZE   0U
+#endif
+/* SRAM buffer is divided in 2, download and decompress, each 1/2 of available */
+static uint8_t *sram_buffer = (uint8_t *) SRAM_BUFFER;
+/* Announce half the SRAM as available */
+static const uint32_t sram_available = (SRAM_SIZE / 2);
+
 #if defined(MCHP_SOC_LAN969X)
 extern const struct ddr_config lan969x_evb_ddr4_ddr_config;
 #define  default_ddr_config lan969x_evb_ddr4_ddr_config
@@ -50,6 +62,12 @@ extern const struct ddr_config lan969x_evb_ddr4_ddr_config;
 extern const struct ddr_config lan966x_ddr_config;
 #define  default_ddr_config lan966x_ddr_config
 #endif
+
+/* Check for GZIP header */
+static bool is_gzip(uint8_t *data)
+{
+	return data[0] == 0x1f && data[1] == 0x8b;
+}
 
 static void handle_otp_read(bootstrap_req_t *req)
 {
@@ -142,27 +160,9 @@ static void handle_read_rom_version(const bootstrap_req_t *req)
 	bootstrap_TxAckData_arg(ident, strlen(ident), chip);
 }
 
-static void handle_load_data(const bootstrap_req_t *req)
+static bool recv_data(uint8_t *ptr, uint32_t length)
 {
-	uint32_t length = req->arg0;
-	uint8_t *ptr;
-	int num_bytes, offset;
-	data_rcv_length = 0;
-
-	VERBOSE("BL2U handle load data\n");
-
-	if (length == 0 || length > default_ddr_config.info.size) {
-		bootstrap_TxNack("Length Error");
-		return;
-	}
-
-	/* Make sure DDR is ready for data */
-	if (!ddr_was_initialized) {
-		bootstrap_TxNack("DDR must be initialized before data is sent");
-	}
-
-	/* Store data at start address of DDR memory (offset 0x0) */
-	ptr = (uint8_t *)fip_base_addr;
+	uint32_t num_bytes, offset;
 
 	// Go ahead, receive data
 	bootstrap_TxAck();
@@ -178,13 +178,201 @@ static void handle_load_data(const bootstrap_req_t *req)
 
 	if (offset != length) {
 		ERROR("RxData Error: n = %d, l = %d, o = %d\n", num_bytes, length, offset);
+		return false;
+	}
+
+	return true;
+}
+
+static void handle_load_data(const bootstrap_req_t *req)
+{
+	uint32_t length = req->arg0;
+	data_rcv_length = 0;
+
+	VERBOSE("BL2U handle load data\n");
+
+	if (length == 0 || length > default_ddr_config.info.size) {
+		bootstrap_TxNack("Length Error");
 		return;
 	}
 
-	/* Store data length of received data */
-	data_rcv_length = length;
+	/* Make sure DDR is ready for data */
+	if (!ddr_was_initialized) {
+		bootstrap_TxNack("DDR must be initialized before data is sent");
+	}
+
+	/* Store data at start address of DDR memory (offset 0x0) */
+	if (recv_data((uint8_t *)fip_base_addr, length))
+		data_rcv_length = length;
 
 	VERBOSE("Received %d bytes\n", length);
+}
+
+static void handle_send_sram(bootstrap_req_t *req)
+{
+	uint32_t length = req->arg0;
+
+	if (length == 0 || sram_available == 0 || length > sram_available) {
+		bootstrap_TxNack("SRAM Length Error");
+		return;
+	}
+
+	/* Store data at start address of SRAM memory (offset 0x0) */
+	if (recv_data(sram_buffer, length))
+		VERBOSE("SRAM: Received %d bytes\n", length);
+}
+
+static void bootstrap_do_sha(const void * data, uint32_t data_len)
+{
+	lan966x_key32_t data_sig;
+
+	/* Calculate hash */
+	sha_calc(SHA_MR_ALGO_SHA256, data, data_len, data_sig.b, sizeof(data_sig.b));
+
+	/* Return hash, length */
+	bootstrap_TxAckData_arg(data_sig.b, sizeof(data_sig.b), data_len);
+}
+
+static bool valid_write_dev(boot_source_type dev)
+{
+	if (dev == BOOT_SOURCE_EMMC ||
+	    dev == BOOT_SOURCE_SDMMC ||
+	    dev == BOOT_SOURCE_QSPI)
+		return true;
+
+	return false;
+}
+
+int lan966x_bl2u_emmc_block_write_read(uint32_t offset, void *buf, uint32_t length)
+{
+	uint32_t round_len, lba, written_bytes, read_bytes;
+
+	/* Check multiple number of MMC_BLOCK_SIZE */
+	assert((offset % MMC_BLOCK_SIZE) == 0);
+
+	/* Convert offset to LBA */
+	lba = offset / MMC_BLOCK_SIZE;
+
+	/* Calculate whole pages for mmc_write_blocks() */
+	round_len = DIV_ROUND_UP_2EVAL(length, MMC_BLOCK_SIZE) * MMC_BLOCK_SIZE;
+
+	VERBOSE("Write image to offset: 0x%x, length: 0x%x, LBA 0x%x, round_len 0x%x\n",
+		offset, length, lba, round_len);
+
+	written_bytes = mmc_write_blocks(lba, (uintptr_t) buf, round_len);
+
+	if (written_bytes != round_len) {
+		WARN("Only wrote 0x%0x of the requested 0x%0x bytes\n", written_bytes, round_len);
+		return -EIO;
+	}
+
+	read_bytes = mmc_read_blocks(lba, (uintptr_t) buf, round_len);
+
+	if (read_bytes != round_len) {
+		WARN("Only read 0x%0x of the requested 0x%0x bytes\n", read_bytes, round_len);
+		return -EIO;
+	}
+	return 0;
+}
+
+static void handle_write_readback(bootstrap_req_t *req)
+{
+
+	lan966x_key32_t data_write, data_read;
+	uint32_t length = req->arg0;
+	uint32_t args[2], dev, offset;
+	uint32_t ret;
+	uint8_t *sram_write_buffer;
+
+	if (!bootstrap_RxDataCrc(req, (uint8_t *)args)) {
+		bootstrap_TxNack("Incremental data args error");
+		return;
+	}
+
+	if (length == 0 || sram_available == 0 || length > sram_available) {
+		bootstrap_TxNack("SRAM Length Error");
+		return;
+	}
+
+	/* Extra command args */
+	dev = args[0];
+	offset = args[1];
+
+	if (!valid_write_dev(dev)) {
+		bootstrap_TxNack("Unsupported target device");
+		return;
+	}
+
+	/* Check if we have compressed data */
+	if (is_gzip(sram_buffer)) {
+		uintptr_t in_buf, work_buf, out_buf, out_start;
+		size_t in_len, work_len, out_len;
+
+		/* Set up decompress params */
+		in_buf = (uintptr_t) sram_buffer;
+		in_len = length;
+		work_buf = (uintptr_t) (sram_buffer + length);
+		work_len = sram_available - length;
+		out_start = out_buf = (uintptr_t) (sram_buffer + sram_available);
+		out_len = sram_available;
+		VERBOSE("gunzip(%p, %zd, %p, %zd, %p, %zd)\n",
+			(void*) in_buf, in_len, (void*) work_buf, work_len, (void*) out_buf, out_len);
+		if (gunzip(&in_buf, in_len, &out_buf, out_len, work_buf, work_len) == 0) {
+			sram_write_buffer = (void*) out_start;
+			length = out_buf - out_start;
+			VERBOSE("Unzipped data, length now %d bytes\n", length);
+		} else {
+			bootstrap_TxNack("Decompression failure");
+			return;
+		}
+	} else {
+		VERBOSE("Uncompressed data, length is %d bytes\n", length);
+		sram_write_buffer = sram_buffer;
+	}
+
+	/* Init IO layer */
+	lan966x_bl2u_io_init_dev(dev);
+
+	/* Calculate SHA before write */
+	sha_calc(SHA_MR_ALGO_SHA256, sram_write_buffer, length, data_write.b, sizeof(data_write.b));
+
+	/* Write Flash */
+	switch (dev) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		ret = lan966x_bl2u_emmc_block_write_read(offset, sram_write_buffer, length);
+		break;
+	case BOOT_SOURCE_QSPI: {
+		size_t act_read;
+		ret = qspi_write(offset, sram_write_buffer, length);
+		if (ret == 0) {
+			ret = qspi_read(offset, (uintptr_t) sram_write_buffer, length, &act_read);
+			if (ret != 0 || act_read != length) {
+				bootstrap_TxNack("Data readback failed");
+				return;
+			}
+		}
+		break;
+	}
+	default:
+		ret = -ENOTSUP;
+	}
+
+	if (ret) {
+		bootstrap_TxNack("Write of SRAM data failed");
+		return;
+	}
+
+	/* Calculate SHA when read back write */
+	sha_calc(SHA_MR_ALGO_SHA256, sram_write_buffer, length, data_read.b, sizeof(data_read.b));
+
+	if (memcmp(data_write.b, data_read.b, sizeof(data_write.b)) != 0) {
+		bootstrap_TxNack("SHA mismatch, chunk write failed");
+		return;
+	}
+
+	/* Return hash, length */
+	bootstrap_TxAckData_arg(data_read.b, sizeof(data_read.b), length);
 }
 
 static void handle_unzip_data(const bootstrap_req_t *req)
@@ -193,7 +381,7 @@ static void handle_unzip_data(const bootstrap_req_t *req)
 	const char *resp = "Plain data";
 
 	/* See if this is compressed data */
-	if (ptr[0] == 0x1f && ptr[1] == 0x8b) {
+	if (is_gzip(ptr)) {
 		uintptr_t in_buf, work_buf, out_buf, out_start;
 		size_t in_len, work_len, out_len;
 
@@ -370,16 +558,6 @@ static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len, bool ve
 
 	NOTICE("Partition %s not found\n", name);
 	return -ENOENT;
-}
-
-static bool valid_write_dev(boot_source_type dev)
-{
-	if (dev == BOOT_SOURCE_EMMC ||
-	    dev == BOOT_SOURCE_SDMMC ||
-	    dev == BOOT_SOURCE_QSPI)
-		return true;
-
-	return false;
 }
 
 /* This routine will write the image data flash device */
@@ -697,17 +875,24 @@ static void handle_ddr_test(bootstrap_req_t *req)
 
 static void handle_data_hash(bootstrap_req_t *req)
 {
-	lan966x_key32_t data_sig;
+	uint32_t data_len;
+	const void *data;
 
-	if (data_rcv_length == 0) {
+	/* Where is data? */
+	if (req->arg0) {
+		data = sram_buffer;
+		data_len = MIN((req->arg0 & 0x7FFFFFFF), sram_available);
+	} else {
+		data = (const void*) fip_base_addr;
+		data_len = data_rcv_length;
+	}
+
+	if (data_len == 0) {
 		bootstrap_TxNack("No downloaded data");
 		return;
 	}
 
-	/* Calc hash */
-	sha_calc(SHA_MR_ALGO_SHA256, (void*) fip_base_addr, data_rcv_length, data_sig.b, sizeof(data_sig.b));
-	/* Return hash, length */
-	bootstrap_TxAckData_arg(data_sig.b, sizeof(data_sig.b), data_rcv_length);
+	bootstrap_do_sha(data, data_len);
 }
 
 #define MAX_REG_READ	128	/* Arbitrary */
@@ -734,6 +919,12 @@ static void handle_read_reg(bootstrap_req_t *req)
 
 	/* Return hash, length */
 	bootstrap_TxAckData_arg(regbuf, req->len, req->arg0);
+}
+
+static void handle_sram_info(bootstrap_req_t *req)
+{
+	/* Return SRAM length */
+	bootstrap_Tx(BOOTSTRAP_ACK, sram_available, 0, NULL);
 }
 
 void lan966x_bl2u_bootstrap_monitor(void)
@@ -785,6 +976,12 @@ void lan966x_bl2u_bootstrap_monitor(void)
 			handle_data_hash(&req);
 		else if (is_cmd(&req, BOOTSTRAP_READ_REG))	// x - Read registers
 			handle_read_reg(&req);
+		else if (is_cmd(&req, BOOTSTRAP_SRAM_INFO))	// s - Get SRAM info
+			handle_sram_info(&req);
+		else if (is_cmd(&req, BOOTSTRAP_SEND_SRAM))	// J - Upload SRAM
+			handle_send_sram(&req);
+		else if (is_cmd(&req, BOOTSTRAP_WRITE_READBACK)) // j - Write SRAM data to device, with readback
+			handle_write_readback(&req);
 		else
 			bootstrap_TxNack("Unknown command");
 	}

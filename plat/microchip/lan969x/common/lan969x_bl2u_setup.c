@@ -20,14 +20,14 @@
 #include "lan969x_regs.h"
 
 #define MAP_BL2U_TOTAL		MAP_REGION_FLAT(			\
-					BL2U_BASE,			\
-					BL2U_LIMIT - BL2U_BASE,		\
-					MT_MEMORY | MT_RW | MT_SECURE)
+		LAN969X_SRAM_BASE,					\
+		LAN969X_SRAM_SIZE - BL1_RW_SIZE,			\
+		MT_MEMORY | MT_RW | MT_SECURE)
 
-#define ARM_MAP_BL_RO			MAP_REGION_FLAT(			\
-						BL_CODE_BASE,			\
-						BL_CODE_END - BL_CODE_BASE,	\
-						MT_CODE | MT_SECURE)
+#define ARM_MAP_BL_RO			MAP_REGION_FLAT(		\
+		BL_CODE_BASE,						\
+		BL_CODE_END - BL_CODE_BASE,				\
+		MT_CODE | MT_SECURE)
 
 void bl2u_platform_setup(void)
 {
