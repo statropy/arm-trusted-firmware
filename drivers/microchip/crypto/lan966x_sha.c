@@ -7,9 +7,12 @@
 #include <assert.h>
 #include <common/debug.h>
 #include <drivers/auth/crypto_mod.h>
+#include <drivers/delay_timer.h>
 #include <drivers/microchip/sha.h>
 #include <drivers/microchip/xdmac.h>
+#include <lib/libc/errno.h>
 #include <lib/mmio.h>
+#include <plat/common/platform.h>
 
 #include <platform_def.h>
 #include "lan966x_regs.h"
@@ -44,6 +47,7 @@ static struct hash_state {
 	bool		   dma;
 	size_t		   hash_nwords;
 	size_t		   fifo_len;
+	bool		   inuse;
 } sha_hash_state;
 
 static const hash_info_t *sha_get_info(lan966x_sha_type_t algo)
@@ -69,28 +73,34 @@ void sha_init(void)
 	mmio_write_32(SHA_SHA_CR(base), SHA_SHA_CR_SWRST(1));
 }
 
+#define MAX_TIMEOUT_US	(10000U)	/* 10ms */
 static uint32_t sha_wait_flag(uint32_t mask)
 {
-	const int MAX_WAIT_LOOP = 10000;
-	int tmo;
+	uint64_t timeout;
 	uint32_t s;
 
-	for (tmo = MAX_WAIT_LOOP; tmo > 0; tmo--) {
+	timeout = timeout_init_us(MAX_TIMEOUT_US);
+	while (true) {
 		s = mmio_read_32(SHA_SHA_ISR(base));
+		if (s & SHA_SHA_ISR_SECE_ISR_M) {
+			/* Security event */
+			NOTICE("SHA: SECE: WPSR = 0x%08x\n", mmio_read_32(SHA_SHA_WPSR(base)));
+		}
 		if (mask & s)
 			break;
+		if (timeout_elapsed(timeout)) {
+			ERROR("SHA: Timeout awaiting ISR flag %08x, have 0x%08x\n", mask, s);
+			plat_error_handler(-ETIMEDOUT);
+		}
 	}
 
-	assert(tmo > 0);
-
-	VERBOSE("Wait(%d): %08x\n", tmo, s);
 	return s;
 }
 
 static void sha_start_process(void)
 {
 	/* Start processing */
-	mmio_setbits_32(SHA_SHA_CR(base), SHA_SHA_CR_START(1));
+	mmio_write_32(SHA_SHA_CR(base), SHA_SHA_CR_START(1));
 	/* Wait until processed */
 	(void) sha_wait_flag(SHA_SHA_ISR_DATRDY_ISR_M);
 }
@@ -103,6 +113,7 @@ _sha_init(lan966x_sha_type_t hash_type, size_t data_len, const void *in_hash, si
 	size_t i;
 
 	assert((hash_len % 4) == 0);
+	assert(st->inuse == false);
 
 	st->algo = hash_type;
 	st->hash_nwords = hash_len / 4;
@@ -110,6 +121,7 @@ _sha_init(lan966x_sha_type_t hash_type, size_t data_len, const void *in_hash, si
 			(hash_type == SHA_MR_ALGO_SHA512)) ? 32 : 16;
 	st->verify = (in_hash != NULL);
 	st->dma = (data_len > 512); /* Use DMA for 'large' blocks */
+	st->inuse = true;
 
 	VERBOSE("SHA %s algo %d, %zd words hash, input %zd bytes\n",
 		st->verify ? "verify" : "calc",
@@ -129,17 +141,17 @@ _sha_init(lan966x_sha_type_t hash_type, size_t data_len, const void *in_hash, si
 
 	if (st->verify) {
 		/* Set expected hash */
-		mmio_setbits_32(SHA_SHA_CR(base), SHA_SHA_CR_WUIEHV(1));
+		mmio_write_32(SHA_SHA_CR(base), SHA_SHA_CR_WUIEHV(1));
 		for (i = 0; i < st->hash_nwords; i++) {
 			w = unaligned_get32(in_hash + (i * 4));
 			VERBOSE("Exp(%zd): %08x\n", i, w);
 			mmio_write_32(SHA_SHA_IDATAR(base, i), w);
 		}
-		mmio_clrbits_32(SHA_SHA_CR(base), SHA_SHA_CR_WUIEHV(1));
+		mmio_write_32(SHA_SHA_CR(base), 0);
 	}
 
 	/* Restart HASH */
-	mmio_setbits_32(SHA_SHA_CR(base), SHA_SHA_CR_FIRST(1));
+	mmio_write_32(SHA_SHA_CR(base), SHA_SHA_CR_FIRST(1));
 
 	return st;
 }
@@ -183,14 +195,18 @@ static void _sha_update(const struct hash_state *st, const void *input, size_t l
 		_sha_update_mmio(st, input, len);
 }
 
-static int _sha_finish(const struct hash_state *st, const void *out_hash)
+static int _sha_finish(struct hash_state *st, const void *out_hash)
 {
 	size_t i;
 	uint32_t w;
 
+	assert(st->inuse == true);
+
+	/* We're stopping here */
+	st->inuse = false;
+
 	/* Wait for DMA processing to end */
-	w = mmio_read_32(SHA_SHA_MR(base));
-	if (SHA_SHA_MR_SMOD_X(w) == SHA_SMOD_DMA) {
+	if (st->dma) {
 		/* Must see DATRDY before proceeding */
 		(void) sha_wait_flag(SHA_SHA_ISR_DATRDY_ISR_M);
 	}
