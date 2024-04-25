@@ -243,7 +243,7 @@ void xdmac_show_version(void)
 	     (uint32_t) XDMAC_XDMAC_VERSION_MFN_X(w));
 }
 
-#if defined(XDMAC_PIPELINE_SUPPPORT)
+#if defined(XDMAC_PIPELINE_SUPPPORT) && defined(IMAGE_BL2)
 
 #define PDMA_BLOCK_SIZE	SIZE_K(16U)
 
