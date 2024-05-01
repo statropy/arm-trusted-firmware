@@ -123,9 +123,10 @@ _sha_init(lan966x_sha_type_t hash_type, size_t data_len, const void *in_hash, si
 	st->dma = (data_len > 512); /* Use DMA for 'large' blocks */
 	st->inuse = true;
 
-	VERBOSE("SHA %s algo %d, %zd words hash, input %zd bytes\n",
+	VERBOSE("SHA %s algo %d, %zd words hash, input %zd bytes, %s\n",
 		st->verify ? "verify" : "calc",
-		hash_type, st->hash_nwords, data_len);
+		hash_type, st->hash_nwords, data_len,
+		st->dma ? "dma" : "mmio");
 
 	/* Set algo and mode */
 	w = SHA_SHA_MR_ALGO(hash_type) | SHA_SHA_MR_CHKCNT(st->hash_nwords);
@@ -182,8 +183,7 @@ static void _sha_update_mmio(const struct hash_state *st, const void *input, siz
 
 static void _sha_update_dma(const struct hash_state *st, const void *input, size_t len)
 {
-	size_t dma_len = round_up(len, 4U); /* Transfer whole words */
-	xdmac_memcpy((void*) (uintptr_t) SHA_SHA_IDATAR(base, 0), input, dma_len,
+	xdmac_memcpy((void*) (uintptr_t) SHA_SHA_IDATAR(base, 0), input, len,
 		     XDMA_DIR_MEM_TO_DEV, XDMA_SHA_TX);
 }
 

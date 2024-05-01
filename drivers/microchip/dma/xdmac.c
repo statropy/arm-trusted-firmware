@@ -83,7 +83,7 @@ static uint32_t xdmac_setup_req(const struct xdmac_req *req)
 	int ch = req->ch;
 	int csize = AT_XDMAC_CSIZE_16;
 	int dwidth;
-	uint32_t cfg;
+	uint32_t cfg, dma_len;
 
 	VERBOSE("%d: dir %d periph %d dst %08x src %08x len %d\n",
 		req->ch, req->dir, req->periph,
@@ -91,14 +91,19 @@ static uint32_t xdmac_setup_req(const struct xdmac_req *req)
 
 	assert(req->len <= AT_XDMAC_MBR_UBC_UBLEN_MAX);
 
+	dma_len = req->len;
 	if (req->periph == XDMA_SHA_TX) {
 		dwidth = AT_XDMAC_CC_DWIDTH_WORD;
+		/* Round up to whole words */
+		dma_len = round_up(dma_len, 4U);
 	} else if (req->periph == XDMA_AES_RX || req->periph == XDMA_AES_TX) {
 		dwidth = AT_XDMAC_CC_DWIDTH_WORD;
 		csize = AT_XDMAC_CSIZE_4; /* DS mandates this for CTR, GCM */
+		/* Round up to SHA256 block - 128bits/16bytes */
+		dma_len = round_up(dma_len, 16U);
 	} else {
 		dwidth = xdmac_align_width(req->src | req->dst);
-		if (!is_aligned(req->len, 1 << dwidth))
+		if (!is_aligned(dma_len, 1 << dwidth))
 			dwidth = AT_XDMAC_CC_DWIDTH_BYTE;
 	}
 	cfg = XDMAC_XDMAC_CC_CH0_DWIDTH_CH0(dwidth) |
@@ -115,7 +120,7 @@ static uint32_t xdmac_setup_req(const struct xdmac_req *req)
 	mmio_write_32(XDMAC_XDMAC_CDA_CH0(CH_OFF(base, ch)), req->dst);
 	mmio_write_32(XDMAC_XDMAC_CSA_CH0(CH_OFF(base, ch)), req->src);
 	mmio_write_32(XDMAC_XDMAC_CDS_MSP_CH0(CH_OFF(base, ch)), 0); /* Used for bzero */
-	mmio_write_32(XDMAC_XDMAC_CUBC_CH0(CH_OFF(base, ch)), req->len >> dwidth);
+	mmio_write_32(XDMAC_XDMAC_CUBC_CH0(CH_OFF(base, ch)), dma_len >> dwidth);
 	mmio_write_32(XDMAC_XDMAC_CC_CH0(CH_OFF(base, ch)), cfg);
 
 	return BIT(ch);		/* Return channel mask to wait for */
