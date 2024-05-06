@@ -148,7 +148,7 @@ static uintptr_t sip_fw_bind(uintptr_t fip, uint32_t size, void *handle)
 
 		sha_calc(SHA_MR_ALGO_SHA256, (void*) fip, size, sha_in.b, sizeof(sha_in.b));
 
-		res = lan966x_bind_fip(fip, size);
+		res = lan966x_bind_fip(fip, size, NULL);
 		if (res) {
 			SMC_RET1(handle, -res);
 		} else {

@@ -349,28 +349,20 @@
 	<label for="bl2u-tab-4" class="tab-label">Incremental</label>
 	<div class="tab-content">
 	  <p>
-	    This operation provides a combined upload and write, where
-	    the SRAM of the device is used for intermediate
-	    storage.
-	  </p>
-	  <p>
+	    This operation provides a combined upload and write
+	    where the SRAM of the device is used for
+	    intermediate storage.
 	    The image file is incrementally uploaded in chunks
-	    according to the SRAM memory available. Chunks are
+	    according to the SRAM capacity. Chunks are
 	    compressed, de-compressed, written and verified
 	    sequentially.
-	  </p>
-	  <p style="color: red">
-	    Notice: SRAM may be limited or not available on a given
-	    platform. (Pre-) Compressed files are not supported.
-	  </p>
+	  <p>
 	  <table>
 	    <tr>
-	      <td>
-		<input type="file" id="file_select_inc">
-	      </td>
 	    </tr>
 	    <tr>
 	      <td>
+		<input type="file" id="file_select_inc">
 		<button type="button" id="bl2u_write_inc">Incremental Write Image</button>
 		<select id="bl2u_write_inc_device">
 		  <option value="0">eMMC</option>
@@ -379,7 +371,32 @@
 	      </td>
 	      <td id="bl2u_write_inc_feedback" class="feedback"></td>
 	    </tr>
+	    <tr>
+	      <td>
+		  </p>
+		    The <em>Bind</em> function operates directly on the flash
+		    device selected. The fimware in the flash need to be SSK
+		    encrypted. It will re-encrypted using the device
+		    BSSK key.
+		  </p>
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		<button type="button" id="bl2u_bind_flash">Bind FIP in Flash</button>
+		<select id="bl2u_bind_fip_device">
+		  <option value="0">eMMC</option>
+		  <option value="1">NOR Flash</option>
+		</select>
+		Verify: <input type="checkbox" checked id="verify_fip_bind">
+	      </td>
+	      <td id="bl2u_bind_flash_feedback" class="feedback"></td>
+	    </tr>
 	  </table>
+	  <p style="color: red">
+	    Notice: SRAM may be limited or not available on a given
+	    platform. (Pre-) Compressed files are not supported.
+	  </p>
 	</div>
       </div>
       <div class="tab">

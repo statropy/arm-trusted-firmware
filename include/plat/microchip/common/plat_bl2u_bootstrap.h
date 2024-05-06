@@ -13,9 +13,13 @@ void lan966x_bl2u_bootstrap_monitor(void);
 
 void lan966x_bl2u_io_init_dev(boot_source_type boot_source);
 
+int lan966x_bl2u_fip_read(boot_source_type boot_source, uintptr_t buf, uint32_t len);
+
 int lan966x_bl2u_fip_update(boot_source_type boot_source, uintptr_t buf, uint32_t len, bool verify);
 
 int lan966x_bl2u_emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length, bool verify);
+
+int lan966x_bl2u_emmc_read(uint32_t offset, uintptr_t buf_ptr, uint32_t length);
 
 int lan966x_bl2u_qspi_verify(uint32_t offset, uintptr_t buf_ptr, size_t length);
 

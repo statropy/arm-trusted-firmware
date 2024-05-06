@@ -78,9 +78,9 @@ fw_bind_res_t handle_bind_encrypt(const uintptr_t fip_base_addr,
 					 key,
 					 key_len,
 					 (uint8_t *)iv,
-					 sizeof(iv),
+					 img_header->iv_len,
 					 tag,
-					 sizeof(tag));
+					 img_header->tag_len);
 
 		/* Wipe out key data */
 		memset(key, 0, key_len);
@@ -90,7 +90,7 @@ fw_bind_res_t handle_bind_encrypt(const uintptr_t fip_base_addr,
 		} else {
 			/* Update firmware image header data */
 			img_header->dec_algo = CRYPTO_GCM_DECRYPT;
-			img_header->flags |= FW_ENC_STATUS_FLAG_MASK;
+			img_header->flags = FW_ENC_WITH_BSSK;
 			memcpy(img_header->tag, tag, TAG_SIZE);
 			memcpy(img_header->iv, iv, IV_SIZE);
 
@@ -155,19 +155,21 @@ fw_bind_res_t handle_bind_decrypt(const uintptr_t fip_base_addr,
 		memset(key, 0, key_len);
 
 		if (result != 0) {
-			return FW_DECRYPT;
+			result = FW_DECRYPT;
 		} else {
 			VERBOSE("Decryption of FIP image done\n");
+			result = FW_BIND_OK;
 		}
 
 	} else {
 		VERBOSE("Found no image for decrypting\n");
+		result = FW_NOT_SSK_ENCRYPTED;
 	}
 
-	return FW_BIND_OK;
+	return result;
 }
 
-fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t fip_length)
+fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t fip_length, size_t *actual)
 {
 	void *fip_max = (void*) (fip_base_addr + fip_length);
 	const fip_toc_header_t *toc_header;
@@ -176,7 +178,8 @@ fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t fip_length)
 	const uuid_t uuid_null = { 0 };
 	uintptr_t toc_end_addr;
 	bool exit_parsing = 0;
-	fw_bind_res_t result;
+	size_t actual_size = 0;
+	int re_encrypted = 0;
 
 	VERBOSE("BL2U handle parsing of fip\n");
 
@@ -254,18 +257,28 @@ fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t fip_length)
 			return FW_FIP_INCOMPLETE;
 
 		/* Decrypt image for upcoming encryption step */
-		result = handle_bind_decrypt(fip_base_addr, enc_img_hdr, toc_entry);
-		if (result) {
-			VERBOSE("Decryption of FIP failed: %d\n", result);
-			return result;
+		if (is_enc_img_hdr(enc_img_hdr)) {
+			fw_bind_res_t result;
+
+			result = handle_bind_decrypt(fip_base_addr, enc_img_hdr, toc_entry);
+			if (result) {
+				VERBOSE("Decryption of FIP failed: %d\n", result);
+				return result;
+			}
+
+			/* Encrypt previously decrypted image file */
+			result = handle_bind_encrypt(fip_base_addr, enc_img_hdr, toc_entry);
+			if (result) {
+				VERBOSE("Encryption of FIP failed: %d\n", result);
+				return result;
+			}
+
+			/* Re-encrypt was done */
+			re_encrypted++;
 		}
 
-		/* Encrypt previously decrypted image file */
-		result = handle_bind_encrypt(fip_base_addr, enc_img_hdr, toc_entry);
-		if (result) {
-			VERBOSE("Encryption of FIP failed: %d\n", result);
-			return result;
-		}
+		/* Update recorded FIP size */
+		actual_size = MAX(actual_size, (size_t) (toc_entry->offset_address + toc_entry->size));
 
 		/* Increment pointer to next ToC entry */
 		toc_entry++;
@@ -273,6 +286,12 @@ fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t fip_length)
 
 	if (!exit_parsing)
 		return FW_TOC_TERM_MISSING;
+
+	if (re_encrypted == 0)
+		return FW_NOT_SSK_ENCRYPTED;
+
+	if (actual != NULL)
+		*actual = MIN(actual_size, fip_length);
 
 	return FW_BIND_OK;
 }

@@ -244,10 +244,11 @@ static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len, bool ve
 			ret = lan966x_bl2u_emmc_write(entry->start, buf_ptr, len, verify);
 			break;
 		case BOOT_SOURCE_QSPI:
-			INFO("Fip update '%s' src %d\n", name, cur_boot_source);
+			NOTICE("QSPI: Fip update '%s' @ %08lx, len %d\n", name, entry->start, len);
 			ret = qspi_write(entry->start, (void*) buf_ptr, len);
 			if (ret == 0)
 				ret = lan966x_bl2u_qspi_verify(entry->start, buf_ptr, len);
+			NOTICE("QSPI: Fip update '%s': ret %d\n", name, ret);
 			break;
 		default:
 			ret = -EIO;
@@ -259,6 +260,73 @@ static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len, bool ve
 
 	NOTICE("Partition %s not found\n", name);
 	return -ENOENT;
+}
+
+static int fip_read_mmc(const char *name, uintptr_t buf_ptr, uint32_t len)
+{
+	const partition_entry_t *entry = get_partition_entry(name);
+
+	if (entry) {
+		len = round_down(MIN((uint64_t) len, entry->length), 1024U);
+		return lan966x_bl2u_emmc_read(entry->start, buf_ptr, len);
+	}
+
+	NOTICE("Partition %s not found\n", name);
+	return -ENOENT;
+}
+
+static int fip_read_qspi(const char *name, uintptr_t buf_ptr, uint32_t len)
+{
+	const partition_entry_t *entry = get_partition_entry(name);
+
+	if (entry) {
+		size_t act_read;
+		len = round_down(MIN((uint64_t) len, entry->length), 4 * 1024U);
+		int ret = qspi_read(entry->start, buf_ptr, len, &act_read);
+		/* Return error if did not read all data */
+		return ret |= (act_read != len);
+	}
+
+	NOTICE("Partition %s not found\n", name);
+	return -ENOENT;
+}
+
+int lan966x_bl2u_fip_read(boot_source_type dev,
+			  uintptr_t buf,
+			  uint32_t len)
+{
+	int (*do_read)(const char *name, uintptr_t buf_ptr, uint32_t len);
+	int ret = 0;
+
+	/* Update to control plat_get_image_source() from partition_init() */
+	cur_boot_source = dev;
+
+	/* Read Flash */
+	switch (dev) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		do_read = fip_read_mmc;
+		break;
+	case BOOT_SOURCE_QSPI:
+		do_read = fip_read_qspi;
+		break;
+
+	default:
+		return -ENOTSUP;
+	}
+
+	/* Init GPT */
+	partition_init(GPT_IMAGE_ID);
+
+	/* Read primary FIP */
+	ret = do_read(FW_PARTITION_NAME, buf, len);
+	if (ret == 0)
+		return ret;
+
+	/* Fallback: Read backup FIP */
+	ret = do_read(FW_BACKUP_PARTITION_NAME, buf, len);
+
+	return ret;
 }
 
 int lan966x_bl2u_fip_update(boot_source_type boot_source,
@@ -276,7 +344,7 @@ int lan966x_bl2u_fip_update(boot_source_type boot_source,
 	case BOOT_SOURCE_EMMC:
 	case BOOT_SOURCE_SDMMC:
 	case BOOT_SOURCE_QSPI:
-		INFO("Write FIP %d bytes to %s\n", len, boot_source_name[cur_boot_source]);
+		NOTICE("Write FIP %d bytes to %s\n", len, boot_source_name[cur_boot_source]);
 
 		/* Init GPT */
 		partition_init(GPT_IMAGE_ID);

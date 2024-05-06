@@ -64,6 +64,6 @@ static inline int is_valid_fip_hdr(const fip_toc_header_t *header)
 	}
 }
 
-fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t length);
+fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t length, size_t *actual);
 
 #endif	/* LAN966X_FW_BIND_H */

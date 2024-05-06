@@ -16,6 +16,7 @@ const CMD_NACK = 'n';
 const CMD_BL2U_WRITE = 'W';
 const CMD_BL2U_IMAGE = 'I';
 const CMD_BL2U_BIND ='B';
+const CMD_BL2U_BIND_FLASH ='b';
 const CMD_BL2U_OTP_READ ='L';
 const CMD_BL2U_RESET ='e';
 const CMD_BL2U_DDR_CFG_SET = 'C';
@@ -1375,7 +1376,7 @@ function startSerial()
 		throw "Bind aborted by user cancel";
 	    let bind = await completeRequest(port, fmtReq(CMD_BL2U_BIND, 0));
 	    s.set('bl2u_bind', true); // Bind is a 'once' operation
-	    setStatus("Bind completed sucessfully");
+	    setFeedbackStatus('bl2u_bind_fip_feedback', "Bind completed sucessfully");
 	} catch(e) {
 	    setFeedbackStatus('bl2u_bind_fip_feedback', e);
 	} finally {
@@ -1421,6 +1422,13 @@ function startSerial()
 	} finally {
 	    restoreButtons(s);
 	}
+    });
+
+    document.getElementById('bl2u_bind_flash').addEventListener('click', async () => {
+	let dev = document.getElementById('bl2u_bind_fip_device');
+	var verify = document.getElementById("verify_fip_bind").checked ? 0x80 : 0;
+	let op = "Bind FIP in " + dev.selectedOptions[0].text;
+	doWrite(port, op, CMD_BL2U_BIND_FLASH, verify | dev.value, 'bl2u_bind_flash_feedback');
     });
 
     document.getElementById('bl2u_otp_read').addEventListener('click', async () => {

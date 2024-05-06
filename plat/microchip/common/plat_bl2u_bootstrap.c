@@ -439,37 +439,55 @@ static uint32_t single_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_
 	return written;
 }
 
-int lan966x_bl2u_emmc_verify(uint32_t lba, uintptr_t buf_ptr, size_t length)
+int lan966x_bl2u_emmc_read(uint32_t offset, uintptr_t buf_ptr, uint32_t length)
 {
-	uintptr_t workbuf =  buf_ptr + PAGE_ALIGN(length, SIZE_M(1));
-	uint8_t *data;
-	size_t nread;
+	uint32_t lba;
+	size_t round_len, size_read;
 
-	for (nread = 0, data = (uint8_t *) buf_ptr; nread < length; ) {
-		     size_t chunk = MIN((size_t) SIZE_M(1),
-					(size_t) (length - nread));
-		     size_t round_len = DIV_ROUND_UP_2EVAL(chunk, MMC_BLOCK_SIZE) * MMC_BLOCK_SIZE;
+	/* Check multiple number of MMC_BLOCK_SIZE */
+	assert((offset % MMC_BLOCK_SIZE) == 0);
 
-		     size_t size_read = mmc_read_blocks(lba, workbuf, round_len);
+	/* Convert offset to LBA */
+	lba = offset / MMC_BLOCK_SIZE;
 
-		     if (size_read != round_len) {
-			     NOTICE("emmc_verify: Read %zd bytes, expected %zd\n", size_read, round_len);
-			     return -EPIPE;
-		     }
+	/* Calculate whole pages for mmc_read_blocks() */
+	round_len = DIV_ROUND_UP_2EVAL(length, MMC_BLOCK_SIZE) * MMC_BLOCK_SIZE;
 
-		     /* NB: Only compare actual chunk size */
-		     if (memcmp((uint8_t *) workbuf, data, chunk) != 0) {
-			     NOTICE("emmc_verify: Mismatch at address %p vs %p, block size %zd\n",
-				    (uint8_t *) workbuf, data, chunk);
-			     return -ENXIO;
-		     }
+	size_read = mmc_read_blocks(lba, buf_ptr, round_len);
 
-		     nread += chunk;
-		     data += chunk;
-		     lba += (chunk / MMC_BLOCK_SIZE);
+	if (size_read != round_len) {
+		NOTICE("emmc_read: Read %zd bytes, expected %zd\n", size_read, round_len);
+		return -EPIPE;
 	}
 
-	NOTICE("emmc: Verified %zd bytes of data\n", length);
+	return 0;
+}
+
+int lan966x_bl2u_emmc_verify(uint32_t lba, uintptr_t buf_ptr, size_t length)
+{
+	lan966x_key32_t data_write, data_read;
+	uint8_t *data = (void*) buf_ptr;
+
+	/* Calculate SHA of written data */
+	sha_calc(SHA_MR_ALGO_SHA256, data, length, data_write.b, sizeof(data_write.b));
+
+	size_t round_len = DIV_ROUND_UP_2EVAL(length, MMC_BLOCK_SIZE) * MMC_BLOCK_SIZE;
+	size_t size_read = mmc_read_blocks(lba, buf_ptr, round_len);
+
+	if (size_read != round_len) {
+		NOTICE("emmc_verify: Read %zd bytes, expected %zd\n", size_read, round_len);
+		return -EPIPE;
+	}
+
+	/* Calculate SHA when read back write */
+	sha_calc(SHA_MR_ALGO_SHA256, data, length, data_read.b, sizeof(data_read.b));
+
+	if (memcmp(data_write.b, data_read.b, sizeof(data_write.b)) != 0) {
+		NOTICE("SHA mismatch, emmc verify failed");
+		return -ENXIO;
+	}
+
+	INFO("emmc: Verified %zd bytes of data\n", length);
 
 	return 0;
 }
@@ -507,43 +525,61 @@ int lan966x_bl2u_emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length,
 
 int lan966x_bl2u_qspi_verify(uint32_t offset, uintptr_t buf_ptr, size_t length)
 {
-	uintptr_t workbuf =  buf_ptr + PAGE_ALIGN(length, SIZE_M(1));
-	uint8_t *data;
-	size_t nread, act_read;
+	lan966x_key32_t data_write, data_read;
+	uint8_t *data = (void*) buf_ptr;
+	size_t act_read;
+	int ret;
 
-	for (nread = 0, data = (uint8_t *) buf_ptr; nread < length; ) {
-		     size_t chunk = MIN((size_t) SIZE_M(1),
-					(size_t) (length - nread));
+	/* Calculate SHA of written data */
+	sha_calc(SHA_MR_ALGO_SHA256, data, length, data_write.b, sizeof(data_write.b));
 
-		     int ret = qspi_read(offset + nread, workbuf, chunk, &act_read);
-
-		     if (ret) {
-			     NOTICE("qspi_verify: Read returns %d\n", ret);
-			     return ret;
-		     }
-
-		     if (act_read != chunk) {
-			     NOTICE("qspi_verify: Read %zd bytes, expected %zd\n", act_read, chunk);
-			     return -EPIPE;
-		     }
-
-		     /* NB: Only compare actual chunk size */
-		     if (memcmp((uint8_t *) workbuf, data, chunk) != 0) {
-			     NOTICE("qspi_verify: Mismatch at address %p vs %p, block size %zd\n",
-				    (uint8_t *) workbuf, data, chunk);
-			     return -ENXIO;
-		     }
-
-		     nread += chunk;
-		     data += chunk;
+	ret = qspi_read(offset, buf_ptr, length, &act_read);
+	if (ret) {
+		NOTICE("qspi_verify: Read returns %d\n", ret);
+		return ret;
 	}
 
-	NOTICE("qspi: Verified %zd bytes of data\n", length);
+	if (act_read != length) {
+		NOTICE("qspi_verify: Read %zd bytes, expected %zd\n", act_read, length);
+		return -EPIPE;
+	}
+
+	/* Calculate SHA when read back write */
+	sha_calc(SHA_MR_ALGO_SHA256, data, length, data_read.b, sizeof(data_read.b));
+
+	if (memcmp(data_write.b, data_read.b, sizeof(data_write.b)) != 0) {
+		NOTICE("SHA mismatch, qspi verify failed");
+		return -ENXIO;
+	}
+
+	INFO("qspi: Verified %zd bytes of data\n", length);
 
 	return 0;
 }
 
-static int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len, bool verify)
+static int fip_read_mmc(const char *name, uintptr_t buf_ptr, uint32_t len)
+{
+	const partition_entry_t *entry = get_partition_entry(name);
+
+	if (entry) {
+		if (entry->length > len) {
+			NOTICE("%s FIP is %d bytes, buffer available %d\n",
+			       name, (uint32_t) entry->length, len);
+			return false;
+		}
+		return lan966x_bl2u_emmc_read(entry->start, buf_ptr, len);
+	}
+
+	NOTICE("Partition %s not found\n", name);
+	return -ENOENT;
+}
+
+static int fip_read_qspi(uintptr_t buf_ptr, uint32_t len)
+{
+	return -ENOENT;
+}
+
+int fip_update(const char *name, uintptr_t buf_ptr, uint32_t len, bool verify)
 {
 	const partition_entry_t *entry = get_partition_entry(name);
 
@@ -614,6 +650,49 @@ static void handle_write_image(const bootstrap_req_t * req)
 	}
 }
 
+#pragma weak lan966x_bl2u_fip_read
+int lan966x_bl2u_fip_read(boot_source_type dev,
+			  uintptr_t buf,
+			  uint32_t len)
+{
+	int ret = 0;
+
+	/* Generic IO init */
+	lan966x_io_setup();
+
+	/* Init IO layer, explicit source */
+	if (dev != lan966x_get_boot_source())
+		lan966x_bl2u_io_init_dev(dev);
+
+	/* Read Flash */
+	switch (dev) {
+	case BOOT_SOURCE_EMMC:
+	case BOOT_SOURCE_SDMMC:
+		INFO("Read FIP %d bytes from %s\n", len, dev == BOOT_SOURCE_EMMC ? "eMMC" : "SD");
+
+		/* Init GPT */
+		partition_init(GPT_IMAGE_ID);
+
+		/* Read primary FIP */
+		ret = fip_read_mmc(FW_PARTITION_NAME, buf, len);
+		if (ret == 0)
+			return ret;
+
+		/* Fallback: Read backup FIP */
+		ret = fip_read_mmc(FW_BACKUP_PARTITION_NAME, buf, len);
+		break;
+
+	case BOOT_SOURCE_QSPI:
+		ret = fip_read_qspi(buf, len);
+		break;
+
+	default:
+		ret = -ENOTSUP;
+	}
+
+	return ret;
+}
+
 #pragma weak lan966x_bl2u_fip_update
 int lan966x_bl2u_fip_update(boot_source_type boot_source,
 			    uintptr_t buf,
@@ -630,9 +709,6 @@ int lan966x_bl2u_fip_update(boot_source_type boot_source,
 
 		/* Init GPT */
 		partition_init(GPT_IMAGE_ID);
-
-		/* All OK to start */
-		ret = 0;
 
 		/* Update primary FIP */
 		if ((ret = fip_update(FW_PARTITION_NAME, buf, len, verify)))
@@ -727,13 +803,73 @@ static void handle_bind(const bootstrap_req_t *req)
 	}
 
 	/* Parse FIP for encrypted image files */
-	result = lan966x_bind_fip(fip_base_addr, data_rcv_length);
+	result = lan966x_bind_fip(fip_base_addr, data_rcv_length, NULL);
 	if (result) {
 		bootstrap_TxNack(lan966x_bind_err2str(result));
 	} else {
 		VERBOSE("FIP image successfully accessed\n");
 		bootstrap_TxAck();
 	}
+}
+
+/*
+ * Bind FIP in firmware flash.  Reads FIP from device, decrypts with
+ * SSK, re-encrypts with BSSK, writes FIP back to flash.
+ */
+static void handle_bind_flash(const bootstrap_req_t *req)
+{
+	int dev = req->arg0 & 0x7F;
+	bool verify = !!(req->arg0 & 0x80);
+	uint32_t buffer_max = (sram_available * 2); /* Use SRAM as single buffer */
+	size_t fip_size;
+	int ret;
+
+	if (buffer_max == 0) {
+		bootstrap_TxNack("No SRAM available");
+		return;
+	}
+
+	if (!valid_write_dev(dev)) {
+		bootstrap_TxNack("Unsupported target device");
+		return;
+	}
+
+	/* Generic IO init */
+	lan966x_io_setup();
+
+	/* Init IO layer, explicit source */
+	if (dev != lan966x_get_boot_source())
+		lan966x_bl2u_io_init_dev(dev);
+
+	ret = lan966x_bl2u_fip_read(dev, (uintptr_t) sram_buffer, buffer_max);
+	if (ret) {
+		bootstrap_TxNack("Unable to read FIP");
+		return;
+	}
+
+	if (!is_valid_fip_hdr((const fip_toc_header_t *) sram_buffer)) {
+		bootstrap_TxNack("Data is not a valid FIP");
+		return;
+	}
+
+	/* Do the bind */
+	fw_bind_res_t result = lan966x_bind_fip((uintptr_t) sram_buffer, buffer_max, &fip_size);
+	if (result != FW_BIND_OK) {
+		bootstrap_TxNack(lan966x_bind_err2str(result));
+		return;
+	}
+
+	NOTICE("FIP: Seen %zd bytes, max %d\n", fip_size, buffer_max);
+
+	/* Write back 'bound' FIP */
+	ret = lan966x_bl2u_fip_update(dev, (uintptr_t) sram_buffer, fip_size, verify);
+	if (ret != 0) {
+		bootstrap_TxNack("Error writing bound FIP");
+		return;
+	}
+
+	/* All good */
+	bootstrap_TxAck();
 }
 
 static bool set_cache(bool cache)
@@ -958,6 +1094,8 @@ void lan966x_bl2u_bootstrap_monitor(void)
 			handle_write_fip(&req);
 		else if (is_cmd(&req, BOOTSTRAP_BIND))		// B - FW binding operation (decrypt and encrypt)
 			handle_bind(&req);
+		else if (is_cmd(&req, BOOTSTRAP_BIND_FLASH))	// b - FW binding operation (decrypt and encrypt)
+			handle_bind_flash(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPD))
 			handle_otp_data(&req);
 		else if (is_cmd(&req, BOOTSTRAP_OTPR))

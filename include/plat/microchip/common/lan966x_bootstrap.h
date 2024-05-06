@@ -37,6 +37,8 @@
 #define BOOTSTRAP_IMAGE        'I'
 // Binding operation for decrypt/encrypt (BL2U)
 #define BOOTSTRAP_BIND         'B'
+// Binding operation for decrypt/encrypt (BL2U)
+#define BOOTSTRAP_BIND_FLASH   'b'
 // Reset (BL2U)
 #define BOOTSTRAP_RESET        'e'
 // Send DDR config (BL2U)
