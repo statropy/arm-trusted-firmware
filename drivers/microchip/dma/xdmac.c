@@ -110,6 +110,15 @@ static uint32_t xdmac_setup_req(const struct xdmac_req *req)
 		XDMAC_XDMAC_CC_CH0_CSIZE_CH0(csize) |
 		xdmac_compute_cc(req->dir, req->periph);
 
+	/* Cache cleaning, XDMAC is *not* cache aware */
+	if (req->dir == XDMA_DIR_MEM_TO_DEV || req->dir == XDMA_DIR_MEM_TO_MEM) {
+		flush_dcache_range(req->src, dma_len);
+	}
+	if (req->dir == XDMA_DIR_DEV_TO_MEM || req->dir == XDMA_DIR_MEM_TO_MEM ||
+	    req->dir == XDMA_DIR_BZERO) {
+		inv_dcache_range(req->dst, dma_len);
+	}
+
 	/* Disable channel by Global Channel Disable Register */
 	mmio_write_32(XDMAC_XDMAC_GD(base), BIT(ch));
 
@@ -194,9 +203,6 @@ void xdmac_bzero(void *dst, size_t len)
 	uintptr_t dst_va = (uintptr_t) dst;
 	struct xdmac_req req;
 
-	/* Cache cleaning, XDMAC is *not* cache aware */
-	inv_dcache_range(dst_va, len);
-
 	xdmac_make_req(&req, ch, XDMA_DIR_BZERO, XDMA_NONE, dst_va, 0, len);
 	xdmac_setup_req(&req);
 
@@ -208,14 +214,6 @@ static void _xdmac_memcpy(int ch, void *dst, const void *src, size_t len, int di
 {
 	uintptr_t src_va = (uintptr_t) src;
 	uintptr_t dst_va = (uintptr_t) dst;
-
-	/* Cache cleaning, XDMAC is *not* cache aware */
-	if (dir == XDMA_DIR_MEM_TO_DEV || dir == XDMA_DIR_MEM_TO_MEM) {
-		flush_dcache_range(src_va, len);
-	}
-	if (dir == XDMA_DIR_DEV_TO_MEM || dir == XDMA_DIR_MEM_TO_MEM) {
-		inv_dcache_range(dst_va, len);
-	}
 
 	struct xdmac_req req;
 	xdmac_make_req(&req, ch, dir, periph, dst_va, src_va, len);
@@ -279,9 +277,6 @@ static void _xdmac_qspi_pipeline_read(void *dst, const void *src, size_t len)
 	/* We make an educated guess on which SHA may be requested -
 	 * since we are calculating this ahead of time. */
 	pdma->sha_type = SHA_MR_ALGO_SHA256;
-
-	/* Invalidate dst cache */
-	inv_dcache_range(pdma->dst, len);
 
 	/* Setup DMA chain */
 	xdmac_make_req(mem, 0, XDMA_DIR_MEM_TO_MEM, XDMA_NONE, pdma->dst, pdma->src, len);
