@@ -31,8 +31,8 @@ LOG_LEVEL := 40
 # Single-core system
 WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 
-# Set FIP alignment inside fiptool to 4 bytes
-FIP_ALIGN		:= 4
+# Set FIP alignment to acheive good performance
+FIP_ALIGN		:= 512
 
 # Must be zero on aarch32
 ENABLE_SVE_FOR_NS		:=	0

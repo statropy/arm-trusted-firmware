@@ -35,7 +35,7 @@ static inline const char *lan966x_bind_err2str(fw_bind_res_t err)
 	case FW_FIP_HDR:
 		return "Header check of FIP failed";
 	case FW_FIP_ALIGN:
-		return "FIP needs to be produced with FIP_ALIGN";
+		return "FIP needs to be produced with FIP_ALIGN=512";
 	case FW_FIP_INCOMPLETE:
 		return "FIP is incomplete (truncated, garbled)";
 	case FW_TOC_TERM_MISSING:

@@ -245,6 +245,16 @@ fw_bind_res_t lan966x_bind_fip(const uintptr_t fip_base_addr, size_t fip_length,
 			break;
 		}
 
+		/* Check offset address alignment, must be at least 16
+		 * bytes aligned. This is because the AES DMA gets
+		 * padded, so might dribble up to 15 bytes past end.
+		 */
+		if (toc_entry->offset_address % 16U) {
+			ERROR("FIP error: data offset %zd, must be 16 byte aligned\n",
+			      (size_t) toc_entry->offset_address);
+			return FW_FIP_ALIGN;
+		}
+
 		/* Map image pointer to encoded header structure for retrieving data */
 		enc_img_hdr = (struct fw_enc_hdr *) (fip_base_addr + (uint32_t) toc_entry->offset_address);
 
