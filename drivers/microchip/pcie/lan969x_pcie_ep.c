@@ -335,7 +335,7 @@ static int pcie_ep_serdes_init(void)
 
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_0C(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_0C_CFG_RSEL_2_0_M,
-			   PCIE_PHY_PMA_PMA_CMU_0C_CFG_RSEL_2_0(0x6));
+			   PCIE_PHY_PMA_PMA_CMU_0C_CFG_RSEL_2_0(0x4));
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_4D(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_4D_CFG_I_VCO_GEN34_3_0_M,
 			   PCIE_PHY_PMA_PMA_CMU_4D_CFG_I_VCO_GEN34_3_0(0x8));
