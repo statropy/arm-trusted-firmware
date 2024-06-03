@@ -332,9 +332,10 @@ static int pcie_ep_serdes_init(void)
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_0C(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_0C_CFG_ICP_SEL_2_0_M,
 			   PCIE_PHY_PMA_PMA_CMU_0C_CFG_ICP_SEL_2_0(0x5));
+
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_0C(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_0C_CFG_RSEL_2_0_M,
-			   PCIE_PHY_PMA_PMA_CMU_0C_CFG_RSEL_2_0(0x6));
+			   PCIE_PHY_PMA_PMA_CMU_0C_CFG_RSEL_2_0(0x4));
 	mmio_clrsetbits_32(PCIE_PHY_PMA_PMA_CMU_4D(pcie_phy_pma),
 			   PCIE_PHY_PMA_PMA_CMU_4D_CFG_I_VCO_GEN34_3_0_M,
 			   PCIE_PHY_PMA_PMA_CMU_4D_CFG_I_VCO_GEN34_3_0(0x8));
@@ -812,6 +813,34 @@ static int pcie_ep_serdes_init(void)
 	return 0;
 }
 
+
+static void pcie_ep_phy_pcs_tx_margins(void)
+{
+	uintptr_t pcie_phy_pcs = LAN969X_PCIE_PHY_PCS_BASE;
+
+	/* Add tx margin writes */
+	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_2C(pcie_phy_pcs),
+			   PCIE_PHY_PCS_PHY_LINK_2C_R_TXMARGIN_0_B7_B0_M |
+			   PCIE_PHY_PCS_PHY_LINK_2C_R_TXMARGIN_1_B7_B0_M,
+			   PCIE_PHY_PCS_PHY_LINK_2C_R_TXMARGIN_0_B7_B0(0xd0) |
+			   PCIE_PHY_PCS_PHY_LINK_2C_R_TXMARGIN_1_B7_B0(0xff));
+	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_2D(pcie_phy_pcs),
+			   PCIE_PHY_PCS_PHY_LINK_2D_R_TXMARGIN_2_B7_B0_M |
+			   PCIE_PHY_PCS_PHY_LINK_2D_R_TXMARGIN_3_B7_B0_M,
+			   PCIE_PHY_PCS_PHY_LINK_2D_R_TXMARGIN_2_B7_B0(0xff) |
+			   PCIE_PHY_PCS_PHY_LINK_2D_R_TXMARGIN_3_B7_B0(0xf0));
+	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_2E(pcie_phy_pcs),
+			   PCIE_PHY_PCS_PHY_LINK_2E_R_TXMARGIN_4_B7_B0_M |
+			   PCIE_PHY_PCS_PHY_LINK_2E_R_TXMARGIN_5_B7_B0_M,
+			   PCIE_PHY_PCS_PHY_LINK_2E_R_TXMARGIN_4_B7_B0(0xb0) |
+			   PCIE_PHY_PCS_PHY_LINK_2E_R_TXMARGIN_5_B7_B0(0xa0));
+	mmio_clrsetbits_32(PCIE_PHY_PCS_PHY_LINK_2F(pcie_phy_pcs),
+			   PCIE_PHY_PCS_PHY_LINK_2F_R_TXMARGIN_6_B7_B0_M |
+			   PCIE_PHY_PCS_PHY_LINK_2F_R_TXMARGIN_7_B7_B0_M,
+			   PCIE_PHY_PCS_PHY_LINK_2F_R_TXMARGIN_6_B7_B0(0x90) |
+			   PCIE_PHY_PCS_PHY_LINK_2F_R_TXMARGIN_7_B7_B0(0x10));
+}
+
 static void pcie_ep_ctrl_ena_cfg(const struct pcie_ep_config *cfg)
 {
 	uintptr_t pcie_cfg = LAN969X_PCIE_CFG_BASE;
@@ -990,6 +1019,7 @@ reset_phy:
 	pcie_ep_config_perst(cfg);
 	pcie_ep_ssc_clock();
 	pcie_ep_serdes_init();
+	pcie_ep_phy_pcs_tx_margins();
 	while (true) {
 		pcie_ep_wait_for_perst_high(cfg);
 		pcie_ep_reset_pipe(false);
