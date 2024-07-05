@@ -77,9 +77,10 @@ static int check_mmc(const uintptr_t spec)
 	result = io_dev_init(mmc_dev_handle, (uintptr_t) NULL);
 	if (result == 0) {
 		result = io_open(mmc_dev_handle, spec, &local_image_handle);
-		if (result == 0)
+		if (result == 0) {
 			VERBOSE("Using eMMC/SDMMC\n");
 			io_close(local_image_handle);
+		}
 	}
 	return result;
 }
