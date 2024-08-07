@@ -28,7 +28,7 @@ static uintptr_t base = LAN969X_XDMAC_BASE;
 #define CH_SZ		(XDMAC_XDMAC_CIE_CH1(0) - XDMAC_XDMAC_CIE_CH0(0))
 #define CH_OFF(b, c)	(b + (c * CH_SZ))
 
-#define MAX_TIMEOUT_US	(400 * 1000U)	/* 400ms */
+#define MAX_TIMEOUT_US	(5U * 1000U * 1000U)	/* 5s - reading entire SPI-NOR @ 2mb ~ 1.6s */
 
 #define MAX_CHANNEL	16U
 
