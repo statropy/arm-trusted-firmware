@@ -413,11 +413,9 @@ static void handle_unzip_data(const bootstrap_req_t *req)
 }
 
 /*
- * NOTE: Instead of calling mmc_write_blocks() directly we have to
- * spoon feed individual blocks. This is needed due to a constraint at a
- * lower level of the MMC driver.
+ * Chunked MMC write for better diagnostics and resilient to size-dependent timeouts
  */
-static uint32_t single_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_t length)
+static uint32_t chunked_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_t length)
 {
 	uint32_t written;
 
@@ -439,6 +437,31 @@ static uint32_t single_mmc_write_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_
 	return written;
 }
 
+/*
+ * Chunked MMC read for better diagnostics and resilient to size-dependent timeouts
+ */
+static uint32_t chunked_mmc_read_blocks(uint32_t lba, uintptr_t buf_ptr, uint32_t length)
+{
+	uint32_t nread;
+
+	for (nread = 0; nread < length; ) {
+		size_t chunk = MIN((size_t) SIZE_M(1),
+				   (size_t) (length - nread));
+		if (mmc_read_blocks(lba, buf_ptr, chunk) != chunk) {
+			ERROR("Incomplete read at LBA 0x%x, wrote %d of %d bytes\n", lba, nread, length);
+			break;
+		}
+		buf_ptr += chunk;
+		nread += chunk;
+		lba += (chunk / MMC_BLOCK_SIZE);
+		INFO("emmc: Read %ldMb @ lba 0x%x\n", nread / SIZE_M(1), lba);
+	}
+
+	INFO("emmc: Read done at %d bytes, %d blocks\n", nread, nread / MMC_BLOCK_SIZE);
+
+	return nread;
+}
+
 int lan966x_bl2u_emmc_read(uint32_t offset, uintptr_t buf_ptr, uint32_t length)
 {
 	uint32_t lba;
@@ -450,10 +473,10 @@ int lan966x_bl2u_emmc_read(uint32_t offset, uintptr_t buf_ptr, uint32_t length)
 	/* Convert offset to LBA */
 	lba = offset / MMC_BLOCK_SIZE;
 
-	/* Calculate whole pages for mmc_read_blocks() */
+	/* Calculate whole pages for chunked_mmc_read_blocks() */
 	round_len = DIV_ROUND_UP_2EVAL(length, MMC_BLOCK_SIZE) * MMC_BLOCK_SIZE;
 
-	size_read = mmc_read_blocks(lba, buf_ptr, round_len);
+	size_read = chunked_mmc_read_blocks(lba, buf_ptr, round_len);
 
 	if (size_read != round_len) {
 		NOTICE("emmc_read: Read %zd bytes, expected %zd\n", size_read, round_len);
@@ -472,7 +495,7 @@ int lan966x_bl2u_emmc_verify(uint32_t lba, uintptr_t buf_ptr, size_t length)
 	sha_calc(SHA_MR_ALGO_SHA256, data, length, data_write.b, sizeof(data_write.b));
 
 	size_t round_len = DIV_ROUND_UP_2EVAL(length, MMC_BLOCK_SIZE) * MMC_BLOCK_SIZE;
-	size_t size_read = mmc_read_blocks(lba, buf_ptr, round_len);
+	size_t size_read = chunked_mmc_read_blocks(lba, buf_ptr, round_len);
 
 	if (size_read != round_len) {
 		NOTICE("emmc_verify: Read %zd bytes, expected %zd\n", size_read, round_len);
@@ -509,7 +532,7 @@ int lan966x_bl2u_emmc_write(uint32_t offset, uintptr_t buf_ptr, uint32_t length,
 	VERBOSE("Write image to offset: 0x%x, length: 0x%x, LBA 0x%x, round_len 0x%x\n",
 		offset, length, lba, round_len);
 
-	written = single_mmc_write_blocks(lba, buf_ptr, round_len);
+	written = chunked_mmc_write_blocks(lba, buf_ptr, round_len);
 
 	VERBOSE("Written 0x%0x of the requested 0x%0x bytes\n", written, round_len);
 
