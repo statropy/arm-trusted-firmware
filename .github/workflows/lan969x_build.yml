@@ -6,9 +6,7 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    container:
-        image: ghcr.io/statropy/docker-bsp-buildenv:latest
-        options: --user ubuntu
+    container: ghcr.io/statropy/docker-bsp-buildenv:latest
 
     steps:
       - name: Checkout Repo
@@ -18,4 +16,8 @@ jobs:
         run: chown -R ubuntu:ubuntu $GITHUB_WORKSPACE
 
       - name: Build TF-A
-        run: ./scripts/lan969x_build.rb
+        run: |
+            su ubuntu
+            ./scripts/lan969x_build.rb
+
+# TODO Create artifacts
