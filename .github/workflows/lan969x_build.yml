@@ -1,0 +1,14 @@
+name: ARM Trusted Firmware for LAN969x
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    container: ghcr.io/statropy/docker-bsp-buildenv:latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build TF-A
+        run: ./scripts/lan969x_build.rb
