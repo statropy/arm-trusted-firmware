@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
         image: ghcr.io/statropy/docker-bsp-buildenv:latest
-        options: --user ubunutu
+        options: --user ubuntu
 
     steps:
       - name: Checkout Repo
