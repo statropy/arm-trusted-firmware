@@ -6,9 +6,16 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    container: ghcr.io/statropy/docker-bsp-buildenv:latest
+    container:
+        image: ghcr.io/statropy/docker-bsp-buildenv:latest
+        options: --user ubunutu
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Fix ownership
+        run: chown -R ubuntu:ubuntu $GITHUB_WORKSPACE
+
       - name: Build TF-A
         run: ./scripts/lan969x_build.rb
