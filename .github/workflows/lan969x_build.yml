@@ -20,4 +20,18 @@ jobs:
             su ubuntu
             ./scripts/lan969x_build.rb
 
-# TODO Create artifacts
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan969x_a0 release
+          path: |
+            artifacts/lan969x_a0
+            !artifacts/lan969x_a0/**/*.fip
+            !artifacts/lan969x_a0/**/*.gpt
+
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keys
+          path: |
+            keys

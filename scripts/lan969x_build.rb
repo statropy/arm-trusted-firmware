@@ -5,8 +5,8 @@ require 'optparse'
 require 'pp'
 
 build_platforms         = %I[lan969x_a0 lan969x_lm]
-build_types             = %I[debug release]
-build_authentifications = %I[auths ssk bssk]
+build_types             = %I[release]
+build_authentifications = %I[auth ssk bssk]
 build_auth_args         = { auth: '',
                             ssk:  '--encrypt-ssk keys/ssk.bin --encrypt-images bl2,bl31,bl32,bl33',
                             bssk: '--encrypt-bssk keys/huk.bin --encrypt-images bl2,bl31,bl32,bl33' }
