@@ -1,0 +1,36 @@
+name: ARM Trusted Firmware for LAN969x
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    container: ghcr.io/statropy/docker-bsp-buildenv:latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Fix ownership
+        run: chown -R ubuntu:ubuntu $GITHUB_WORKSPACE
+
+      - name: Build TF-A
+        run: |
+            su ubuntu
+            ./scripts/lan969x_build.rb
+
+      - name: 'Upload lan969x_a0-release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan969x_a0-release
+          path: |
+            artifacts/lan969x_a0
+            !artifacts/lan969x_a0/**/*.fip
+            !artifacts/lan969x_a0/**/*.gpt
+
+      - name: 'Upload Keys'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keys
+          path: keys
